@@ -207,9 +207,8 @@ export type DaimoPayHydratedOrder = {
   intentAddr: Address;
   escrowContractAddress: Address | null;
   /**
-   * @deprecated included for backcompat with old paykit versions. Remove once
-   * new paykit version is deployed.
-   * */
+   * @deprecated included for backcompat with old versions. Remove soon.
+   */
   handoffAddr: Address;
   bridgeTokenOutOptions: DaimoPayTokenAmount[];
   selectedBridgeTokenOutAddr: Address | null;

@@ -45,12 +45,11 @@ export function DemoPageContent() {
       <div className="max-w-4xl mx-auto py-12">
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold mb-4 text-green-dark">
-            PayKit Integration Demos
+            Daimo Pay Integration Demos
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Explore different payment integration examples running on mainnet.
-            Each demo showcases a unique implementation of PayKit&apos;s
-            features.
+            Explore integration scenarios. Each one comes with a live demo and
+            source code.
           </p>
         </div>
 

@@ -24,7 +24,7 @@ const PoweredByFooter = ({ supportUrl }: { supportUrl?: string } = {}) => {
           window.open(
             supportVisible
               ? supportUrl
-              : `https://pay.daimo.com?ref=paykit-v${daimoPayVersion}`,
+              : `https://pay.daimo.com?ref=sdk-v${daimoPayVersion}`,
             "_blank",
           );
         }}

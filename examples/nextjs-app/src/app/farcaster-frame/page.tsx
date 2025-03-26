@@ -74,7 +74,7 @@ export default function DemoFarcasterFrame() {
       />
       <Text>
         <TextLink
-          href="https://github.com/daimo-eth/paykit/blob/main/examples/nextjs-app/src/app/farcaster-frame"
+          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/farcaster-frame"
           target="_blank"
         >
           View on Github ↗

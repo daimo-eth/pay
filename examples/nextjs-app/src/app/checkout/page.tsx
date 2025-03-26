@@ -70,7 +70,7 @@ export default function DemoCheckout() {
       </Columns>
       <Text>
         <TextLink
-          href="https://github.com/daimo-eth/paykit/blob/main/examples/nextjs-app/src/app/checkout"
+          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/checkout"
           target="_blank"
         >
           View on Github ↗

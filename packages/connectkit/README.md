@@ -1,5 +1,5 @@
 <a href="https://paydocs.daimo.com">
-  <img src="https://raw.githubusercontent.com/daimo-eth/paykit/refs/heads/main/packages/connectkit/header.png">
+  <img src="https://raw.githubusercontent.com/daimo-eth/pay/refs/heads/main/packages/connectkit/header.png">
 </a>
 
 # Daimo Pay
@@ -35,8 +35,8 @@ Coming soon.
 Clone the repository and build the SDK in `dev` mode:
 
 ```sh
-git clone https://github.com/daimo-eth/paykit.git
-cd paykit/packages/connectkit
+git clone https://github.com/daimo-eth/pay.git
+cd pay/packages/connectkit
 npm i
 npm run dev
 ```
@@ -57,7 +57,7 @@ Any changes will be reflected on the Pay button in the example app.
 
 ## License
 
-See [LICENSE](https://github.com/daimo-eth/paykit/blob/main/packages/connectkit/LICENSE) for more information.
+See [LICENSE](https://github.com/daimo-eth/pay/blob/master/packages/connectkit/LICENSE) for more information.
 
 ## Credits
 

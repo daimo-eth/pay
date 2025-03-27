@@ -1,7 +1,7 @@
 "use client";
 
 import { DaimoPayButton } from "@daimo/pay";
-import * as foreignTokens from "@daimo/pay-common";
+import * as payCommon from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
@@ -28,26 +28,28 @@ export default function DemoBasic() {
   }, [isConfigOpen]);
 
   useEffect(() => {
-    if (config) {
-      const token = Object.values(foreignTokens).find(
-        (t) =>
-          typeof t === "object" &&
-          t !== null &&
-          "token" in t &&
-          t.token === config.tokenAddress,
-      );
+    if (config == null) return;
 
-      if (token && typeof token === "object" && "symbol" in token) {
-        const tokenVarName =
-          Object.entries(foreignTokens).find(
-            ([_, value]) =>
-              typeof value === "object" &&
-              value !== null &&
-              "token" in value &&
-              value.token === config.tokenAddress,
-          )?.[0] || token.symbol;
+    const token = Object.values(payCommon).find(
+      (t) =>
+        typeof t === "object" &&
+        t !== null &&
+        "token" in t &&
+        t.token === config.tokenAddress,
+    );
 
-        const snippet = `
+    if (!(token && typeof token === "object" && "symbol" in token)) return;
+
+    const tokenVarName =
+      Object.entries(payCommon).find(
+        ([_, value]) =>
+          typeof value === "object" &&
+          value !== null &&
+          "token" in value &&
+          value.token === config.tokenAddress,
+      )?.[0] || token.symbol;
+
+    const snippet = `
 import { ${tokenVarName} } from "@daimo/pay-common";
 
 <DaimoPayButton
@@ -58,9 +60,7 @@ import { ${tokenVarName} } from "@daimo/pay-common";
   toToken={getAddress(${tokenVarName}.token)}
 />
         `;
-        setCodeSnippet(snippet);
-      }
-    }
+    setCodeSnippet(snippet);
   }, [config]);
 
   return (

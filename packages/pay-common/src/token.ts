@@ -782,6 +782,12 @@ export function getChainAxlUSDC(chainId: number): Token | undefined {
   return tokensByChainAndType[chainId][TokenType.AXL_USDC];
 }
 
+/** Returns native USDC when available, otherwise bridged USDC. */
+export function getChainBestUSDC(chainId: number): Token | undefined {
+  const t = tokensByChainAndType[chainId];
+  return t[TokenType.NATIVE_USDC] ?? t[TokenType.BRIDGED_USDC];
+}
+
 export function getChainDAI(chainId: number): Token | undefined {
   return tokensByChainAndType[chainId][TokenType.DAI];
 }

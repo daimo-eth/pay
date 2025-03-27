@@ -449,6 +449,11 @@ export const zUUID = z.string().uuid();
 
 export type UUID = z.infer<typeof zUUID>;
 
+export const zHex = z
+  .string()
+  .regex(/^0x[0-9a-f]*$/i)
+  .refine((s): s is Hex => true);
+
 export type PaymentStartedEvent = {
   type: "payment_started";
   isTestEvent?: boolean;

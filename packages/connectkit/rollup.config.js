@@ -28,7 +28,7 @@ export default [
   },
   // Build types: index.d.ts
   {
-    input: "./build/pay/packages/connectkit/src/index.d.ts",
+    input: "./build/daimo-internal/pay/packages/connectkit/src/index.d.ts",
     output: { file: "build/index.d.ts", format: "esm" },
     external: ["../package.json"],
     plugins: [

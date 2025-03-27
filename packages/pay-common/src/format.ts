@@ -19,3 +19,5 @@ export function dateToUnix(d: Date): number {
 export function unixToDate(unix: number): Date {
   return new Date(unix * 1000);
 }
+
+/** Capitalize first letters, eg "op mainnet" */

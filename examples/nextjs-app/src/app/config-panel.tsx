@@ -1,6 +1,4 @@
-"use client";
-
-import * as foreignTokens from "@daimo/pay-common";
+import { supportedChains, supportedTokens, Token } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useState } from "react";
 import { isAddress } from "viem";
@@ -32,14 +30,6 @@ interface ConfigPanelProps {
   defaultRecipientAddress?: string;
 }
 
-interface ForeignToken {
-  chainId: number;
-  token: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-}
-
 export function ConfigPanel({
   configType,
   isOpen,
@@ -55,66 +45,13 @@ export function ConfigPanel({
     amount: "",
   });
 
-  // Chains to exclude
-  const excludedChains = new Set([
-    11155420, 84532, 80002, 43114, 43113, 501, 11155111, 421614, 1,
-  ]);
-
-  // Extract unique chains from foreignTokens
-  const chains = Object.entries(foreignTokens)
-    .filter(
-      ([_, value]): value is ForeignToken =>
-        typeof value === "object" &&
-        value !== null &&
-        "chainId" in value &&
-        "token" in value &&
-        "symbol" in value,
-    )
-    .reduce(
-      (acc, [_, token]) => {
-        // Skip excluded chains
-        if (excludedChains.has(token.chainId)) {
-          return acc;
-        }
-
-        if (!acc.some((chain) => chain.id === token.chainId)) {
-          // Add chain name mapping
-          const chainNames: Record<number, string> = {
-            137: "Polygon",
-            56: "BSC",
-            42161: "Arbitrum",
-            10: "Optimism",
-            8453: "Base",
-            59144: "Linea",
-            480: "Worldchain",
-            81457: "Blast",
-            5000: "Mantle",
-          };
-
-          acc.push({
-            id: token.chainId,
-            name: chainNames[token.chainId] || `Chain ${token.chainId}`,
-          });
-        }
-        return acc;
-      },
-      [] as Array<{ id: number; name: string }>,
-    );
+  // Extract unique chains
+  const chains = supportedChains;
 
   // Get tokens for selected chain
-  const getTokensForChain = useCallback((chainId: number) => {
-    return Object.entries(foreignTokens)
-      .filter(
-        ([_, value]): value is ForeignToken =>
-          typeof value === "object" &&
-          value !== null &&
-          "chainId" in value &&
-          "token" in value &&
-          "symbol" in value,
-      )
-      .map(([_, token]) => token)
-      .filter((token) => token.chainId === chainId);
-  }, []);
+  const tokens = supportedTokens.filter(
+    (token) => token.chainId === config.chainId,
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,7 +148,7 @@ export function ConfigPanel({
             >
               <option value={0}>Select Chain</option>
               {chains.map((chain) => (
-                <option key={chain.id} value={chain.id}>
+                <option key={chain.chainId} value={chain.chainId}>
                   {chain.name}
                 </option>
               ))}
@@ -234,7 +171,7 @@ export function ConfigPanel({
                 className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
               >
                 <option value="">Select Token</option>
-                {getTokensForChain(config.chainId).map((token) => (
+                {tokens.map((token) => (
                   <option key={token.token} value={token.token}>
                     {token.symbol}
                   </option>

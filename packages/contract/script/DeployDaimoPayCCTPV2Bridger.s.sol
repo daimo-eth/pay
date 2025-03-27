@@ -4,19 +4,19 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import "../src/DaimoPayCCTPBridger.sol";
+import "../src/DaimoPayCCTPV2Bridger.sol";
 import "./Constants.s.sol";
 
-contract DeployDaimoPayCCTPBridger is Script {
+contract DeployDaimoPayCCTPV2Bridger is Script {
     function run() public {
-        address tokenMinter = _getTokenMinterAddress(block.chainid);
-        address tokenMessenger = _getTokenMessengerAddress(block.chainid);
-        console.log("tokenMinter:", tokenMinter);
-        console.log("tokenMessenger:", tokenMessenger);
+        address tokenMinterV2 = _getTokenMinterV2Address(block.chainid);
+        address tokenMessengerV2 = _getTokenMessengerV2Address(block.chainid);
+        console.log("tokenMinterV2:", tokenMinterV2);
+        console.log("tokenMessengerV2:", tokenMessengerV2);
 
         (
             uint256[] memory chainIds,
-            DaimoPayCCTPBridger.CCTPBridgeRoute[] memory bridgeRoutes
+            DaimoPayCCTPV2Bridger.CCTPBridgeRoute[] memory bridgeRoutes
         ) = _getCCTPBridgeRoutes();
 
         vm.startBroadcast();
@@ -24,13 +24,13 @@ contract DeployDaimoPayCCTPBridger is Script {
         address initOwner = msg.sender;
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayCCTPBridger-options4"),
+            keccak256("test"),
             abi.encodePacked(
-                type(DaimoPayCCTPBridger).creationCode,
+                type(DaimoPayCCTPV2Bridger).creationCode,
                 abi.encode(
                     initOwner,
-                    ITokenMinter(tokenMinter),
-                    ICCTPTokenMessenger(tokenMessenger),
+                    ITokenMinterV2(tokenMinterV2),
+                    ICCTPTokenMessengerV2(tokenMessengerV2),
                     chainIds,
                     bridgeRoutes
                 )
@@ -46,29 +46,17 @@ contract DeployDaimoPayCCTPBridger is Script {
         view
         returns (
             uint256[] memory chainIds,
-            DaimoPayCCTPBridger.CCTPBridgeRoute[] memory bridgeRoutes
+            DaimoPayCCTPV2Bridger.CCTPBridgeRoute[] memory bridgeRoutes
         )
     {
-        bool testnet = _isTestnet(block.chainid);
-        if (testnet) {
-            // Bridging not supported on testnet.
-            return (
-                new uint256[](0),
-                new DaimoPayCCTPBridger.CCTPBridgeRoute[](0)
-            );
-        }
+        chainIds = new uint256[](3);
+        chainIds[0] = BASE_MAINNET;
+        chainIds[1] = ETH_MAINNET;
+        chainIds[2] = LINEA_MAINNET;
 
-        chainIds = new uint256[](6);
-        chainIds[0] = ETH_MAINNET;
-        chainIds[1] = AVAX_MAINNET;
-        chainIds[2] = OP_MAINNET;
-        chainIds[3] = ARBITRUM_MAINNET;
-        chainIds[4] = BASE_MAINNET;
-        chainIds[5] = POLYGON_MAINNET;
-
-        bridgeRoutes = new DaimoPayCCTPBridger.CCTPBridgeRoute[](6);
+        bridgeRoutes = new DaimoPayCCTPV2Bridger.CCTPBridgeRoute[](3);
         for (uint256 i = 0; i < chainIds.length; ++i) {
-            bridgeRoutes[i] = DaimoPayCCTPBridger.CCTPBridgeRoute({
+            bridgeRoutes[i] = DaimoPayCCTPV2Bridger.CCTPBridgeRoute({
                 domain: _getCCTPDomain(chainIds[i]),
                 bridgeTokenOut: _getUSDCAddress(chainIds[i])
             });

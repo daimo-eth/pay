@@ -34,9 +34,9 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
 
     // CCTP TokenMinter for this chain. Used to identify the CCTP token on the
     // current chain.
-    ITokenMinterV2 public tokenMinter;
+    ITokenMinterV2 public tokenMinterV2;
     // CCTP TokenMessenger for this chain. Used to initiate the CCTP bridge.
-    ICCTPTokenMessengerV2 public cctpMessenger;
+    ICCTPTokenMessengerV2 public cctpMessengerV2;
 
     // Map destination chainId to CCTP domain and the bridge token address on the
     // destination chain.
@@ -56,13 +56,13 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     /// Specify the CCTP chain IDs and domains that this bridger will support.
     constructor(
         address _owner,
-        ITokenMinterV2 _tokenMinter,
-        ICCTPTokenMessengerV2 _cctpMessenger,
+        ITokenMinterV2 _tokenMinterV2,
+        ICCTPTokenMessengerV2 _cctpMessengerV2,
         uint256[] memory _toChainIds,
         CCTPBridgeRoute[] memory _bridgeRoutes
     ) Ownable(_owner) {
-        tokenMinter = _tokenMinter;
-        cctpMessenger = _cctpMessenger;
+        tokenMinterV2 = _tokenMinterV2;
+        cctpMessengerV2 = _cctpMessengerV2;
         _setBridgeRoutes({
             toChainIds: _toChainIds,
             bridgeRoutes: _bridgeRoutes
@@ -168,7 +168,7 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         toDomain = bridgeRoute.domain;
         outToken = bridgeRoute.bridgeTokenOut;
         outAmount = bridgeTokenOutOptions[index].amount;
-        inToken = tokenMinter.getLocalToken(
+        inToken = tokenMinterV2.getLocalToken(
             bridgeRoute.domain,
             addressToBytes32(bridgeRoute.bridgeTokenOut)
         );
@@ -217,11 +217,11 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
             value: inAmount
         });
         IERC20(inToken).forceApprove({
-            spender: address(cctpMessenger),
+            spender: address(cctpMessengerV2),
             value: inAmount
         });
 
-        cctpMessenger.depositForBurn({
+        cctpMessengerV2.depositForBurn({
             amount: inAmount,
             destinationDomain: toDomain,
             mintRecipient: addressToBytes32(toAddress),

@@ -2,19 +2,24 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import {GasInfo} from "@axelar-network/contracts/interfaces/IAxelarGasService.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "../src/DaimoPay.sol";
 import "../src/DaimoPayBridger.sol";
 import "../src/DaimoPayCCTPBridger.sol";
+import "../src/DaimoPayCCTPV2Bridger.sol";
 import "../src/DaimoPayAcrossBridger.sol";
 import "../src/DaimoPayAxelarBridger.sol";
-import "./dummy/DaimoDummyUSDC.sol";
+import "./dummy/DummyUSDC.sol";
+import "./dummy/across.sol";
+import "./dummy/axelar.sol";
+import "./dummy/cctp.sol";
+import "./dummy/cctpv2.sol";
 
-address constant BASE_INTENT_ADDR = 0xc04F86d683cF8f9C16239024afeCaB9794cB9A69;
-address constant LINEA_INTENT_ADDR = 0x1b42980e79afEad65FF95DE02A3C74189cBb0650;
-address constant BSC_INTENT_ADDR = 0xD0226bb8F1508A6c600C230237B2E2c7a1Cf5E4A;
+address constant CCTP_INTENT_ADDR = 0xBEbbe9338034f09E68054661794A97403E146517;
+address constant CCTP_V2_INTENT_ADDR = 0xBeC35d1e3eB87d88A53496ee311B6cfB661f7AA7;
+address constant ACROSS_INTENT_ADDR = 0xe29Ef804A32274b11165809875c58D3a88079d3e;
+address constant AXELAR_INTENT_ADDR = 0x2Ccf02a1247440355856dbfF1Ec99Aa4FfF41a6d;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts
@@ -24,12 +29,17 @@ contract DaimoPayTest is Test {
     // Bridging contracts
     DaimoPayBridger public bridger;
     DaimoPayCCTPBridger public cctpBridger;
+    DaimoPayCCTPV2Bridger public cctpV2Bridger;
     DaimoPayAcrossBridger public acrossBridger;
     DaimoPayAxelarBridger public axelarBridger;
 
     // CCTP dummy contracts
     DummyTokenMinter public tokenMinter;
     DummyCCTPMessenger public messenger;
+
+    // CCTPV2 dummy contracts
+    DummyTokenMinterV2 public tokenMinterV2;
+    DummyCCTPMessengerV2 public messengerV2;
 
     // Across dummy contracts
     DummySpokePool public spokePool;
@@ -57,10 +67,12 @@ contract DaimoPayTest is Test {
 
     // Chains
     uint256 immutable _fromChainId = 10; // Optimism
-    uint256 immutable _baseChainId = 8453; // Base
-    uint32 immutable _baseDomain = 6; // Base
-    uint256 immutable _lineaChainId = 59144; // Linea
-    uint256 immutable _bscChainId = 56; // BNB Chain
+    uint256 immutable _cctpDestchainId = 8453; // Base
+    uint32 immutable _cctpDestDomain = 6; // Base
+    uint256 immutable _cctpV2DestChainId = 42161; // Arbitrum
+    uint32 immutable _cctpV2DestDomain = 3; // Arbitrum
+    uint256 immutable _acrossDestChainId = 59144; // Linea
+    uint256 immutable _axelarDestChainId = 56; // BNB Chain
 
     // Intent data
     uint256 immutable _toAmount = 100;
@@ -74,20 +86,20 @@ contract DaimoPayTest is Test {
         // Initialize CCTP bridger
         tokenMinter = new DummyTokenMinter();
         tokenMinter.setLocalToken(
-            _baseDomain,
+            _cctpDestDomain,
             bytes32(uint256(uint160(address(_toToken)))),
             address(_fromToken)
         );
-        messenger = new DummyCCTPMessenger(address(_fromToken));
+        messenger = new DummyCCTPMessenger(_cctpDestDomain, CCTP_INTENT_ADDR, address(_fromToken));
 
         uint256[] memory cctpChainIds = new uint256[](1);
         DaimoPayCCTPBridger.CCTPBridgeRoute[]
             memory cctpBridgeRoutes = new DaimoPayCCTPBridger.CCTPBridgeRoute[](
                 1
             );
-        cctpChainIds[0] = _baseChainId;
+        cctpChainIds[0] = _cctpDestchainId;
         cctpBridgeRoutes[0] = DaimoPayCCTPBridger.CCTPBridgeRoute({
-            domain: _baseDomain,
+            domain: _cctpDestDomain,
             bridgeTokenOut: address(_toToken)
         });
         cctpBridger = new DaimoPayCCTPBridger({
@@ -98,15 +110,42 @@ contract DaimoPayTest is Test {
             _bridgeRoutes: cctpBridgeRoutes
         });
 
+        // Initialize CCTP v2 bridger
+        tokenMinterV2 = new DummyTokenMinterV2();
+        tokenMinterV2.setLocalToken(
+            _cctpV2DestDomain,
+            bytes32(uint256(uint160(address(_toToken)))),
+            address(_fromToken)
+        );
+        messengerV2 = new DummyCCTPMessengerV2(_cctpV2DestDomain, CCTP_V2_INTENT_ADDR, address(_fromToken));
+
+        uint256[] memory cctpV2ChainIds = new uint256[](1);
+        DaimoPayCCTPV2Bridger.CCTPBridgeRoute[]
+            memory cctpV2BridgeRoutes = new DaimoPayCCTPV2Bridger.CCTPBridgeRoute[](
+                1
+            );
+        cctpV2ChainIds[0] = _cctpV2DestChainId;
+        cctpV2BridgeRoutes[0] = DaimoPayCCTPV2Bridger.CCTPBridgeRoute({
+            domain: _cctpV2DestDomain,
+            bridgeTokenOut: address(_toToken)
+        });
+        cctpV2Bridger = new DaimoPayCCTPV2Bridger({
+            _owner: address(this),
+            _tokenMinter: tokenMinterV2,
+            _cctpMessenger: messengerV2,
+            _toChainIds: cctpV2ChainIds,
+            _bridgeRoutes: cctpV2BridgeRoutes
+        });
+
         // Initialize Across bridger
-        spokePool = new DummySpokePool(address(_fromToken), address(_toToken));
+        spokePool = new DummySpokePool(address(_fromToken), address(_toToken), ACROSS_INTENT_ADDR);
 
         uint256[] memory acrossChainIds = new uint256[](1);
         DaimoPayAcrossBridger.AcrossBridgeRoute[]
             memory acrossBridgeRoutes = new DaimoPayAcrossBridger.AcrossBridgeRoute[](
                 1
             );
-        acrossChainIds[0] = _lineaChainId;
+        acrossChainIds[0] = _acrossDestChainId;
         acrossBridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
             bridgeTokenIn: address(_fromToken),
             bridgeTokenOut: address(_toToken),
@@ -122,8 +161,15 @@ contract DaimoPayTest is Test {
         });
 
         // Initialize Axelar bridger
-        axelarGateway = new DummyAxelarGatewayWithToken();
+        axelarGateway = new DummyAxelarGatewayWithToken(
+            "binance",
+            address(0xdead),
+            AXELAR_INTENT_ADDR
+        );
         axelarGasService = new DummyAxelarGasService(
+            "binance",
+            address(0xdead),
+            AXELAR_INTENT_ADDR,
             _toAmount,
             address(_alice)
         );
@@ -133,7 +179,7 @@ contract DaimoPayTest is Test {
             memory axelarBridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](
                 1
             );
-        axelarChainIds[0] = _bscChainId;
+        axelarChainIds[0] = _axelarDestChainId;
         axelarBridgeRoutes[0] = DaimoPayAxelarBridger.AxelarBridgeRoute({
             destChainName: "binance",
             bridgeTokenIn: address(_fromToken),
@@ -151,16 +197,18 @@ contract DaimoPayTest is Test {
             _bridgeRoutes: axelarBridgeRoutes
         });
 
-        // Map _baseChainId to cctpBridger, _lineaChainId to acrossBridger,
-        // and _bscChainId to axelarBridger
-        uint256[] memory chainIds = new uint256[](3);
-        chainIds[0] = _baseChainId;
-        chainIds[1] = _lineaChainId;
-        chainIds[2] = _bscChainId;
-        IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](3);
+        // Map _cctpDestchainId to cctpBridger, _acrossDestChainId to acrossBridger,
+        // and _axelarDestChainId to axelarBridger
+        uint256[] memory chainIds = new uint256[](4);
+        chainIds[0] = _cctpDestchainId;
+        chainIds[1] = _cctpV2DestChainId;
+        chainIds[2] = _acrossDestChainId;
+        chainIds[3] = _axelarDestChainId;
+        IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](4);
         bridgers[0] = cctpBridger;
-        bridgers[1] = acrossBridger;
-        bridgers[2] = axelarBridger;
+        bridgers[1] = cctpV2Bridger;
+        bridgers[2] = acrossBridger;
+        bridgers[3] = axelarBridger;
 
         bridger = new DaimoPayBridger({
             _owner: address(this),
@@ -174,7 +222,10 @@ contract DaimoPayTest is Test {
         console.log("PayIntentFactory address:", address(intentFactory));
         console.log("DummyTokenMinter address:", address(tokenMinter));
         console.log("DummyCCTPMessenger address:", address(messenger));
+        console.log("DummyTokenMinterV2 address:", address(tokenMinterV2));
+        console.log("DummyCCTPMessengerV2 address:", address(messengerV2));
         console.log("DaimoPayCCTPBridger address:", address(cctpBridger));
+        console.log("DaimoPayCCTPV2Bridger address:", address(cctpV2Bridger));
         console.log("DaimoPayAcrossBridger address:", address(acrossBridger));
         console.log("DaimoPayAxelarBridger address:", address(axelarBridger));
         console.log("DaimoPayBridger address:", address(bridger));
@@ -205,8 +256,8 @@ contract DaimoPayTest is Test {
     }
 
     function testGetIntentAddr() public view {
-        PayIntent memory baseIntent = PayIntent({
-            toChainId: _baseChainId,
+        PayIntent memory cctpIntent = PayIntent({
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -215,14 +266,29 @@ contract DaimoPayTest is Test {
             nonce: _nonce
         });
 
-        address actualBaseIntentAddr = intentFactory.getIntentAddress(
-            baseIntent
+        address actualCCTPIntentAddr = intentFactory.getIntentAddress(
+            cctpIntent
         );
-        console.log("actual base intent addr:", actualBaseIntentAddr);
+        console.log("actual CCTP intent addr:", actualCCTPIntentAddr);
+
+        PayIntent memory cctpV2Intent = PayIntent({
+            toChainId: _cctpV2DestChainId,
+            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            finalCall: Call({to: _bob, value: 0, data: ""}),
+            escrow: payable(address(dp)),
+            refundAddress: _alice,
+            nonce: _nonce
+        });
+
+        address actualCCTPV2IntentAddr = intentFactory.getIntentAddress(
+            cctpV2Intent
+        );
+        console.log("actual CCTP v2 intent addr:", actualCCTPV2IntentAddr);
 
         // Get the intent address for the Linea chain
-        PayIntent memory lineaIntent = PayIntent({
-            toChainId: _lineaChainId,
+        PayIntent memory acrossIntent = PayIntent({
+            toChainId: _acrossDestChainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -230,14 +296,14 @@ contract DaimoPayTest is Test {
             refundAddress: _alice,
             nonce: _nonce
         });
-        address actualLineaIntentAddr = intentFactory.getIntentAddress(
-            lineaIntent
+        address actualAcrossIntentAddr = intentFactory.getIntentAddress(
+            acrossIntent
         );
-        console.log("actual linea intent addr:", actualLineaIntentAddr);
+        console.log("actual across intent addr:", actualAcrossIntentAddr);
 
         // Get the intent address for the BNB chain
-        PayIntent memory bnbIntent = PayIntent({
-            toChainId: _bscChainId,
+        PayIntent memory axelarIntent = PayIntent({
+            toChainId: _axelarDestChainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -245,12 +311,13 @@ contract DaimoPayTest is Test {
             refundAddress: _alice,
             nonce: _nonce
         });
-        address actualBnbIntentAddr = intentFactory.getIntentAddress(bnbIntent);
-        console.log("actual bsc intent addr:", actualBnbIntentAddr);
+        address actualAxelarIntentAddr = intentFactory.getIntentAddress(axelarIntent);
+        console.log("actual axelar intent addr:", actualAxelarIntentAddr);
 
-        assertEq(actualBaseIntentAddr, BASE_INTENT_ADDR);
-        assertEq(actualLineaIntentAddr, LINEA_INTENT_ADDR);
-        assertEq(actualBnbIntentAddr, BSC_INTENT_ADDR);
+        assertEq(actualCCTPIntentAddr, CCTP_INTENT_ADDR);
+        assertEq(actualCCTPV2IntentAddr, CCTP_V2_INTENT_ADDR);
+        assertEq(actualAcrossIntentAddr, ACROSS_INTENT_ADDR);
+        assertEq(actualAxelarIntentAddr, AXELAR_INTENT_ADDR);
     }
 
     function getSimpleSameChainPayIntent()
@@ -351,7 +418,7 @@ contract DaimoPayTest is Test {
         returns (PayIntent memory intent)
     {
         intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -383,13 +450,13 @@ contract DaimoPayTest is Test {
             fromAddress: address(bridger),
             fromToken: address(_fromToken),
             fromAmount: _toAmount,
-            toChainId: _baseChainId,
-            toAddress: BASE_INTENT_ADDR,
+            toChainId: _cctpDestchainId,
+            toAddress: CCTP_INTENT_ADDR,
             toToken: address(_toToken),
             toAmount: _toAmount
         });
         vm.expectEmit(address(dp));
-        emit DaimoPay.Start(BASE_INTENT_ADDR, intent);
+        emit DaimoPay.Start(CCTP_INTENT_ADDR, intent);
 
         uint256 gasBefore = gasleft();
         dp.startIntent({
@@ -456,6 +523,86 @@ contract DaimoPayTest is Test {
         assertEq(_fromToken.balanceOf(_alice), 455);
     }
 
+    // Test a simple startIntent call that bridges using CCTPV2.
+    // Simple = no pre-swap, no post-call.
+    function testSimpleCCTPV2Start() public {
+        vm.chainId(_fromChainId);
+
+        // Give Alice some coins
+        _fromToken.transfer(_alice, 555);
+
+        // Alice initiates a transfer
+        vm.startPrank(_alice);
+
+        PayIntent memory intent = PayIntent({
+            toChainId: _cctpV2DestChainId,
+            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            finalCall: Call({to: _bob, value: 0, data: ""}),
+            escrow: payable(address(dp)),
+            refundAddress: _alice,
+            nonce: _nonce
+        });
+
+        // Alice sends some coins to the intent address
+        address intentAddr = intentFactory.getIntentAddress(intent);
+        _fromToken.transfer(intentAddr, _toAmount);
+
+        vm.expectEmit(address(cctpV2Bridger));
+        emit IDaimoPayBridger.BridgeInitiated({
+            fromAddress: address(bridger),
+            fromToken: address(_fromToken),
+            fromAmount: _toAmount,
+            toChainId: _cctpV2DestChainId,
+            toAddress: CCTP_V2_INTENT_ADDR,
+            toToken: address(_toToken),
+            toAmount: _toAmount
+        });
+        vm.expectEmit(address(dp));
+        emit DaimoPay.Start(CCTP_V2_INTENT_ADDR, intent);
+
+        // Create the ExtraData struct for CCTP v2 bridging
+        DaimoPayCCTPV2Bridger.ExtraData memory extraData = DaimoPayCCTPV2Bridger
+            .ExtraData({
+                maxFee: 0,
+                minFinalityThreshold: 10000
+            });
+
+        uint256 gasBefore = gasleft();
+        dp.startIntent({
+            intent: intent,
+            calls: new Call[](0),
+            bridgeExtraData: abi.encode(extraData)
+        });
+        uint256 gasAfter = gasleft();
+
+        console.log("gas used", gasBefore - gasAfter);
+
+        vm.stopPrank();
+
+        assertEq(dp.intentSent(intentAddr), true, "intent not sent");
+        // Check that the CCTP v2 messenger burned tokens
+        assertEq(
+            messengerV2.amountBurned(),
+            _toAmount,
+            "incorrect CCTPV2 amount burned"
+        );
+        // Check that the CCTP v1 messenger didn't burn tokens
+        assertEq(messenger.amountBurned(), 0, "incorrect CCTP amount burned");
+        // Check that the Across bridger did not receive tokens
+        assertEq(
+            spokePool.totalInputAmount(),
+            0,
+            "incorrect Across amount received"
+        );
+        // Check that the Axelar bridger didn't receive tokens
+        assertEq(
+            axelarGateway.totalAmount(),
+            0,
+            "incorrect Axelar amount received"
+        );
+    }
+
     // Test a simple startIntent call that bridges using Across.
     // Simple = no pre-swap, no post-call.
     function testSimpleAcrossStart() public {
@@ -468,7 +615,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_alice);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _lineaChainId,
+            toChainId: _acrossDestChainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -502,18 +649,18 @@ contract DaimoPayTest is Test {
             fromAddress: address(bridger),
             fromToken: address(_fromToken),
             fromAmount: expectedInputAmount,
-            toChainId: _lineaChainId,
-            toAddress: LINEA_INTENT_ADDR,
+            toChainId: _acrossDestChainId,
+            toAddress: ACROSS_INTENT_ADDR,
             toToken: address(_toToken),
             toAmount: _toAmount
         });
 
         // Extra tokens should be refunded to the caller
         vm.expectEmit(address(_fromToken));
-        emit IERC20.Transfer(LINEA_INTENT_ADDR, _alice, 10);
+        emit IERC20.Transfer(ACROSS_INTENT_ADDR, _alice, 10);
 
         vm.expectEmit(address(dp));
-        emit DaimoPay.Start(LINEA_INTENT_ADDR, intent);
+        emit DaimoPay.Start(ACROSS_INTENT_ADDR, intent);
 
         uint256 gasBefore = gasleft();
         dp.startIntent({
@@ -559,7 +706,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_alice);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _bscChainId,
+            toChainId: _axelarDestChainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -580,7 +727,7 @@ contract DaimoPayTest is Test {
             fromAddress: address(bridger),
             fromToken: address(_fromToken),
             fromAmount: _toAmount,
-            toChainId: _bscChainId,
+            toChainId: _axelarDestChainId,
             toAddress: intentAddr,
             toToken: address(_toToken),
             toAmount: _toAmount
@@ -635,7 +782,7 @@ contract DaimoPayTest is Test {
     // Test that a simple fastFinishIntent completes successfully.
     // Simple = no swap, no finalCall, just a transfer to the recipient.
     function testSimpleFastFinish() public {
-        vm.chainId(_baseChainId);
+        vm.chainId(_cctpDestchainId);
 
         // Seed the LP with an initial balance
         _toToken.transfer(_lp, _lpToTokenInitBalance);
@@ -644,7 +791,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_lp);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -658,14 +805,14 @@ contract DaimoPayTest is Test {
 
         vm.expectEmit(address(dp));
         emit DaimoPay.IntentFinished({
-            intentAddr: BASE_INTENT_ADDR,
+            intentAddr: CCTP_INTENT_ADDR,
             destinationAddr: _bob,
             success: true,
             intent: intent
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.FastFinish({
-            intentAddr: BASE_INTENT_ADDR,
+            intentAddr: CCTP_INTENT_ADDR,
             newRecipient: _lp
         });
 
@@ -681,7 +828,7 @@ contract DaimoPayTest is Test {
     // Test that the LP gets refunded any surplus tokens after fast finishing
     // the intent.
     function testSimpleFastFinishWithLeftover() public {
-        vm.chainId(_baseChainId);
+        vm.chainId(_cctpDestchainId);
 
         // Seed the LP with an initial balance
         _toToken.transfer(_lp, _lpToTokenInitBalance);
@@ -690,7 +837,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_lp);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: 1}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -724,13 +871,13 @@ contract DaimoPayTest is Test {
         vm.warp(block.timestamp + 20 minutes);
 
         // CCTP receiveMessage() sends funds to the intent address
-        _toToken.transfer(BASE_INTENT_ADDR, _toAmount);
+        _toToken.transfer(CCTP_INTENT_ADDR, _toAmount);
 
         // Then, LP claims the funds
         vm.prank(_lp);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -741,7 +888,7 @@ contract DaimoPayTest is Test {
 
         vm.expectEmit(address(dp));
         emit DaimoPay.Claim({
-            intentAddr: BASE_INTENT_ADDR,
+            intentAddr: CCTP_INTENT_ADDR,
             finalRecipient: _lp
         });
 
@@ -749,26 +896,26 @@ contract DaimoPayTest is Test {
 
         // LP received funds from intent, and intent is destroyed. Bob has
         // _toAmount tokens from the fast finish.
-        assertEq(_toToken.balanceOf(BASE_INTENT_ADDR), 0);
+        assertEq(_toToken.balanceOf(CCTP_INTENT_ADDR), 0);
         assertEq(_toToken.balanceOf(_lp), _lpToTokenInitBalance);
         assertEq(_toToken.balanceOf(_bob), _toAmount);
     }
 
     // Test that the funds are sent to the final recipient if no LP claims.
     function testClaimWithoutFastFinish() public {
-        vm.chainId(_baseChainId);
+        vm.chainId(_cctpDestchainId);
 
         // Wait for CCTP to relay the message
         vm.warp(block.timestamp + 20 minutes);
 
         // CCTP receiveMessage() sends funds to the intent address
-        _toToken.transfer(BASE_INTENT_ADDR, _toAmount);
+        _toToken.transfer(CCTP_INTENT_ADDR, _toAmount);
 
         // Then, a third party calls claimIntent
         vm.prank(_lp);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -779,14 +926,14 @@ contract DaimoPayTest is Test {
 
         vm.expectEmit(address(dp));
         emit DaimoPay.IntentFinished({
-            intentAddr: BASE_INTENT_ADDR,
+            intentAddr: CCTP_INTENT_ADDR,
             destinationAddr: _bob,
             success: true,
             intent: intent
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.Claim({
-            intentAddr: BASE_INTENT_ADDR,
+            intentAddr: CCTP_INTENT_ADDR,
             finalRecipient: _bob
         });
 
@@ -794,7 +941,7 @@ contract DaimoPayTest is Test {
 
         // LP doesn't receive funds, intent is destroyed, and funds are sent
         // to Bob
-        assertEq(_toToken.balanceOf(BASE_INTENT_ADDR), 0);
+        assertEq(_toToken.balanceOf(CCTP_INTENT_ADDR), 0);
         assertEq(_toToken.balanceOf(_lp), 0);
         assertEq(_toToken.balanceOf(_bob), _toAmount);
     }
@@ -802,12 +949,12 @@ contract DaimoPayTest is Test {
     // Test that the contract reverts when the intent address doesn't have
     // sufficient balance of any bridge token option.
     function testClaimWithInsufficientBalance() public {
-        vm.chainId(_baseChainId);
+        vm.chainId(_cctpDestchainId);
 
         // Send insufficient funds to the intent address
-        _toToken.transfer(BASE_INTENT_ADDR, _toAmount - 1);
+        _toToken.transfer(CCTP_INTENT_ADDR, _toAmount - 1);
         _bridgeTokenOption.transfer(
-            BASE_INTENT_ADDR,
+            CCTP_INTENT_ADDR,
             _bridgeTokenOptionToAmount - 1
         );
 
@@ -815,7 +962,7 @@ contract DaimoPayTest is Test {
         vm.prank(_lp);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -830,9 +977,9 @@ contract DaimoPayTest is Test {
 
         // LP didn't receive funds from intent and the tokens are still in the
         // intent address
-        assertEq(_toToken.balanceOf(BASE_INTENT_ADDR), _toAmount - 1);
+        assertEq(_toToken.balanceOf(CCTP_INTENT_ADDR), _toAmount - 1);
         assertEq(
-            _bridgeTokenOption.balanceOf(BASE_INTENT_ADDR),
+            _bridgeTokenOption.balanceOf(CCTP_INTENT_ADDR),
             _bridgeTokenOptionToAmount - 1
         );
         assertEq(_toToken.balanceOf(_lp), 0);
@@ -842,7 +989,7 @@ contract DaimoPayTest is Test {
     // Test that the contract reverts when the fromToken doesn't match the
     // localToken returned by the CCTP TokenMinter.
     function testCCTPFromAndToTokenMismatch() public {
-        vm.chainId(_baseChainId);
+        vm.chainId(_cctpDestchainId);
 
         // Give Alice some coins
         _unregisteredToken.transfer(_alice, 555);
@@ -851,7 +998,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_alice);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _baseChainId,
+            toChainId: _cctpDestchainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -886,7 +1033,7 @@ contract DaimoPayTest is Test {
         vm.startPrank(_alice);
 
         PayIntent memory intent = PayIntent({
-            toChainId: _lineaChainId,
+            toChainId: _acrossDestChainId,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -929,7 +1076,7 @@ contract DaimoPayTest is Test {
             address actualLargeInputToken,
             uint256 actualLargeInputAmount
         ) = acrossBridger.getBridgeTokenIn({
-                toChainId: _lineaChainId,
+                toChainId: _acrossDestChainId,
                 bridgeTokenOutOptions: bridgeTokenOutOptions
             });
         assertEq(
@@ -952,7 +1099,7 @@ contract DaimoPayTest is Test {
             address actualSmallInputToken,
             uint256 actualSmallInputAmount
         ) = acrossBridger.getBridgeTokenIn({
-                toChainId: _lineaChainId,
+                toChainId: _acrossDestChainId,
                 bridgeTokenOutOptions: bridgeTokenOutOptions
             });
         assertEq(
@@ -962,520 +1109,5 @@ contract DaimoPayTest is Test {
         );
         // The Linea bridge route uses (_fromToken, _toToken) as the bridge token
         assertEq(actualSmallInputToken, address(_fromToken), "incorrect token");
-    }
-}
-
-contract DummyCCTPMessenger is ICCTPTokenMessenger, Test {
-    address public immutable expectedBurnToken;
-    uint256 public amountBurned;
-
-    constructor(address burnToken) {
-        expectedBurnToken = burnToken;
-        amountBurned = 0;
-    }
-
-    function depositForBurn(
-        uint256 amount,
-        uint32 destinationDomain,
-        bytes32 mintRecipient,
-        address burnToken
-    ) external returns (uint64 _nonce) {
-        assertEq(amount, 100, "incorrect amount");
-        assertEq(destinationDomain, 6, "incorrect destination domain");
-        address expectedRecipient = BASE_INTENT_ADDR;
-        assertEq(
-            mintRecipient,
-            bytes32(uint256(uint160(expectedRecipient))),
-            "incorrect mint recipient"
-        );
-        assertEq(burnToken, expectedBurnToken, "incorrect burn token");
-
-        // Burn it
-        IERC20(burnToken).transferFrom(msg.sender, address(0xdead), amount);
-        amountBurned += amount;
-
-        return 0;
-    }
-}
-
-contract DummyTokenMinter is ITokenMinter, Test {
-    mapping(uint32 => mapping(bytes32 => address)) private localTokens;
-
-    function mint(
-        uint32 /*sourceDomain*/,
-        bytes32 /*burnToken*/,
-        address /*to*/,
-        uint256 /*amount*/
-    ) external pure returns (address mintToken) {
-        mintToken = address(0);
-    }
-
-    function burn(address /*burnToken*/, uint256 /*amount*/) external {}
-
-    function getLocalToken(
-        uint32 remoteDomain,
-        bytes32 remoteToken
-    ) public view returns (address) {
-        return localTokens[remoteDomain][remoteToken];
-    }
-
-    function setTokenController(address /*newTokenController*/) external {}
-
-    // Helper function to set up token mappings for testing
-    function setLocalToken(
-        uint32 remoteDomain,
-        bytes32 remoteToken,
-        address localToken
-    ) external {
-        localTokens[remoteDomain][remoteToken] = localToken;
-    }
-}
-
-contract DummySpokePool is V3SpokePoolInterface, Test {
-    address public immutable expectedInputToken;
-    address public immutable expectedOutputToken;
-    uint256 public totalInputAmount;
-    uint256 public totalOutputAmount;
-
-    constructor(address inputToken, address outputToken) {
-        expectedInputToken = inputToken;
-        expectedOutputToken = outputToken;
-        totalInputAmount = 0;
-        totalOutputAmount = 0;
-    }
-
-    function depositV3(
-        address /* depositor */,
-        address recipient,
-        address inputToken,
-        address outputToken,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 destinationChainId,
-        address exclusiveRelayer,
-        uint32 quoteTimestamp,
-        uint32 fillDeadline,
-        uint32 exclusivityDeadline,
-        bytes calldata message
-    ) external payable {
-        assertEq(recipient, LINEA_INTENT_ADDR, "incorrect recipient");
-        assertEq(inputToken, expectedInputToken, "incorrect input token");
-        assertEq(outputToken, expectedOutputToken, "incorrect output token");
-        assertEq(inputAmount, 110, "incorrect input amount");
-        assertEq(outputAmount, 100, "incorrect output amount");
-        assertEq(destinationChainId, 59144, "incorrect destination chain id");
-        assertEq(exclusiveRelayer, address(0), "incorrect exclusive relayer");
-        assertEq(quoteTimestamp, block.timestamp, "incorrect quote timestamp");
-        assertEq(
-            fillDeadline,
-            block.timestamp + 1 hours,
-            "incorrect fill deadline"
-        );
-        assertEq(exclusivityDeadline, 0, "incorrect exclusivity deadline");
-        assertEq(message, "gm ser", "incorrect message");
-
-        IERC20(inputToken).transferFrom(
-            msg.sender,
-            address(0xdead),
-            inputAmount
-        );
-        totalInputAmount += inputAmount;
-        totalOutputAmount += outputAmount;
-    }
-
-    function depositV3Now(
-        address depositor,
-        address recipient,
-        address inputToken,
-        address outputToken,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 destinationChainId,
-        address exclusiveRelayer,
-        uint32 fillDeadlineOffset,
-        uint32 exclusivityDeadline,
-        bytes calldata message
-    ) external payable {}
-
-    function speedUpV3Deposit(
-        address depositor,
-        uint32 depositId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external {}
-
-    function fillV3Relay(
-        V3RelayData calldata relayData,
-        uint256 repaymentChainId
-    ) external {}
-
-    function fillV3RelayWithUpdatedDeposit(
-        V3RelayData calldata relayData,
-        uint256 repaymentChainId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external {}
-
-    function requestV3SlowFill(V3RelayData calldata relayData) external {}
-
-    function executeV3SlowRelayLeaf(
-        V3SlowFill calldata slowFillLeaf,
-        uint32 rootBundleId,
-        bytes32[] calldata proof
-    ) external {}
-}
-
-contract DummyAxelarGatewayWithToken is IAxelarGatewayWithToken, Test {
-    uint256 public totalAmount;
-
-    constructor() {
-        totalAmount = 0;
-    }
-
-    function callContractWithToken(
-        string calldata destinationChain,
-        string calldata contractAddress,
-        bytes calldata payload,
-        string calldata symbol,
-        uint256 amount
-    ) external {
-        assertEq(destinationChain, "binance", "incorrect destination chain");
-        assertEq(
-            contractAddress,
-            Strings.toHexString(address(0xdead)),
-            "incorrect contract address"
-        );
-        assertEq(payload, abi.encode(BSC_INTENT_ADDR), "incorrect payload");
-        assertEq(symbol, "axlUSDC", "incorrect symbol");
-
-        totalAmount += amount;
-    }
-
-    function callContract(
-        string calldata /* destinationChain */,
-        string calldata /* destinationContractAddress */,
-        bytes calldata /* payload */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function isContractCallApproved(
-        bytes32 /* commandId */,
-        string calldata /* sourceChain */,
-        string calldata /* sourceAddress */,
-        address /* contractAddress */,
-        bytes32 /* payloadHash */
-    ) external pure returns (bool) {
-        revert("not implemented");
-    }
-
-    function validateContractCall(
-        bytes32 /* commandId */,
-        string calldata /* sourceChain */,
-        string calldata /* sourceAddress */,
-        bytes32 /* payloadHash */
-    ) external pure returns (bool) {
-        revert("not implemented");
-    }
-
-    function isCommandExecuted(
-        bytes32 /* commandId */
-    ) external pure returns (bool) {
-        revert("not implemented");
-    }
-
-    function sendToken(
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        string calldata /* symbol */,
-        uint256 /* amount */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function isContractCallAndMintApproved(
-        bytes32 /* commandId */,
-        string calldata /* sourceChain */,
-        string calldata /* sourceAddress */,
-        address /* contractAddress */,
-        bytes32 /* payloadHash */,
-        string calldata /* symbol */,
-        uint256 /* amount */
-    ) external pure returns (bool) {
-        revert("not implemented");
-    }
-
-    function validateContractCallAndMint(
-        bytes32 /* commandId */,
-        string calldata /* sourceChain */,
-        string calldata /* sourceAddress */,
-        bytes32 /* payloadHash */,
-        string calldata /* symbol */,
-        uint256 /* amount */
-    ) external pure returns (bool) {
-        revert("not implemented");
-    }
-
-    function tokenAddresses(
-        string memory /* symbol */
-    ) external pure returns (address) {
-        revert("not implemented");
-    }
-}
-
-contract DummyAxelarGasService is IAxelarGasService, Test {
-    uint256 public immutable expectedAmount;
-    address public immutable expectedRefundAddress;
-
-    constructor(uint256 amount, address refundAddress) {
-        expectedAmount = amount;
-        expectedRefundAddress = refundAddress;
-    }
-
-    function payNativeGasForContractCallWithToken(
-        address /* sender */,
-        string calldata destinationChain,
-        string calldata destinationAddress,
-        bytes calldata payload,
-        string calldata symbol,
-        uint256 amount,
-        address refundAddress
-    ) external payable {
-        assertEq(destinationChain, "binance", "incorrect destination chain");
-        assertEq(
-            destinationAddress,
-            Strings.toHexString(address(0xdead)),
-            "incorrect destination address"
-        );
-        assertEq(payload, abi.encode(BSC_INTENT_ADDR), "incorrect payload");
-        assertEq(symbol, "axlUSDC", "incorrect symbol");
-        assertEq(amount, expectedAmount, "incorrect amount");
-        assertEq(
-            refundAddress,
-            expectedRefundAddress,
-            "incorrect refund address"
-        );
-    }
-
-    function payNativeGasForExpressCallWithToken(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        string calldata /* symbol */,
-        uint256 /* amount */,
-        address /* refundAddress */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function getGasInfo(
-        string calldata /* chain */
-    ) external pure returns (GasInfo memory) {
-        revert("not implemented");
-    }
-
-    function estimateGasFee(
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        uint256 /* executionGasLimit */,
-        bytes calldata /* params */
-    ) external pure returns (uint256 /* gasEstimate */) {
-        revert("not implemented");
-    }
-
-    function payGas(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        uint256 /* executionGasLimit */,
-        bool /* estimateOnChain */,
-        address /* refundAddress */,
-        bytes calldata /* params */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function payGasForContractCall(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function payGasForContractCallWithToken(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        string calldata /* symbol */,
-        uint256 /* amount */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function payNativeGasForContractCall(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        address /* refundAddress */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function payGasForExpressCall(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function payGasForExpressCallWithToken(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        string calldata /* symbol */,
-        uint256 /* amount */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function payNativeGasForExpressCall(
-        address /* sender */,
-        string calldata /* destinationChain */,
-        string calldata /* destinationAddress */,
-        bytes calldata /* payload */,
-        address /* refundAddress */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function addGas(
-        bytes32 /* txHash */,
-        uint256 /* logIndex */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function addNativeGas(
-        bytes32 /* txHash */,
-        uint256 /* logIndex */,
-        address /* refundAddress */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function addExpressGas(
-        bytes32 /* txHash */,
-        uint256 /* logIndex */,
-        address /* gasToken */,
-        uint256 /* gasFeeAmount */,
-        address /* refundAddress */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function addNativeExpressGas(
-        bytes32 /* txHash */,
-        uint256 /* logIndex */,
-        address /* refundAddress */
-    ) external payable {
-        revert("not implemented");
-    }
-
-    function updateGasInfo(
-        string[] calldata /* chains */,
-        GasInfo[] calldata /* gasUpdates */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function collectFees(
-        address payable /* receiver */,
-        address[] calldata /* tokens */,
-        uint256[] calldata /* amounts */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function refund(
-        bytes32 /* txHash */,
-        uint256 /* logIndex */,
-        address payable /* receiver */,
-        address /* token */,
-        uint256 /* amount */
-    ) external pure {
-        revert("not implemented");
-    }
-
-    function gasCollector() external pure returns (address) {
-        revert("not implemented");
-    }
-
-    function acceptOwnership() external pure {
-        revert("not implemented");
-    }
-
-    function contractId() external pure returns (bytes32) {
-        revert("not implemented");
-    }
-
-    function implementation() external pure returns (address) {
-        revert("not implemented");
-    }
-
-    function owner() external pure returns (address) {
-        revert("not implemented");
-    }
-
-    function pendingOwner() external pure returns (address) {
-        revert("not implemented");
-    }
-
-    function proposeOwnership(address /* newOwner */) external pure {
-        revert("not implemented");
-    }
-
-    function setup(bytes calldata /* data */) external pure {
-        revert("not implemented");
-    }
-
-    function transferOwnership(address /* newOwner */) external pure {
-        revert("not implemented");
-    }
-
-    function upgrade(
-        address /* newImplementation */,
-        bytes32 /* newImplementationCodeHash */,
-        bytes calldata /* params */
-    ) external pure {
-        revert("not implemented");
     }
 }

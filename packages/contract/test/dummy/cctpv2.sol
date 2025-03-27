@@ -40,7 +40,7 @@ contract DummyCCTPMessengerV2 is ICCTPTokenMessengerV2, Test {
         assertEq(burnToken, expectedBurnToken, "incorrect burn token");
         assertEq(destinationCaller, bytes32(0), "incorrect destination caller");
         assertEq(maxFee, 0, "incorrect max fee");
-        assertEq(minFinalityThreshold, 10000, "incorrect min finality threshold");
+        assertEq(minFinalityThreshold, 2000, "incorrect min finality threshold");
 
         // Burn it
         IERC20(burnToken).transferFrom(msg.sender, address(0xdead), amount);

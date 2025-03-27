@@ -328,12 +328,12 @@ export const lineaWETH: Token = {
   logoURI: TokenLogo.ETH,
 };
 
-export const lineaUSDCe: Token = {
+export const lineaUSDC: Token = {
   chainId: 59144,
   token: getAddress("0x176211869cA2b568f2A7D4EE941E073a821EE1ff"),
   decimals: 6,
   name: "USD Coin",
-  symbol: "USDC.e",
+  symbol: "USDC",
   logoURI: TokenLogo.USDC,
 };
 
@@ -358,7 +358,7 @@ export const lineaDAI: Token = {
 const lineaTokens: Token[] = [
   lineaETH,
   lineaWETH,
-  lineaUSDCe,
+  lineaUSDC,
   lineaAxlUSDC,
   lineaDAI,
 ];
@@ -728,7 +728,7 @@ const tokensByChainAndType: Record<
   59144: {
     [TokenType.NATIVE]: lineaETH,
     [TokenType.WRAPPED_NATIVE]: lineaWETH,
-    [TokenType.BRIDGED_USDC]: lineaUSDCe,
+    [TokenType.NATIVE_USDC]: lineaUSDC,
     [TokenType.AXL_USDC]: lineaAxlUSDC,
     [TokenType.DAI]: lineaDAI,
   },

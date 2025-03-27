@@ -62,6 +62,7 @@ uint32 constant OP_DOMAIN = 2;
 uint32 constant ARBITRUM_DOMAIN = 3;
 uint32 constant BASE_DOMAIN = 6;
 uint32 constant POLYGON_DOMAIN = 7;
+uint32 constant LINEA_DOMAIN = 11;
 
 function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
     // Mainnets
@@ -71,6 +72,7 @@ function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
     if (chainId == ARBITRUM_MAINNET) return ARBITRUM_DOMAIN;
     if (chainId == BASE_MAINNET) return BASE_DOMAIN;
     if (chainId == POLYGON_MAINNET) return POLYGON_DOMAIN;
+    if (chainId == LINEA_MAINNET) return LINEA_DOMAIN;
 
     // Testnets
     if (chainId == ETH_TESTNET) return ETH_DOMAIN;
@@ -80,7 +82,7 @@ function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
     if (chainId == BASE_TESTNET) return BASE_DOMAIN;
     if (chainId == POLYGON_TESTNET) return POLYGON_DOMAIN;
 
-    revert("Unsupported chainId");
+    revert("Unsupported chainId for CCTP domain");
 }
 
 // ----------------- Token Addresses ----------------- //
@@ -90,6 +92,7 @@ address constant ARBITRUM_MAINNET_USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5
 address constant AVAX_MAINNET_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
 address constant BASE_MAINNET_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 address constant ETH_MAINNET_USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+address constant LINEA_MAINNET_USDC = 0x176211869cA2b568f2A7D4EE941E073a821EE1ff;
 address constant OP_MAINNET_USDC = 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85;
 address constant POLYGON_MAINNET_USDC = 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
 address constant SCROLL_MAINNET_USDC = 0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4;
@@ -128,7 +131,6 @@ address constant ARBITRUM_MAINNET_BRIDGED_USDC = 0xFF970A61A04b1cA14834A43f5dE45
 address constant AVAX_MAINNET_BRIDGED_USDC = 0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664;
 address constant BASE_MAINNET_BRIDGED_USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
 address constant BSC_MAINNET_BRIDGED_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d; // NOTE: Binance pegged USDC has 18 decimals on BSC.
-address constant LINEA_MAINNET_BRIDGED_USDC = 0x176211869cA2b568f2A7D4EE941E073a821EE1ff;
 address constant MANTLE_MAINNET_BRIDGED_USDC = 0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9;
 address constant MODE_MAINNET_BRIDGED_USDC = 0xd988097fb8612cc24eeC14542bC03424c656005f;
 address constant OP_MAINNET_BRIDGED_USDC = 0x7F5c764cBc14f9669B88837ca1490cCa17c31607;
@@ -230,6 +232,7 @@ function _getUSDCAddress(uint256 chainId) pure returns (address) {
     if (chainId == AVAX_MAINNET) return AVAX_MAINNET_USDC;
     if (chainId == BASE_MAINNET) return BASE_MAINNET_USDC;
     if (chainId == ETH_MAINNET) return ETH_MAINNET_USDC;
+    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_USDC;
     if (chainId == OP_MAINNET) return OP_MAINNET_USDC;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_USDC;
     if (chainId == SCROLL_MAINNET) return SCROLL_MAINNET_USDC;
@@ -339,7 +342,6 @@ function _getBridgedUSDCAddress(uint256 chainId) pure returns (address) {
     if (chainId == AVAX_MAINNET) return AVAX_MAINNET_BRIDGED_USDC;
     if (chainId == BASE_MAINNET) return BASE_MAINNET_BRIDGED_USDC;
     if (chainId == BSC_MAINNET) return BSC_MAINNET_BRIDGED_USDC;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_BRIDGED_USDC;
     if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_BRIDGED_USDC;
     if (chainId == MODE_MAINNET) return MODE_MAINNET_BRIDGED_USDC;
     if (chainId == OP_MAINNET) return OP_MAINNET_BRIDGED_USDC;
@@ -381,7 +383,34 @@ address constant AVAX_MAINNET_MATIC_USD_AGGREGATOR = 0x1db18D41E4AD2403d9f52b562
 address constant AVAX_MAINNET_MKR_USD_AGGREGATOR = 0x3E54eB0475051401D093702A5DB84EFa1Ab77b14;
 address constant AVAX_MAINNET_UNI_USD_AGGREGATOR = 0x9a1372f9b1B71B3A5a72E092AE67E172dBd7Daaa;
 
-// ----------------- CCTP Bridger ----------------- //
+// Check whether the chain is a testnet.
+function _isTestnet(uint256 chainId) pure returns (bool) {
+    return
+        chainId == ETH_TESTNET ||
+        chainId == AVAX_TESTNET ||
+        chainId == OP_TESTNET ||
+        chainId == ARBITRUM_TESTNET ||
+        chainId == BASE_TESTNET ||
+        chainId == POLYGON_TESTNET;
+}
+
+// Check whether the chain is a CCTP chain
+function _isCCTP(uint256 chainId) pure returns (bool) {
+    return
+        chainId == ETH_MAINNET ||
+        chainId == AVAX_MAINNET ||
+        chainId == OP_MAINNET ||
+        chainId == ARBITRUM_MAINNET ||
+        chainId == BASE_MAINNET ||
+        chainId == POLYGON_MAINNET;
+}
+
+// Check whether the chain is L1.
+function _isL1(uint256 chainId) pure returns (bool) {
+    return chainId == ETH_MAINNET;
+}
+
+// ----------------- CCTP V1 ----------------- //
 
 address constant ETH_MAINNET_TOKEN_MESSENGER = 0xBd3fa81B58Ba92a82136038B25aDec7066af3155;
 address constant AVAX_MAINNET_TOKEN_MESSENGER = 0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982;
@@ -414,37 +443,9 @@ function _getTokenMessengerAddress(uint256 chainId) pure returns (address) {
         chainId == POLYGON_TESTNET
     ) return TESTNET_TOKEN_MESSENGER;
 
-    return address(0);
+    revert("Unsupported chainId for CCTP token messenger");
 }
 
-// Check whether the chain is a testnet.
-function _isTestnet(uint256 chainId) pure returns (bool) {
-    return
-        chainId == ETH_TESTNET ||
-        chainId == AVAX_TESTNET ||
-        chainId == OP_TESTNET ||
-        chainId == ARBITRUM_TESTNET ||
-        chainId == BASE_TESTNET ||
-        chainId == POLYGON_TESTNET;
-}
-
-// Check whether the chain is a CCTP chain
-function _isCCTP(uint256 chainId) pure returns (bool) {
-    return
-        chainId == ETH_MAINNET ||
-        chainId == AVAX_MAINNET ||
-        chainId == OP_MAINNET ||
-        chainId == ARBITRUM_MAINNET ||
-        chainId == BASE_MAINNET ||
-        chainId == POLYGON_MAINNET;
-}
-
-// Check whether the chain is L1.
-function _isL1(uint256 chainId) pure returns (bool) {
-    return chainId == ETH_MAINNET;
-}
-
-// ----------------- Fast CCTP ----------------- //
 address constant ETH_MAINNET_TOKEN_MINTER = 0xc4922d64a24675E16e1586e3e3Aa56C06fABe907;
 address constant AVAX_MAINNET_TOKEN_MINTER = 0x420F5035fd5dC62a167E7e7f08B604335aE272b8;
 address constant OP_MAINNET_TOKEN_MINTER = 0x33E76C5C31cb928dc6FE6487AB3b2C0769B1A1e3;
@@ -476,7 +477,37 @@ function _getTokenMinterAddress(uint256 chainId) pure returns (address) {
         chainId == POLYGON_TESTNET
     ) return TESTNET_TOKEN_MINTER;
 
-    return address(0);
+    revert("Unsupported chainId for CCTP token minter");
+}
+
+// ----------------- CCTP V2 ----------------- //
+
+address constant ETH_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
+address constant AVAX_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
+address constant BASE_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
+address constant LINEA_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
+
+function _getTokenMessengerV2Address(uint256 chainId) pure returns (address) {
+    if (chainId == ETH_MAINNET) return ETH_MAINNET_TOKEN_MESSENGER_V2;
+    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_TOKEN_MESSENGER_V2;
+    if (chainId == BASE_MAINNET) return BASE_MAINNET_TOKEN_MESSENGER_V2;
+    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_TOKEN_MESSENGER_V2;
+
+    revert("Unsupported chainId for CCTP token messenger V2");
+}
+
+address constant ETH_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
+address constant AVAX_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
+address constant BASE_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
+address constant LINEA_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
+
+function _getTokenMinterV2Address(uint256 chainId) pure returns (address) {
+    if (chainId == ETH_MAINNET) return ETH_MAINNET_TOKEN_MINTER_V2;
+    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_TOKEN_MINTER_V2;
+    if (chainId == BASE_MAINNET) return BASE_MAINNET_TOKEN_MINTER_V2;
+    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_TOKEN_MINTER_V2;
+
+    revert("Unsupported chainId for CCTP token minter V2");
 }
 
 // ----------------- Across ----------------- //
@@ -510,7 +541,8 @@ function _getSpokePoolAddress(uint256 chainId) pure returns (address) {
     if (chainId == LISK_MAINNET) return LISK_MAINNET_SPOKE_POOL;
     if (chainId == REDSTONE_MAINNET) return REDSTONE_MAINNET_SPOKE_POOL;
     if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_MAINNET_SPOKE_POOL;
-    return address(0);
+
+    revert("Unsupported chainID for Across spoke pool");
 }
 
 // ----------------- Axelar ----------------- //
@@ -536,7 +568,7 @@ function _getAxelarGatewayAddress(uint256 chainId) pure returns (address) {
     if (chainId == OP_MAINNET) return OP_MAINNET_AXELAR_GATEWAY;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_AXELAR_GATEWAY;
 
-    revert("Unsupported chainID");
+    revert("Unsupported chainID for Axelar gateway");
 }
 
 address constant ARBITRUM_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
@@ -560,7 +592,7 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
     if (chainId == OP_MAINNET) return OP_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_AXELAR_GAS_SERVICE;
 
-    revert("Unsupported chainID");
+    revert("Unsupported chainID for Axelar gas service");
 }
 
 string constant ARBITRUM_MAINNET_AXELAR_CHAIN_NAME = "arbitrum";
@@ -584,7 +616,7 @@ function _getAxelarChainName(uint256 chainId) pure returns (string memory) {
     if (chainId == OP_MAINNET) return OP_MAINNET_AXELAR_CHAIN_NAME;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_AXELAR_CHAIN_NAME;
 
-    revert("Unsupported chainID");
+    revert("Unsupported chainID for Axelar chain name");
 }
 
 // ----------------- Deployment ----------------- //

@@ -131,8 +131,8 @@ contract DaimoPayTest is Test {
         });
         cctpV2Bridger = new DaimoPayCCTPV2Bridger({
             _owner: address(this),
-            _tokenMinter: tokenMinterV2,
-            _cctpMessenger: messengerV2,
+            _tokenMinterV2: tokenMinterV2,
+            _cctpMessengerV2: messengerV2,
             _toChainIds: cctpV2ChainIds,
             _bridgeRoutes: cctpV2BridgeRoutes
         });
@@ -565,7 +565,7 @@ contract DaimoPayTest is Test {
         DaimoPayCCTPV2Bridger.ExtraData memory extraData = DaimoPayCCTPV2Bridger
             .ExtraData({
                 maxFee: 0,
-                minFinalityThreshold: 10000
+                minFinalityThreshold: 2000
             });
 
         uint256 gasBefore = gasleft();

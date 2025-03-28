@@ -71,7 +71,7 @@ contract DeployDaimoPayAcrossBridger is Script {
 
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: _getUSDCAddress(block.chainid),
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 720000000000000, // 0.072%
                 flatFee: 180000 // 0.18 USDC
             });
@@ -97,7 +97,7 @@ contract DeployDaimoPayAcrossBridger is Script {
 
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: _getUSDCAddress(block.chainid),
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 720000000000000, // 0.072%
                 flatFee: 180000 // 0.18 USDC
             });
@@ -122,7 +122,7 @@ contract DeployDaimoPayAcrossBridger is Script {
             chainIds[2] = BLAST_MAINNET;
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: _getUSDCAddress(block.chainid),
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 720000000000000, // 0.072%
                 flatFee: 180000 // 0.18 USDC
             });
@@ -151,37 +151,37 @@ contract DeployDaimoPayAcrossBridger is Script {
             chainIds[6] = BLAST_MAINNET;
 
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: _getUSDCAddress(chainIds[0]),
                 pctFee: 420000000000000, // 0.042%
                 flatFee: 120000 // 0.12 USDC
             });
             bridgeRoutes[1] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: _getUSDCAddress(chainIds[1]),
                 pctFee: 190000000000000, // 0.019%
                 flatFee: 80000 // 0.08 USDC
             });
             bridgeRoutes[2] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: _getUSDCAddress(chainIds[2]),
                 pctFee: 48000000000000000, // 4.8%
                 flatFee: 9500000 // 9.5 USDC
             });
             bridgeRoutes[3] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: _getUSDCAddress(chainIds[3]),
                 pctFee: 770000000000000, // 0.077%
                 flatFee: 120000 // 0.12 USDC
             });
             bridgeRoutes[4] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: _getUSDCAddress(chainIds[4]),
                 pctFee: 240000000000000, // 0.024%
                 flatFee: 90000 // 0.09 USDC
             });
             bridgeRoutes[5] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-                bridgeTokenIn: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenIn: LINEA_MAINNET_USDC,
                 bridgeTokenOut: WORLDCHAIN_MAINNET_BRIDGED_USDC,
                 pctFee: 300000000000000, // 0.03%
                 flatFee: 120000 // 0.12 USDC
@@ -202,7 +202,7 @@ contract DeployDaimoPayAcrossBridger is Script {
 
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: _getUSDCAddress(block.chainid),
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 720000000000000, // 0.072%
                 flatFee: 180000 // 0.18 USDC
             });
@@ -228,7 +228,7 @@ contract DeployDaimoPayAcrossBridger is Script {
 
             bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: _getUSDCAddress(block.chainid),
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 720000000000000, // 0.072%
                 flatFee: 180000 // 0.18 USDC
             });
@@ -275,7 +275,7 @@ contract DeployDaimoPayAcrossBridger is Script {
             });
             bridgeRoutes[3] = DaimoPayAcrossBridger.AcrossBridgeRoute({
                 bridgeTokenIn: WORLDCHAIN_MAINNET_BRIDGED_USDC,
-                bridgeTokenOut: LINEA_MAINNET_BRIDGED_USDC,
+                bridgeTokenOut: LINEA_MAINNET_USDC,
                 pctFee: 690000000000000, // 0.069%
                 flatFee: 210000 // 0.21 USDC
             });

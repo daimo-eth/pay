@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
-import "./dummy/DaimoDummyUSDC.sol";
+import "./dummy/DummyUSDC.sol";
 
 contract RelayerTest is Test {
     DaimoPayRelayer public relayerContract;

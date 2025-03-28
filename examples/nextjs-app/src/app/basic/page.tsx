@@ -81,6 +81,7 @@ import { ${tokenVarName} } from "@daimo/pay-common";
               toToken={getAddress(config.tokenAddress)}
               onPaymentStarted={printEvent}
               onPaymentCompleted={printEvent}
+              paymentOptions={["EVM"]}
             />
             <button
               onClick={() => setIsConfigOpen(true)}

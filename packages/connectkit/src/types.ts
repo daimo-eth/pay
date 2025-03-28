@@ -87,6 +87,7 @@ export type DaimoPayModalOptions = {
 // higher level categories like "Solana", "BitcoinEtc", "Card".
 /** Additional payment options. Onchain payments are always enabled. */
 export type PaymentOption =
+  | "EVM"
   | "Daimo"
   | "Coinbase"
   | "Binance"

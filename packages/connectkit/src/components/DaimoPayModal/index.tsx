@@ -237,6 +237,33 @@ export const DaimoPayModal: React.FC<{
     };
   }, [context.open]);
 
+  // Add new useEffect for auto-routing
+  useEffect(() => {
+    // Only run this when modal opens and we're on SELECT_METHOD route
+    if (!context.open || context.route !== ROUTES.SELECT_METHOD) return;
+
+    // Check if we have exactly one payment option
+    if (payParams?.paymentOptions?.length === 1) {
+      const option = payParams.paymentOptions[0];
+      const meta = { event: "click-option", option: option };
+      // Route based on the payment option type
+      switch (option) {
+        case "EVM":
+          context.setRoute(ROUTES.CONNECTORS);
+          break;
+        case "Solana":
+          context.setRoute(ROUTES.SOLANA_CONNECTOR);
+          break;
+        case "ExternalChains":
+          context.setRoute(ROUTES.WAITING_EXTERNAL, meta);
+          break;
+        default:
+          context.setRoute(ROUTES.WAITING_EXTERNAL, meta);
+          break;
+      }
+    }
+  }, [context.open, context.route, payParams?.paymentOptions]);
+
   return (
     <DaimoPayThemeProvider theme={theme} customTheme={customTheme} mode={mode}>
       <Modal

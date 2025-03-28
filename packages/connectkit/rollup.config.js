@@ -1,7 +1,7 @@
 import json from "@rollup/plugin-json";
+import typescript from "@rollup/plugin-typescript";
 import dts from "rollup-plugin-dts";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
-import typescript from "rollup-plugin-typescript2";
 
 /** @type {import('rollup').RollupOptions[]} */
 export default [
@@ -21,14 +21,13 @@ export default [
       peerDepsExternal(),
       json(),
       typescript({
-        useTsconfigDeclarationDir: true,
         exclude: "node_modules/**",
       }),
     ],
   },
   // Build types: index.d.ts
   {
-    input: "./build/daimo-internal/pay/packages/connectkit/src/index.d.ts",
+    input: "./build/pay/packages/connectkit/src/index.d.ts",
     output: { file: "build/index.d.ts", format: "esm" },
     external: ["../package.json"],
     plugins: [

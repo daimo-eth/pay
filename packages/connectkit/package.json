@@ -41,6 +41,7 @@
   ],
   "dependencies": {
     "@daimo/pay-common": "1.6.1",
+    "@rollup/plugin-typescript": "^12.1.2",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/web3.js": "^1.95.4",
@@ -74,7 +75,6 @@
     "rollup": "^3.29.5",
     "rollup-plugin-dts": "^6.1.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-typescript2": "^0.34.0",
     "rollup-plugin-visualizer": "^5.5.4",
     "typescript-plugin-styled-components": "^3.0.0"
   }

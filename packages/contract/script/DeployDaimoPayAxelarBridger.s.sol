@@ -74,10 +74,8 @@ contract DeployDaimoPayAxelarBridger is Script {
         ) {
             chainIds = new uint256[](2);
             bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](2);
-            // TODO: bridgeTokenOutSymbol is a misnomer in our contracts. In
-            // the Axelar contracts, the variable is just called "tokenSymbol".
             // ETH_MAINNET bridges USDC with Axelar instead of axlUSDC.
-            string memory bridgeTokenOutSymbol = block.chainid == ETH_MAINNET
+            string memory tokenSymbol = block.chainid == ETH_MAINNET
                 ? "USDC"
                 : "axlUSDC";
 
@@ -89,7 +87,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     destChainName: _getAxelarChainName(chainIds[i]),
                     bridgeTokenIn: _getAxlUsdcAddress(block.chainid),
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
-                    bridgeTokenOutSymbol: bridgeTokenOutSymbol,
+                    tokenSymbol: tokenSymbol,
                     receiverContract: axelarReceiver,
                     fee: _getAxelarFeeByChain(block.chainid)
                 });
@@ -111,7 +109,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     destChainName: _getAxelarChainName(chainIds[i]),
                     bridgeTokenIn: _getAxlUsdcAddress(block.chainid),
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
-                    bridgeTokenOutSymbol: "axlUSDC",
+                    tokenSymbol: "axlUSDC",
                     receiverContract: axelarReceiver,
                     fee: _getAxelarFeeByChain(block.chainid)
                 });
@@ -133,7 +131,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     destChainName: _getAxelarChainName(chainIds[i]),
                     bridgeTokenIn: _getAxlUsdcAddress(block.chainid),
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
-                    bridgeTokenOutSymbol: "axlUSDC",
+                    tokenSymbol: "axlUSDC",
                     receiverContract: axelarReceiver,
                     fee: _getAxelarFeeByChain(block.chainid)
                 });
@@ -147,10 +145,7 @@ contract DeployDaimoPayAxelarBridger is Script {
             console.log("destChainName:", bridgeRoutes[i].destChainName);
             console.log("bridgeTokenIn:", bridgeRoutes[i].bridgeTokenIn);
             console.log("bridgeTokenOut:", bridgeRoutes[i].bridgeTokenOut);
-            console.log(
-                "bridgeTokenOutSymbol:",
-                bridgeRoutes[i].bridgeTokenOutSymbol
-            );
+            console.log("tokenSymbol:", bridgeRoutes[i].tokenSymbol);
             console.log("receiverContract:", bridgeRoutes[i].receiverContract);
             console.log("fee:", bridgeRoutes[i].fee);
             console.log("--------------------------------");

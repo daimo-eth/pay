@@ -31,9 +31,9 @@ contract DaimoPayAxelarBridger is
         string destChainName;
         address bridgeTokenIn;
         address bridgeTokenOut;
-        // Axelar requires the symbol name of the token to be sent to the
-        // destination chain, e.g. "axlUSDC".
-        string bridgeTokenOutSymbol;
+        // Axelar requires the symbol name of bridgeTokenIn, e.g. "axlUSDC" or
+        // "USDC".
+        string tokenSymbol;
         // When bridging with an Axelar contract call, the receiver on the
         // destination chain must be a contract that implements the
         // AxelarExecutableWithToken interface.
@@ -215,7 +215,7 @@ contract DaimoPayAxelarBridger is
         inAmount = bridgeTokenOutOptions[index].amount;
 
         outToken = bridgeRoute.bridgeTokenOut;
-        outTokenSymbol = bridgeRoute.bridgeTokenOutSymbol;
+        outTokenSymbol = bridgeRoute.tokenSymbol;
         outAmount = bridgeTokenOutOptions[index].amount;
 
         destChainName = bridgeRoute.destChainName;

@@ -23,7 +23,7 @@
   "scripts": {
     "start": "rollup --config rollup.config.js -w",
     "dev": "rollup --config rollup.config.js -w",
-    "build": "rollup --config rollup.config.js && rm -rf build/packages",
+    "build": "rollup --config rollup.config.js && ls -lha build && find build && rm -rf build/packages",
     "lint": "eslint --max-warnings=0"
   },
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@daimo/pay-common",
-  "version": "1.6.2",
+  "version": "1.6.3-dev",
   "description": "Daimo Pay shared types and utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

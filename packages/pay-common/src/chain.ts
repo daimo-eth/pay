@@ -70,7 +70,7 @@ export const polygon: Chain = {
 
 export const solana: Chain = {
   type: "solana",
-  chainId: 101,
+  chainId: 501,
   name: "Solana",
   cctpDomain: 5,
 };

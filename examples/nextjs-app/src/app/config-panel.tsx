@@ -45,6 +45,9 @@ export function ConfigPanel({
     amount: "",
   });
 
+  // Add error state for recipient address
+  const [addressError, setAddressError] = useState<string>("");
+
   // Extract unique chains
   const chains = supportedChains;
 
@@ -53,12 +56,35 @@ export function ConfigPanel({
     (token) => token.chainId === config.chainId,
   );
 
+  // Validate address on change
+  const validateAddress = useCallback((address: string) => {
+    if (!address) {
+      setAddressError("Address is required");
+      return false;
+    }
+    if (!isAddress(address)) {
+      setAddressError("Invalid Ethereum address");
+      return false;
+    }
+    setAddressError("");
+    return true;
+  }, []);
+
+  // Update address handler
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAddress = e.target.value;
+    setConfig((prev) => ({
+      ...prev,
+      recipientAddress: newAddress,
+    }));
+    validateAddress(newAddress);
+  };
+
+  // Update form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate recipient address
-    if (!isAddress(config.recipientAddress)) {
-      alert("Please enter a valid address");
+    if (!validateAddress(config.recipientAddress)) {
       return;
     }
 
@@ -120,15 +146,17 @@ export function ConfigPanel({
             <input
               type="text"
               value={config.recipientAddress}
-              onChange={(e) =>
-                setConfig((prev) => ({
-                  ...prev,
-                  recipientAddress: e.target.value,
-                }))
-              }
-              className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+              onChange={handleAddressChange}
+              className={`w-full p-2 border rounded ${
+                addressError
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                  : "border-gray-300 focus:border-green-medium focus:ring-green-light"
+              } focus:ring focus:ring-opacity-50`}
               placeholder="0x..."
             />
+            {addressError && (
+              <p className="mt-1 text-sm text-red-500">{addressError}</p>
+            )}
           </div>
 
           <div>

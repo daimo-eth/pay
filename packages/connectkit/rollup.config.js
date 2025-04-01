@@ -8,7 +8,25 @@ export default [
   // Build bundle: index.js
   {
     input: ["./src/index.ts"],
-    external: ["react", "react-dom", "framer-motion", "wagmi"],
+    external: [
+      "react",
+      "react-dom",
+      "framer-motion",
+      "wagmi",
+      "@daimo/pay-common",
+      "buffer",
+      "styled-components",
+      "@wagmi/connectors",
+      "@solana/wallet-adapter-react",
+      "@trpc/client",
+      "react-use-measure",
+      "@solana/web3.js",
+      "react-transition-state",
+      "@solana/wallet-adapter-base",
+      "detect-browser",
+      "resize-observer-polyfill",
+      "qrcode",
+    ],
     output: [
       {
         dir: "build",
@@ -23,12 +41,15 @@ export default [
       typescript({
         exclude: "node_modules/**",
         outputToFilesystem: false,
+        declaration: true,
+        declarationDir: "build",
+        sourceMap: true,
       }),
     ],
   },
   // Build types: index.d.ts
   {
-    input: "./build/pay/packages/connectkit/src/index.d.ts",
+    input: "./src/index.ts",
     output: { file: "build/index.d.ts", format: "esm" },
     external: ["../package.json"],
     plugins: [

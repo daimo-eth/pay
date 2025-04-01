@@ -184,7 +184,7 @@ contract DaimoPayTest is Test {
             destChainName: "binance",
             bridgeTokenIn: address(_fromToken),
             bridgeTokenOut: address(_toToken),
-            bridgeTokenOutSymbol: "axlUSDC",
+            tokenSymbol: "axlUSDC",
             receiverContract: address(0xdead),
             fee: 10 // 10 wei
         });

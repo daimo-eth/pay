@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "strict": true,
-    "composite": true,
+    "composite": false,
     "rootDir": "src",
     "outDir": "build",
-    "declaration": true,
-    "declarationDir": "build",
+    "declaration": false,
     "module": "ESNext",
     "moduleResolution": "node",
     "target": "ESNext",
@@ -16,7 +15,8 @@
     "noImplicitAny": false,
     "jsx": "react-jsx",
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "preserveValueImports": false
   },
   "include": ["src/**/*", "package.json"],
   "exclude": ["node_modules", "build", "src/**/*.test.tsx?"],

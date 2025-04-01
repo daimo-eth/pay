@@ -29,35 +29,18 @@ export default [
     ],
     output: [
       {
-        dir: "build",
+        file: "build/index.js",
         format: "esm",
         sourcemap: true,
-        preserveModules: true,
       },
     ],
-    plugins: [
-      peerDepsExternal(),
-      json(),
-      typescript({
-        exclude: "node_modules/**",
-        outputToFilesystem: false,
-        declaration: true,
-        declarationDir: "build",
-        sourceMap: true,
-      }),
-    ],
+    plugins: [peerDepsExternal(), json(), typescript()],
   },
   // Build types: index.d.ts
   {
     input: "./src/index.ts",
     output: { file: "build/index.d.ts", format: "esm" },
     external: ["../package.json"],
-    plugins: [
-      dts({
-        compilerOptions: {
-          preserveValueImports: false,
-        },
-      }),
-    ],
+    plugins: [dts()],
   },
 ];

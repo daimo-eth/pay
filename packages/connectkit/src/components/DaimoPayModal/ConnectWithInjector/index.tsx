@@ -34,7 +34,7 @@ import useLocales from "../../../hooks/useLocales";
 import { detectBrowser, isWalletConnectConnector } from "../../../utils";
 import { useWallet } from "../../../wallets/useWallets";
 import BrowserIcon from "../../Common/BrowserIcon";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 import CircleSpinner from "../../Spinners/CircleSpinner";
 
 export const states = {

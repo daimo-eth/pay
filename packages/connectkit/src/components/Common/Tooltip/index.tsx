@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import useMeasure from "react-use-measure";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 import { TooltipContainer, TooltipTail, TooltipWindow } from "./styles";
 import { TooltipProps, TooltipSizeProps } from "./types";

@@ -1,5 +1,5 @@
 import React from "react";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
   ModalBody,

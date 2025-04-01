@@ -8,7 +8,6 @@ import {
 } from "@daimo/pay-common";
 import { Buffer } from "buffer";
 import React, {
-  createContext,
   createElement,
   useCallback,
   useEffect,
@@ -26,7 +25,7 @@ import {
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
 import { useThemeFont } from "../hooks/useGoogleFont";
-import { PaymentState, usePaymentState } from "../hooks/usePaymentState";
+import { usePaymentState } from "../hooks/usePaymentState";
 import defaultTheme from "../styles/defaultTheme";
 import {
   CustomTheme,
@@ -41,97 +40,8 @@ import { WalletConfigProps } from "../wallets/walletConfigs";
 import { DaimoPayModal } from "./DaimoPayModal";
 import { SolanaContextProvider, SolanaWalletName } from "./contexts/solana";
 import { Web3ContextProvider } from "./contexts/web3";
-
-export enum ROUTES {
-  SELECT_METHOD = "daimoPaySelectMethod",
-  SELECT_TOKEN = "daimoPaySelectToken",
-  SELECT_AMOUNT = "daimoPaySelectAmount",
-  SELECT_EXTERNAL_AMOUNT = "daimoPaySelectExternalAmount",
-  SELECT_DEPOSIT_ADDRESS_AMOUNT = "daimoPaySelectDepositAddressAmount",
-  WAITING_EXTERNAL = "daimoPayWaitingExternal",
-  SELECT_DEPOSIT_ADDRESS_CHAIN = "daimoPaySelectDepositAddressChain",
-  WAITING_DEPOSIT_ADDRESS = "daimoPayWaitingDepositAddress",
-  PAY_WITH_TOKEN = "daimoPayPayWithToken",
-  CONFIRMATION = "daimoPayConfirmation",
-  SOLANA_CONNECT = "daimoPaySolanaConnect",
-  SOLANA_CONNECTOR = "daimoPaySolanaConnector",
-  SOLANA_SELECT_TOKEN = "daimoPaySolanaSelectToken",
-  SOLANA_SELECT_AMOUNT = "daimoPaySolanaSelectAmount",
-  SOLANA_PAY_WITH_TOKEN = "daimoPaySolanaPayWithToken",
-
-  // Unused routes. Kept to minimize connectkit merge conflicts.
-  ONBOARDING = "onboarding",
-  ABOUT = "about",
-  CONNECTORS = "connectors",
-  MOBILECONNECTORS = "mobileConnectors",
-  CONNECT = "connect",
-  DOWNLOAD = "download",
-  SWITCHNETWORKS = "switchNetworks",
-}
-
-/** Chosen Ethereum wallet, eg MM or Rainbow. Specifies wallet ID. */
-type Connector = {
-  id: string;
-};
-type Error = string | React.ReactNode | null;
-
-/** Daimo Pay internal context. */
-type ContextValue = {
-  theme: Theme;
-  setTheme: React.Dispatch<React.SetStateAction<Theme>>;
-  mode: Mode;
-  setMode: React.Dispatch<React.SetStateAction<Mode>>;
-  customTheme: CustomTheme | undefined;
-  setCustomTheme: React.Dispatch<React.SetStateAction<CustomTheme | undefined>>;
-  lang: Languages;
-  setLang: React.Dispatch<React.SetStateAction<Languages>>;
-  open: boolean;
-  setOpen: (open: boolean, meta?: Record<string, any>) => void;
-  route: string;
-  setRoute: (route: ROUTES, data?: Record<string, any>) => void;
-  connector: Connector;
-  setConnector: React.Dispatch<React.SetStateAction<Connector>>;
-  wcWallet: WalletConfigProps | undefined;
-  setWcWallet: React.Dispatch<
-    React.SetStateAction<WalletConfigProps | undefined>
-  >;
-  errorMessage: Error;
-  debugMode?: boolean;
-  log: (...props: any) => void;
-  displayError: (message: string | React.ReactNode | null, code?: any) => void;
-  resize: number;
-  triggerResize: () => void;
-
-  // All options below are new, specific to Daimo Pay.
-  /** Session ID. */
-  sessionId: string;
-  /** Chosen Solana wallet, eg Phantom.*/
-  solanaConnector: SolanaWalletName | undefined;
-  setSolanaConnector: React.Dispatch<
-    React.SetStateAction<SolanaWalletName | undefined>
-  >;
-  /** Global options, across all pay buttons and payments. */
-  options?: DaimoPayContextOptions;
-  /** Loads a payment, then shows the modal to complete payment. */
-  showPayment: (modalOptions: DaimoPayModalOptions) => Promise<void>;
-  /** Payment status & callbacks. */
-  paymentState: PaymentState;
-  /** TRPC API client. Internal use only. */
-  trpc: any;
-  /** Custom message to display on confirmation page. */
-  confirmationMessage?: string;
-  setConfirmationMessage: React.Dispatch<
-    React.SetStateAction<string | undefined>
-  >;
-  /** Redirect URL to return to the app. E.g. after Coinbase, Binance, RampNetwork. */
-  redirectReturnUrl?: string;
-  setRedirectReturnUrl: React.Dispatch<
-    React.SetStateAction<string | undefined>
-  >;
-} & useConnectCallbackProps;
-
-/** Meant for internal use. This will be non-exported in a future SDK version. */
-export const Context = createContext<ContextValue | null>(null);
+import { PayContext, PayContextValue } from "../hooks/usePayContext";
+import { ROUTES } from "../constants/routes";
 
 type DaimoPayProviderProps = {
   children?: React.ReactNode;
@@ -168,7 +78,7 @@ const DaimoPayProviderWithoutSolana = ({
 
   // Only allow for mounting DaimoPayProvider once, so we avoid weird global
   // state collisions.
-  if (React.useContext(Context)) {
+  if (React.useContext(PayContext)) {
     throw new Error(
       "Multiple, nested usages of DaimoPayProvider detected. Please use only one.",
     );
@@ -246,7 +156,7 @@ const DaimoPayProviderWithoutSolana = ({
       data: meta ?? {},
     });
   };
-  const [connector, setConnector] = useState<ContextValue["connector"]>({
+  const [connector, setConnector] = useState<PayContextValue["connector"]>({
     id: "",
   });
   const [wcWallet, setWcWallet] = useState<WalletConfigProps>();
@@ -264,7 +174,9 @@ const DaimoPayProviderWithoutSolana = ({
     });
     setRouteState(route);
   };
-  const [errorMessage, setErrorMessage] = useState<Error>("");
+  const [errorMessage, setErrorMessage] = useState<
+    string | React.ReactNode | null
+  >("");
   const [confirmationMessage, setConfirmationMessage] = useState<
     string | undefined
   >(undefined);
@@ -377,7 +289,7 @@ const DaimoPayProviderWithoutSolana = ({
     }
   };
 
-  const value = {
+  const value: PayContextValue = {
     theme: ckTheme,
     setTheme,
     mode: ckMode,
@@ -426,7 +338,7 @@ const DaimoPayProviderWithoutSolana = ({
   };
 
   return createElement(
-    Context.Provider,
+    PayContext.Provider,
     { value },
     <Web3ContextProvider enabled={open}>
       <ThemeProvider theme={defaultTheme}>
@@ -451,11 +363,4 @@ export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
       <DaimoPayProviderWithoutSolana {...props} />
     </SolanaContextProvider>
   );
-};
-
-/** Daimo Pay internal context. */
-export const usePayContext = () => {
-  const context = React.useContext(Context);
-  if (!context) throw Error("DaimoPay Hook must be inside a Provider.");
-  return context;
 };

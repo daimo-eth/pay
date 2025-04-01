@@ -9,7 +9,7 @@ import {
   type UseConnectParameters,
   useConnect as wagmiUseConnect,
 } from "wagmi";
-import { usePayContext } from "../components/DaimoPay";
+import { usePayContext } from "./usePayContext";
 
 export function useConnect({ ...props }: UseConnectParameters = {}) {
   const context = usePayContext();

@@ -1,4 +1,5 @@
-import { ROUTES, usePayContext } from "../components/DaimoPay";
+import { ROUTES } from "../constants/routes";
+import { usePayContext } from "./usePayContext";
 import {
   useConnectCallback,
   useConnectCallbackProps,

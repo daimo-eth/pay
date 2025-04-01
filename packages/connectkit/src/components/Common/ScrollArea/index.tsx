@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import useIsMobile from "../../../hooks/useIsMobile";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { MoreIndicator, ScrollAreaContainer, ScrollContainer } from "./styles";
 
 const ArrowDown = () => (

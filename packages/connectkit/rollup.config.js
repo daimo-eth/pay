@@ -22,6 +22,7 @@ export default [
       json(),
       typescript({
         exclude: "node_modules/**",
+        outputToFilesystem: false,
       }),
     ],
   },

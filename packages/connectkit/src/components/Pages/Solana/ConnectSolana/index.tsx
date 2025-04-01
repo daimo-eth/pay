@@ -16,7 +16,8 @@ import {
 import { isMobile } from "../../../../utils";
 import Button from "../../../Common/Button";
 import OptionsList from "../../../Common/OptionsList";
-import { ROUTES, usePayContext } from "../../../DaimoPay";
+import { ROUTES } from "../../../../constants/routes";
+import { usePayContext } from "../../../../hooks/usePayContext";
 
 interface Option {
   id: string;

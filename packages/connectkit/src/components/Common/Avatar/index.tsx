@@ -7,7 +7,7 @@ import { useEnsAddress, useEnsAvatar, useEnsName } from "wagmi";
 import { useEnsFallbackConfig } from "../../../hooks/useEnsFallbackConfig";
 import useIsMounted from "../../../hooks/useIsMounted";
 import { ResetContainer } from "../../../styles";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 type Hash = `0x${string}`;
 

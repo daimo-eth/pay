@@ -31,7 +31,7 @@ import {
 } from "./styles";
 
 import useLockBodyScroll from "../../../hooks/useLockBodyScroll";
-import { ROUTES, usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 import { getChainName } from "@daimo/pay-common";
 import { useTransition } from "react-transition-state";
@@ -44,6 +44,7 @@ import { CustomTheme } from "../../../types";
 import { useWallet } from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
+import { ROUTES } from "../../../constants/routes";
 
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (
   <div style={{ position: "relative" }}>

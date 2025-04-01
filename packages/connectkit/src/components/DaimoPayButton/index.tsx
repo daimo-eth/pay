@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { usePayContext } from "../DaimoPay";
+import { usePayContext } from "../../hooks/usePayContext";
 import { TextContainer } from "./styles";
 
 import {

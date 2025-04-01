@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 import { useWallet } from "../../wallets/useWallets";
-import { usePayContext } from "../DaimoPay";
+import { usePayContext } from "../../hooks/usePayContext";
 
 import ConnectWithInjector from "./ConnectWithInjector";
 import ConnectWithQRCode from "./ConnectWithQRCode";

@@ -8,7 +8,7 @@ import CustomQRCode from "../../Common/CustomQRCode";
 
 import useLocales from "../../../hooks/useLocales";
 import { useWallet } from "../../../wallets/useWallets";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 const DownloadApp = () => {
   const context = usePayContext();

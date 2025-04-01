@@ -10,7 +10,8 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { AnimatePresence, motion } from "framer-motion";
 import styled from "../../../../styles/styled";
-import { ROUTES, usePayContext } from "../../../DaimoPay";
+import { ROUTES } from "../../../../constants/routes";
+import { usePayContext } from "../../../../hooks/usePayContext";
 import SquircleSpinner from "../../../Spinners/SquircleSpinner";
 
 const ConnectSolana: React.FC = () => {

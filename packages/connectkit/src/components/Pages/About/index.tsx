@@ -10,19 +10,18 @@ import {
   Slides,
 } from "./styles";
 
+import { AnimatePresence, MotionConfig } from "framer-motion";
+import useLocales from "../../../hooks/useLocales";
+import Button from "../../Common/Button";
+import FitText from "../../Common/FitText";
+import { OrDivider } from "../../Common/Modal";
 import {
   ModalBody,
   ModalContent,
   ModalH1,
   PageContent,
 } from "../../Common/Modal/styles";
-
-import { AnimatePresence, MotionConfig } from "framer-motion";
-import useLocales from "../../../hooks/useLocales";
-import Button from "../../Common/Button";
-import FitText from "../../Common/FitText";
-import { OrDivider } from "../../Common/Modal";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { Easing, SlideOne, SlideThree, SlideTwo } from "./graphics";
 
 const About: React.FC = () => {

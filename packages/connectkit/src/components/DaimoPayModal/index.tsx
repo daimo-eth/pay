@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
+import { ROUTES } from "../../constants/routes";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
-import { ROUTES, usePayContext } from "../DaimoPay";
+import { usePayContext } from "../../hooks/usePayContext";
 
 import About from "../Pages/About";
 import Connectors from "../Pages/Connectors";

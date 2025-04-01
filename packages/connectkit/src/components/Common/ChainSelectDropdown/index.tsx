@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 import useMeasure from "react-use-measure";
 

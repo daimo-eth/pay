@@ -11,7 +11,8 @@ import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
-import { ROUTES, usePayContext } from "../../DaimoPay";
+import { ROUTES } from "../../../constants/routes";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 /** Shows payment amount. */
 export const OrderHeader = ({ minified = false }: { minified?: boolean }) => {

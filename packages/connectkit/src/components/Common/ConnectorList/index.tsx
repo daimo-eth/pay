@@ -1,20 +1,6 @@
-import { ROUTES, usePayContext } from "../../DaimoPay";
-
-import {
-  ConnectorButton,
-  ConnectorIcon,
-  ConnectorLabel,
-  ConnectorsContainer,
-  RecentlyUsedTag,
-} from "./styles";
-
-import { useWeb3 } from "../../contexts/web3";
-
-import useIsMobile from "../../../hooks/useIsMobile";
-import { ScrollArea } from "../../Common/ScrollArea";
-import Alert from "../Alert";
-
+import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
+import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import {
   detectBrowser,
@@ -22,6 +8,17 @@ import {
   isWalletConnectConnector,
 } from "../../../utils";
 import { WalletProps, useWallets } from "../../../wallets/useWallets";
+import { ScrollArea } from "../../Common/ScrollArea";
+import { useWeb3 } from "../../contexts/web3";
+import { usePayContext } from "../../../hooks/usePayContext";
+import Alert from "../Alert";
+import {
+  ConnectorButton,
+  ConnectorIcon,
+  ConnectorLabel,
+  ConnectorsContainer,
+  RecentlyUsedTag,
+} from "./styles";
 
 const ConnectorList = () => {
   const context = usePayContext();

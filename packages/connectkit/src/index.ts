@@ -34,6 +34,6 @@ export * from "./utils/exports";
 
 // TODO: expose this more selectively.
 export {
-  Context as DaimoPayContext,
+  PayContext as DaimoPayContext,
   usePayContext,
-} from "./components/DaimoPay";
+} from "./hooks/usePayContext";

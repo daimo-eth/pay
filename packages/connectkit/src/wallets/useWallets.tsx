@@ -1,6 +1,6 @@
 import { Connector } from "wagmi";
 
-import { usePayContext } from "../components/DaimoPay";
+import { usePayContext } from "../hooks/usePayContext";
 import { useConnectors } from "../hooks/useConnectors";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";

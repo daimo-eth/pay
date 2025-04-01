@@ -20,7 +20,7 @@ import CopyToClipboard from "../../Common/CopyToClipboard";
 import { ScrollArea } from "../../Common/ScrollArea";
 import { Spinner } from "../../Common/Spinner";
 import { useWeb3 } from "../../contexts/web3";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 const MoreIcon = (
   <svg

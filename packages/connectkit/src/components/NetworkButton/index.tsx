@@ -12,7 +12,7 @@ import Chain from "../Common/Chain";
 import ChainSelectDropdown from "../Common/ChainSelectDropdown";
 import DynamicContainer from "../Common/DynamicContainer";
 import ThemedButton from "../Common/ThemedButton";
-import { usePayContext } from "../DaimoPay";
+import { usePayContext } from "../../hooks/usePayContext";
 import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import styled from "./../../styles/styled";
 

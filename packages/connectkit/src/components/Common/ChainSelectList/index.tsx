@@ -20,7 +20,7 @@ import { isCoinbaseWalletConnector, isMobile } from "../../../utils";
 
 import { chainToLogo, UnknownChain } from "../../../assets/chains";
 import useLocales from "../../../hooks/useLocales";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 const Spinner = (
   <svg

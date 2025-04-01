@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { keyframes } from "styled-components";
 import styled from "../../../styles/styled";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { ScrollArea } from "../ScrollArea";
 import {
   OptionButton,

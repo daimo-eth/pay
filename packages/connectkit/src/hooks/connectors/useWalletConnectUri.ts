@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Connector, useAccount } from "wagmi";
-import { usePayContext } from "../../components/DaimoPay";
+import { usePayContext } from "../usePayContext";
 import { useConnect } from "../useConnect";
 import { useWalletConnectConnector } from "./../useConnectors";
 

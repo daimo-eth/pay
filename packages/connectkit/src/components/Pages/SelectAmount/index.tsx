@@ -1,7 +1,8 @@
 import React from "react";
 import MultiCurrencySelectAmount from "../../Common/AmountInput";
 import { PageContent } from "../../Common/Modal/styles";
-import { ROUTES, usePayContext } from "../../DaimoPay";
+import { ROUTES } from "../../../constants/routes";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 const SelectAmount: React.FC = () => {
   const { paymentState } = usePayContext();

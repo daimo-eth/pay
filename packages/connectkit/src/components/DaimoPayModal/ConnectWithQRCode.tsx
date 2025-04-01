@@ -1,5 +1,6 @@
 import React from "react";
-import { ROUTES, usePayContext } from "../DaimoPay";
+import { ROUTES } from "../../constants/routes";
+import { usePayContext } from "../../hooks/usePayContext";
 
 import { useWalletConnectModal } from "../../hooks/useWalletConnectModal";
 

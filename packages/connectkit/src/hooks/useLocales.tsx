@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import Logos from "../assets/logos";
 
-import { usePayContext } from "../components/DaimoPay";
+import { usePayContext } from "./usePayContext";
 
 import { getLocale } from "./../localizations";
 

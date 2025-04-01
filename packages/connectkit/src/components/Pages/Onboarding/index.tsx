@@ -22,7 +22,7 @@ import {
 
 import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";
-import { usePayContext } from "../../DaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 
 const Introduction: React.FC = () => {
   const context = usePayContext();

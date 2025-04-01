@@ -33,6 +33,10 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         uint32 minFinalityThreshold;
     }
 
+    // Default values for ExtraData when not provided
+    uint256 public constant DEFAULT_MAX_FEE = 0;
+    uint32 public constant DEFAULT_MIN_FINALITY_THRESHOLD = 2000;
+
     // CCTP TokenMinterV2 for this chain. Used to identify the CCTP token on the
     // current chain.
     ITokenMinterV2 public tokenMinterV2;
@@ -158,6 +162,7 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
             "DPCCTP2B: bridge route not found"
         );
 
+        // Find amount we need to send
         uint256 index = _findBridgeTokenOut(
             bridgeTokenOutOptions,
             bridgeRoute.bridgeTokenOut
@@ -169,6 +174,7 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
             "DPCCTP2B: bad bridge token"
         );
 
+        // Find where we need to send it
         toDomain = bridgeRoute.domain;
         outToken = bridgeRoute.bridgeTokenOut;
         outAmount = bridgeTokenOutOptions[index].amount;
@@ -209,10 +215,16 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
             uint32 toDomain
         ) = _getBridgeData(toChainId, bridgeTokenOutOptions);
         require(outAmount > 0, "DPCCTP2B: zero amount");
+        require(outToken != address(0), "DPCCTP2B: outToken is 0");
 
         // Parse remaining arguments from extraData
         ExtraData memory extra;
-        extra = abi.decode(extraData, (ExtraData));
+        if (extraData.length == 0) {
+            extra.maxFee = DEFAULT_MAX_FEE;
+            extra.minFinalityThreshold = DEFAULT_MIN_FINALITY_THRESHOLD;
+        } else {
+            extra = abi.decode(extraData, (ExtraData));
+        }
 
         // Move input token from caller to this contract and approve CCTP.
         IERC20(inToken).safeTransferFrom({

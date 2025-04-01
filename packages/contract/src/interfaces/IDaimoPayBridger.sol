@@ -32,7 +32,7 @@ interface IDaimoPayBridger {
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         bytes calldata extraData
     ) external;
 }

@@ -110,7 +110,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     /// that matches the correct bridge token out. Return the length of the array
     /// if no match is found.
     function _findBridgeTokenOut(
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         address bridgeTokenOut
     ) internal pure returns (uint256 index) {
         uint256 n = bridgeTokenOutOptions.length;
@@ -127,7 +127,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     /// the same as toAmount.
     function _getBridgeData(
         uint256 toChainId,
-        TokenAmount[] memory bridgeTokenOutOptions
+        TokenAmount[] calldata bridgeTokenOutOptions
     )
         internal
         view
@@ -168,7 +168,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
 
     function getBridgeTokenIn(
         uint256 toChainId,
-        TokenAmount[] memory bridgeTokenOutOptions
+        TokenAmount[] calldata bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount) {
         (address _bridgeTokenIn, uint256 _inAmount, , , ) = _getBridgeData(
             toChainId,
@@ -183,7 +183,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         bytes calldata /* extraData */
     ) public {
         require(toChainId != block.chainid, "DPCCTPB: same chain");

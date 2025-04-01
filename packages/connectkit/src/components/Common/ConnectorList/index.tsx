@@ -115,7 +115,6 @@ const ConnectorItem = ({
       onClick={
         deeplink
           ? () => {
-              //case MetaMask
               context.setConnector({ id: wallet.id });
               context.setWcWallet(wallet);
             }

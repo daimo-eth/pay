@@ -114,7 +114,11 @@ const ConnectorItem = ({
       disabled={context.route !== ROUTES.CONNECTORS}
       onClick={
         deeplink
-          ? undefined
+          ? () => {
+              //case MetaMask
+              context.setConnector({ id: wallet.id });
+              context.setWcWallet(wallet);
+            }
           : () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);

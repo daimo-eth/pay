@@ -11,6 +11,7 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import Button from "../../Common/Button";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
+import { walletConfigs } from "../../../wallets/walletConfigs";
 enum PayState {
   RequestingPayment = "Requesting Payment",
   SwitchingChain = "Switching Chain",
@@ -108,6 +109,17 @@ const PayWithToken: React.FC = () => {
         handleTransfer(selectedTokenOption);
       }, 800);
     }
+    // } else if (!wcWallet && isMobile) {
+    //   transferTimeout = setTimeout(() => {
+    //     window.open(
+    //       walletConfigs[
+    //         "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
+    //       ].getWalletConnectDeeplink?.(""),
+    //       "_blank",
+    //     );
+    //     handleTransfer(selectedTokenOption);
+    //   }, 800);
+    // }
 
     // On desktop, open the wallet connect modal immediately
     else {

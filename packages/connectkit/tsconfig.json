@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strict": true,
     "composite": true,
-    "rootDir": "../../../",
+    "rootDir": "src",
     "outDir": "build",
     "declaration": true,
     "declarationDir": "build",
@@ -10,7 +10,7 @@
     "moduleResolution": "node",
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "sourceMap": false,
+    "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "noImplicitAny": false,

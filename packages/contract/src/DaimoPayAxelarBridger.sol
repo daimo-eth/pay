@@ -165,7 +165,7 @@ contract DaimoPayAxelarBridger is
     /// that matches the correct bridge token out. Return the length of the array
     /// if no match is found.
     function _findBridgeTokenOut(
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         address bridgeTokenOut
     ) internal pure returns (uint256 index) {
         uint256 n = bridgeTokenOutOptions.length;
@@ -180,7 +180,7 @@ contract DaimoPayAxelarBridger is
     /// Get the local token that corresponds to the destination token.
     function _getBridgeData(
         uint256 toChainId,
-        TokenAmount[] memory bridgeTokenOutOptions
+        TokenAmount[] calldata bridgeTokenOutOptions
     )
         internal
         view
@@ -225,7 +225,7 @@ contract DaimoPayAxelarBridger is
 
     function getBridgeTokenIn(
         uint256 toChainId,
-        TokenAmount[] memory bridgeTokenOutOptions
+        TokenAmount[] calldata bridgeTokenOutOptions
     ) public view returns (address bridgeTokenIn, uint256 inAmount) {
         (bridgeTokenIn, inAmount, , , , , , ) = _getBridgeData(
             toChainId,
@@ -237,7 +237,7 @@ contract DaimoPayAxelarBridger is
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPAxB: same chain");

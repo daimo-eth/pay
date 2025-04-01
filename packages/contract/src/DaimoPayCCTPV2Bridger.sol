@@ -6,16 +6,17 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IDaimoPayBridger.sol";
-import "../vendor/cctp/v1/ITokenMinter.sol";
-import "../vendor/cctp/v1/ICCTPTokenMessenger.sol";
+import "../vendor/cctp/v2/ITokenMinterV2.sol";
+import "../vendor/cctp/v2/ICCTPTokenMessengerV2.sol";
 
-/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol (CCTP)
+/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol
+/// V2 (CCTP v2)
 /// @author The Daimo team
 /// @custom:security-contact security@daimo.com
 ///
 /// @dev Bridges assets from to a destination chain using CCTP. The only supported
 /// bridge token is USDC.
-contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
+contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
@@ -23,11 +24,24 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         address bridgeTokenOut;
     }
 
-    // CCTP TokenMinter for this chain. Used to identify the CCTP token on the
+    struct ExtraData {
+        // Maximum fee to pay on the destination domain, specified in units of
+        // bridgeTokenOut.
+        uint256 maxFee;
+        // Minimum finality threshold for the destination domain. (1000 or less
+        // for Fast Transfer)
+        uint32 minFinalityThreshold;
+    }
+
+    // Default values for ExtraData when not provided
+    uint256 public constant DEFAULT_MAX_FEE = 0;
+    uint32 public constant DEFAULT_MIN_FINALITY_THRESHOLD = 2000;
+
+    // CCTP TokenMinterV2 for this chain. Used to identify the CCTP token on the
     // current chain.
-    ITokenMinter public tokenMinter;
-    // CCTP TokenMessenger for this chain. Used to initiate the CCTP bridge.
-    ICCTPTokenMessenger public cctpMessenger;
+    ITokenMinterV2 public tokenMinterV2;
+    // CCTP TokenMessengerV2 for this chain. Used to initiate the CCTP bridge.
+    ICCTPTokenMessengerV2 public cctpMessengerV2;
 
     // Map destination chainId to CCTP domain and the bridge token address on the
     // destination chain.
@@ -47,13 +61,13 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     /// Specify the CCTP chain IDs and domains that this bridger will support.
     constructor(
         address _owner,
-        ITokenMinter _tokenMinter,
-        ICCTPTokenMessenger _cctpMessenger,
+        ITokenMinterV2 _tokenMinterV2,
+        ICCTPTokenMessengerV2 _cctpMessengerV2,
         uint256[] memory _toChainIds,
         CCTPBridgeRoute[] memory _bridgeRoutes
     ) Ownable(_owner) {
-        tokenMinter = _tokenMinter;
-        cctpMessenger = _cctpMessenger;
+        tokenMinterV2 = _tokenMinterV2;
+        cctpMessengerV2 = _cctpMessengerV2;
         _setBridgeRoutes({
             toChainIds: _toChainIds,
             bridgeRoutes: _bridgeRoutes
@@ -75,7 +89,10 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         CCTPBridgeRoute[] memory bridgeRoutes
     ) private {
         uint256 n = toChainIds.length;
-        require(n == bridgeRoutes.length, "DPCCTPB: wrong bridgeRoutes length");
+        require(
+            n == bridgeRoutes.length,
+            "DPCCTP2B: wrong bridgeRoutes length"
+        );
 
         for (uint256 i = 0; i < n; ++i) {
             bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
@@ -142,9 +159,10 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         CCTPBridgeRoute memory bridgeRoute = bridgeRouteMapping[toChainId];
         require(
             bridgeRoute.bridgeTokenOut != address(0),
-            "DPCCTPB: bridge route not found"
+            "DPCCTP2B: bridge route not found"
         );
 
+        // Find amount we need to send
         uint256 index = _findBridgeTokenOut(
             bridgeTokenOutOptions,
             bridgeRoute.bridgeTokenOut
@@ -153,13 +171,14 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         // was not found in the list of options.
         require(
             index < bridgeTokenOutOptions.length,
-            "DPCCTPB: bad bridge token"
+            "DPCCTP2B: bad bridge token"
         );
 
+        // Find where we need to send it
         toDomain = bridgeRoute.domain;
         outToken = bridgeRoute.bridgeTokenOut;
         outAmount = bridgeTokenOutOptions[index].amount;
-        inToken = tokenMinter.getLocalToken(
+        inToken = tokenMinterV2.getLocalToken(
             bridgeRoute.domain,
             addressToBytes32(bridgeRoute.bridgeTokenOut)
         );
@@ -184,9 +203,9 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
-        bytes calldata /* extraData */
+        bytes calldata extraData
     ) public {
-        require(toChainId != block.chainid, "DPCCTPB: same chain");
+        require(toChainId != block.chainid, "DPCCTP2B: same chain");
 
         (
             address inToken,
@@ -195,7 +214,17 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
             uint256 outAmount,
             uint32 toDomain
         ) = _getBridgeData(toChainId, bridgeTokenOutOptions);
-        require(outAmount > 0, "DPCCTPB: zero amount");
+        require(outAmount > 0, "DPCCTP2B: zero amount");
+        require(outToken != address(0), "DPCCTP2B: outToken is 0");
+
+        // Parse remaining arguments from extraData
+        ExtraData memory extra;
+        if (extraData.length == 0) {
+            extra.maxFee = DEFAULT_MAX_FEE;
+            extra.minFinalityThreshold = DEFAULT_MIN_FINALITY_THRESHOLD;
+        } else {
+            extra = abi.decode(extraData, (ExtraData));
+        }
 
         // Move input token from caller to this contract and approve CCTP.
         IERC20(inToken).safeTransferFrom({
@@ -204,15 +233,19 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
             value: inAmount
         });
         IERC20(inToken).forceApprove({
-            spender: address(cctpMessenger),
+            spender: address(cctpMessengerV2),
             value: inAmount
         });
 
-        cctpMessenger.depositForBurn({
+        cctpMessengerV2.depositForBurn({
             amount: inAmount,
             destinationDomain: toDomain,
             mintRecipient: addressToBytes32(toAddress),
-            burnToken: address(inToken)
+            burnToken: address(inToken),
+            // Empty bytes32 allows any address to call MessageTransmitterV2.receiveMessage()
+            destinationCaller: bytes32(0),
+            maxFee: extra.maxFee,
+            minFinalityThreshold: extra.minFinalityThreshold
         });
 
         emit BridgeInitiated({

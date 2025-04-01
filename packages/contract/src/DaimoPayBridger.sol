@@ -63,7 +63,7 @@ contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
 
     function getBridgeTokenIn(
         uint256 toChainId,
-        TokenAmount[] memory bridgeTokenOutOptions
+        TokenAmount[] calldata bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount) {
         IDaimoPayBridger bridger = chainIdToBridger[toChainId];
         require(address(bridger) != address(0), "DPB: missing bridger");
@@ -75,7 +75,7 @@ contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount[] memory bridgeTokenOutOptions,
+        TokenAmount[] calldata bridgeTokenOutOptions,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPB: same chain");

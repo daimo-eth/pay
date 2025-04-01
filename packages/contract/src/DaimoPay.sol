@@ -5,9 +5,6 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "../vendor/cctp/ICCTPReceiver.sol";
-import "../vendor/cctp/ICCTPTokenMessenger.sol";
-import "../vendor/cctp/ITokenMinter.sol";
 import "./DaimoPayBridger.sol";
 import "./PayIntentFactory.sol";
 import "./TokenUtils.sol";

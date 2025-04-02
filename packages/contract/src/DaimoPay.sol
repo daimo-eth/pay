@@ -19,6 +19,9 @@ import "./TokenUtils.sol";
 // 3. Relayer immediately calls fastFinishIntent on chain B.
 // 4. Finally, the slow bridge transfer arrives on chain B later, and the
 //    relayer can call claimIntent.
+// For simplicity, a same-chain Daimo Pay transfer follows the same steps.
+// Instead of swap+bridge, startIntent only swaps and verifies correct output.
+// FastFinish remains optional but is unnecessary. Claim completes the intent.
 
 /// @title Daimo Pay contract for creating and fulfilling cross-chain intents
 /// @author The Daimo team
@@ -41,7 +44,7 @@ import "./TokenUtils.sol";
 /// - Users should only interact by sending funds to an intent address.
 /// - Relayers should transfer funds and call this contract atomically via their
 ///   own contracts.
-contract DaimoPay {
+contract DaimoPay is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address constant ADDR_MAX = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
@@ -94,43 +97,13 @@ contract DaimoPay {
         bridger = _bridger;
     }
 
-    /// Refund a double-paid intent. On the source chain, refund only if the
-    /// intent has already been started. On the destination chain, refund only
-    /// if the intent has already been claimed.
-    function refundIntent(PayIntent calldata intent, IERC20 token) public {
-        PayIntentContract intentContract = intentFactory.createIntent(intent);
-        address intentAddr = address(intentContract);
-        if (intent.toChainId == block.chainid) {
-            // Refund only if already claimed.
-            bool claimed = intentToRecipient[address(intentContract)] ==
-                ADDR_MAX;
-            require(claimed, "DP: not claimed");
-        } else {
-            // Refund only if already started.
-            require(intentSent[intentAddr], "DP: not started");
-        }
-
-        // Collect and refund overpaid amount.
-        uint256 amount = intentContract.refundAndSelfDestruct(intent, token);
-        require(amount > 0, "DP: no funds to refund");
-        TokenUtils.transfer(token, payable(intent.refundAddress), amount);
-
-        emit IntentRefunded({
-            intentAddr: intentAddr,
-            refundAddr: intent.refundAddress,
-            token: address(token),
-            amount: amount,
-            intent: intent
-        });
-    }
-
     /// Starts an intent, starting a bridge to the destination chain if
     /// necessary.
     function startIntent(
         PayIntent calldata intent,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
-    ) public {
+    ) public nonReentrant {
         PayIntentContract intentContract = intentFactory.createIntent(intent);
 
         // Ensure we don't reuse a nonce in the case where Alice is sending to
@@ -140,7 +113,7 @@ contract DaimoPay {
 
         // Bridge funds in the intent contract to the destination chain, if
         // necessary.
-        intentContract.sendAndSelfDestruct({
+        intentContract.start({
             intent: intent,
             bridger: bridger,
             caller: payable(msg.sender),
@@ -156,15 +129,15 @@ contract DaimoPay {
     ///
     /// The relayer must call this function and transfer the necessary tokens to
     /// this contract in the same transaction. This function executes arbitrary
-    /// calls specified by the relayer, e.g. to convert the transferred tokens into
-    /// the required amount of finalCallToken.
+    /// calls specified by the relayer, e.g. to convert the transferred tokens
+    /// into the required amount of finalCallToken.
     ///
     /// Later, when the slower bridge transfer arrives, the relayer will be able
     /// to claim the bridged tokens.
     function fastFinishIntent(
         PayIntent calldata intent,
         Call[] calldata calls
-    ) public {
+    ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
 
         // Calculate intent address
@@ -195,13 +168,13 @@ contract DaimoPay {
     function claimIntent(
         PayIntent calldata intent,
         Call[] calldata calls
-    ) public {
+    ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
 
         PayIntentContract intentContract = intentFactory.createIntent(intent);
 
         // Transfer from intent contract to this contract
-        intentContract.receiveAndSelfDestruct(intent);
+        intentContract.claim(intent);
 
         // Finally, forward the balance to the current recipient
         address recipient = intentToRecipient[address(intentContract)];
@@ -239,6 +212,39 @@ contract DaimoPay {
         emit Claim({
             intentAddr: address(intentContract),
             finalRecipient: recipient
+        });
+    }
+
+    /// Refund a double-paid intent. On the source chain, refund only if the
+    /// intent has already been started. On the destination chain, refund only
+    /// if the intent has already been claimed.
+    function refundIntent(
+        PayIntent calldata intent,
+        IERC20 token
+    ) public nonReentrant {
+        PayIntentContract intentContract = intentFactory.createIntent(intent);
+        address intentAddr = address(intentContract);
+        if (intent.toChainId == block.chainid) {
+            // Refund only if already claimed.
+            bool claimed = intentToRecipient[address(intentContract)] ==
+                ADDR_MAX;
+            require(claimed, "DP: not claimed");
+        } else {
+            // Refund only if already started.
+            require(intentSent[intentAddr], "DP: not started");
+        }
+
+        // Collect and refund overpaid amount.
+        uint256 amount = intentContract.refund(intent, token);
+        require(amount > 0, "DP: no funds to refund");
+        TokenUtils.transfer(token, payable(intent.refundAddress), amount);
+
+        emit IntentRefunded({
+            intentAddr: intentAddr,
+            refundAddr: intent.refundAddress,
+            token: address(token),
+            amount: amount,
+            intent: intent
         });
     }
 

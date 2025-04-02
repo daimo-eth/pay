@@ -3,7 +3,7 @@ pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
@@ -39,7 +39,7 @@ function calcIntentHash(PayIntent calldata intent) pure returns (bytes32) {
 /// @dev This is an ephemeral intent contract. Any supported tokens sent to this
 ///      address on any supported chain are forwarded, via a combination of
 ///      bridging and swapping, into a specified call on a destination chain.
-contract PayIntentContract is Initializable {
+contract PayIntentContract is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @dev Save gas by minimizing storage to a single word. This makes intents
@@ -75,13 +75,13 @@ contract PayIntentContract is Initializable {
 
     /// Called on the source chain to start the intent. Run the calls specified
     /// by the relayer, then send funds to the bridger for cross-chain intents.
-    function sendAndSelfDestruct(
+    function start(
         PayIntent calldata intent,
         IDaimoPayBridger bridger,
         address payable caller,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
-    ) public {
+    ) public nonReentrant {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
@@ -129,13 +129,11 @@ contract PayIntentContract is Initializable {
                 recipient: caller
             });
         }
-
-        cleanup(intent.escrow);
     }
 
     /// Check that there is sufficient output token and send tokens to the
     /// escrow contract.
-    function receiveAndSelfDestruct(PayIntent calldata intent) public {
+    function claim(PayIntent calldata intent) public nonReentrant {
         require(keccak256(abi.encode(intent)) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
         require(block.chainid == intent.toChainId, "PI: only dest chain");
@@ -153,15 +151,13 @@ contract PayIntentContract is Initializable {
                 recipient: intent.escrow
             });
         }
-
-        cleanup(intent.escrow);
     }
 
     /// Refund double payments.
-    function refundAndSelfDestruct(
+    function refund(
         PayIntent calldata intent,
         IERC20 token
-    ) public returns (uint256 amount) {
+    ) public nonReentrant returns (uint256 amount) {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
@@ -171,15 +167,6 @@ contract PayIntentContract is Initializable {
             recipient: intent.escrow
         });
         require(amount > 0, "PI: no funds to refund");
-
-        // Not necessary: cleanup(intent.escrow);
-    }
-
-    function cleanup(address payable escrow) private {
-        // This use of SELFDESTRUCT is compatible with EIP-6780. Intent
-        // contracts are deployed, then destroyed in the same transaction.
-        // solhint-disable-next-line
-        selfdestruct(escrow);
     }
 
     /// Accept native-token (eg ETH) inputs

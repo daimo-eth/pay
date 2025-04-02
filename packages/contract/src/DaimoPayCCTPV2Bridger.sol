@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -12,7 +11,7 @@ import "../vendor/cctp/v2/ICCTPTokenMessengerV2.sol";
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Bridges assets to a destination chain using CCTP v2.
-contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
+contract DaimoPayCCTPV2Bridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
@@ -46,72 +45,23 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     mapping(uint256 toChainId => CCTPBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
     /// Specify the CCTP chain IDs and domains that this bridger will support.
     constructor(
-        address _owner,
         ITokenMinterV2 _tokenMinterV2,
         ICCTPTokenMessengerV2 _cctpMessengerV2,
         uint256[] memory _toChainIds,
         CCTPBridgeRoute[] memory _bridgeRoutes
-    ) Ownable(_owner) {
+    ) {
         tokenMinterV2 = _tokenMinterV2;
         cctpMessengerV2 = _cctpMessengerV2;
-        _setBridgeRoutes({
-            toChainIds: _toChainIds,
-            bridgeRoutes: _bridgeRoutes
-        });
-    }
 
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Add a new supported CCTP recipient chain.
-    function setBridgeRoutes(
-        uint256[] memory toChainIds,
-        CCTPBridgeRoute[] memory bridgeRoutes
-    ) public onlyOwner {
-        _setBridgeRoutes({toChainIds: toChainIds, bridgeRoutes: bridgeRoutes});
-    }
-
-    function _setBridgeRoutes(
-        uint256[] memory toChainIds,
-        CCTPBridgeRoute[] memory bridgeRoutes
-    ) private {
-        uint256 n = toChainIds.length;
+        uint256 n = _toChainIds.length;
         require(
-            n == bridgeRoutes.length,
+            n == _bridgeRoutes.length,
             "DPCCTP2B: wrong bridgeRoutes length"
         );
-
         for (uint256 i = 0; i < n; ++i) {
-            bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
-            emit BridgeRouteAdded({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoutes[i]
-            });
-        }
-    }
-
-    /// Remove a supported CCTP recipient chain.
-    function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
-        for (uint256 i = 0; i < toChainIds.length; ++i) {
-            CCTPBridgeRoute memory bridgeRoute = bridgeRouteMapping[
-                toChainIds[i]
-            ];
-            delete bridgeRouteMapping[toChainIds[i]];
-            emit BridgeRouteRemoved({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoute
-            });
+            bridgeRouteMapping[_toChainIds[i]] = _bridgeRoutes[i];
         }
     }
 

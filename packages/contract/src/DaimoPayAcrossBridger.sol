@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -13,7 +12,7 @@ import "../vendor/across/V3SpokePoolInterface.sol";
 /// @notice Bridges assets to a destination chain using Across Protocol.
 /// @dev Makes the assumption that the local token is an ERC20 token and has a
 /// 1 to 1 price with the corresponding destination token.
-contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
+contract DaimoPayAcrossBridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
     struct AcrossBridgeRoute {
@@ -55,70 +54,17 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
     mapping(uint256 toChainId => AcrossBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        AcrossBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        AcrossBridgeRoute bridgeRoute
-    );
-
     /// Specify the localToken mapping to destination chains and tokens
     constructor(
-        address _owner,
         V3SpokePoolInterface _spokePool,
         uint256[] memory _toChainIds,
         AcrossBridgeRoute[] memory _bridgeRoutes
-    ) Ownable(_owner) {
+    ) {
         spokePool = _spokePool;
-        _setBridgeRoutes({
-            toChainIds: _toChainIds,
-            bridgeRoutes: _bridgeRoutes
-        });
-    }
-
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Map destination chainId to the corresponding token on the current chain
-    /// and fees associated with the bridge.
-    /// Assumes the local token has a 1 to 1 price with the corresponding
-    /// destination token.
-    function setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AcrossBridgeRoute[] memory bridgeRoutes
-    ) public onlyOwner {
-        _setBridgeRoutes({toChainIds: toChainIds, bridgeRoutes: bridgeRoutes});
-    }
-
-    function _setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AcrossBridgeRoute[] memory bridgeRoutes
-    ) private {
-        uint256 n = toChainIds.length;
-        require(n == bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
-
+        uint256 n = _toChainIds.length;
+        require(n == _bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
         for (uint256 i = 0; i < n; ++i) {
-            bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
-            emit BridgeRouteAdded({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoutes[i]
-            });
-        }
-    }
-
-    /// Remove a supported Across destination chain.
-    function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
-        for (uint256 i = 0; i < toChainIds.length; ++i) {
-            AcrossBridgeRoute memory bridgeRoute = bridgeRouteMapping[
-                toChainIds[i]
-            ];
-            delete bridgeRouteMapping[toChainIds[i]];
-            emit BridgeRouteRemoved({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoute
-            });
+            bridgeRouteMapping[_toChainIds[i]] = _bridgeRoutes[i];
         }
     }
 

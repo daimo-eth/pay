@@ -49,8 +49,6 @@ contract DaimoPay is ReentrancyGuard {
 
     /// Efficiently generates + deploys CREATE2 intent addresses.
     PayIntentFactory public immutable intentFactory;
-    /// Bridges tokens across chains.
-    DaimoPayBridger public immutable bridger;
 
     /// On the source chain, record intents that have been sent.
     mapping(address intentAddr => bool) public intentSent;
@@ -90,9 +88,8 @@ contract DaimoPay is ReentrancyGuard {
         PayIntent intent
     );
 
-    constructor(PayIntentFactory _intentFactory, DaimoPayBridger _bridger) {
+    constructor(PayIntentFactory _intentFactory) {
         intentFactory = _intentFactory;
-        bridger = _bridger;
     }
 
     /// Starts an intent, bridging to the destination chain if necessary.
@@ -112,7 +109,6 @@ contract DaimoPay is ReentrancyGuard {
         // necessary. They'll arrive at the same intent address on chain B.
         intentContract.start({
             intent: intent,
-            bridger: bridger,
             caller: payable(msg.sender),
             calls: calls,
             bridgeExtraData: bridgeExtraData

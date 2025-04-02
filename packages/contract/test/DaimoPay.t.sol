@@ -16,10 +16,10 @@ import "./dummy/axelar.sol";
 import "./dummy/cctp.sol";
 import "./dummy/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0x45ED6531F21a8208b976Db09F83EC12782aD7E44;
-address constant CCTP_V2_INTENT_ADDR = 0x749B3f3DBCf117b5D9F38dA9643b8eC93c9adD59;
-address constant ACROSS_INTENT_ADDR = 0xd9142Fd037c5A028d326091b920D89dcD14aca47;
-address constant AXELAR_INTENT_ADDR = 0x35119A6714Fa0Bb4536b230df625dCf4290412b5;
+address constant CCTP_INTENT_ADDR = 0x99755A0F204e89fA3f1DdEB33e08E2b3cb845f08;
+address constant CCTP_V2_INTENT_ADDR = 0xECC9D95bb1e79F676E5f2B0408Eb2a0170dbfD81;
+address constant ACROSS_INTENT_ADDR = 0x00308C0494226f39e42BDe37695368D76236D934;
+address constant AXELAR_INTENT_ADDR = 0x11B0ae9eA3c56Bbaa025Cc24357d8Ba6B4552441;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts
@@ -107,7 +107,6 @@ contract DaimoPayTest is Test {
             bridgeTokenOut: address(_toToken)
         });
         cctpBridger = new DaimoPayCCTPBridger({
-            _owner: address(this),
             _tokenMinter: tokenMinter,
             _cctpMessenger: messenger,
             _toChainIds: cctpChainIds,
@@ -138,7 +137,6 @@ contract DaimoPayTest is Test {
             bridgeTokenOut: address(_toToken)
         });
         cctpV2Bridger = new DaimoPayCCTPV2Bridger({
-            _owner: address(this),
             _tokenMinterV2: tokenMinterV2,
             _cctpMessengerV2: messengerV2,
             _toChainIds: cctpV2ChainIds,
@@ -166,7 +164,6 @@ contract DaimoPayTest is Test {
         });
 
         acrossBridger = new DaimoPayAcrossBridger({
-            _owner: address(this),
             _spokePool: spokePool,
             _toChainIds: acrossChainIds,
             _bridgeRoutes: acrossBridgeRoutes
@@ -202,7 +199,6 @@ contract DaimoPayTest is Test {
         });
 
         axelarBridger = new DaimoPayAxelarBridger({
-            _owner: address(this),
             _axelarGateway: axelarGateway,
             _axelarGasService: axelarGasService,
             _toChainIds: axelarChainIds,
@@ -223,12 +219,11 @@ contract DaimoPayTest is Test {
         bridgers[3] = axelarBridger;
 
         bridger = new DaimoPayBridger({
-            _owner: address(this),
             _toChainIds: chainIds,
             _bridgers: bridgers
         });
 
-        dp = new DaimoPay(intentFactory, bridger);
+        dp = new DaimoPay(intentFactory);
 
         // Log addresses of initialized contracts
         console.log("PayIntentFactory address:", address(intentFactory));
@@ -270,6 +265,7 @@ contract DaimoPayTest is Test {
     function testGetIntentAddr() public view {
         PayIntent memory cctpIntent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -285,6 +281,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory cctpV2Intent = PayIntent({
             toChainId: _cctpV2DestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -301,6 +298,7 @@ contract DaimoPayTest is Test {
         // Get the intent address for the Linea chain
         PayIntent memory acrossIntent = PayIntent({
             toChainId: _acrossDestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -316,6 +314,7 @@ contract DaimoPayTest is Test {
         // Get the intent address for the BNB chain
         PayIntent memory axelarIntent = PayIntent({
             toChainId: _axelarDestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -341,6 +340,7 @@ contract DaimoPayTest is Test {
     {
         intent = PayIntent({
             toChainId: _fromChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({
                 token: IERC20(address(0)),
@@ -433,6 +433,7 @@ contract DaimoPayTest is Test {
     {
         intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -550,6 +551,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpV2DestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -627,6 +629,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _acrossDestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -718,6 +721,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _axelarDestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -803,6 +807,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -849,6 +854,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: 1}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -889,6 +895,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -927,6 +934,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -974,6 +982,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -1010,6 +1019,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _cctpDestchainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -1045,6 +1055,7 @@ contract DaimoPayTest is Test {
 
         PayIntent memory intent = PayIntent({
             toChainId: _acrossDestChainId,
+            bridger: bridger,
             bridgeTokenOutOptions: getBridgeTokenOutOptions(),
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             finalCall: Call({to: _bob, value: 0, data: ""}),

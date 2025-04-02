@@ -57,7 +57,7 @@ contract PayIntentContract is Initializable {
     }
 
     /// Check if the contract has enough balance for at least one of the bridge
-    /// token outs.
+    /// token output options.
     function checkBridgeTokenOutBalance(
         TokenAmount[] calldata bridgeTokenOutOptions
     ) public view returns (bool) {
@@ -73,8 +73,8 @@ contract PayIntentContract is Initializable {
         return balanceOk;
     }
 
-    /// Called on the source chain to initiate the intent. Sends funds to dest
-    /// chain.
+    /// Called on the source chain to start the intent. Run the calls specified
+    /// by the relayer, then send funds to the bridger for cross-chain intents.
     function sendAndSelfDestruct(
         PayIntent calldata intent,
         IDaimoPayBridger bridger,
@@ -86,8 +86,7 @@ contract PayIntentContract is Initializable {
         require(msg.sender == intent.escrow, "PI: only escrow");
 
         // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary, then approve tokens
-        // to the bridger.
+        // approve the swap contract and swap if necessary.
         for (uint256 i = 0; i < calls.length; ++i) {
             Call calldata call = calls[i];
             (bool success, ) = call.to.call{value: call.value}(call.data);
@@ -95,13 +94,14 @@ contract PayIntentContract is Initializable {
         }
 
         if (intent.toChainId == block.chainid) {
-            // Same chain. Check that sufficient token is present.
+            // Same chain. Check that the contract has sufficient token balance.
             bool balanceOk = checkBridgeTokenOutBalance(
                 intent.bridgeTokenOutOptions
             );
             require(balanceOk, "PI: insufficient token");
         } else {
-            // Different chains. Get the input token and amount for the bridge
+            // Different chains. Get the input token and amount required to
+            // initiate bridging
             (address bridgeTokenIn, uint256 inAmount) = bridger
                 .getBridgeTokenIn({
                     toChainId: intent.toChainId,
@@ -111,7 +111,7 @@ contract PayIntentContract is Initializable {
             uint256 balance = IERC20(bridgeTokenIn).balanceOf(address(this));
             require(balance >= inAmount, "PI: insufficient bridge token");
 
-            // Approve bridger and initiate bridge
+            // Approve bridger and initiate bridging
             IERC20(bridgeTokenIn).forceApprove({
                 spender: address(bridger),
                 value: inAmount
@@ -123,7 +123,7 @@ contract PayIntentContract is Initializable {
                 extraData: bridgeExtraData
             });
 
-            // Refund any leftover tokens in the contract to caller
+            // Refund any leftover tokens in the contract to the caller
             TokenUtils.transferBalance({
                 token: IERC20(bridgeTokenIn),
                 recipient: caller
@@ -133,10 +133,11 @@ contract PayIntentContract is Initializable {
         cleanup(intent.escrow);
     }
 
-    /// One step: receive  bridgeTokenOut and send to creator
+    /// Check that there is sufficient output token and send tokens to the
+    /// escrow contract.
     function receiveAndSelfDestruct(PayIntent calldata intent) public {
         require(keccak256(abi.encode(intent)) == intentHash, "PI: intent");
-        require(msg.sender == intent.escrow, "PI: only creator");
+        require(msg.sender == intent.escrow, "PI: only escrow");
         require(block.chainid == intent.toChainId, "PI: only dest chain");
 
         bool balanceOk = checkBridgeTokenOutBalance(
@@ -156,7 +157,7 @@ contract PayIntentContract is Initializable {
         cleanup(intent.escrow);
     }
 
-    /** Refund double payments. */
+    /// Refund double payments.
     function refundAndSelfDestruct(
         PayIntent calldata intent,
         IERC20 token
@@ -164,6 +165,7 @@ contract PayIntentContract is Initializable {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
+        // Send to escrow contract, which will forward to the refund address.
         amount = TokenUtils.transferBalance({
             token: token,
             recipient: intent.escrow

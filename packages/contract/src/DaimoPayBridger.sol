@@ -21,42 +21,55 @@ contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
     mapping(uint256 chainId => IDaimoPayBridger bridger)
         public chainIdToBridger;
 
-    event BridgeAdded(uint256 indexed chainId, address bridger);
-    event BridgeRemoved(uint256 indexed chainId);
+    event BridgeAdded(uint256 indexed toChainId, address bridger);
+    event BridgeRemoved(uint256 indexed toChainId);
 
     /// Specify the bridger implementation to use for each chain.
     constructor(
         address _owner,
-        uint256[] memory _chainIds,
+        uint256[] memory _toChainIds,
         IDaimoPayBridger[] memory _bridgers
     ) Ownable(_owner) {
-        uint256 n = _chainIds.length;
+        uint256 n = _toChainIds.length;
         require(n == _bridgers.length, "DPB: wrong bridgers length");
 
         for (uint256 i = 0; i < n; ++i) {
-            _addBridger({chainId: _chainIds[i], bridger: _bridgers[i]});
+            _setBridgeRoutes({toChainIds: _toChainIds, bridgers: _bridgers});
         }
     }
 
     // ----- ADMIN FUNCTIONS -----
 
     /// Add a new bridger for a destination chain.
-    function addBridger(
-        uint256 chainId,
-        IDaimoPayBridger bridger
+    function setBridgeRoutes(
+        uint256[] memory toChainIds,
+        IDaimoPayBridger[] memory bridgers
     ) public onlyOwner {
-        _addBridger({chainId: chainId, bridger: bridger});
+        _setBridgeRoutes({toChainIds: toChainIds, bridgers: bridgers});
     }
 
-    function _addBridger(uint256 chainId, IDaimoPayBridger bridger) private {
-        require(chainId != 0, "DPB: missing chainId");
-        chainIdToBridger[chainId] = bridger;
-        emit BridgeAdded({chainId: chainId, bridger: address(bridger)});
+    function _setBridgeRoutes(
+        uint256[] memory toChainIds,
+        IDaimoPayBridger[] memory bridgers
+    ) private {
+        uint256 n = toChainIds.length;
+        require(n == bridgers.length, "DPB: wrong bridgers length");
+
+        for (uint256 i = 0; i < n; ++i) {
+            chainIdToBridger[toChainIds[i]] = bridgers[i];
+            emit BridgeAdded({
+                toChainId: toChainIds[i],
+                bridger: address(bridgers[i])
+            });
+        }
     }
 
-    function removeBridger(uint256 chainId) public onlyOwner {
-        delete chainIdToBridger[chainId];
-        emit BridgeRemoved({chainId: chainId});
+    /// Remove a bridger for a destination chain.
+    function removeBridgers(uint256[] memory toChainIds) public onlyOwner {
+        for (uint256 i = 0; i < toChainIds.length; ++i) {
+            delete chainIdToBridger[toChainIds[i]];
+            emit BridgeRemoved({toChainId: toChainIds[i]});
+        }
     }
 
     // ----- BRIDGER FUNCTIONS -----

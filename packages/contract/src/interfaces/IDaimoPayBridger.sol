@@ -19,16 +19,16 @@ interface IDaimoPayBridger {
         uint256 toAmount
     );
 
-    /// @dev Get the bridge route for the given output token options on
-    ///      destination chain.
+    /// @dev Determine the input token and amount required for bridging to
+    ///      another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] memory bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount);
 
     /// @dev Initiate a bridge. Guarantees that one of the bridge token options
-    ///      (bridgeTokenOut, outAmount) shows up in (toAddress) on (toChainId).
-    ///      Otherwise, reverts.
+    ///      (bridgeTokenOut, outAmount) shows up at toAddress on toChainId.
+    ///      Otherwise, revert.
     function sendToChain(
         uint256 toChainId,
         address toAddress,

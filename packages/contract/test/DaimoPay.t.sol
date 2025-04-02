@@ -90,7 +90,11 @@ contract DaimoPayTest is Test {
             bytes32(uint256(uint160(address(_toToken)))),
             address(_fromToken)
         );
-        messenger = new DummyCCTPMessenger(_cctpDestDomain, CCTP_INTENT_ADDR, address(_fromToken));
+        messenger = new DummyCCTPMessenger(
+            _cctpDestDomain,
+            CCTP_INTENT_ADDR,
+            address(_fromToken)
+        );
 
         uint256[] memory cctpChainIds = new uint256[](1);
         DaimoPayCCTPBridger.CCTPBridgeRoute[]
@@ -117,7 +121,11 @@ contract DaimoPayTest is Test {
             bytes32(uint256(uint160(address(_toToken)))),
             address(_fromToken)
         );
-        messengerV2 = new DummyCCTPMessengerV2(_cctpV2DestDomain, CCTP_V2_INTENT_ADDR, address(_fromToken));
+        messengerV2 = new DummyCCTPMessengerV2(
+            _cctpV2DestDomain,
+            CCTP_V2_INTENT_ADDR,
+            address(_fromToken)
+        );
 
         uint256[] memory cctpV2ChainIds = new uint256[](1);
         DaimoPayCCTPV2Bridger.CCTPBridgeRoute[]
@@ -138,7 +146,11 @@ contract DaimoPayTest is Test {
         });
 
         // Initialize Across bridger
-        spokePool = new DummySpokePool(address(_fromToken), address(_toToken), ACROSS_INTENT_ADDR);
+        spokePool = new DummySpokePool(
+            address(_fromToken),
+            address(_toToken),
+            ACROSS_INTENT_ADDR
+        );
 
         uint256[] memory acrossChainIds = new uint256[](1);
         DaimoPayAcrossBridger.AcrossBridgeRoute[]
@@ -186,7 +198,7 @@ contract DaimoPayTest is Test {
             bridgeTokenOut: address(_toToken),
             tokenSymbol: "axlUSDC",
             receiverContract: address(0xdead),
-            fee: 10 // 10 wei
+            nativeFee: 10 // 10 wei
         });
 
         axelarBridger = new DaimoPayAxelarBridger({
@@ -212,7 +224,7 @@ contract DaimoPayTest is Test {
 
         bridger = new DaimoPayBridger({
             _owner: address(this),
-            _chainIds: chainIds,
+            _toChainIds: chainIds,
             _bridgers: bridgers
         });
 
@@ -311,7 +323,9 @@ contract DaimoPayTest is Test {
             refundAddress: _alice,
             nonce: _nonce
         });
-        address actualAxelarIntentAddr = intentFactory.getIntentAddress(axelarIntent);
+        address actualAxelarIntentAddr = intentFactory.getIntentAddress(
+            axelarIntent
+        );
         console.log("actual axelar intent addr:", actualAxelarIntentAddr);
 
         assertEq(actualCCTPIntentAddr, CCTP_INTENT_ADDR);
@@ -563,10 +577,7 @@ contract DaimoPayTest is Test {
 
         // Create the ExtraData struct for CCTP v2 bridging
         DaimoPayCCTPV2Bridger.ExtraData memory extraData = DaimoPayCCTPV2Bridger
-            .ExtraData({
-                maxFee: 0,
-                minFinalityThreshold: 2000
-            });
+            .ExtraData({maxFee: 0, minFinalityThreshold: 2000});
 
         uint256 gasBefore = gasleft();
         dp.startIntent({

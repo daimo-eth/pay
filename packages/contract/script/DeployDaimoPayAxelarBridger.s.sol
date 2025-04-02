@@ -89,7 +89,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
                     tokenSymbol: tokenSymbol,
                     receiverContract: axelarReceiver,
-                    fee: _getAxelarFeeByChain(block.chainid)
+                    nativeFee: _getAxelarFeeByChain(block.chainid)
                 });
             }
         } else if (block.chainid == BSC_MAINNET) {
@@ -111,7 +111,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
                     tokenSymbol: "axlUSDC",
                     receiverContract: axelarReceiver,
-                    fee: _getAxelarFeeByChain(block.chainid)
+                    nativeFee: _getAxelarFeeByChain(block.chainid)
                 });
             }
         } else if (block.chainid == MANTLE_MAINNET) {
@@ -133,7 +133,7 @@ contract DeployDaimoPayAxelarBridger is Script {
                     bridgeTokenOut: _getAxlUsdcAddress(chainIds[i]),
                     tokenSymbol: "axlUSDC",
                     receiverContract: axelarReceiver,
-                    fee: _getAxelarFeeByChain(block.chainid)
+                    nativeFee: _getAxelarFeeByChain(block.chainid)
                 });
             }
         } else {
@@ -147,7 +147,7 @@ contract DeployDaimoPayAxelarBridger is Script {
             console.log("bridgeTokenOut:", bridgeRoutes[i].bridgeTokenOut);
             console.log("tokenSymbol:", bridgeRoutes[i].tokenSymbol);
             console.log("receiverContract:", bridgeRoutes[i].receiverContract);
-            console.log("fee:", bridgeRoutes[i].fee);
+            console.log("nativeFee:", bridgeRoutes[i].nativeFee);
             console.log("--------------------------------");
         }
     }

@@ -9,28 +9,30 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/cctp/v1/ITokenMinter.sol";
 import "../vendor/cctp/v1/ICCTPTokenMessenger.sol";
 
-/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol (CCTP)
+/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol
+/// V1 (CCTP)
 /// @author The Daimo team
 /// @custom:security-contact security@daimo.com
 ///
-/// @dev Bridges assets from to a destination chain using CCTP. The only supported
-/// bridge token is USDC.
+/// @dev Bridges assets to a destination chain using CCTP.
 contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
+        // CCTP domain of the destination chain.
         uint32 domain;
+        // The bridge that will be output by CCTP on the destination chain.
         address bridgeTokenOut;
     }
 
-    // CCTP TokenMinter for this chain. Used to identify the CCTP token on the
-    // current chain.
+    /// CCTP TokenMinter for this chain. Has a function to identify the CCTP
+    /// token on the current chain corresponding to a given output token.
     ITokenMinter public tokenMinter;
-    // CCTP TokenMessenger for this chain. Used to initiate the CCTP bridge.
+    /// CCTP TokenMessenger for this chain. Used to initiate the CCTP bridge.
     ICCTPTokenMessenger public cctpMessenger;
 
-    // Map destination chainId to CCTP domain and the bridge token address on the
-    // destination chain.
+    /// Map destination chainId to CCTP domain and the bridge token address on
+    /// the destination chain.
     mapping(uint256 toChainId => CCTPBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
@@ -62,7 +64,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
 
     // ----- ADMIN FUNCTIONS -----
 
-    /// Add a new supported CCTP recipient chain.
+    /// Add new supported CCTP destination chains.
     function setBridgeRoutes(
         uint256[] memory toChainIds,
         CCTPBridgeRoute[] memory bridgeRoutes
@@ -86,7 +88,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         }
     }
 
-    /// Remove a supported CCTP recipient chain.
+    /// Remove a supported CCTP destination chain.
     function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
         for (uint256 i = 0; i < toChainIds.length; ++i) {
             CCTPBridgeRoute memory bridgeRoute = bridgeRouteMapping[
@@ -122,7 +124,8 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         return n;
     }
 
-    /// Get the CCTP bridge token address and amount for the current chain.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using CCTP.
     /// CCTP does 1 to 1 token bridging, so the amount of tokens to bridge is
     /// the same as toAmount.
     function _getBridgeData(
@@ -166,6 +169,8 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
         inAmount = outAmount;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions

@@ -21,27 +21,35 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
     struct AcrossBridgeRoute {
         address bridgeTokenIn;
         address bridgeTokenOut;
-        // Minimum percentage fee to pay the Across relayer. The input amount should
-        // be at least this much larger than the output amount
-        // 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how Across
-        // represents percentage fees.
+        // Minimum percentage fee to pay the Across relayer on the source chain.
+        // The input amount should be at least this much larger than the output
+        // amount.
+        // 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how
+        // Across represents percentage fees.
         uint256 pctFee;
-        // Minimum flat fee to pay the Across relayer. The input amount should be at
-        // least this much larger than the output amount
+        // Minimum flat fee to pay the Across relayer on the source chain. This
+        // fee is paid in bridgeTokenIn. The input amount should be at least
+        // this much larger than the output amount.
         uint256 flatFee;
     }
 
     struct ExtraData {
+        // Returned from the Across API.
         address exclusiveRelayer;
+        // Returned from the Across API.
         uint32 quoteTimestamp;
+        // Deadline to fill the Across quote before the quote expires.
         uint32 fillDeadline;
+        // Returned from the Across API.
         uint32 exclusivityDeadline;
+        // Used when making a contract call on the destination chain using
+        // Across.
         bytes message;
     }
 
     uint256 public immutable ONE_HUNDRED_PERCENT = 1e18;
 
-    // SpokePool contract address for this chain.
+    // Across SpokePool contract address for this chain.
     V3SpokePoolInterface public immutable spokePool;
 
     // Mapping destination chainId to the corresponding token on the current
@@ -102,6 +110,7 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         }
     }
 
+    /// Remove a supported Across destination chain.
     function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
         for (uint256 i = 0; i < toChainIds.length; ++i) {
             AcrossBridgeRoute memory bridgeRoute = bridgeRouteMapping[
@@ -133,9 +142,12 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         return n;
     }
 
-    /// Get the input token that corresponds to the destination token. Get the
-    /// minimum input amount for a given output amount. The input amount must
-    /// cover the max of the percentage fee and the flat fee.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using Across Protocol.
+    /// Across requires a fee that's paid to relayers for bridging. The
+    /// AcrossBridgeRoute specifies a pctFee and flatFee to ensure that an
+    /// Across relayer will fill the order. The input amount must cover the max
+    /// of the pctFee and the flatFee.
     function _getBridgeData(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -179,6 +191,8 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         outAmount = bridgeTokenOutOptions[index].amount;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -214,7 +228,7 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         extra = abi.decode(extraData, (ExtraData));
 
         // Move input token from caller to this contract and approve the
-        // SpokePool contract.
+        // Across SpokePool contract.
         IERC20(inToken).safeTransferFrom({
             from: msg.sender,
             to: address(this),

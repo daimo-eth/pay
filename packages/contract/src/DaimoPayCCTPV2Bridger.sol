@@ -14,13 +14,14 @@ import "../vendor/cctp/v2/ICCTPTokenMessengerV2.sol";
 /// @author The Daimo team
 /// @custom:security-contact security@daimo.com
 ///
-/// @dev Bridges assets from to a destination chain using CCTP. The only supported
-/// bridge token is USDC.
+/// @dev Bridges assets to a destination chain using CCTP v2.
 contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
+        // CCTP domain of the destination chain.
         uint32 domain;
+        // The bridge that will be output by CCTP on the destination chain.
         address bridgeTokenOut;
     }
 
@@ -37,14 +38,14 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     uint256 public constant DEFAULT_MAX_FEE = 0;
     uint32 public constant DEFAULT_MIN_FINALITY_THRESHOLD = 2000;
 
-    // CCTP TokenMinterV2 for this chain. Used to identify the CCTP token on the
-    // current chain.
+    /// CCTP TokenMinterV2 for this chain. Has a function to identify the CCTP
+    /// token on the current chain corresponding to a given output token.
     ITokenMinterV2 public tokenMinterV2;
-    // CCTP TokenMessengerV2 for this chain. Used to initiate the CCTP bridge.
+    /// CCTP TokenMessengerV2 for this chain. Used to initiate the CCTP bridge.
     ICCTPTokenMessengerV2 public cctpMessengerV2;
 
-    // Map destination chainId to CCTP domain and the bridge token address on the
-    // destination chain.
+    /// Map destination chainId to CCTP domain and the bridge token address on
+    /// the destination chain.
     mapping(uint256 toChainId => CCTPBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
@@ -139,9 +140,10 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         return n;
     }
 
-    /// Get the CCTP bridge token address and amount for the current chain.
-    /// CCTP does 1 to 1 token bridging, so the amount of tokens to bridge is
-    /// the same as toAmount.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using CCTP.
+    /// CCTP does 1 to 1 for standard token bridging, so the amount of tokens to
+    /// bridge is the same as toAmount.
     function _getBridgeData(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -185,6 +187,8 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         inAmount = outAmount;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -198,7 +202,7 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         inAmount = _inAmount;
     }
 
-    /// Initiate a bridge to a destination chain using CCTP.
+    /// Initiate a bridge to a destination chain using CCTP v2.
     function sendToChain(
         uint256 toChainId,
         address toAddress,

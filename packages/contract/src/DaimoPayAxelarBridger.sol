@@ -18,6 +18,10 @@ import "./interfaces/IDaimoPayBridger.sol";
 /// @dev Bridges assets to a destination chain using Axelar Protocol. Makes
 /// the assumption that the local token is an ERC20 token and has a 1 to 1 price
 /// with the corresponding destination token.
+///
+/// @dev Axelar protocol requires the bridge recipient to be a contract
+/// implementing the AxelarExecutableWithToken interface. This contract
+/// fulfills that requirement and acts as the receiver on the destination chain.
 contract DaimoPayAxelarBridger is
     IDaimoPayBridger,
     AxelarExpressExecutableWithToken,
@@ -38,8 +42,9 @@ contract DaimoPayAxelarBridger is
         // destination chain must be a contract that implements the
         // AxelarExecutableWithToken interface.
         address receiverContract;
-        // Fee to be paid in native token for Axelar's bridging gas fee
-        uint256 fee;
+        // Fee paid in native token on the source chain for Axelar's bridging
+        // gas fee.
+        uint256 nativeFee;
     }
 
     struct ExtraData {
@@ -115,6 +120,7 @@ contract DaimoPayAxelarBridger is
         }
     }
 
+    /// Remove a supported Axelar destination chain.
     function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
         for (uint256 i = 0; i < toChainIds.length; ++i) {
             AxelarBridgeRoute memory bridgeRoute = bridgeRouteMapping[
@@ -143,8 +149,9 @@ contract DaimoPayAxelarBridger is
     }
 
     /// Part of the AxelarExpressExecutableWithToken interface. Used to make
-    /// a contract call on the destination chain with tokens. Will always be
-    /// used to transfer tokens to the intent address on the destination chain.
+    /// a contract call on the destination chain with tokens. In this case, it
+    /// will always be used to transfer tokens to the intent address on the
+    /// destination chain.
     function _executeWithToken(
         bytes32 /* commandId */,
         string calldata /* sourceChain */,
@@ -177,7 +184,8 @@ contract DaimoPayAxelarBridger is
         return n;
     }
 
-    /// Get the local token that corresponds to the destination token.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using Axelar Protocol.
     function _getBridgeData(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -192,7 +200,7 @@ contract DaimoPayAxelarBridger is
             uint256 outAmount,
             string memory destChainName,
             address receiverContract,
-            uint256 fee
+            uint256 nativeFee
         )
     {
         AxelarBridgeRoute memory bridgeRoute = bridgeRouteMapping[toChainId];
@@ -220,9 +228,11 @@ contract DaimoPayAxelarBridger is
 
         destChainName = bridgeRoute.destChainName;
         receiverContract = bridgeRoute.receiverContract;
-        fee = bridgeRoute.fee;
+        nativeFee = bridgeRoute.nativeFee;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -250,7 +260,7 @@ contract DaimoPayAxelarBridger is
             uint256 outAmount,
             string memory destChainName,
             address receiverContract,
-            uint256 fee
+            uint256 nativeFee
         ) = _getBridgeData(toChainId, bridgeTokenOutOptions);
         require(outAmount > 0, "DPAxB: zero amount");
 
@@ -267,7 +277,9 @@ contract DaimoPayAxelarBridger is
 
         // Pay for Axelar's bridging gas fee.
         if (extra.useExpress) {
-            axelarGasService.payNativeGasForExpressCallWithToken{value: fee}(
+            axelarGasService.payNativeGasForExpressCallWithToken{
+                value: nativeFee
+            }(
                 address(this),
                 destChainName,
                 Strings.toHexString(receiverContract),
@@ -277,7 +289,9 @@ contract DaimoPayAxelarBridger is
                 extra.gasRefundAddress
             );
         } else {
-            axelarGasService.payNativeGasForContractCallWithToken{value: fee}(
+            axelarGasService.payNativeGasForContractCallWithToken{
+                value: nativeFee
+            }(
                 address(this),
                 destChainName,
                 Strings.toHexString(receiverContract),

@@ -32,12 +32,7 @@ contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
         uint256[] memory _toChainIds,
         IDaimoPayBridger[] memory _bridgers
     ) Ownable(_owner) {
-        uint256 n = _toChainIds.length;
-        require(n == _bridgers.length, "DPB: wrong bridgers length");
-
-        for (uint256 i = 0; i < n; ++i) {
-            _setBridgeRoutes({toChainIds: _toChainIds, bridgers: _bridgers});
-        }
+        _setBridgeRoutes({toChainIds: _toChainIds, bridgers: _bridgers});
     }
 
     // ----- ADMIN FUNCTIONS -----

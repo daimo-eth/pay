@@ -19,7 +19,7 @@ contract DeployDaimoPayBridger is Script {
         ) = _getBridgersAndChainIds();
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayBridger-options4"),
+            keccak256("DaimoPayBridger-audit1"),
             abi.encodePacked(
                 type(DaimoPayBridger).creationCode,
                 abi.encode(initOwner, chainIds, bridgers)
@@ -42,20 +42,25 @@ contract DeployDaimoPayBridger is Script {
             return (new uint256[](0), new address[](0));
         }
 
-        address acrossBridger = CREATE3.getDeployed(
-            msg.sender,
-            keccak256("DaimoPayAcrossBridger-options4")
-        );
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPBridger-options4")
+            keccak256("DaimoPayCCTPBridger-audit1")
+        );
+        address cctpV2Bridger = CREATE3.getDeployed(
+            msg.sender,
+            keccak256("DaimoPayCCTPV2Bridger-audit1")
+        );
+        address acrossBridger = CREATE3.getDeployed(
+            msg.sender,
+            keccak256("DaimoPayAcrossBridger-audit1")
         );
         address axelarBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAxelarBridger-options4")
+            keccak256("DaimoPayAxelarBridger-audit1")
         );
-        console.log("acrossBridger address:", acrossBridger);
         console.log("cctpBridger address:", cctpBridger);
+        console.log("cctpV2Bridger address:", cctpV2Bridger);
+        console.log("acrossBridger address:", acrossBridger);
         console.log("axelarBridger address:", axelarBridger);
 
         // Bridge to CCTP chains using CCTP.
@@ -96,7 +101,15 @@ contract DeployDaimoPayBridger is Script {
         for (uint256 i = 0; i < allChainIds.length; ++i) {
             if (allChainIds[i] != block.chainid) {
                 chainIds[count] = allChainIds[i];
-                bridgers[count] = allBridgers[i];
+                // Base and Linea bridge to each other using CCTPv2.
+                if (
+                    block.chainid == BASE_MAINNET &&
+                    allChainIds[i] == LINEA_MAINNET
+                ) {
+                    bridgers[count] = cctpV2Bridger;
+                } else {
+                    bridgers[count] = allBridgers[i];
+                }
                 ++count;
             }
         }
@@ -114,6 +127,8 @@ contract DeployDaimoPayBridger is Script {
                     chainIds[i] == BSC_MAINNET || chainIds[i] == MANTLE_MAINNET
                 ) {
                     bridgers[i] = axelarBridger;
+                } else if (block.chainid == LINEA_MAINNET && chainIds[i] == BASE_MAINNET) {
+                    bridgers[i] = cctpV2Bridger;
                 } else {
                     bridgers[i] = acrossBridger;
                 }

@@ -17,14 +17,14 @@ contract DeployDaimoPayCCTPV2Bridger is Script {
         (
             uint256[] memory chainIds,
             DaimoPayCCTPV2Bridger.CCTPBridgeRoute[] memory bridgeRoutes
-        ) = _getCCTPBridgeRoutes();
+        ) = _getCCTPV2BridgeRoutes();
 
         vm.startBroadcast();
 
         address initOwner = msg.sender;
 
         address bridger = CREATE3.deploy(
-            keccak256("test"),
+            keccak256("DaimoPayCCTPV2Bridger-audit1"),
             abi.encodePacked(
                 type(DaimoPayCCTPV2Bridger).creationCode,
                 abi.encode(
@@ -36,14 +36,14 @@ contract DeployDaimoPayCCTPV2Bridger is Script {
                 )
             )
         );
-        console.log("CCTP bridger deployed at address:", address(bridger));
+        console.log("CCTPv2 bridger deployed at address:", address(bridger));
 
         vm.stopBroadcast();
     }
 
-    function _getCCTPBridgeRoutes()
+    function _getCCTPV2BridgeRoutes()
         private
-        view
+        pure
         returns (
             uint256[] memory chainIds,
             DaimoPayCCTPV2Bridger.CCTPBridgeRoute[] memory bridgeRoutes

@@ -22,7 +22,7 @@ contract DeployDaimoPayAxelarBridger is Script {
         address initOwner = msg.sender;
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayAxelarBridger-options4"),
+            keccak256("DaimoPayAxelarBridger-audit1"),
             abi.encodePacked(
                 type(DaimoPayAxelarBridger).creationCode,
                 abi.encode(

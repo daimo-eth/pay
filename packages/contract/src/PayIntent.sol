@@ -17,10 +17,11 @@ struct PayIntent {
     TokenAmount[] bridgeTokenOutOptions;
     /// Expected token amount after swapping on the destination chain.
     TokenAmount finalCallToken;
-    /// Destination on target chain. If dest.data != "" specifies a call,
-    /// (token, amount) is approved. Otherwise, it's transferred to dest.to
+    /// If finalCall.data is empty, the tokens are transferred to finalCall.to.
+    /// Otherwise, (token, amount) is approved to finalCall.to and finalCall.to
+    /// is called with finalCall.data and finalCall.value.
     Call finalCall;
-    /// Escrow contract. All calls are made thru this contract.
+    /// Escrow contract. All calls are made through this contract.
     address payable escrow;
     /// Bridger contract.
     IDaimoPayBridger bridger;

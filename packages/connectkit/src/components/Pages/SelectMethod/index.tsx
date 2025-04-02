@@ -119,7 +119,10 @@ const SelectMethod: React.FC = () => {
         (c) => c.name === name || name.includes(c.shortName),
       );
       log(`[SELECT_METHOD] wcWallet: ${wallet?.name} ${wallet != null}`, p);
-      setWcWallet(wallet);
+      //case MetaMask
+      if (wallet != null) {
+        setWcWallet(wallet);
+      }
     });
   }, [connector]);
 

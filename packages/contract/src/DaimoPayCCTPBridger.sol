@@ -32,16 +32,6 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger {
     mapping(uint256 toChainId => CCTPBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
     /// Specify the CCTP chain IDs and domains that this bridger will support.
     constructor(
         ITokenMinter _tokenMinter,

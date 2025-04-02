@@ -6,6 +6,9 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "./PayIntent.sol";
 
+/// @author Daimo, Inc
+/// @custom:security-contact security@daimo.com
+/// @notice Factory for intent addresses.
 contract PayIntentFactory {
     PayIntentContract public immutable intentImpl;
 

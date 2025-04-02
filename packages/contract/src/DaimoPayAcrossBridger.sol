@@ -8,52 +8,50 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/across/V3SpokePoolInterface.sol";
 
-/// @title Bridger implementation for Across Protocol
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @dev Bridges assets to a destination chain using Across Protocol. Makes the
-/// assumption that the local token is an ERC20 token and has a 1 to 1 price
-/// with the corresponding destination token.
+/// @notice Bridges assets to a destination chain using Across Protocol.
+/// @dev Makes the assumption that the local token is an ERC20 token and has a
+/// 1 to 1 price with the corresponding destination token.
 contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
     struct AcrossBridgeRoute {
         address bridgeTokenIn;
         address bridgeTokenOut;
-        // Minimum percentage fee to pay the Across relayer on the source chain.
-        // The input amount should be at least this much larger than the output
-        // amount.
-        // 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how
-        // Across represents percentage fees.
+        /// Minimum percentage fee to pay the Across relayer on the source
+        /// chain. The input amount should be at least this much larger than the
+        /// output amount.
+        /// 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how
+        /// Across represents percentage fees.
         uint256 pctFee;
-        // Minimum flat fee to pay the Across relayer on the source chain. This
-        // fee is paid in bridgeTokenIn. The input amount should be at least
-        // this much larger than the output amount.
+        /// Minimum flat fee to pay the Across relayer on the source chain.
+        /// This fee is paid in bridgeTokenIn. The input amount should be at
+        /// least this much larger than the output amount.
         uint256 flatFee;
     }
 
     struct ExtraData {
-        // Returned from the Across API.
+        /// Returned from the Across API.
         address exclusiveRelayer;
-        // Returned from the Across API.
+        /// Returned from the Across API.
         uint32 quoteTimestamp;
-        // Deadline to fill the Across quote before the quote expires.
+        /// Deadline to fill the Across quote before the quote expires.
         uint32 fillDeadline;
-        // Returned from the Across API.
+        /// Returned from the Across API.
         uint32 exclusivityDeadline;
-        // Used when making a contract call on the destination chain using
-        // Across.
+        /// Used when making a contract call on the destination chain using
+        /// Across.
         bytes message;
     }
 
-    uint256 public immutable ONE_HUNDRED_PERCENT = 1e18;
+    uint256 public constant ONE_HUNDRED_PERCENT = 1e18;
 
-    // Across SpokePool contract address for this chain.
+    /// Across SpokePool contract address for this chain.
     V3SpokePoolInterface public immutable spokePool;
 
-    // Mapping destination chainId to the corresponding token on the current
-    // chain and fees associated with the bridge.
+    /// Mapping destination chainId to the corresponding token on the current
+    /// chain and fees associated with the bridge.
     mapping(uint256 toChainId => AcrossBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 

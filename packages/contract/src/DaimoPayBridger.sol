@@ -8,20 +8,22 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
-/// @title Bridger which multiplexes between different bridging protocols
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 ///
-/// @dev Bridges assets from to a supported destination chain. Multiplexes between
-/// different bridging protocols by destination chain.
+/// @notice Bridges assets from the current chain to a supported destination
+/// chain. Multiplexes between bridging protocols by destination chain.
 contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
-    // Map chainId to the contract address of an IDaimoPayBridger implementation
+    /// Map chainId to IDaimoPayBridger implementation.
     mapping(uint256 chainId => IDaimoPayBridger bridger)
         public chainIdToBridger;
 
+    /// Emitted when a new bridger is added for a destination chain.
     event BridgeAdded(uint256 indexed toChainId, address bridger);
+
+    /// Emitted when a bridger is removed for a destination chain.
     event BridgeRemoved(uint256 indexed toChainId);
 
     /// Specify the bridger implementation to use for each chain.
@@ -74,6 +76,8 @@ contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
 
     // ----- BRIDGER FUNCTIONS -----
 
+    /// Get the input token and amount required to achieve one of the given
+    /// output options on a given chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions

@@ -11,11 +11,10 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IDaimoPayBridger.sol";
 
-/// @title Bridger implementation for Axelar Protocol
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 ///
-/// @dev Bridges assets to a destination chain using Axelar Protocol. Makes
+/// @notice Bridges assets to a destination chain using Axelar Protocol. Makes
 /// the assumption that the local token is an ERC20 token and has a 1 to 1 price
 /// with the corresponding destination token.
 ///
@@ -30,36 +29,36 @@ contract DaimoPayAxelarBridger is
     using SafeERC20 for IERC20;
 
     struct AxelarBridgeRoute {
-        // Axelar requires the name of the destination chain, e.g. "base",
-        // "binance".
+        /// Axelar requires the name of the destination chain, e.g. "base",
+        /// "binance".
         string destChainName;
         address bridgeTokenIn;
         address bridgeTokenOut;
-        // Axelar requires the symbol name of bridgeTokenIn, e.g. "axlUSDC" or
-        // "USDC".
+        /// Axelar requires the symbol name of bridgeTokenIn, e.g. "axlUSDC" or
+        /// "USDC".
         string tokenSymbol;
-        // When bridging with an Axelar contract call, the receiver on the
-        // destination chain must be a contract that implements the
-        // AxelarExecutableWithToken interface.
+        /// When bridging with an Axelar contract call, the receiver on the
+        /// destination chain must be a contract that implements the
+        /// AxelarExecutableWithToken interface.
         address receiverContract;
-        // Fee paid in native token on the source chain for Axelar's bridging
-        // gas fee.
+        /// Fee paid in native token on the source chain for Axelar's bridging
+        /// gas fee.
         uint256 nativeFee;
     }
 
     struct ExtraData {
-        // Address to refund excess gas fees to.
+        /// Address to refund excess gas fees to.
         address gasRefundAddress;
-        // Whether to use Axelar Express bridging.
+        /// Whether to use Axelar Express bridging.
         bool useExpress;
     }
 
-    // Axelar contracts for this chain.
+    /// Axelar contracts for this chain.
     IAxelarGatewayWithToken public immutable axelarGateway;
     IAxelarGasService public immutable axelarGasService;
 
-    // Mapping from destination chain and token to the corresponding token on
-    // the current chain.
+    /// Mapping from destination chain and token to the corresponding token on
+    /// the current chain.
     mapping(uint256 toChainId => AxelarBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 

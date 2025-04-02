@@ -7,47 +7,47 @@ import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
-/// @dev Represents an intended call: "make X of token Y show up on chain Z,
-///      then [optionally] use it to do an arbitrary contract call".
+/// Represents an intended call: "make X of token Y show up on chain Z,
+/// then [optionally] use it to do an arbitrary contract call".
 struct PayIntent {
-    /// @dev Intent only executes on given target chain.
+    /// Intent only executes on given target chain.
     uint256 toChainId;
-    /// @dev Possible output tokens after bridging to the destination chain.
-    ///      Currently, native token is not supported as a bridge token output.
+    /// Possible output tokens after bridging to the destination chain.
+    /// Currently, native token is not supported as a bridge token output.
     TokenAmount[] bridgeTokenOutOptions;
-    /// @dev Expected token amount after swapping on the destination chain.
+    /// Expected token amount after swapping on the destination chain.
     TokenAmount finalCallToken;
-    /// @dev Destination on target chain. If dest.data != "" specifies a call,
-    ///     (token, amount) is approved. Otherwise, it's transferred to dest.to
+    /// Destination on target chain. If dest.data != "" specifies a call,
+    /// (token, amount) is approved. Otherwise, it's transferred to dest.to
     Call finalCall;
-    /// @dev Escrow contract for fast-finish. Will typically be the DaimoPay
-    ///      contract.
+    /// Escrow contract for fast-finish. Will typically be the DaimoPay
+    /// contract.
     address payable escrow;
-    /// @dev Address to refund tokens if call fails, or zero.
+    /// Address to refund tokens if call fails, or zero.
     address refundAddress;
-    /// @dev Nonce. PayIntent receiving addresses are one-time use.
+    /// Nonce. PayIntent receiving addresses are one-time use.
     uint256 nonce;
 }
 
-/// @dev Calculates the intent hash of a PayIntent struct
-/// @param intent The PayIntent struct to hash
-/// @return The keccak256 hash of the encoded PayIntent
+/// Calculates the intent hash of a PayIntent struct.
 function calcIntentHash(PayIntent calldata intent) pure returns (bytes32) {
     return keccak256(abi.encode(intent));
 }
 
-/// @dev This is an ephemeral intent contract. Any supported tokens sent to this
-///      address on any supported chain are forwarded, via a combination of
-///      bridging and swapping, into a specified call on a destination chain.
+/// @author Daimo, Inc
+/// @custom:security-contact security@daimo.com
+/// @notice This is an ephemeral intent contract. Any supported tokens sent to
+/// this address on any supported chain are forwarded, via a combination of
+/// bridging and swapping, into a specified call on a destination chain.
 contract PayIntentContract is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /// @dev Save gas by minimizing storage to a single word. This makes intents
-    ///      usable on L1. intentHash = keccak(abi.encode(PayIntent))
+    /// Save gas by minimizing storage to a single word. This makes intents
+    /// usable on L1. intentHash = keccak(abi.encode(PayIntent))
     bytes32 intentHash;
 
-    /// @dev Runs at deploy time. Singleton implementation contract = no init,
-    ///      no state. All other methods are called via proxy.
+    /// Runs at deploy time. Singleton implementation contract = no init,
+    /// no state. All other methods are called via proxy.
     constructor() {
         _disableInitializers();
     }

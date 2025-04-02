@@ -9,19 +9,16 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/cctp/v1/ITokenMinter.sol";
 import "../vendor/cctp/v1/ICCTPTokenMessenger.sol";
 
-/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol
-/// V1 (CCTP)
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @dev Bridges assets to a destination chain using CCTP.
+/// @notice Bridges assets to a destination chain using CCTP v1.
 contract DaimoPayCCTPBridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
-        // CCTP domain of the destination chain.
+        /// CCTP domain of the destination chain.
         uint32 domain;
-        // The bridge that will be output by CCTP on the destination chain.
+        /// The bridge that will be output by CCTP on the destination chain.
         address bridgeTokenOut;
     }
 

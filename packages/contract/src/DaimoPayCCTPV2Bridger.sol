@@ -9,12 +9,9 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/cctp/v2/ITokenMinterV2.sol";
 import "../vendor/cctp/v2/ICCTPTokenMessengerV2.sol";
 
-/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol
-/// V2 (CCTP v2)
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @dev Bridges assets to a destination chain using CCTP v2.
+/// @notice Bridges assets to a destination chain using CCTP v2.
 contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     using SafeERC20 for IERC20;
 
@@ -26,11 +23,11 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     }
 
     struct ExtraData {
-        // Maximum fee to pay on the destination domain, specified in units of
-        // bridgeTokenOut.
+        /// Maximum fee to pay on the destination domain, specified in units of
+        /// bridgeTokenOut.
         uint256 maxFee;
-        // Minimum finality threshold for the destination domain. (1000 or less
-        // for Fast Transfer)
+        /// Minimum finality threshold for the destination domain. (1000 or less
+        /// for Fast Transfer)
         uint32 minFinalityThreshold;
     }
 

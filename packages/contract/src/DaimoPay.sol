@@ -16,34 +16,32 @@ import "./TokenUtils.sol";
 //    startIntent. The intent commits to a destination bridgeTokenOut, and the
 //    bridger guarantees this amount will show up on chain B (or reverts if the
 //    amount of bridgeTokenIn is insufficient).
-// 3. Relayer immediately calls fastFinishIntent on chain B.
+// 3. Relayer immediately calls fastFinishIntent on chain B, paying Bob.
 // 4. Finally, the slow bridge transfer arrives on chain B later, and the
 //    relayer can call claimIntent.
 // For simplicity, a same-chain Daimo Pay transfer follows the same steps.
 // Instead of swap+bridge, startIntent only swaps and verifies correct output.
 // FastFinish remains optional but is unnecessary. Claim completes the intent.
 
-/// @title Daimo Pay contract for creating and fulfilling cross-chain intents
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @notice Enables fast cross-chain transfers with optimistic intents
-/// @dev Allows optimistic fast intents. Alice initiates a transfer by calling
-/// `startIntent` on chain A. After the bridging delay (e.g. 10+ min for CCTP),
-/// funds arrive at the intent address deployed on chain B. Alice can call
-/// `claimIntent` on chain B to finish her intent.
-
-/// Alternatively, immediately after the first call, a relayer can call
-/// `fastFinishIntent` to finish Alice's intent immediately. Later, when the
-/// funds arrive from the bridge, the relayer will call `claimIntent` to get
-/// repaid for their fast-finish.
-///
-/// @notice WARNING: Never approve tokens directly to this contract. Never
+/// @notice Enables fast cross-chain transfers with optimistic intents.
+/// WARNING: Never approve tokens directly to this contract. Never
 /// transfer tokens to this contract as a standalone transaction.
 /// Such tokens can be stolen by anyone. Instead:
 /// - Users should only interact by sending funds to an intent address.
 /// - Relayers should transfer funds and call this contract atomically via their
 ///   own contracts.
+///
+/// @dev Allows optimistic fast intents. Alice initiates a transfer by calling
+/// `startIntent` on chain A. After the bridging delay (e.g. 10+ min for CCTP),
+/// funds arrive at the intent address deployed on chain B. Bob (or anyone) can
+/// call `claimIntent` on chain B to finish her intent.
+///
+/// Alternatively, immediately after the first call, a relayer can call
+/// `fastFinishIntent` to finish Alice's intent immediately. Later, when the
+/// funds arrive from the bridge, the relayer will call `claimIntent` to get
+/// repaid for their fast-finish.
 contract DaimoPay is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -97,8 +95,7 @@ contract DaimoPay is ReentrancyGuard {
         bridger = _bridger;
     }
 
-    /// Starts an intent, starting a bridge to the destination chain if
-    /// necessary.
+    /// Starts an intent, bridging to the destination chain if necessary.
     function startIntent(
         PayIntent calldata intent,
         Call[] calldata calls,
@@ -112,7 +109,7 @@ contract DaimoPay is ReentrancyGuard {
         intentSent[address(intentContract)] = true;
 
         // Bridge funds in the intent contract to the destination chain, if
-        // necessary.
+        // necessary. They'll arrive at the same intent address on chain B.
         intentContract.start({
             intent: intent,
             bridger: bridger,
@@ -160,7 +157,7 @@ contract DaimoPay is ReentrancyGuard {
     }
 
     /// Completes an intent, claiming funds. The bridge transfer must already
-    /// have been completed - tokens are already in the intent contract.
+    /// have been completed--tokens are already in the intent contract.
     ///
     /// If FastFinish happened for this intent, then the recipient is the
     /// relayer who fastFinished the intent. Otherwise, the recipient remains
@@ -261,8 +258,8 @@ contract DaimoPay is ReentrancyGuard {
         // approve the swap contract and swap if necessary.
         for (uint256 i = 0; i < calls.length; ++i) {
             Call calldata call = calls[i];
-            (bool success, ) = call.to.call{value: call.value}(call.data);
-            require(success, "DP: swap call failed");
+            (bool callSuccess, ) = call.to.call{value: call.value}(call.data);
+            require(callSuccess, "DP: swap call failed");
         }
 
         // Check that the swap had a fair price
@@ -275,6 +272,7 @@ contract DaimoPay is ReentrancyGuard {
             "DP: insufficient final call token received"
         );
 
+        bool success;
         if (intent.finalCall.data.length > 0) {
             // If the intent is a call, approve the final token and make the call
             TokenUtils.approve({
@@ -282,41 +280,33 @@ contract DaimoPay is ReentrancyGuard {
                 spender: address(intent.finalCall.to),
                 amount: intent.finalCallToken.amount
             });
-            (bool success, ) = intent.finalCall.to.call{
+            (success, ) = intent.finalCall.to.call{
                 value: intent.finalCall.value
             }(intent.finalCall.data);
-
-            // If the call fails, transfer the token to the refund address
-            if (!success) {
-                TokenUtils.transfer({
-                    token: intent.finalCallToken.token,
-                    recipient: payable(intent.refundAddress),
-                    amount: intent.finalCallToken.amount
-                });
-            }
-
-            emit IntentFinished({
-                intentAddr: intentAddr,
-                destinationAddr: intent.finalCall.to,
-                success: success,
-                intent: intent
-            });
         } else {
-            // If the final call is a transfer, transfer the token. Transfers
-            // can never fail, so we don't need to check the return value.
+            // If the final call is a transfer, transfer the token.
+            success = TokenUtils.tryTransfer(
+                intent.finalCallToken.token,
+                payable(intent.finalCall.to),
+                intent.finalCallToken.amount
+            );
+        }
+
+        // If the call fails, transfer the token to the refund address
+        if (!success) {
             TokenUtils.transfer({
                 token: intent.finalCallToken.token,
-                recipient: payable(intent.finalCall.to),
+                recipient: payable(intent.refundAddress),
                 amount: intent.finalCallToken.amount
             });
-
-            emit IntentFinished({
-                intentAddr: intentAddr,
-                destinationAddr: intent.finalCall.to,
-                success: true,
-                intent: intent
-            });
         }
+
+        emit IntentFinished({
+            intentAddr: intentAddr,
+            destinationAddr: intent.finalCall.to,
+            success: success,
+            intent: intent
+        });
 
         // Send any leftover final token to the caller
         TokenUtils.transferBalance({

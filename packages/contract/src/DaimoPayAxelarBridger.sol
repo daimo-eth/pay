@@ -5,7 +5,6 @@ import {AxelarExpressExecutableWithToken} from "@axelar-network/contracts/expres
 import {IAxelarGatewayWithToken} from "@axelar-network/contracts/interfaces/IAxelarGatewayWithToken.sol";
 import {IAxelarGasService} from "@axelar-network/contracts/interfaces/IAxelarGasService.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -23,8 +22,7 @@ import "./interfaces/IDaimoPayBridger.sol";
 /// fulfills that requirement and acts as the receiver on the destination chain.
 contract DaimoPayAxelarBridger is
     IDaimoPayBridger,
-    AxelarExpressExecutableWithToken,
-    Ownable2Step
+    AxelarExpressExecutableWithToken
 {
     using SafeERC20 for IERC20;
 
@@ -62,74 +60,20 @@ contract DaimoPayAxelarBridger is
     mapping(uint256 toChainId => AxelarBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        AxelarBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        AxelarBridgeRoute bridgeRoute
-    );
-
     /// Specify the localToken mapping to destination chains and tokens
     constructor(
-        address _owner,
         IAxelarGatewayWithToken _axelarGateway,
         IAxelarGasService _axelarGasService,
         uint256[] memory _toChainIds,
         AxelarBridgeRoute[] memory _bridgeRoutes
-    )
-        Ownable(_owner)
-        AxelarExpressExecutableWithToken(address(_axelarGateway))
-    {
+    ) AxelarExpressExecutableWithToken(address(_axelarGateway)) {
         axelarGateway = _axelarGateway;
         axelarGasService = _axelarGasService;
-        _setBridgeRoutes({
-            toChainIds: _toChainIds,
-            bridgeRoutes: _bridgeRoutes
-        });
-    }
 
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Map a token on a destination chain to a token on the current chain.
-    /// Assumes the local token has a 1 to 1 price with the corresponding
-    /// destination token.
-    function setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AxelarBridgeRoute[] memory bridgeRoutes
-    ) public onlyOwner {
-        _setBridgeRoutes({toChainIds: toChainIds, bridgeRoutes: bridgeRoutes});
-    }
-
-    function _setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AxelarBridgeRoute[] memory bridgeRoutes
-    ) private {
-        uint256 n = toChainIds.length;
-        require(n == bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
-
+        uint256 n = _toChainIds.length;
+        require(n == _bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
         for (uint256 i = 0; i < n; ++i) {
-            bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
-            emit BridgeRouteAdded({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoutes[i]
-            });
-        }
-    }
-
-    /// Remove a supported Axelar destination chain.
-    function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
-        for (uint256 i = 0; i < toChainIds.length; ++i) {
-            AxelarBridgeRoute memory bridgeRoute = bridgeRouteMapping[
-                toChainIds[i]
-            ];
-            delete bridgeRouteMapping[toChainIds[i]];
-            emit BridgeRouteRemoved({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoute
-            });
+            bridgeRouteMapping[_toChainIds[i]] = _bridgeRoutes[i];
         }
     }
 

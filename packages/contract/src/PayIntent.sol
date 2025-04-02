@@ -20,9 +20,10 @@ struct PayIntent {
     /// Destination on target chain. If dest.data != "" specifies a call,
     /// (token, amount) is approved. Otherwise, it's transferred to dest.to
     Call finalCall;
-    /// Escrow contract for fast-finish. Will typically be the DaimoPay
-    /// contract.
+    /// Escrow contract. All calls are made thru this contract.
     address payable escrow;
+    /// Bridger contract.
+    IDaimoPayBridger bridger;
     /// Address to refund tokens if call fails, or zero.
     address refundAddress;
     /// Nonce. PayIntent receiving addresses are one-time use.
@@ -77,7 +78,6 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
     /// by the relayer, then send funds to the bridger for cross-chain intents.
     function start(
         PayIntent calldata intent,
-        IDaimoPayBridger bridger,
         address payable caller,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
@@ -102,6 +102,7 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
         } else {
             // Different chains. Get the input token and amount required to
             // initiate bridging
+            IDaimoPayBridger bridger = intent.bridger;
             (address bridgeTokenIn, uint256 inAmount) = bridger
                 .getBridgeTokenIn({
                     toChainId: intent.toChainId,

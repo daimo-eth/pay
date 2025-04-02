@@ -116,11 +116,11 @@ const SelectMethod: React.FC = () => {
       if (p.isCoinbaseWallet) name = "Coinbase Wallet";
       if (name == null) name = "Unknown";
       const wallet = Object.values(walletConfigs).find(
-        (c) => c.name === name || name.includes(c.shortName),
+        (c) => c.name === name || name.includes(c.shortName ?? c.name),
       );
-      log(`[SELECT_METHOD] wcWallet: ${wallet?.name} ${wallet != null}`, p);
+      log(`[SELECT_METHOD] name: ${name} wcWallet: ${wallet?.name}`, p);
       //case MetaMask
-      if (wallet != null) {
+      if (wallet?.name != null) {
         setWcWallet(wallet);
       }
     });
@@ -142,7 +142,11 @@ const SelectMethod: React.FC = () => {
 
       let walletIcon: JSX.Element;
       if (connector?.icon) {
-        walletIcon = <img src={connector.icon} alt={connector.name} />;
+        walletIcon = (
+          <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+            <img src={connector.icon} alt={connector.name} />
+          </div>
+        );
       } else if (wcWallet?.icon) {
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>

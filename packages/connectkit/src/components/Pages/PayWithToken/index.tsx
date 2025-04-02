@@ -1,17 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { ROUTES } from "../../../constants/routes";
-import { usePayContext } from "../../../hooks/usePayContext";
-
-import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
-
 import { WalletPaymentOption } from "@daimo/pay-common";
+import React, { useEffect, useMemo, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ExternalLinkIcon } from "../../../assets/icons";
+import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
+import { usePayContext } from "../../../hooks/usePayContext";
 import Button from "../../Common/Button";
+import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
-import { walletConfigs } from "../../../wallets/walletConfigs";
 enum PayState {
   RequestingPayment = "Requesting Payment",
   SwitchingChain = "Switching Chain",
@@ -21,6 +18,9 @@ enum PayState {
 
 const PayWithToken: React.FC = () => {
   const isMobile = useIsMobile();
+  const isOnIOS = useMemo(() => {
+    return /iPad|iPhone/.test(navigator.userAgent);
+  }, []);
   const { triggerResize, paymentState, setRoute, log, wcWallet } =
     usePayContext();
   const { selectedTokenOption, payWithToken } = paymentState;
@@ -104,10 +104,14 @@ const PayWithToken: React.FC = () => {
 
     // Give user time to see the UI before opening on mobile
     if (wcWallet && isMobile) {
-      transferTimeout = setTimeout(() => {
-        window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+      if (!isOnIOS) {
+        transferTimeout = setTimeout(() => {
+          window.open(wcWallet?.getWalletConnectDeeplink?.(""));
+          handleTransfer(selectedTokenOption);
+        }, 800);
+      } else {
         handleTransfer(selectedTokenOption);
-      }, 800);
+      }
     }
 
     // On desktop, open the wallet connect modal immediately

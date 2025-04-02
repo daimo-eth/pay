@@ -1,12 +1,11 @@
-import React from "react";
-import { ROUTES } from "../../../constants/routes";
-import { usePayContext } from "../../../hooks/usePayContext";
-
-import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
-
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import React, { useMemo } from "react";
+import { ROUTES } from "../../../constants/routes";
+import useIsMobile from "../../../hooks/useIsMobile";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
 import Button from "../../Common/Button";
+import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import TokenChainLogo from "../../Common/TokenChainLogo";
@@ -16,7 +15,11 @@ function getDaimoTokenKey(token: DaimoPayToken) {
 }
 
 const SelectToken: React.FC = () => {
-  const { setRoute, paymentState } = usePayContext();
+  const isMobile = useIsMobile();
+  const isOnIOS = useMemo(() => {
+    return /iPad|iPhone/.test(navigator.userAgent);
+  }, []);
+  const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
 
@@ -55,6 +58,9 @@ const SelectToken: React.FC = () => {
             setRoute(ROUTES.SELECT_AMOUNT, meta);
           } else {
             setRoute(ROUTES.PAY_WITH_TOKEN, meta);
+            if (isMobile && isOnIOS) {
+              window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+            }
           }
         },
         disabled,

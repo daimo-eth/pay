@@ -110,7 +110,7 @@ const SelectMethod: React.FC = () => {
   useEffect(() => {
     connector?.getProvider()?.then((p: any) => {
       let name = p.session?.peer?.metadata?.name;
-      // if (p.isCoinbaseWallet) name = "Coinbase Wallet";
+      if (p.isCoinbaseWallet) name = "Coinbase Wallet";
       if (name == null) name = "Unknown";
       const wallet = Object.values(walletConfigs).find(
         (c) => c.name === name || name.includes(c.shortName ?? c.name),

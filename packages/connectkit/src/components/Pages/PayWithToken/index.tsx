@@ -101,7 +101,6 @@ const PayWithToken: React.FC = () => {
 
   useEffect(() => {
     if (!selectedTokenOption) return;
-
     // Give user time to see the UI before opening on mobile
     if (wcWallet && isMobile) {
       if (!isOnIOS) {
@@ -110,6 +109,7 @@ const PayWithToken: React.FC = () => {
           handleTransfer(selectedTokenOption);
         }, 800);
       } else {
+        // On iOS, we open the wallet connect modal immediately
         handleTransfer(selectedTokenOption);
       }
     }

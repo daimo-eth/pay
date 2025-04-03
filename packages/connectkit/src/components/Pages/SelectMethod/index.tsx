@@ -96,7 +96,7 @@ const SelectMethod: React.FC = () => {
     wallet: solanaWallet,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
+  const { setRoute, paymentState, wcWallet, setWcWallet, log, setConnector } =
     usePayContext();
   const { disconnectAsync } = useDisconnect();
 
@@ -113,7 +113,7 @@ const SelectMethod: React.FC = () => {
   useEffect(() => {
     connector?.getProvider()?.then((p: any) => {
       let name = p.session?.peer?.metadata?.name;
-      if (p.isCoinbaseWallet) name = "Coinbase Wallet";
+      // if (p.isCoinbaseWallet) name = "Coinbase Wallet";
       if (name == null) name = "Unknown";
       const wallet = Object.values(walletConfigs).find(
         (c) => c.name === name || name.includes(c.shortName ?? c.name),
@@ -142,18 +142,21 @@ const SelectMethod: React.FC = () => {
 
       let walletIcon: JSX.Element;
       if (connector?.icon) {
+        log("[SELECT_METHOD] connector?.icon", connector?.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             <img src={connector.icon} alt={connector.name} />
           </div>
         );
       } else if (wcWallet?.icon) {
+        log("[SELECT_METHOD] wcWallet?.icon", wcWallet?.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             {wcWallet.icon}
           </div>
         );
       } else {
+        log("[SELECT_METHOD] else");
         walletIcon = <MetaMask />;
       }
 

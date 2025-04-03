@@ -102,7 +102,7 @@ const defaultConfig = ({
         url: appUrl,
       },
       walletConnectProjectId:
-        walletConnectProjectId ?? "ea6c5b36001c18b96e06128f14c06f40",
+        walletConnectProjectId ?? "5001414df825adbd5778f52cacea9e49",
       coinbaseWalletPreference,
       additionalConnectors,
     });

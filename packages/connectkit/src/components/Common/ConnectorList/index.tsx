@@ -115,8 +115,12 @@ const ConnectorItem = ({
       onClick={
         deeplink
           ? () => {
-              context.setConnector({ id: wallet.id });
-              context.setWcWallet(wallet);
+              if (isMobile) {
+                context.setConnector({ id: wallet.id });
+                context.setWcWallet(wallet);
+              } else {
+                undefined;
+              }
             }
           : () => {
               if (redirectToMoreWallets) {

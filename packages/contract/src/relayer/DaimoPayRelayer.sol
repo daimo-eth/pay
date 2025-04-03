@@ -190,6 +190,7 @@ contract DaimoPayRelayer is AccessControl {
         Call[] calldata preCalls,
         DaimoPay dp,
         PayIntent calldata intent,
+        IERC20[] calldata paymentTokens,
         Call[] calldata startCalls,
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls
@@ -203,6 +204,7 @@ contract DaimoPayRelayer is AccessControl {
 
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: startCalls,
             bridgeExtraData: bridgeExtraData
         });

@@ -1,117 +1,70 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/across/V3SpokePoolInterface.sol";
 
-/// @title Bridger implementation for Across Protocol
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @dev Bridges assets to a destination chain using Across Protocol. Makes the
-/// assumption that the local token is an ERC20 token and has a 1 to 1 price
-/// with the corresponding destination token.
-contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
+/// @notice Bridges assets to a destination chain using Across Protocol.
+/// @dev Makes the assumption that the local token is an ERC20 token and has a
+/// 1 to 1 price with the corresponding destination token.
+contract DaimoPayAcrossBridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
     struct AcrossBridgeRoute {
         address bridgeTokenIn;
         address bridgeTokenOut;
-        // Minimum percentage fee to pay the Across relayer. The input amount should
-        // be at least this much larger than the output amount
-        // 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how Across
-        // represents percentage fees.
+        /// Minimum percentage fee to pay the Across relayer on the source
+        /// chain. The input amount should be at least this much larger than the
+        /// output amount.
+        /// 1% is represented as 1e16, 100% is 1e18, 50% is 5e17. This is how
+        /// Across represents percentage fees.
         uint256 pctFee;
-        // Minimum flat fee to pay the Across relayer. The input amount should be at
-        // least this much larger than the output amount
+        /// Minimum flat fee to pay the Across relayer on the source chain.
+        /// This fee is paid in bridgeTokenIn. The input amount should be at
+        /// least this much larger than the output amount.
         uint256 flatFee;
     }
 
     struct ExtraData {
+        /// Returned from the Across API.
         address exclusiveRelayer;
+        /// Returned from the Across API.
         uint32 quoteTimestamp;
+        /// Deadline to fill the Across quote before the quote expires.
         uint32 fillDeadline;
+        /// Returned from the Across API.
         uint32 exclusivityDeadline;
+        /// Used when making a contract call on the destination chain using
+        /// Across.
         bytes message;
     }
 
-    uint256 public immutable ONE_HUNDRED_PERCENT = 1e18;
+    uint256 public constant ONE_HUNDRED_PERCENT = 1e18;
 
-    // SpokePool contract address for this chain.
+    /// Across SpokePool contract address for this chain.
     V3SpokePoolInterface public immutable spokePool;
 
-    // Mapping destination chainId to the corresponding token on the current
-    // chain and fees associated with the bridge.
+    /// Mapping destination chainId to the corresponding token on the current
+    /// chain and fees associated with the bridge.
     mapping(uint256 toChainId => AcrossBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        AcrossBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        AcrossBridgeRoute bridgeRoute
-    );
-
     /// Specify the localToken mapping to destination chains and tokens
     constructor(
-        address _owner,
         V3SpokePoolInterface _spokePool,
         uint256[] memory _toChainIds,
         AcrossBridgeRoute[] memory _bridgeRoutes
-    ) Ownable(_owner) {
+    ) {
         spokePool = _spokePool;
-        _setBridgeRoutes({
-            toChainIds: _toChainIds,
-            bridgeRoutes: _bridgeRoutes
-        });
-    }
-
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Map destination chainId to the corresponding token on the current chain
-    /// and fees associated with the bridge.
-    /// Assumes the local token has a 1 to 1 price with the corresponding
-    /// destination token.
-    function setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AcrossBridgeRoute[] memory bridgeRoutes
-    ) public onlyOwner {
-        _setBridgeRoutes({toChainIds: toChainIds, bridgeRoutes: bridgeRoutes});
-    }
-
-    function _setBridgeRoutes(
-        uint256[] memory toChainIds,
-        AcrossBridgeRoute[] memory bridgeRoutes
-    ) private {
-        uint256 n = toChainIds.length;
-        require(n == bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
-
+        uint256 n = _toChainIds.length;
+        require(n == _bridgeRoutes.length, "DPAB: wrong bridgeRoutes length");
         for (uint256 i = 0; i < n; ++i) {
-            bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
-            emit BridgeRouteAdded({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoutes[i]
-            });
-        }
-    }
-
-    function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
-        for (uint256 i = 0; i < toChainIds.length; ++i) {
-            AcrossBridgeRoute memory bridgeRoute = bridgeRouteMapping[
-                toChainIds[i]
-            ];
-            delete bridgeRouteMapping[toChainIds[i]];
-            emit BridgeRouteRemoved({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoute
-            });
+            bridgeRouteMapping[_toChainIds[i]] = _bridgeRoutes[i];
         }
     }
 
@@ -133,9 +86,12 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         return n;
     }
 
-    /// Get the input token that corresponds to the destination token. Get the
-    /// minimum input amount for a given output amount. The input amount must
-    /// cover the max of the percentage fee and the flat fee.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using Across Protocol.
+    /// Across requires a fee that's paid to relayers for bridging. The
+    /// AcrossBridgeRoute specifies a pctFee and flatFee to ensure that an
+    /// Across relayer will fill the order. The input amount must cover the max
+    /// of the pctFee and the flatFee.
     function _getBridgeData(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -179,6 +135,8 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         outAmount = bridgeTokenOutOptions[index].amount;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -214,7 +172,7 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger, Ownable2Step {
         extra = abi.decode(extraData, (ExtraData));
 
         // Move input token from caller to this contract and approve the
-        // SpokePool contract.
+        // Across SpokePool contract.
         IERC20(inToken).safeTransferFrom({
             from: msg.sender,
             to: address(this),

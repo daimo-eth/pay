@@ -1,66 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
-/// @title Bridger which multiplexes between different bridging protocols
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 ///
-/// @dev Bridges assets from to a supported destination chain. Multiplexes between
-/// different bridging protocols by destination chain.
-contract DaimoPayBridger is IDaimoPayBridger, Ownable2Step {
+/// @notice Bridges assets from the current chain to a supported destination
+/// chain. Multiplexes between bridging protocols by destination chain.
+contract DaimoPayBridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
-    // Map chainId to the contract address of an IDaimoPayBridger implementation
+    /// Map chainId to IDaimoPayBridger implementation.
     mapping(uint256 chainId => IDaimoPayBridger bridger)
         public chainIdToBridger;
 
-    event BridgeAdded(uint256 indexed chainId, address bridger);
-    event BridgeRemoved(uint256 indexed chainId);
-
     /// Specify the bridger implementation to use for each chain.
     constructor(
-        address _owner,
-        uint256[] memory _chainIds,
+        uint256[] memory _toChainIds,
         IDaimoPayBridger[] memory _bridgers
-    ) Ownable(_owner) {
-        uint256 n = _chainIds.length;
+    ) {
+        uint256 n = _toChainIds.length;
         require(n == _bridgers.length, "DPB: wrong bridgers length");
-
         for (uint256 i = 0; i < n; ++i) {
-            _addBridger({chainId: _chainIds[i], bridger: _bridgers[i]});
+            chainIdToBridger[_toChainIds[i]] = _bridgers[i];
         }
-    }
-
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Add a new bridger for a destination chain.
-    function addBridger(
-        uint256 chainId,
-        IDaimoPayBridger bridger
-    ) public onlyOwner {
-        _addBridger({chainId: chainId, bridger: bridger});
-    }
-
-    function _addBridger(uint256 chainId, IDaimoPayBridger bridger) private {
-        require(chainId != 0, "DPB: missing chainId");
-        chainIdToBridger[chainId] = bridger;
-        emit BridgeAdded({chainId: chainId, bridger: address(bridger)});
-    }
-
-    function removeBridger(uint256 chainId) public onlyOwner {
-        delete chainIdToBridger[chainId];
-        emit BridgeRemoved({chainId: chainId});
     }
 
     // ----- BRIDGER FUNCTIONS -----
 
+    /// Get the input token and amount required to achieve one of the given
+    /// output options on a given chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions

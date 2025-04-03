@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -9,27 +8,25 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "../vendor/cctp/v2/ITokenMinterV2.sol";
 import "../vendor/cctp/v2/ICCTPTokenMessengerV2.sol";
 
-/// @title Bridger implementation for Circle's Cross-Chain Transfer Protocol
-/// V2 (CCTP v2)
-/// @author The Daimo team
+/// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-///
-/// @dev Bridges assets from to a destination chain using CCTP. The only supported
-/// bridge token is USDC.
-contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
+/// @notice Bridges assets to a destination chain using CCTP v2.
+contract DaimoPayCCTPV2Bridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
     struct CCTPBridgeRoute {
+        // CCTP domain of the destination chain.
         uint32 domain;
+        // The bridge that will be output by CCTP on the destination chain.
         address bridgeTokenOut;
     }
 
     struct ExtraData {
-        // Maximum fee to pay on the destination domain, specified in units of
-        // bridgeTokenOut.
+        /// Maximum fee to pay on the destination domain, specified in units of
+        /// bridgeTokenOut.
         uint256 maxFee;
-        // Minimum finality threshold for the destination domain. (1000 or less
-        // for Fast Transfer)
+        /// Minimum finality threshold for the destination domain. (1000 or less
+        /// for Fast Transfer)
         uint32 minFinalityThreshold;
     }
 
@@ -37,83 +34,34 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
     uint256 public constant DEFAULT_MAX_FEE = 0;
     uint32 public constant DEFAULT_MIN_FINALITY_THRESHOLD = 2000;
 
-    // CCTP TokenMinterV2 for this chain. Used to identify the CCTP token on the
-    // current chain.
+    /// CCTP TokenMinterV2 for this chain. Has a function to identify the CCTP
+    /// token on the current chain corresponding to a given output token.
     ITokenMinterV2 public tokenMinterV2;
-    // CCTP TokenMessengerV2 for this chain. Used to initiate the CCTP bridge.
+    /// CCTP TokenMessengerV2 for this chain. Used to initiate the CCTP bridge.
     ICCTPTokenMessengerV2 public cctpMessengerV2;
 
-    // Map destination chainId to CCTP domain and the bridge token address on the
-    // destination chain.
+    /// Map destination chainId to CCTP domain and the bridge token address on
+    /// the destination chain.
     mapping(uint256 toChainId => CCTPBridgeRoute bridgeRoute)
         public bridgeRouteMapping;
 
-    event BridgeRouteAdded(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
-    event BridgeRouteRemoved(
-        uint256 indexed toChainId,
-        CCTPBridgeRoute bridgeRoute
-    );
-
     /// Specify the CCTP chain IDs and domains that this bridger will support.
     constructor(
-        address _owner,
         ITokenMinterV2 _tokenMinterV2,
         ICCTPTokenMessengerV2 _cctpMessengerV2,
         uint256[] memory _toChainIds,
         CCTPBridgeRoute[] memory _bridgeRoutes
-    ) Ownable(_owner) {
+    ) {
         tokenMinterV2 = _tokenMinterV2;
         cctpMessengerV2 = _cctpMessengerV2;
-        _setBridgeRoutes({
-            toChainIds: _toChainIds,
-            bridgeRoutes: _bridgeRoutes
-        });
-    }
 
-    // ----- ADMIN FUNCTIONS -----
-
-    /// Add a new supported CCTP recipient chain.
-    function setBridgeRoutes(
-        uint256[] memory toChainIds,
-        CCTPBridgeRoute[] memory bridgeRoutes
-    ) public onlyOwner {
-        _setBridgeRoutes({toChainIds: toChainIds, bridgeRoutes: bridgeRoutes});
-    }
-
-    function _setBridgeRoutes(
-        uint256[] memory toChainIds,
-        CCTPBridgeRoute[] memory bridgeRoutes
-    ) private {
-        uint256 n = toChainIds.length;
+        uint256 n = _toChainIds.length;
         require(
-            n == bridgeRoutes.length,
+            n == _bridgeRoutes.length,
             "DPCCTP2B: wrong bridgeRoutes length"
         );
-
         for (uint256 i = 0; i < n; ++i) {
-            bridgeRouteMapping[toChainIds[i]] = bridgeRoutes[i];
-            emit BridgeRouteAdded({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoutes[i]
-            });
-        }
-    }
-
-    /// Remove a supported CCTP recipient chain.
-    function removeBridgeRoutes(uint256[] memory toChainIds) public onlyOwner {
-        for (uint256 i = 0; i < toChainIds.length; ++i) {
-            CCTPBridgeRoute memory bridgeRoute = bridgeRouteMapping[
-                toChainIds[i]
-            ];
-            delete bridgeRouteMapping[toChainIds[i]];
-            emit BridgeRouteRemoved({
-                toChainId: toChainIds[i],
-                bridgeRoute: bridgeRoute
-            });
+            bridgeRouteMapping[_toChainIds[i]] = _bridgeRoutes[i];
         }
     }
 
@@ -139,9 +87,10 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         return n;
     }
 
-    /// Get the CCTP bridge token address and amount for the current chain.
-    /// CCTP does 1 to 1 token bridging, so the amount of tokens to bridge is
-    /// the same as toAmount.
+    /// Retrieves the necessary data for bridging tokens from the current chain
+    /// to a specified destination chain using CCTP.
+    /// CCTP does 1 to 1 for standard token bridging, so the amount of tokens to
+    /// bridge is the same as toAmount.
     function _getBridgeData(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -185,6 +134,8 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         inAmount = outAmount;
     }
 
+    /// Determine the input token and amount required for bridging to
+    /// another chain.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
@@ -198,7 +149,7 @@ contract DaimoPayCCTPV2Bridger is IDaimoPayBridger, Ownable2Step {
         inAmount = _inAmount;
     }
 
-    /// Initiate a bridge to a destination chain using CCTP.
+    /// Initiate a bridge to a destination chain using CCTP v2.
     function sendToChain(
         uint256 toChainId,
         address toAddress,

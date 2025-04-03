@@ -8,9 +8,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
 
-/*
- * Relayer contract that funds completes DaimoPay intents.
- */
+/// @author Daimo, Inc
+/// @notice Reference relayer contract. This is a private, untrusted relayer.
 contract DaimoPayRelayer is AccessControl {
     using SafeERC20 for IERC20;
 

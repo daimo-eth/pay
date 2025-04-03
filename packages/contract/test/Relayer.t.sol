@@ -12,6 +12,7 @@ contract RelayerTest is Test {
     DaimoPayRelayer public relayerContract;
     MockDaimoPay public mockDp;
     MockSwap public mockSwap;
+    DaimoPayBridger public mockBridger;
 
     address immutable _admin = 0x2222222222222222222222222222222222222222;
     address immutable _relayer = 0x3333333333333333333333333333333333333333;
@@ -23,11 +24,11 @@ contract RelayerTest is Test {
 
     function setUp() public {
         relayerContract = new DaimoPayRelayer(_admin);
-        mockDp = new MockDaimoPay(
-            PayIntentFactory(address(0)),
-            DaimoPayBridger(address(0))
-        );
+        mockDp = new MockDaimoPay();
         mockSwap = new MockSwap(_token1, _token2);
+        uint256[] memory toChainIds = new uint256[](0);
+        IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](0);
+        mockBridger = new DaimoPayBridger(toChainIds, bridgers);
 
         vm.startPrank(_admin);
         relayerContract.grantRelayerEOARole(_relayer);
@@ -45,6 +46,7 @@ contract RelayerTest is Test {
         return
             PayIntent({
                 toChainId: 1,
+                bridger: mockBridger,
                 bridgeTokenOutOptions: bridgeTokenOutOptions,
                 finalCallToken: TokenAmount(_token1, 100),
                 finalCall: Call({to: _bob, value: 0, data: ""}),
@@ -569,7 +571,7 @@ contract MockSwap {
 }
 
 contract MockDaimoPay {
-    constructor(PayIntentFactory _intentFactory, DaimoPayBridger _bridger) {}
+    constructor() {}
 
     function startIntent(
         PayIntent calldata intent,

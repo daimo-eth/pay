@@ -3,51 +3,53 @@ pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
-/// @dev Represents an intended call: "make X of token Y show up on chain Z,
-///      then [optionally] use it to do an arbitrary contract call".
+/// Represents an intended call: "make X of token Y show up on chain Z,
+/// then [optionally] use it to do an arbitrary contract call".
 struct PayIntent {
-    /// @dev Intent only executes on given target chain.
+    /// Intent only executes on given target chain.
     uint256 toChainId;
-    /// @dev Possible output tokens after bridging to the destination chain.
-    ///      Currently, native token is not supported as a bridge token output.
+    /// Possible output tokens after bridging to the destination chain.
+    /// Currently, native token is not supported as a bridge token output.
     TokenAmount[] bridgeTokenOutOptions;
-    /// @dev Expected token amount after swapping on the destination chain.
+    /// Expected token amount after swapping on the destination chain.
     TokenAmount finalCallToken;
-    /// @dev Destination on target chain. If dest.data != "" specifies a call,
-    ///     (token, amount) is approved. Otherwise, it's transferred to dest.to
+    /// If finalCall.data is empty, the tokens are transferred to finalCall.to.
+    /// Otherwise, (token, amount) is approved to finalCall.to and finalCall.to
+    /// is called with finalCall.data and finalCall.value.
     Call finalCall;
-    /// @dev Escrow contract for fast-finish. Will typically be the DaimoPay
-    ///      contract.
+    /// Escrow contract. All calls are made through this contract.
     address payable escrow;
-    /// @dev Address to refund tokens if call fails, or zero.
+    /// Bridger contract.
+    IDaimoPayBridger bridger;
+    /// Address to refund tokens if call fails, or zero.
     address refundAddress;
-    /// @dev Nonce. PayIntent receiving addresses are one-time use.
+    /// Nonce. PayIntent receiving addresses are one-time use.
     uint256 nonce;
 }
 
-/// @dev Calculates the intent hash of a PayIntent struct
-/// @param intent The PayIntent struct to hash
-/// @return The keccak256 hash of the encoded PayIntent
+/// Calculates the intent hash of a PayIntent struct.
 function calcIntentHash(PayIntent calldata intent) pure returns (bytes32) {
     return keccak256(abi.encode(intent));
 }
 
-/// @dev This is an ephemeral intent contract. Any supported tokens sent to this
-///      address on any supported chain are forwarded, via a combination of
-///      bridging and swapping, into a specified call on a destination chain.
-contract PayIntentContract is Initializable {
+/// @author Daimo, Inc
+/// @custom:security-contact security@daimo.com
+/// @notice This is an ephemeral intent contract. Any supported tokens sent to
+/// this address on any supported chain are forwarded, via a combination of
+/// bridging and swapping, into a specified call on a destination chain.
+contract PayIntentContract is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /// @dev Save gas by minimizing storage to a single word. This makes intents
-    ///      usable on L1. intentHash = keccak(abi.encode(PayIntent))
+    /// Save gas by minimizing storage to a single word. This makes intents
+    /// usable on L1. intentHash = keccak(abi.encode(PayIntent))
     bytes32 intentHash;
 
-    /// @dev Runs at deploy time. Singleton implementation contract = no init,
-    ///      no state. All other methods are called via proxy.
+    /// Runs at deploy time. Singleton implementation contract = no init,
+    /// no state. All other methods are called via proxy.
     constructor() {
         _disableInitializers();
     }
@@ -57,7 +59,7 @@ contract PayIntentContract is Initializable {
     }
 
     /// Check if the contract has enough balance for at least one of the bridge
-    /// token outs.
+    /// token output options.
     function checkBridgeTokenOutBalance(
         TokenAmount[] calldata bridgeTokenOutOptions
     ) public view returns (bool) {
@@ -73,21 +75,19 @@ contract PayIntentContract is Initializable {
         return balanceOk;
     }
 
-    /// Called on the source chain to initiate the intent. Sends funds to dest
-    /// chain.
-    function sendAndSelfDestruct(
+    /// Called on the source chain to start the intent. Run the calls specified
+    /// by the relayer, then send funds to the bridger for cross-chain intents.
+    function start(
         PayIntent calldata intent,
-        IDaimoPayBridger bridger,
         address payable caller,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
-    ) public {
+    ) public nonReentrant {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
         // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary, then approve tokens
-        // to the bridger.
+        // approve the swap contract and swap if necessary.
         for (uint256 i = 0; i < calls.length; ++i) {
             Call calldata call = calls[i];
             (bool success, ) = call.to.call{value: call.value}(call.data);
@@ -95,13 +95,15 @@ contract PayIntentContract is Initializable {
         }
 
         if (intent.toChainId == block.chainid) {
-            // Same chain. Check that sufficient token is present.
+            // Same chain. Check that the contract has sufficient token balance.
             bool balanceOk = checkBridgeTokenOutBalance(
                 intent.bridgeTokenOutOptions
             );
             require(balanceOk, "PI: insufficient token");
         } else {
-            // Different chains. Get the input token and amount for the bridge
+            // Different chains. Get the input token and amount required to
+            // initiate bridging
+            IDaimoPayBridger bridger = intent.bridger;
             (address bridgeTokenIn, uint256 inAmount) = bridger
                 .getBridgeTokenIn({
                     toChainId: intent.toChainId,
@@ -111,7 +113,7 @@ contract PayIntentContract is Initializable {
             uint256 balance = IERC20(bridgeTokenIn).balanceOf(address(this));
             require(balance >= inAmount, "PI: insufficient bridge token");
 
-            // Approve bridger and initiate bridge
+            // Approve bridger and initiate bridging
             IERC20(bridgeTokenIn).forceApprove({
                 spender: address(bridger),
                 value: inAmount
@@ -123,20 +125,19 @@ contract PayIntentContract is Initializable {
                 extraData: bridgeExtraData
             });
 
-            // Refund any leftover tokens in the contract to caller
+            // Refund any leftover tokens in the contract to the caller
             TokenUtils.transferBalance({
                 token: IERC20(bridgeTokenIn),
                 recipient: caller
             });
         }
-
-        cleanup(intent.escrow);
     }
 
-    /// One step: receive  bridgeTokenOut and send to creator
-    function receiveAndSelfDestruct(PayIntent calldata intent) public {
+    /// Check that there is sufficient output token and send tokens to the
+    /// escrow contract.
+    function claim(PayIntent calldata intent) public nonReentrant {
         require(keccak256(abi.encode(intent)) == intentHash, "PI: intent");
-        require(msg.sender == intent.escrow, "PI: only creator");
+        require(msg.sender == intent.escrow, "PI: only escrow");
         require(block.chainid == intent.toChainId, "PI: only dest chain");
 
         bool balanceOk = checkBridgeTokenOutBalance(
@@ -152,32 +153,22 @@ contract PayIntentContract is Initializable {
                 recipient: intent.escrow
             });
         }
-
-        cleanup(intent.escrow);
     }
 
-    /** Refund double payments. */
-    function refundAndSelfDestruct(
+    /// Refund double payments.
+    function refund(
         PayIntent calldata intent,
         IERC20 token
-    ) public returns (uint256 amount) {
+    ) public nonReentrant returns (uint256 amount) {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
+        // Send to escrow contract, which will forward to the refund address.
         amount = TokenUtils.transferBalance({
             token: token,
             recipient: intent.escrow
         });
         require(amount > 0, "PI: no funds to refund");
-
-        // Not necessary: cleanup(intent.escrow);
-    }
-
-    function cleanup(address payable escrow) private {
-        // This use of SELFDESTRUCT is compatible with EIP-6780. Intent
-        // contracts are deployed, then destroyed in the same transaction.
-        // solhint-disable-next-line
-        selfdestruct(escrow);
     }
 
     /// Accept native-token (eg ETH) inputs

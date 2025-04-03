@@ -6,6 +6,9 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "./PayIntent.sol";
 
+/// @author Daimo, Inc
+/// @custom:security-contact security@daimo.com
+/// @notice Factory for intent addresses.
 contract PayIntentFactory {
     PayIntentContract public immutable intentImpl;
 
@@ -13,6 +16,8 @@ contract PayIntentFactory {
         intentImpl = new PayIntentContract();
     }
 
+    /// Deploy a proxy for the intent contract implementation to the CREATE2
+    /// address for the given intent.
     function createIntent(
         PayIntent calldata intent
     ) public returns (PayIntentContract ret) {
@@ -38,6 +43,8 @@ contract PayIntentFactory {
         );
     }
 
+    /// Compute the deterministic CREATE2 address of the intent contract for
+    /// the given intent.
     function getIntentAddress(
         PayIntent calldata intent
     ) public view returns (address) {

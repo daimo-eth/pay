@@ -21,7 +21,7 @@ SCRIPTS=(
     # "script/DeployDaimoPay.s.sol"
 
     # Relayer
-    # "script/pay/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
+    # "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
 )
 CHAINS=(
     # "$ETHERSCAN_API_KEY_ARB,https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"

@@ -18,14 +18,11 @@ contract DeployDaimoPayAcrossBridger is Script {
 
         vm.startBroadcast();
 
-        address initOwner = msg.sender;
-
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayAcrossBridger-audit1"),
+            keccak256("DaimoPayAcrossBridger-audit2"),
             abi.encodePacked(
                 type(DaimoPayAcrossBridger).creationCode,
                 abi.encode(
-                    initOwner,
                     V3SpokePoolInterface(spokePool),
                     chainIds,
                     bridgeRoutes

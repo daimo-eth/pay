@@ -19,14 +19,11 @@ contract DeployDaimoPayAxelarBridger is Script {
 
         vm.startBroadcast();
 
-        address initOwner = msg.sender;
-
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayAxelarBridger-audit1"),
+            keccak256("DaimoPayAxelarBridger-audit2"),
             abi.encodePacked(
                 type(DaimoPayAxelarBridger).creationCode,
                 abi.encode(
-                    initOwner,
                     IAxelarGatewayWithToken(axelarGateway),
                     IAxelarGasService(axelarGasService),
                     chainIds,

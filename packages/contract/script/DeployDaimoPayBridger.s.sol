@@ -11,18 +11,16 @@ contract DeployDaimoPayBridger is Script {
     function run() public {
         vm.startBroadcast();
 
-        address initOwner = msg.sender;
-
         (
             uint256[] memory chainIds,
             address[] memory bridgers
         ) = _getBridgersAndChainIds();
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayBridger-audit1"),
+            keccak256("DaimoPayBridger-audit2"),
             abi.encodePacked(
                 type(DaimoPayBridger).creationCode,
-                abi.encode(initOwner, chainIds, bridgers)
+                abi.encode(chainIds, bridgers)
             )
         );
 
@@ -44,19 +42,19 @@ contract DeployDaimoPayBridger is Script {
 
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPBridger-audit1")
+            keccak256("DaimoPayCCTPBridger-audit2")
         );
         address cctpV2Bridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPV2Bridger-audit1")
+            keccak256("DaimoPayCCTPV2Bridger-audit2")
         );
         address acrossBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAcrossBridger-audit1")
+            keccak256("DaimoPayAcrossBridger-audit2")
         );
         address axelarBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAxelarBridger-audit1")
+            keccak256("DaimoPayAxelarBridger-audit2")
         );
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
@@ -127,7 +125,10 @@ contract DeployDaimoPayBridger is Script {
                     chainIds[i] == BSC_MAINNET || chainIds[i] == MANTLE_MAINNET
                 ) {
                     bridgers[i] = axelarBridger;
-                } else if (block.chainid == LINEA_MAINNET && chainIds[i] == BASE_MAINNET) {
+                } else if (
+                    block.chainid == LINEA_MAINNET &&
+                    chainIds[i] == BASE_MAINNET
+                ) {
                     bridgers[i] = cctpV2Bridger;
                 } else {
                     bridgers[i] = acrossBridger;

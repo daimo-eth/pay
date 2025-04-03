@@ -21,14 +21,11 @@ contract DeployDaimoPayCCTPV2Bridger is Script {
 
         vm.startBroadcast();
 
-        address initOwner = msg.sender;
-
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayCCTPV2Bridger-audit1"),
+            keccak256("DaimoPayCCTPV2Bridger-audit2"),
             abi.encodePacked(
                 type(DaimoPayCCTPV2Bridger).creationCode,
                 abi.encode(
-                    initOwner,
                     ITokenMinterV2(tokenMinterV2),
                     ICCTPTokenMessengerV2(tokenMessengerV2),
                     chainIds,

@@ -21,14 +21,11 @@ contract DeployDaimoPayCCTPBridger is Script {
 
         vm.startBroadcast();
 
-        address initOwner = msg.sender;
-
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayCCTPBridger-audit1"),
+            keccak256("DaimoPayCCTPBridger-audit2"),
             abi.encodePacked(
                 type(DaimoPayCCTPBridger).creationCode,
                 abi.encode(
-                    initOwner,
                     ITokenMinter(tokenMinter),
                     ICCTPTokenMessenger(tokenMessenger),
                     chainIds,
@@ -43,21 +40,12 @@ contract DeployDaimoPayCCTPBridger is Script {
 
     function _getCCTPBridgeRoutes()
         private
-        view
+        pure
         returns (
             uint256[] memory chainIds,
             DaimoPayCCTPBridger.CCTPBridgeRoute[] memory bridgeRoutes
         )
     {
-        bool testnet = _isTestnet(block.chainid);
-        if (testnet) {
-            // Bridging not supported on testnet.
-            return (
-                new uint256[](0),
-                new DaimoPayCCTPBridger.CCTPBridgeRoute[](0)
-            );
-        }
-
         chainIds = new uint256[](6);
         chainIds[0] = ETH_MAINNET;
         chainIds[1] = AVAX_MAINNET;

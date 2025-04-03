@@ -57,6 +57,9 @@ contract RelayerTest is Test {
     }
 
     function testOnlyRelayerRoleCanStartIntent() public {
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _token1;
+
         vm.startPrank(_noRole);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -69,6 +72,7 @@ contract RelayerTest is Test {
             preCalls: new Call[](0),
             dp: DaimoPay(payable(address(mockDp))),
             intent: createSampleIntent(),
+            paymentTokens: paymentTokens,
             startCalls: new Call[](0),
             bridgeExtraData: "",
             postCalls: new Call[](0)
@@ -80,6 +84,7 @@ contract RelayerTest is Test {
             preCalls: new Call[](0),
             dp: DaimoPay(payable(address(mockDp))),
             intent: createSampleIntent(),
+            paymentTokens: paymentTokens,
             startCalls: new Call[](0),
             bridgeExtraData: "",
             postCalls: new Call[](0)
@@ -575,13 +580,15 @@ contract MockDaimoPay {
 
     function startIntent(
         PayIntent calldata intent,
+        IERC20[] calldata paymentTokens,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) public {}
 
     function fastFinishIntent(
         PayIntent calldata intent,
-        Call[] calldata calls
+        Call[] calldata calls,
+        IERC20[] calldata tokens
     ) public {}
 
     function claimIntent(

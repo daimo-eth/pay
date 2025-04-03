@@ -4,6 +4,8 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
+import {Call} from "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
@@ -17,9 +19,10 @@ struct PayIntent {
     TokenAmount[] bridgeTokenOutOptions;
     /// Expected token amount after swapping on the destination chain.
     TokenAmount finalCallToken;
-    /// If finalCall.data is empty, the tokens are transferred to finalCall.to.
-    /// Otherwise, (token, amount) is approved to finalCall.to and finalCall.to
-    /// is called with finalCall.data and finalCall.value.
+    /// Contract call to execute on the destination chain. If finalCall.data is
+    /// empty, the tokens are transferred to finalCall.to. Otherwise, (token,
+    /// amount) is approved to finalCall.to and finalCall.to is called with
+    /// finalCall.data and finalCall.value.
     Call finalCall;
     /// Escrow contract. All calls are made through this contract.
     address payable escrow;
@@ -58,117 +61,48 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
         intentHash = _intentHash;
     }
 
-    /// Check if the contract has enough balance for at least one of the bridge
-    /// token output options.
-    function checkBridgeTokenOutBalance(
-        TokenAmount[] calldata bridgeTokenOutOptions
-    ) public view returns (bool) {
-        bool balanceOk = false;
-        for (uint256 i = 0; i < bridgeTokenOutOptions.length; ++i) {
-            TokenAmount calldata tokenOut = bridgeTokenOutOptions[i];
-            uint256 balance = tokenOut.token.balanceOf(address(this));
-            if (balance >= tokenOut.amount) {
-                balanceOk = true;
-                break;
-            }
+    /// Send tokens to a recipient.
+    function sendTokens(
+        PayIntent calldata intent,
+        IERC20[] calldata tokens,
+        address payable recipient
+    ) public nonReentrant returns (uint256[] memory amounts) {
+        require(calcIntentHash(intent) == intentHash, "PI: intent");
+        require(msg.sender == intent.escrow, "PI: only escrow");
+
+        uint256 n = tokens.length;
+        amounts = new uint256[](n);
+        // Send tokens to recipient
+        for (uint256 i = 0; i < n; ++i) {
+            amounts[i] = TokenUtils.transferBalance({
+                token: tokens[i],
+                recipient: recipient
+            });
         }
-        return balanceOk;
     }
 
-    /// Called on the source chain to start the intent. Run the calls specified
-    /// by the relayer, then send funds to the bridger for cross-chain intents.
-    function start(
+    /// Check that at least one of the token amounts is present. Assumes exactly
+    /// one token is present, then sends the token to a recipient.
+    function checkBalanceAndSendTokens(
         PayIntent calldata intent,
-        address payable caller,
-        Call[] calldata calls,
-        bytes calldata bridgeExtraData
+        TokenAmount[] calldata tokenAmounts,
+        address payable recipient
     ) public nonReentrant {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
-        // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary.
-        for (uint256 i = 0; i < calls.length; ++i) {
-            Call calldata call = calls[i];
-            (bool success, ) = call.to.call{value: call.value}(call.data);
-            require(success, "PI: swap call failed");
-        }
-
-        if (intent.toChainId == block.chainid) {
-            // Same chain. Check that the contract has sufficient token balance.
-            bool balanceOk = checkBridgeTokenOutBalance(
-                intent.bridgeTokenOutOptions
-            );
-            require(balanceOk, "PI: insufficient token");
-        } else {
-            // Different chains. Get the input token and amount required to
-            // initiate bridging
-            IDaimoPayBridger bridger = intent.bridger;
-            (address bridgeTokenIn, uint256 inAmount) = bridger
-                .getBridgeTokenIn({
-                    toChainId: intent.toChainId,
-                    bridgeTokenOutOptions: intent.bridgeTokenOutOptions
-                });
-
-            uint256 balance = IERC20(bridgeTokenIn).balanceOf(address(this));
-            require(balance >= inAmount, "PI: insufficient bridge token");
-
-            // Approve bridger and initiate bridging
-            IERC20(bridgeTokenIn).forceApprove({
-                spender: address(bridger),
-                value: inAmount
-            });
-            bridger.sendToChain({
-                toChainId: intent.toChainId,
-                toAddress: address(this),
-                bridgeTokenOutOptions: intent.bridgeTokenOutOptions,
-                extraData: bridgeExtraData
-            });
-
-            // Refund any leftover tokens in the contract to the caller
-            TokenUtils.transferBalance({
-                token: IERC20(bridgeTokenIn),
-                recipient: caller
-            });
-        }
-    }
-
-    /// Check that there is sufficient output token and send tokens to the
-    /// escrow contract.
-    function claim(PayIntent calldata intent) public nonReentrant {
-        require(keccak256(abi.encode(intent)) == intentHash, "PI: intent");
-        require(msg.sender == intent.escrow, "PI: only escrow");
-        require(block.chainid == intent.toChainId, "PI: only dest chain");
-
-        bool balanceOk = checkBridgeTokenOutBalance(
-            intent.bridgeTokenOutOptions
-        );
-        require(balanceOk, "PI: insufficient token received");
-
-        // Send to escrow contract, which will forward to current recipient
-        uint256 n = intent.bridgeTokenOutOptions.length;
-        for (uint256 i = 0; i < n; ++i) {
-            TokenUtils.transferBalance({
-                token: intent.bridgeTokenOutOptions[i].token,
-                recipient: intent.escrow
-            });
-        }
-    }
-
-    /// Refund double payments.
-    function refund(
-        PayIntent calldata intent,
-        IERC20 token
-    ) public nonReentrant returns (uint256 amount) {
-        require(calcIntentHash(intent) == intentHash, "PI: intent");
-        require(msg.sender == intent.escrow, "PI: only escrow");
-
-        // Send to escrow contract, which will forward to the refund address.
-        amount = TokenUtils.transferBalance({
-            token: token,
-            recipient: intent.escrow
+        // Check that at least one of the token amounts is present.
+        uint256 tokenIndex = TokenUtils.checkBalance({
+            tokenAmounts: tokenAmounts
         });
-        require(amount > 0, "PI: no funds to refund");
+        require(tokenIndex < tokenAmounts.length, "PI: insufficient balance");
+
+        // Transfer the token amount to the recipient.
+        TokenUtils.transfer({
+            token: tokenAmounts[tokenIndex].token,
+            recipient: recipient,
+            amount: tokenAmounts[tokenIndex].amount
+        });
     }
 
     /// Accept native-token (eg ETH) inputs

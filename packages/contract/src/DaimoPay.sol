@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import "./DaimoPayBridger.sol";
+import "./DaimoPayExecutor.sol";
 import "./PayIntentFactory.sol";
 import "./TokenUtils.sol";
 
@@ -26,9 +26,9 @@ import "./TokenUtils.sol";
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Enables fast cross-chain transfers with optimistic intents.
-/// WARNING: Never approve tokens directly to this contract. Never
-/// transfer tokens to this contract as a standalone transaction.
-/// Such tokens can be stolen by anyone. Instead:
+/// WARNING: Never approve tokens directly to this contract. Never transfer
+/// tokens to this contract as a standalone transaction. Such tokens can be
+/// stolen by anyone. Instead:
 /// - Users should only interact by sending funds to an intent address.
 /// - Relayers should transfer funds and call this contract atomically via their
 ///   own contracts.
@@ -49,6 +49,9 @@ contract DaimoPay is ReentrancyGuard {
 
     /// Efficiently generates + deploys CREATE2 intent addresses.
     PayIntentFactory public immutable intentFactory;
+    /// Contract that executes arbitrary contract calls on behalf of the
+    /// DaimoPay escrow contract.
+    DaimoPayExecutor public immutable executor;
 
     /// On the source chain, record intents that have been sent.
     mapping(address intentAddr => bool) public intentSent;
@@ -83,18 +86,20 @@ contract DaimoPay is ReentrancyGuard {
     event IntentRefunded(
         address indexed intentAddr,
         address indexed refundAddr,
-        address token,
-        uint256 amount,
+        IERC20[] tokens,
+        uint256[] amounts,
         PayIntent intent
     );
 
     constructor(PayIntentFactory _intentFactory) {
         intentFactory = _intentFactory;
+        executor = new DaimoPayExecutor(address(this));
     }
 
     /// Starts an intent, bridging to the destination chain if necessary.
     function startIntent(
         PayIntent calldata intent,
+        IERC20[] calldata paymentTokens,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) public nonReentrant {
@@ -103,16 +108,75 @@ contract DaimoPay is ReentrancyGuard {
         // Ensure we don't reuse a nonce in the case where Alice is sending to
         // same destination with the same nonce multiple times.
         require(!intentSent[address(intentContract)], "DP: already sent");
+        // Can't call startIntent if the intent has already been claimed.
+        require(
+            intentToRecipient[address(intentContract)] != ADDR_MAX,
+            "DP: already claimed"
+        );
+        // Mark the intent as sent
         intentSent[address(intentContract)] = true;
 
-        // Bridge funds in the intent contract to the destination chain, if
-        // necessary. They'll arrive at the same intent address on chain B.
-        intentContract.start({
+        // Transfer from intent contract to the executor contract to run
+        // relayer-provided calls.
+        intentContract.sendTokens({
             intent: intent,
-            caller: payable(msg.sender),
-            calls: calls,
-            bridgeExtraData: bridgeExtraData
+            tokens: paymentTokens,
+            recipient: payable(address(executor))
         });
+
+        if (intent.toChainId == block.chainid) {
+            // Same chain. Swap the tokens to one of the bridgeTokenOutOptions
+            // and send them back to the intent contract for later claimIntent.
+
+            // Run arbitrary calls provided by the relayer. These will generally
+            // approve the swap contract and swap if necessary.
+            // The executor contract checks that at least one of the
+            // bridgeTokenOutOptions is present. Any surplus tokens are given
+            // to the caller.
+            executor.execute({
+                calls: calls,
+                expectedOutput: intent.bridgeTokenOutOptions,
+                recipient: payable(address(intentContract)),
+                surplusRecipient: payable(msg.sender)
+            });
+        } else {
+            // Different chains. Get the input token and amount required to
+            // initiate bridging
+            IDaimoPayBridger bridger = intent.bridger;
+            (address bridgeTokenIn, uint256 inAmount) = bridger
+                .getBridgeTokenIn({
+                    toChainId: intent.toChainId,
+                    bridgeTokenOutOptions: intent.bridgeTokenOutOptions
+                });
+
+            // Run arbitrary calls provided by the relayer. These will generally
+            // approve the swap contract and swap if necessary.
+            // The executor contract checks that the output is sufficient. Any
+            // surplus tokens are given to the caller.
+            TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+            expectedOutput[0] = TokenAmount({
+                token: IERC20(bridgeTokenIn),
+                amount: inAmount
+            });
+            executor.execute({
+                calls: calls,
+                expectedOutput: expectedOutput,
+                recipient: payable(address(this)),
+                surplusRecipient: payable(msg.sender)
+            });
+
+            // Approve bridger and initiate bridging
+            IERC20(bridgeTokenIn).forceApprove({
+                spender: address(bridger),
+                value: inAmount
+            });
+            bridger.sendToChain({
+                toChainId: intent.toChainId,
+                toAddress: address(intentContract),
+                bridgeTokenOutOptions: intent.bridgeTokenOutOptions,
+                extraData: bridgeExtraData
+            });
+        }
 
         emit Start({intentAddr: address(intentContract), intent: intent});
     }
@@ -129,7 +193,8 @@ contract DaimoPay is ReentrancyGuard {
     /// to claim the bridged tokens.
     function fastFinishIntent(
         PayIntent calldata intent,
-        Call[] calldata calls
+        Call[] calldata calls,
+        IERC20[] calldata tokens
     ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
 
@@ -142,9 +207,18 @@ contract DaimoPay is ReentrancyGuard {
             intentToRecipient[intentAddr] == address(0),
             "DP: already finished"
         );
-
         // Record relayer as new recipient when the bridged tokens arrive
         intentToRecipient[intentAddr] = msg.sender;
+
+        // Transfer tokens to the executor contract to run relayer-provided
+        // calls in _finishIntent.
+        uint256 n = tokens.length;
+        for (uint256 i = 0; i < n; ++i) {
+            TokenUtils.transferBalance({
+                token: tokens[i],
+                recipient: payable(address(executor))
+            });
+        }
 
         // Finish the intent and return any leftover tokens to the caller
         _finishIntent({intentAddr: intentAddr, intent: intent, calls: calls});
@@ -166,18 +240,27 @@ contract DaimoPay is ReentrancyGuard {
 
         PayIntentContract intentContract = intentFactory.createIntent(intent);
 
-        // Transfer from intent contract to this contract
-        intentContract.claim(intent);
-
-        // Finally, forward the balance to the current recipient
+        // Check the recipient for this intent.
         address recipient = intentToRecipient[address(intentContract)];
         // If intent is double-paid after it has already been claimed, then
         // the recipient should call refundIntent to get their funds back.
         require(recipient != ADDR_MAX, "DP: already claimed");
+        // Mark intent as claimed
+        intentToRecipient[address(intentContract)] = ADDR_MAX;
 
         if (recipient == address(0)) {
             // No relayer showed up, so just complete the intent.
             recipient = intent.finalCall.to;
+
+            // Send tokens from the intent contract to the executor contract
+            // to run relayer-provided calls in _finishIntent.
+            // The intent contract will check that sufficient bridge tokens
+            // were received.
+            intentContract.checkBalanceAndSendTokens({
+                intent: intent,
+                tokenAmounts: intent.bridgeTokenOutOptions,
+                recipient: payable(address(executor))
+            });
 
             // Complete the intent and return any leftover tokens to the caller
             _finishIntent({
@@ -186,21 +269,15 @@ contract DaimoPay is ReentrancyGuard {
                 calls: calls
             });
         } else {
-            // Otherwise, the relayer fastFinished the intent. Repay them. The
-            // intent contract checks that the received amount is sufficient, so
-            // we can simply transfer the balance.
-            uint256 n = intent.bridgeTokenOutOptions.length;
-            for (uint256 i = 0; i < n; ++i) {
-                TokenAmount calldata tokenOut = intent.bridgeTokenOutOptions[i];
-                TokenUtils.transferBalance({
-                    token: tokenOut.token,
-                    recipient: payable(recipient)
-                });
-            }
+            // Otherwise, the relayer fastFinished the intent. Repay them.
+            // The intent contract will check that sufficient bridge tokens
+            // were received.
+            intentContract.checkBalanceAndSendTokens({
+                intent: intent,
+                tokenAmounts: intent.bridgeTokenOutOptions,
+                recipient: payable(recipient)
+            });
         }
-
-        // Mark as claimed
-        intentToRecipient[address(intentContract)] = ADDR_MAX;
 
         emit Claim({
             intentAddr: address(intentContract),
@@ -213,7 +290,7 @@ contract DaimoPay is ReentrancyGuard {
     /// if the intent has already been claimed.
     function refundIntent(
         PayIntent calldata intent,
-        IERC20 token
+        IERC20[] calldata tokens
     ) public nonReentrant {
         PayIntentContract intentContract = intentFactory.createIntent(intent);
         address intentAddr = address(intentContract);
@@ -227,16 +304,18 @@ contract DaimoPay is ReentrancyGuard {
             require(intentSent[intentAddr], "DP: not started");
         }
 
-        // Collect and refund overpaid amount.
-        uint256 amount = intentContract.refund(intent, token);
-        require(amount > 0, "DP: no funds to refund");
-        TokenUtils.transfer(token, payable(intent.refundAddress), amount);
+        // Send tokens directly from intent contract to the refund address.
+        uint256[] memory amounts = intentContract.sendTokens({
+            intent: intent,
+            tokens: tokens,
+            recipient: payable(intent.refundAddress)
+        });
 
         emit IntentRefunded({
             intentAddr: intentAddr,
             refundAddr: intent.refundAddress,
-            token: address(token),
-            amount: amount,
+            tokens: tokens,
+            amounts: amounts,
             intent: intent
         });
     }
@@ -244,41 +323,33 @@ contract DaimoPay is ReentrancyGuard {
     /// Execute the calls provided by the relayer and check that there is
     /// sufficient finalCallToken. Then, if the intent has a finalCall, make
     /// the intent call. Otherwise, transfer the token to the final address.
-    /// Finally, send any leftover final token to the caller.
+    /// Any surplus tokens are given to the caller.
+    /// This function assumes that tokens are already transferred to the
+    /// executor contract before being called.
     function _finishIntent(
         address intentAddr,
         PayIntent calldata intent,
         Call[] calldata calls
     ) internal {
         // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary.
-        for (uint256 i = 0; i < calls.length; ++i) {
-            Call calldata call = calls[i];
-            (bool callSuccess, ) = call.to.call{value: call.value}(call.data);
-            require(callSuccess, "DP: swap call failed");
-        }
-
-        // Check that the swap had a fair price
-        uint256 finalCallTokenBalance = TokenUtils.getBalanceOf({
-            token: intent.finalCallToken.token,
-            addr: address(this)
+        // approve the swap contract and swap if necessary. Any surplus tokens
+        // are given to the caller.
+        TokenAmount[] memory finalCallAmount = new TokenAmount[](1);
+        finalCallAmount[0] = intent.finalCallToken;
+        executor.execute({
+            calls: calls,
+            expectedOutput: finalCallAmount,
+            recipient: payable(address(this)),
+            surplusRecipient: payable(msg.sender)
         });
-        require(
-            finalCallTokenBalance >= intent.finalCallToken.amount,
-            "DP: insufficient final call token received"
-        );
 
         bool success;
         if (intent.finalCall.data.length > 0) {
             // If the intent is a call, approve the final token and make the call
-            TokenUtils.approve({
-                token: intent.finalCallToken.token,
-                spender: address(intent.finalCall.to),
-                amount: intent.finalCallToken.amount
+            success = executor.executeFinalCall({
+                finalCall: intent.finalCall,
+                finalCallToken: intent.finalCallToken
             });
-            (success, ) = intent.finalCall.to.call{
-                value: intent.finalCall.value
-            }(intent.finalCall.data);
         } else {
             // If the final call is a transfer, transfer the token.
             success = TokenUtils.tryTransfer(
@@ -302,12 +373,6 @@ contract DaimoPay is ReentrancyGuard {
             destinationAddr: intent.finalCall.to,
             success: success,
             intent: intent
-        });
-
-        // Send any leftover final token to the caller
-        TokenUtils.transferBalance({
-            token: intent.finalCallToken.token,
-            recipient: payable(msg.sender)
         });
     }
 

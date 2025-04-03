@@ -190,6 +190,7 @@ contract DaimoPayRelayer is AccessControl {
         Call[] calldata preCalls,
         DaimoPay dp,
         PayIntent calldata intent,
+        IERC20[] calldata paymentTokens,
         Call[] calldata startCalls,
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls
@@ -203,6 +204,7 @@ contract DaimoPayRelayer is AccessControl {
 
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: startCalls,
             bridgeExtraData: bridgeExtraData
         });
@@ -226,7 +228,10 @@ contract DaimoPayRelayer is AccessControl {
             recipient: payable(address(dp)),
             amount: tokenIn.amount
         });
-        dp.fastFinishIntent(intent, calls);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = tokenIn.token;
+        dp.fastFinishIntent({intent: intent, calls: calls, tokens: tokens});
     }
 
     function claimAndKeep(

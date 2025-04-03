@@ -11,16 +11,6 @@ struct TokenAmount {
     uint256 amount;
 }
 
-/// Represents a destination address + optional arbitrary contract call
-struct Call {
-    /// Destination receiving address or contract
-    address to;
-    /// Native token amount for call, or 0
-    uint256 value;
-    /// Calldata for call, or empty = no contract call
-    bytes data;
-}
-
 /// Utility functions that work for both ERC20 and native tokens.
 library TokenUtils {
     using SafeERC20 for IERC20;
@@ -40,7 +30,7 @@ library TokenUtils {
     /// Approves a token transfer.
     function approve(IERC20 token, address spender, uint256 amount) internal {
         if (address(token) != address(0)) {
-            token.approve({spender: spender, value: amount});
+            token.forceApprove({spender: spender, value: amount});
         } // Do nothing for native token.
     }
 
@@ -97,5 +87,25 @@ library TokenUtils {
             transfer({token: token, recipient: recipient, amount: balance});
         }
         return balance;
+    }
+
+    /// Check that the address has enough of at least one of the tokenAmounts.
+    /// Returns the index of the first token that has sufficient balance, or
+    /// the length of the tokenAmounts array if no token has sufficient balance.
+    function checkBalance(
+        TokenAmount[] calldata tokenAmounts
+    ) internal view returns (uint256) {
+        uint256 n = tokenAmounts.length;
+        for (uint256 i = 0; i < n; ++i) {
+            TokenAmount calldata tokenAmount = tokenAmounts[i];
+            uint256 balance = getBalanceOf({
+                token: tokenAmount.token,
+                addr: address(this)
+            });
+            if (balance >= tokenAmount.amount) {
+                return i;
+            }
+        }
+        return n;
     }
 }

@@ -35,7 +35,7 @@ export const ScrollArea = ({
   const ref = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   useEffect(() => {
     const el = ref.current;

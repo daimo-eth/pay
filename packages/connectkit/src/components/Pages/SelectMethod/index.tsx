@@ -80,10 +80,7 @@ function getDepositAddressOption(depositAddressOptions: {
 }
 
 const SelectMethod: React.FC = () => {
-  const isMobile = useIsMobile();
-  const isOnIOS = useMemo(() => {
-    return /iPad|iPhone/.test(navigator.userAgent);
-  }, []);
+  const { isMobile, isIOS } = useIsMobile();
 
   const {
     address,
@@ -96,7 +93,7 @@ const SelectMethod: React.FC = () => {
     wallet: solanaWallet,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
+  const { setRoute, paymentState, wcWallet, setWcWallet, log, setConnector } =
     usePayContext();
   const { disconnectAsync } = useDisconnect();
 
@@ -116,10 +113,13 @@ const SelectMethod: React.FC = () => {
       if (p.isCoinbaseWallet) name = "Coinbase Wallet";
       if (name == null) name = "Unknown";
       const wallet = Object.values(walletConfigs).find(
-        (c) => c.name === name || name.includes(c.shortName),
+        (c) => c.name === name || name.includes(c.shortName ?? c.name),
       );
-      log(`[SELECT_METHOD] wcWallet: ${wallet?.name} ${wallet != null}`, p);
-      setWcWallet(wallet);
+      log(`[SELECT_METHOD] name: ${name} wcWallet: ${wallet?.name}`, p);
+      //case MetaMask
+      if (wallet?.name != null) {
+        setWcWallet(wallet);
+      }
     });
   }, [connector]);
 
@@ -139,14 +139,21 @@ const SelectMethod: React.FC = () => {
 
       let walletIcon: JSX.Element;
       if (connector?.icon) {
-        walletIcon = <img src={connector.icon} alt={connector.name} />;
+        log("[SELECT_METHOD] connector?.icon", connector?.icon);
+        walletIcon = (
+          <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+            <img src={connector.icon} alt={connector.name} />
+          </div>
+        );
       } else if (wcWallet?.icon) {
+        log("[SELECT_METHOD] wcWallet?.icon", wcWallet?.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             {wcWallet.icon}
           </div>
         );
       } else {
+        log("[SELECT_METHOD] else");
         walletIcon = <MetaMask />;
       }
 
@@ -255,7 +262,7 @@ const SelectMethod: React.FC = () => {
   );
 
   if (includeSolana) {
-    const solanaOption = getSolanaOption(isOnIOS);
+    const solanaOption = getSolanaOption(isIOS);
     if (solanaOption) {
       options.push(solanaOption);
     }

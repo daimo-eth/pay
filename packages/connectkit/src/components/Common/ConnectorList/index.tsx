@@ -22,7 +22,7 @@ import {
 
 const ConnectorList = () => {
   const context = usePayContext();
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   const wallets = useWallets();
   const { lastConnectorId } = useLastConnector();
@@ -77,7 +77,7 @@ const ConnectorItem = ({
     connect: { getUri },
   } = useWeb3();
   const uri = getUri();
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
   const context = usePayContext();
 
   const { connect } = useConnect();
@@ -114,7 +114,11 @@ const ConnectorItem = ({
       disabled={context.route !== ROUTES.CONNECTORS}
       onClick={
         deeplink
-          ? undefined
+          ? () => {
+              if (!isMobile) return;
+              context.setConnector({ id: wallet.id });
+              context.setWcWallet(wallet);
+            }
           : () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);

@@ -15,10 +15,7 @@ function getDaimoTokenKey(token: DaimoPayToken) {
 }
 
 const SelectToken: React.FC = () => {
-  const isMobile = useIsMobile();
-  const isOnIOS = useMemo(() => {
-    return /iPad|iPhone/.test(navigator.userAgent);
-  }, []);
+  const { isMobile, isIOS } = useIsMobile();
   const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
@@ -58,7 +55,7 @@ const SelectToken: React.FC = () => {
             setRoute(ROUTES.SELECT_AMOUNT, meta);
           } else {
             setRoute(ROUTES.PAY_WITH_TOKEN, meta);
-            if (isMobile && isOnIOS) {
+            if (isMobile && isIOS) {
               window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
             }
           }

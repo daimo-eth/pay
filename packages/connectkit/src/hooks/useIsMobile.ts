@@ -1,16 +1,8 @@
-import { useEffect, useState } from "react";
-import { isMobile } from "../utils";
+import { useMemo } from "react";
+import { isAndroid, isIOS } from "../utils";
 
 export default function useIsMobile() {
-  const [mobile, setMobile] = useState(isMobile());
-
-  useEffect(() => {
-    const handleResize = () => {
-      setMobile(isMobile());
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return mobile;
+  const isI = useMemo(isIOS, []);
+  const isA = useMemo(isAndroid, []);
+  return { isMobile: isI || isA, isIOS: isI, isAndroid: isA };
 }

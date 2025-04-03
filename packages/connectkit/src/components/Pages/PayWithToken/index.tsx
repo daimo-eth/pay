@@ -17,10 +17,7 @@ enum PayState {
 }
 
 const PayWithToken: React.FC = () => {
-  const isMobile = useIsMobile();
-  const isOnIOS = useMemo(() => {
-    return /iPad|iPhone/.test(navigator.userAgent);
-  }, []);
+  const { isMobile, isIOS } = useIsMobile();
   const { triggerResize, paymentState, setRoute, log, wcWallet } =
     usePayContext();
   const { selectedTokenOption, payWithToken } = paymentState;
@@ -103,7 +100,7 @@ const PayWithToken: React.FC = () => {
     if (!selectedTokenOption) return;
     // Give user time to see the UI before opening on mobile
     if (wcWallet && isMobile) {
-      if (!isOnIOS) {
+      if (!isIOS) {
         transferTimeout = setTimeout(() => {
           window.open(wcWallet?.getWalletConnectDeeplink?.(""));
           handleTransfer(selectedTokenOption);

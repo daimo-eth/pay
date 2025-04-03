@@ -80,10 +80,7 @@ function getDepositAddressOption(depositAddressOptions: {
 }
 
 const SelectMethod: React.FC = () => {
-  const isMobile = useIsMobile();
-  const isOnIOS = useMemo(() => {
-    return /iPad|iPhone/.test(navigator.userAgent);
-  }, []);
+  const { isMobile, isIOS } = useIsMobile();
 
   const {
     address,
@@ -265,7 +262,7 @@ const SelectMethod: React.FC = () => {
   );
 
   if (includeSolana) {
-    const solanaOption = getSolanaOption(isOnIOS);
+    const solanaOption = getSolanaOption(isIOS);
     if (solanaOption) {
       options.push(solanaOption);
     }

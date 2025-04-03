@@ -42,25 +42,26 @@ const nFormatter = (num: number, digits: number = 2) => {
     : "0";
 };
 
-const detectBrowser = () => {
+export const detectBrowser = () => {
   const browser = detect();
   return browser?.name ?? "";
 };
-const detectOS = () => {
+export const detectOS = () => {
   const browser = detect();
   return browser?.os ?? "";
 };
 
-const isIOS = () => {
+export const isIOS = () => {
   const os = detectOS();
   return os.toLowerCase().includes("ios");
 };
-const isAndroid = () => {
+export const isAndroid = () => {
   const os = detectOS();
   return os.toLowerCase().includes("android");
 };
-const isMobile = () => {
-  return isAndroid() || isIOS();
+export const isMobile = () => {
+  const os = detectOS().toLowerCase();
+  return os.includes("android") || os.includes("ios");
 };
 
 type ReactChildArray = ReturnType<typeof React.Children.toArray>;
@@ -94,8 +95,4 @@ export const isSafeConnector = (connectorId?: string) => connectorId === "safe";
 export const isInjectedConnector = (connectorId?: string) =>
   connectorId === "injected";
 
-export {
-  detectBrowser,
-  detectOS,
-  flattenChildren, isAndroid, isMobile, nFormatter, truncateENSAddress, truncateEthAddress
-};
+export { flattenChildren, nFormatter, truncateENSAddress, truncateEthAddress };

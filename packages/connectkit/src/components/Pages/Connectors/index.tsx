@@ -27,7 +27,7 @@ const Wallets: React.FC = () => {
   const context = usePayContext();
   const locales = useLocales({});
 
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   return (
     <PageContent>

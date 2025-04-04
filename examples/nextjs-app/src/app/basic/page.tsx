@@ -1,14 +1,17 @@
 "use client";
-
 import { DaimoPayButton } from "@daimo/pay";
-import * as payCommon from "@daimo/pay-common";
+import * as Tokens from "@daimo/pay-common";
+import {
+  getChainName,
+  getChainNativeToken,
+  getTokensForChain,
+} from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
-import { ConfigPanel, type PaymentConfig } from "../config-panel";
+import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
-import { ClipboardIcon } from "@heroicons/react/24/outline";
 
 export default function DemoBasic() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -34,31 +37,41 @@ export default function DemoBasic() {
   }, [isConfigOpen]);
 
   useEffect(() => {
-    if (
-      !config?.recipientAddress ||
-      !config?.chainId ||
-      !config?.tokenAddress ||
-      !config?.amount
-    ) {
+    if (!hasValidConfig) {
       setCodeSnippet("");
       return;
     }
 
-    // Get the correct native token variable name for the chain
-    const nativeTokenMap = {
-      42161: "arbitrumETH", // Arbitrum
-      8453: "baseETH", // Base
-      81457: "blastETH", // Blast
-      56: "bscBNB", // BSC
-      1: "ethereumETH", // Ethereum
-      59144: "lineaETH", // Linea
-      5000: "mantleMNT", // Mantle
-      10: "optimismETH", // Optimism
-      137: "polygonPOL", // Polygon
-      11155111: "worldchainETH", // Worldchain
-    };
+    // First check if it's a native token (address is 0x0)
+    if (
+      config.tokenAddress === Tokens.getChainNativeToken(config.chainId)?.token
+    ) {
+      const tokenVarName =
+        getChainName(config.chainId).toLowerCase() +
+        getChainNativeToken(config.chainId)?.symbol;
+      if (tokenVarName) {
+        const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
-    const tokenVarName = nativeTokenMap[config.chainId] || "arbitrumETH"; // fallback
+<DaimoPayButton
+  appId="${APP_ID}"
+  toChain={${tokenVarName}.chainId}
+  toAddress={getAddress("${config.recipientAddress}")}
+  toUnits={"${config.amount}"}
+  toToken={getAddress(${tokenVarName}.token)}
+/>`;
+        setCodeSnippet(snippet);
+        return;
+      }
+    }
+
+    // For non-native tokens
+    const tokens = getTokensForChain(config.chainId);
+    const token = tokens.find((t) => t.token === config.tokenAddress);
+    if (!token) return;
+
+    // Find the variable name in pay-common exports
+    const tokenVarName =
+      Object.entries(Tokens).find(([_, t]) => t === token)?.[0] || token.symbol;
 
     const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
@@ -116,17 +129,14 @@ export default function DemoBasic() {
         )}
 
         {/* Only show implementation code if we have a complete config */}
-        {config?.recipientAddress &&
-          config?.chainId &&
-          config?.tokenAddress &&
-          config?.amount && (
-            <div className="w-full">
-              <Text className="text-lg font-medium text-green-dark mb-2">
-                Implementation Code
-              </Text>
-              <CodeSnippet codeSnippet={codeSnippet} />
-            </div>
-          )}
+        {hasValidConfig && (
+          <div className="w-full">
+            <Text className="text-lg font-medium text-green-dark mb-2">
+              Implementation Code
+            </Text>
+            <CodeSnippet codeSnippet={codeSnippet} />
+          </div>
+        )}
 
         <ConfigPanel
           configType="payment"

@@ -1,14 +1,18 @@
 "use client";
 
 import { DaimoPayButton } from "@daimo/pay";
-import * as foreignTokens from "@daimo/pay-common";
+import * as Tokens from "@daimo/pay-common";
+import {
+  getChainName,
+  getChainNativeToken,
+  getTokensForChain,
+} from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
-import { ConfigPanel, type DepositConfig } from "../config-panel";
+import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
-import { ClipboardIcon } from "@heroicons/react/24/outline";
 
 export default function DemoDeposit() {
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -36,33 +40,39 @@ export default function DemoDeposit() {
 
   useEffect(() => {
     // Only generate code snippet if we have a complete config
-    if (
-      !config?.recipientAddress ||
-      !config?.chainId ||
-      !config?.tokenAddress
-    ) {
+    if (!hasValidConfig) {
       setCodeSnippet("");
       return;
     }
 
-    const token = Object.values(foreignTokens).find(
-      (t) =>
-        typeof t === "object" &&
-        t !== null &&
-        "token" in t &&
-        t.token === config.tokenAddress,
-    );
+    // First check if it's a native token (address is 0x0)
+    if (config.tokenAddress === getChainNativeToken(config.chainId)?.token) {
+      const tokenVarName =
+        getChainName(config.chainId).toLowerCase() +
+        getChainNativeToken(config.chainId)?.symbol;
+      if (tokenVarName) {
+        const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
-    if (!(token && typeof token === "object" && "symbol" in token)) return;
+<DaimoPayButton
+  appId="${APP_ID}"
+  toChain={${tokenVarName}.chainId}
+  toAddress={getAddress("${config.recipientAddress}")}
+  toToken={getAddress(${tokenVarName}.token)}
+  intent="Deposit"
+/>`;
+        setCodeSnippet(snippet);
+        return;
+      }
+    }
 
+    // For non-native tokens
+    const tokens = getTokensForChain(config.chainId);
+    const token = tokens.find((t) => t.token === config.tokenAddress);
+    if (!token) return;
+
+    // Find the variable name in pay-common exports
     const tokenVarName =
-      Object.entries(foreignTokens).find(
-        ([_, value]) =>
-          typeof value === "object" &&
-          value !== null &&
-          "token" in value &&
-          value.token === config.tokenAddress,
-      )?.[0] || token.symbol;
+      Object.entries(Tokens).find(([_, t]) => t === token)?.[0] || token.symbol;
 
     const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
@@ -128,28 +138,14 @@ export default function DemoDeposit() {
         )}
 
         {/* Only show implementation code if we have a complete config */}
-        {config?.recipientAddress &&
-          config?.chainId &&
-          config?.tokenAddress && (
-            <div className="w-full">
-              <div className="flex justify-between items-center mb-2">
-                <Text className="text-lg font-medium text-green-dark">
-                  Implementation Code
-                </Text>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(codeSnippet);
-                    // Optional: Add toast/feedback here
-                  }}
-                  className="p-2 text-gray-500 hover:text-green-dark transition-colors rounded-lg hover:bg-gray-100"
-                  title="Copy code"
-                >
-                  <ClipboardIcon className="h-5 w-5" />
-                </button>
-              </div>
-              <CodeSnippet codeSnippet={codeSnippet} />
-            </div>
-          )}
+        {hasValidConfig && (
+          <div className="w-full">
+            <Text className="text-lg font-medium text-green-dark mb-2">
+              Implementation Code
+            </Text>
+            <CodeSnippet codeSnippet={codeSnippet} />
+          </div>
+        )}
 
         <ConfigPanel
           configType="deposit"

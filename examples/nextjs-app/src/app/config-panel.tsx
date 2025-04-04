@@ -1,9 +1,4 @@
-import {
-  solana,
-  supportedChains,
-  supportedTokens,
-  Token,
-} from "@daimo/pay-common";
+import { solana, supportedChains, supportedTokens } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useState, useEffect } from "react";
 import { isAddress } from "viem";
@@ -77,7 +72,9 @@ export function ConfigPanel({
   const [addressError, setAddressError] = useState<string>("");
 
   // Extract unique chains
-  const chains = supportedChains.filter((chain) => chain.chainId !== 999); // Exclude Solana
+  const chains = supportedChains.filter(
+    (chain) => chain.chainId !== solana.chainId,
+  ); // Exclude Solana
 
   // Get tokens for selected chain
   const tokens = supportedTokens.filter(

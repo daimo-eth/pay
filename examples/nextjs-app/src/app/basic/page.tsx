@@ -7,11 +7,17 @@ import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel, type PaymentConfig } from "../config-panel";
-import { APP_ID, Container, printEvent } from "../shared";
+import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
+import { ClipboardIcon } from "@heroicons/react/24/outline";
 
 export default function DemoBasic() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [config, setConfig] = useState<PaymentConfig | null>(null);
+  const [config, setConfig] = usePersistedConfig("daimo-basic-config", {
+    recipientAddress: "",
+    chainId: 0,
+    tokenAddress: "",
+    amount: "",
+  });
   const [codeSnippet, setCodeSnippet] = useState("");
 
   useEffect(() => {
@@ -28,29 +34,33 @@ export default function DemoBasic() {
   }, [isConfigOpen]);
 
   useEffect(() => {
-    if (config == null) return;
+    if (
+      !config?.recipientAddress ||
+      !config?.chainId ||
+      !config?.tokenAddress ||
+      !config?.amount
+    ) {
+      setCodeSnippet("");
+      return;
+    }
 
-    const token = Object.values(payCommon).find(
-      (t) =>
-        typeof t === "object" &&
-        t !== null &&
-        "token" in t &&
-        t.token === config.tokenAddress,
-    );
+    // Get the correct native token variable name for the chain
+    const nativeTokenMap = {
+      42161: "arbitrumETH", // Arbitrum
+      8453: "baseETH", // Base
+      81457: "blastETH", // Blast
+      56: "bscBNB", // BSC
+      1: "ethereumETH", // Ethereum
+      59144: "lineaETH", // Linea
+      5000: "mantleMNT", // Mantle
+      10: "optimismETH", // Optimism
+      137: "polygonPOL", // Polygon
+      11155111: "worldchainETH", // Worldchain
+    };
 
-    if (!(token && typeof token === "object" && "symbol" in token)) return;
+    const tokenVarName = nativeTokenMap[config.chainId] || "arbitrumETH"; // fallback
 
-    const tokenVarName =
-      Object.entries(payCommon).find(
-        ([_, value]) =>
-          typeof value === "object" &&
-          value !== null &&
-          "token" in value &&
-          value.token === config.tokenAddress,
-      )?.[0] || token.symbol;
-
-    const snippet = `
-import { ${tokenVarName} } from "@daimo/pay-common";
+    const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
 <DaimoPayButton
   appId="${APP_ID}"
@@ -58,10 +68,17 @@ import { ${tokenVarName} } from "@daimo/pay-common";
   toAddress={getAddress("${config.recipientAddress}")}
   toUnits={"${config.amount}"}
   toToken={getAddress(${tokenVarName}.token)}
-/>
-        `;
+/>`;
     setCodeSnippet(snippet);
   }, [config]);
+
+  // Only render the DaimoPayButton when we have valid config
+  const hasValidConfig =
+    config &&
+    config.recipientAddress &&
+    config.chainId &&
+    config.tokenAddress &&
+    config.amount;
 
   return (
     <Container className="max-w-4xl mx-auto p-6">
@@ -71,7 +88,7 @@ import { ${tokenVarName} } from "@daimo/pay-common";
       </Text>
 
       <div className="flex flex-col items-center gap-8">
-        {config ? (
+        {hasValidConfig ? (
           <>
             <DaimoPayButton
               appId={APP_ID}
@@ -98,22 +115,25 @@ import { ${tokenVarName} } from "@daimo/pay-common";
           </button>
         )}
 
-        {config && (
-          <div className="w-full">
-            <Text className="text-lg font-medium text-green-dark mb-2">
-              Implementation Code
-            </Text>
-            <CodeSnippet codeSnippet={codeSnippet} />
-          </div>
-        )}
+        {/* Only show implementation code if we have a complete config */}
+        {config?.recipientAddress &&
+          config?.chainId &&
+          config?.tokenAddress &&
+          config?.amount && (
+            <div className="w-full">
+              <Text className="text-lg font-medium text-green-dark mb-2">
+                Implementation Code
+              </Text>
+              <CodeSnippet codeSnippet={codeSnippet} />
+            </div>
+          )}
 
         <ConfigPanel
           configType="payment"
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
-          onConfirm={(paymentConfig) =>
-            setConfig(paymentConfig as PaymentConfig)
-          }
+          onConfirm={setConfig}
+          defaultRecipientAddress={config.recipientAddress}
         />
       </div>
     </Container>

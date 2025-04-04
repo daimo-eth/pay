@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address, Hex } from "viem";
 import { z } from "zod";
 
 export const zBigIntStr = z
@@ -12,6 +12,11 @@ export const zAddress = z
   .string()
   .regex(/^0x[0-9a-f]{40}$/i)
   .refine((s): s is Address => true);
+
+export const zHex = z
+  .string()
+  .regex(/^0x[0-9a-f]*$/i)
+  .refine((s): s is Hex => true);
 
 export const zSolanaPublicKey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
 

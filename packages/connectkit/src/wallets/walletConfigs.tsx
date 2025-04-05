@@ -51,30 +51,18 @@ export const walletConfigs: {
   //TODO: update new wallet configs
   Zeal: {
     name: "Zeal",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/zeal",
-    },
   },
   Uniswap: {
     name: "Uniswap Wallet",
     shortName: "Uniswap",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/uniswap",
-    },
   },
   Bitget: {
     name: "Bitget",
     shortName: "Bitget",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/bitget",
-    },
   },
   OKX: {
     name: "OKX",
     shortName: "OKX",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/okx",
-    },
   },
   mock: {
     icon: <Logos.Mock />,

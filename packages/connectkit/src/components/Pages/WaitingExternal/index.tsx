@@ -73,7 +73,7 @@ const WaitingExternal: React.FC = () => {
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-        <ModalH1>Waiting for Payment</ModalH1>
+        <ModalH1>Waiting For Payment</ModalH1>
         {paymentWaitingMessage && (
           <ModalBody style={{ marginTop: 12, marginBottom: 12 }}>
             {paymentWaitingMessage}

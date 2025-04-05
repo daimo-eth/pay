@@ -1,4 +1,4 @@
-import { WalletPaymentOption } from "@daimo/pay-common";
+import { assertNotNull, WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useMemo, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ExternalLinkIcon } from "../../../assets/icons";
@@ -10,7 +10,7 @@ import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 enum PayState {
-  RequestingPayment = "Waiting for Payment",
+  RequestingPayment = "Waiting For Payment",
   SwitchingChain = "Switching Chain",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
@@ -20,7 +20,7 @@ const PayWithToken: React.FC = () => {
   const { isMobile, isIOS } = useIsMobile();
   const { triggerResize, paymentState, setRoute, log, wcWallet } =
     usePayContext();
-  const { selectedTokenOption, payWithToken } = paymentState;
+  const { payWithToken, selectedTokenOption } = paymentState;
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,
   );
@@ -98,6 +98,7 @@ const PayWithToken: React.FC = () => {
 
   useEffect(() => {
     if (!selectedTokenOption) return;
+
     // Give user time to see the UI before opening on mobile
     if (wcWallet && isMobile) {
       if (!isIOS) {
@@ -120,38 +121,42 @@ const PayWithToken: React.FC = () => {
     return () => {
       clearTimeout(transferTimeout);
     };
-  }, []);
+  }, [selectedTokenOption]);
 
   useEffect(() => {
     triggerResize();
   }, [payState]);
 
+  if (selectedTokenOption == null) {
+    return <PageContent></PageContent>;
+  }
+
   return (
     <PageContent>
-      {selectedTokenOption && (
-        <TokenLogoSpinner token={selectedTokenOption.required.token} />
-      )}
+      <TokenLogoSpinner token={selectedTokenOption.required.token} />
       <ModalContent style={{ paddingBottom: 0 }} $preserveDisplay={true}>
         <ModalH1>{payState}</ModalH1>
-        {selectedTokenOption && (
-          <PaymentBreakdown paymentOption={selectedTokenOption} />
-        )}
+        <PaymentBreakdown paymentOption={selectedTokenOption} />
         {payState === PayState.RequestingPayment && wcWallet && isMobile && (
           <Button
             icon={<ExternalLinkIcon />}
+            onClick={
+              wcWallet.isWcMobileConnector
+                ? () => handleTransfer(selectedTokenOption)
+                : undefined
+            }
             href={
-              wcWallet.walletDeepLink || wcWallet.getWalletConnectDeeplink?.("")
+              wcWallet.isWcMobileConnector
+                ? undefined
+                : wcWallet.walletDeepLink ||
+                  wcWallet.getWalletConnectDeeplink?.("")
             }
           >
             Pay with {wcWallet.name}
           </Button>
         )}
         {payState === PayState.RequestCancelled && (
-          <Button
-            onClick={() =>
-              selectedTokenOption ? handleTransfer(selectedTokenOption) : null
-            }
-          >
+          <Button onClick={() => handleTransfer(selectedTokenOption)}>
             Retry Payment
           </Button>
         )}

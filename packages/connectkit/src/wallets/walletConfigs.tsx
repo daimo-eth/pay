@@ -39,35 +39,20 @@ export type WalletConfigProps = {
   };
   // Create URI for QR code, where uri is encoded data from WalletConnect
   getWalletConnectDeeplink?: (uri: string) => string;
+  //For DeepLinks in mobile wallets without WalletConnect, used now for wallet having weird behavior with WC deeplink with empty uri. Useful for future projects ;)
   walletDeepLink?: string;
   shouldDeeplinkDesktop?: boolean;
-  showInMobileConnectors: boolean;
+  // To sort mobile wallets to show in the connector list
+  showInMobileConnectors?: boolean;
+  // Used for mobile wallets we got from WC mobile connector that don't have WC deeplink
+  isWcMobileConnector?: boolean;
 };
 
 // Organised in alphabetical order by key
 export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
-  //TODO: update new wallet configs
-  Zeal: {
-    name: "Zeal",
-    showInMobileConnectors: false,
-  },
-  Uniswap: {
-    name: "Uniswap Wallet",
-    shortName: "Uniswap",
-    showInMobileConnectors: false,
-  },
-  Bitget: {
-    name: "Bitget",
-    shortName: "Bitget",
-    showInMobileConnectors: false,
-  },
-  OKX: {
-    name: "OKX",
-    shortName: "OKX",
-    showInMobileConnectors: false,
-  },
+  //TODO: update new wallet configs with favorite wallets
   mock: {
     icon: <Logos.Mock />,
     showInMobileConnectors: false,

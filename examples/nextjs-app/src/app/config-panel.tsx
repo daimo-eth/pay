@@ -1,6 +1,6 @@
-import { supportedChains, supportedTokens, Token } from "@daimo/pay-common";
+import { solana, supportedChains, supportedTokens } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { isAddress } from "viem";
 
 // Define the possible configuration types
@@ -37,7 +37,7 @@ export function ConfigPanel({
   onConfirm,
   defaultRecipientAddress = "",
 }: ConfigPanelProps) {
-  // Initialize with all possible fields, even if some aren't used based on configType
+  // Initialize with default values
   const [config, setConfig] = useState<PaymentConfig>({
     recipientAddress: defaultRecipientAddress,
     chainId: 0,
@@ -45,11 +45,36 @@ export function ConfigPanel({
     amount: "",
   });
 
+  // Load saved config after mount
+  useEffect(() => {
+    const storageKey =
+      configType === "payment" ? "daimo-basic-config" : "daimo-deposit-config";
+    try {
+      const savedConfig = localStorage.getItem(storageKey);
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          "recipientAddress" in parsed &&
+          "chainId" in parsed &&
+          "tokenAddress" in parsed
+        ) {
+          setConfig(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load saved config:", e);
+    }
+  }, [configType]); // Only run when configType changes
+
   // Add error state for recipient address
   const [addressError, setAddressError] = useState<string>("");
 
   // Extract unique chains
-  const chains = supportedChains;
+  const chains = supportedChains.filter(
+    (chain) => chain.chainId !== solana.chainId,
+  ); // Exclude Solana
 
   // Get tokens for selected chain
   const tokens = supportedTokens.filter(
@@ -84,7 +109,9 @@ export function ConfigPanel({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateAddress(config.recipientAddress)) {
+    // Validate recipient address
+    if (!isAddress(config.recipientAddress)) {
+      alert("Please enter a valid address");
       return;
     }
 
@@ -92,7 +119,6 @@ export function ConfigPanel({
     if (configType === "payment") {
       onConfirm(config);
     } else {
-      // For deposit, exclude the amount field
       const { amount, ...depositConfig } = config;
       onConfirm(depositConfig);
     }
@@ -138,7 +164,7 @@ export function ConfigPanel({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Recipient Address
@@ -146,13 +172,19 @@ export function ConfigPanel({
             <input
               type="text"
               value={config.recipientAddress}
-              onChange={handleAddressChange}
+              onChange={(e) =>
+                setConfig((prev) => ({
+                  ...prev,
+                  recipientAddress: e.target.value,
+                }))
+              }
               className={`w-full p-2 border rounded ${
                 addressError
                   ? "border-red-500 focus:border-red-500 focus:ring-red-200"
                   : "border-gray-300 focus:border-green-medium focus:ring-green-light"
               } focus:ring focus:ring-opacity-50`}
               placeholder="0x..."
+              formNoValidate
             />
             {addressError && (
               <p className="mt-1 text-sm text-red-500">{addressError}</p>
@@ -173,6 +205,7 @@ export function ConfigPanel({
                 }))
               }
               className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+              formNoValidate
             >
               <option value={0}>Select Chain</option>
               {chains.map((chain) => (
@@ -197,6 +230,7 @@ export function ConfigPanel({
                   }))
                 }
                 className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+                formNoValidate
               >
                 <option value="">Select Token</option>
                 {tokens.map((token) => (
@@ -226,6 +260,7 @@ export function ConfigPanel({
                 step="0.01"
                 className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
                 placeholder="Enter amount..."
+                formNoValidate
               />
             </div>
           )}

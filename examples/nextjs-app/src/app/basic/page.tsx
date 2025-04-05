@@ -1,17 +1,26 @@
 "use client";
-
 import { DaimoPayButton } from "@daimo/pay";
-import * as payCommon from "@daimo/pay-common";
+import * as Tokens from "@daimo/pay-common";
+import {
+  getChainName,
+  getChainNativeToken,
+  getTokensForChain,
+} from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
-import { ConfigPanel, type PaymentConfig } from "../config-panel";
-import { APP_ID, Container, printEvent } from "../shared";
+import { ConfigPanel } from "../config-panel";
+import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 
 export default function DemoBasic() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [config, setConfig] = useState<PaymentConfig | null>(null);
+  const [config, setConfig] = usePersistedConfig("daimo-basic-config", {
+    recipientAddress: "",
+    chainId: 0,
+    tokenAddress: "",
+    amount: "",
+  });
   const [codeSnippet, setCodeSnippet] = useState("");
 
   useEffect(() => {
@@ -28,29 +37,20 @@ export default function DemoBasic() {
   }, [isConfigOpen]);
 
   useEffect(() => {
-    if (config == null) return;
+    if (!hasValidConfig) {
+      setCodeSnippet("");
+      return;
+    }
 
-    const token = Object.values(payCommon).find(
-      (t) =>
-        typeof t === "object" &&
-        t !== null &&
-        "token" in t &&
-        t.token === config.tokenAddress,
-    );
-
-    if (!(token && typeof token === "object" && "symbol" in token)) return;
-
-    const tokenVarName =
-      Object.entries(payCommon).find(
-        ([_, value]) =>
-          typeof value === "object" &&
-          value !== null &&
-          "token" in value &&
-          value.token === config.tokenAddress,
-      )?.[0] || token.symbol;
-
-    const snippet = `
-import { ${tokenVarName} } from "@daimo/pay-common";
+    // First check if it's a native token (address is 0x0)
+    if (
+      config.tokenAddress === Tokens.getChainNativeToken(config.chainId)?.token
+    ) {
+      const tokenVarName =
+        getChainName(config.chainId).toLowerCase() +
+        getChainNativeToken(config.chainId)?.symbol;
+      if (tokenVarName) {
+        const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
 <DaimoPayButton
   appId="${APP_ID}"
@@ -58,10 +58,40 @@ import { ${tokenVarName} } from "@daimo/pay-common";
   toAddress={getAddress("${config.recipientAddress}")}
   toUnits={"${config.amount}"}
   toToken={getAddress(${tokenVarName}.token)}
-/>
-        `;
+/>`;
+        setCodeSnippet(snippet);
+        return;
+      }
+    }
+
+    // For non-native tokens
+    const tokens = getTokensForChain(config.chainId);
+    const token = tokens.find((t) => t.token === config.tokenAddress);
+    if (!token) return;
+
+    // Find the variable name in pay-common exports
+    const tokenVarName =
+      Object.entries(Tokens).find(([_, t]) => t === token)?.[0] || token.symbol;
+
+    const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
+
+<DaimoPayButton
+  appId="${APP_ID}"
+  toChain={${tokenVarName}.chainId}
+  toAddress={getAddress("${config.recipientAddress}")}
+  toUnits={"${config.amount}"}
+  toToken={getAddress(${tokenVarName}.token)}
+/>`;
     setCodeSnippet(snippet);
   }, [config]);
+
+  // Only render the DaimoPayButton when we have valid config
+  const hasValidConfig =
+    config &&
+    config.recipientAddress &&
+    config.chainId &&
+    config.tokenAddress &&
+    config.amount;
 
   return (
     <Container className="max-w-4xl mx-auto p-6">
@@ -71,7 +101,7 @@ import { ${tokenVarName} } from "@daimo/pay-common";
       </Text>
 
       <div className="flex flex-col items-center gap-8">
-        {config ? (
+        {hasValidConfig ? (
           <>
             <DaimoPayButton
               appId={APP_ID}
@@ -98,7 +128,8 @@ import { ${tokenVarName} } from "@daimo/pay-common";
           </button>
         )}
 
-        {config && (
+        {/* Only show implementation code if we have a complete config */}
+        {hasValidConfig && (
           <div className="w-full">
             <Text className="text-lg font-medium text-green-dark mb-2">
               Implementation Code
@@ -111,9 +142,8 @@ import { ${tokenVarName} } from "@daimo/pay-common";
           configType="payment"
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
-          onConfirm={(paymentConfig) =>
-            setConfig(paymentConfig as PaymentConfig)
-          }
+          onConfirm={setConfig}
+          defaultRecipientAddress={config.recipientAddress}
         />
       </div>
     </Container>

@@ -8,7 +8,7 @@
     "lint": "next lint --max-warnings=0"
   },
   "dependencies": {
-    "@daimo/pay": "1.6.3",
+    "@daimo/pay": "1.6.4",
     "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
     "@tanstack/react-query": "^5.51.11",

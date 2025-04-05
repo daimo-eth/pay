@@ -136,16 +136,35 @@ const PayWithToken: React.FC = () => {
         {selectedTokenOption && (
           <PaymentBreakdown paymentOption={selectedTokenOption} />
         )}
-        {payState === PayState.RequestingPayment && wcWallet && isMobile && (
-          <Button
-            icon={<ExternalLinkIcon />}
-            href={
-              wcWallet.walletDeepLink || wcWallet.getWalletConnectDeeplink?.("")
-            }
-          >
-            Pay with {wcWallet.name}
-          </Button>
-        )}
+        {payState === PayState.RequestingPayment &&
+          wcWallet &&
+          isMobile &&
+          !wcWallet.isWcMobileConnector && (
+            <Button
+              icon={<ExternalLinkIcon />}
+              href={
+                wcWallet.walletDeepLink ||
+                wcWallet.getWalletConnectDeeplink?.("")
+              }
+            >
+              Pay with {wcWallet.name}
+            </Button>
+          )}
+        {payState === PayState.RequestingPayment &&
+          wcWallet &&
+          isMobile &&
+          wcWallet.isWcMobileConnector && (
+            <Button
+              icon={<ExternalLinkIcon />}
+              onClick={async () => {
+                if (selectedTokenOption) {
+                  await handleTransfer(selectedTokenOption);
+                }
+              }}
+            >
+              Pay with {wcWallet.name}
+            </Button>
+          )}
         {payState === PayState.RequestCancelled && (
           <Button
             onClick={() =>

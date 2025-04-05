@@ -1,5 +1,5 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
-import React, { useMemo } from "react";
+import React, { useEffect } from "react";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -9,16 +9,48 @@ import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import TokenChainLogo from "../../Common/TokenChainLogo";
-
+import { walletConfigs } from "../../../wallets/walletConfigs";
+import { log } from "console";
+import { WalletConfigProps } from "../../../wallets/walletConfigs";
+import { useAccount } from "wagmi";
 function getDaimoTokenKey(token: DaimoPayToken) {
   return `${token.chainId}-${token.token}`;
 }
 
 const SelectToken: React.FC = () => {
   const { isMobile, isIOS } = useIsMobile();
-  const { setRoute, paymentState, wcWallet } = usePayContext();
+  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
+    usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
+  const { connector } = useAccount();
+
+  // Extract the currently connect WalletConnect, avoid having the old wcWallet context in the button "pay with"
+  useEffect(() => {
+    connector?.getProvider()?.then((p: any) => {
+      let name = p.session?.peer?.metadata?.name;
+      if (p.isCoinbaseWallet) name = "Coinbase Wallet";
+      if (name == null) name = "Unknown";
+      const wallet = Object.values(walletConfigs).find(
+        (c) => c.name === name || name.includes(c.shortName ?? c.name),
+      );
+      if (wallet === undefined) {
+        const newWallet = {
+          name: name,
+          icon: p.session?.peer?.metadata?.icons[0],
+          showInMobileConnectors: false,
+          isWcMobileConnector: true,
+        } as WalletConfigProps;
+        log(`[SELECT_METHOD] name: ${name} newWallet:`, newWallet);
+        setWcWallet(newWallet);
+      }
+      //case MetaMask
+      if (wallet?.name != null) {
+        setWcWallet(wallet);
+      }
+      log(`[SELECT_METHOD] name: ${name} wcWallet: ${wcWallet?.name}`, p);
+    });
+  }, [connector]);
 
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
@@ -59,7 +91,13 @@ const SelectToken: React.FC = () => {
               if (wcWallet?.walletDeepLink) {
                 window.open(wcWallet?.walletDeepLink, "_blank");
               } else {
-                window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+                //If the wallet is a wc mobile connector we don't have the deep link
+                if (!wcWallet?.isWcMobileConnector) {
+                  window.open(
+                    wcWallet?.getWalletConnectDeeplink?.(""),
+                    "_blank",
+                  );
+                }
               }
             }
           }

@@ -14,11 +14,15 @@ import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
-import { walletConfigs } from "../../../wallets/walletConfigs";
+import {
+  walletConfigs,
+  WalletConfigProps,
+} from "../../../wallets/walletConfigs";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
+import { log } from "console";
 
 // Get 3 icons, skipping the one that is already connected
 function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
@@ -93,7 +97,7 @@ const SelectMethod: React.FC = () => {
     wallet: solanaWallet,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, wcWallet, setWcWallet, log, setConnector } =
+  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
     usePayContext();
   const { disconnectAsync } = useDisconnect();
 
@@ -115,11 +119,21 @@ const SelectMethod: React.FC = () => {
       const wallet = Object.values(walletConfigs).find(
         (c) => c.name === name || name.includes(c.shortName ?? c.name),
       );
-      log(`[SELECT_METHOD] name: ${name} wcWallet: ${wallet?.name}`, p);
+      if (wallet === undefined) {
+        const newWallet = {
+          name: name,
+          icon: p.session?.peer?.metadata?.icons[0],
+          showInMobileConnectors: false,
+          isWcMobileConnector: true,
+        } as WalletConfigProps;
+        log(`[SELECT_METHOD] name: ${name} newWallet:`, newWallet);
+        setWcWallet(newWallet);
+      }
       //case MetaMask
       if (wallet?.name != null) {
         setWcWallet(wallet);
       }
+      log(`[SELECT_METHOD] name: ${name} wcWallet: ${wcWallet?.name}`, p);
     });
   }, [connector]);
 
@@ -146,12 +160,25 @@ const SelectMethod: React.FC = () => {
           </div>
         );
       } else if (wcWallet?.icon) {
-        log("[SELECT_METHOD] wcWallet?.icon", wcWallet?.icon);
-        walletIcon = (
-          <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
-            {wcWallet.icon}
-          </div>
-        );
+        if (wcWallet.isWcMobileConnector) {
+          log("[SELECT_METHOD] wcWallet.icon", wcWallet.icon);
+          walletIcon = (
+            <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+              {typeof wcWallet.icon === "string" ? (
+                <img src={wcWallet.icon} alt={wcWallet.name} />
+              ) : (
+                wcWallet.icon
+              )}
+            </div>
+          );
+        } else {
+          log("[SELECT_METHOD] wcWallet?.icon", wcWallet?.icon);
+          walletIcon = (
+            <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+              {wcWallet.icon}
+            </div>
+          );
+        }
       } else {
         log("[SELECT_METHOD] else");
         walletIcon = <MetaMask />;

@@ -41,33 +41,15 @@ export type WalletConfigProps = {
   getWalletConnectDeeplink?: (uri: string) => string;
   walletDeepLink?: string;
   shouldDeeplinkDesktop?: boolean;
-  showInMobileConnectors: boolean;
+  showInMobileConnectors?: boolean;
+  isWcMobileConnector?: boolean;
 };
 
 // Organised in alphabetical order by key
 export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
-  //TODO: update new wallet configs
-  Zeal: {
-    name: "Zeal",
-    showInMobileConnectors: false,
-  },
-  Uniswap: {
-    name: "Uniswap Wallet",
-    shortName: "Uniswap",
-    showInMobileConnectors: false,
-  },
-  Bitget: {
-    name: "Bitget",
-    shortName: "Bitget",
-    showInMobileConnectors: false,
-  },
-  OKX: {
-    name: "OKX",
-    shortName: "OKX",
-    showInMobileConnectors: false,
-  },
+  //TODO: update new wallet configs with favorite wallets
   mock: {
     icon: <Logos.Mock />,
     showInMobileConnectors: false,

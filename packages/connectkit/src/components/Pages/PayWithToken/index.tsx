@@ -10,7 +10,7 @@ import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 enum PayState {
-  RequestingPayment = "Requesting Payment",
+  RequestingPayment = "Waiting for Payment",
   SwitchingChain = "Switching Chain",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
@@ -136,14 +136,28 @@ const PayWithToken: React.FC = () => {
         {selectedTokenOption && (
           <PaymentBreakdown paymentOption={selectedTokenOption} />
         )}
-        {payState === PayState.RequestingPayment && wcWallet && isMobile && (
-          <Button
-            icon={<ExternalLinkIcon />}
-            href={wcWallet.getWalletConnectDeeplink?.("")}
-          >
-            Pay with {wcWallet.name}
-          </Button>
-        )}
+        {payState === PayState.RequestingPayment &&
+          wcWallet &&
+          isMobile &&
+          wcWallet.getWalletDeepLink && (
+            <Button
+              icon={<ExternalLinkIcon />}
+              href={wcWallet.getWalletDeepLink}
+            >
+              Pay with {wcWallet.name}
+            </Button>
+          )}
+        {payState === PayState.RequestingPayment &&
+          wcWallet &&
+          isMobile &&
+          !wcWallet.getWalletDeepLink && (
+            <Button
+              icon={<ExternalLinkIcon />}
+              href={wcWallet.getWalletConnectDeeplink?.("")}
+            >
+              Pay with {wcWallet.name}
+            </Button>
+          )}
         {payState === PayState.RequestCancelled && (
           <Button
             onClick={() =>

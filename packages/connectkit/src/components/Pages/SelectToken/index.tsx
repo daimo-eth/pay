@@ -56,7 +56,11 @@ const SelectToken: React.FC = () => {
           } else {
             setRoute(ROUTES.PAY_WITH_TOKEN, meta);
             if (isMobile && isIOS) {
-              window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+              if (wcWallet?.getWalletDeepLink) {
+                window.open(wcWallet?.getWalletDeepLink, "_blank");
+              } else {
+                window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+              }
             }
           }
         },

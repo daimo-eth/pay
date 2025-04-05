@@ -18,7 +18,7 @@ import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
 
 enum PayState {
-  RequestingPayment = "Requesting Payment",
+  RequestingPayment = "Waiting for Payment",
   RequestCancelled = "Payment Cancelled",
   RequestFailed = "Payment Failed",
   RequestSuccessful = "Payment Successful",

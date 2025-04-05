@@ -1,6 +1,6 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
-import React, { useMemo } from "react";
 import { ROUTES } from "../../../constants/routes";
+import { useExtractWcWallet } from "../../../hooks/useExtractWcWallet";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
@@ -10,15 +10,13 @@ import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import TokenChainLogo from "../../Common/TokenChainLogo";
 
-function getDaimoTokenKey(token: DaimoPayToken) {
-  return `${token.chainId}-${token.token}`;
-}
-
-const SelectToken: React.FC = () => {
+export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
-  const { setRoute, paymentState, wcWallet } = usePayContext();
+  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
+    usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
+  useExtractWcWallet();
 
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
@@ -59,7 +57,13 @@ const SelectToken: React.FC = () => {
               if (wcWallet?.walletDeepLink) {
                 window.open(wcWallet?.walletDeepLink, "_blank");
               } else {
-                window.open(wcWallet?.getWalletConnectDeeplink?.(""), "_blank");
+                //If the wallet is a wc mobile connector we don't have the deep link
+                if (!wcWallet?.isWcMobileConnector) {
+                  window.open(
+                    wcWallet?.getWalletConnectDeeplink?.(""),
+                    "_blank",
+                  );
+                }
               }
             }
           }
@@ -96,6 +100,8 @@ const SelectToken: React.FC = () => {
       />
     </PageContent>
   );
-};
+}
 
-export default SelectToken;
+function getDaimoTokenKey(token: DaimoPayToken) {
+  return `${token.chainId}-${token.token}`;
+}

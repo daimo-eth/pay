@@ -1,7 +1,7 @@
 {
   "name": "@daimo/pay",
   "private": false,
-  "version": "1.6.4-dev",
+  "version": "1.6.4",
   "author": "Daimo",
   "homepage": "https://pay.daimo.com",
   "license": "BSD-2-Clause license",

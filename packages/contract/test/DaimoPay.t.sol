@@ -373,8 +373,11 @@ contract DaimoPayTest is Test {
         // Since we're already on dest chain, startIntent verifies that we have
         // enough of bridgeTokenOut (see bridgeTokenOutOptions) post swap.
         // Simplest case: no swap, initial payment was already in correct token.
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _toToken;
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -389,10 +392,13 @@ contract DaimoPayTest is Test {
         PayIntent memory intent = getSimpleSameChainPayIntent();
         address intentAddr = intentFactory.getIntentAddress(intent);
 
+        IERC20[] memory refundTokens = new IERC20[](1);
+        refundTokens[0] = _toToken;
+
         // Since we are on the dest chain already, we *cannot* refund after
         // startIntent.
         vm.expectRevert(bytes("DP: not claimed"));
-        dp.refundIntent({intent: intent, token: _toToken});
+        dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Fast-finish it, fronting some native token.
         (bool success, ) = payable(address(dp)).call{value: 100}("");
@@ -401,16 +407,12 @@ contract DaimoPayTest is Test {
 
         // We still can't refund.
         vm.expectRevert(bytes("DP: not claimed"));
-        dp.refundIntent({intent: intent, token: _toToken});
+        dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Claim the intent.
         require(_toToken.balanceOf(intentAddr) == 100);
         dp.claimIntent({intent: intent, calls: new Call[](0)});
         require(_toToken.balanceOf(intentAddr) == 0);
-
-        // Nothing to refund.
-        vm.expectRevert(bytes("PI: no funds to refund"));
-        dp.refundIntent({intent: intent, token: _toToken});
 
         // Double-pay the intent...
         vm.prank(_alice);
@@ -419,7 +421,7 @@ contract DaimoPayTest is Test {
         assertEq(_toToken.balanceOf(_alice), 355);
 
         // ...and refund.
-        dp.refundIntent({intent: intent, token: _toToken});
+        dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Check that the intent was refunded.
         assertEq(_toToken.balanceOf(intentAddr), 0);
@@ -473,9 +475,12 @@ contract DaimoPayTest is Test {
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(CCTP_INTENT_ADDR, intent);
 
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _fromToken;
         uint256 gasBefore = gasleft();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -512,16 +517,15 @@ contract DaimoPayTest is Test {
         PayIntent memory intent = getSimpleCrossChainPayIntent();
         address intentAddr = intentFactory.getIntentAddress(intent);
 
+        IERC20[] memory refundTokens = new IERC20[](1);
+        refundTokens[0] = _fromToken;
+
         // The intent hasn't been started yet, so we can't refund.
         vm.expectRevert(bytes("DP: not started"));
-        dp.refundIntent({intent: intent, token: _toToken});
+        dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Start the intent.
         testSimpleCCTPStart();
-
-        // Nothing to refund.
-        vm.expectRevert(bytes("PI: no funds to refund"));
-        dp.refundIntent({intent: intent, token: _toToken});
 
         // Double-pay the intent...
         vm.chainId(_fromChainId);
@@ -531,7 +535,7 @@ contract DaimoPayTest is Test {
         assertEq(_fromToken.balanceOf(_alice), 355);
 
         // ...and refund.
-        dp.refundIntent({intent: intent, token: _fromToken});
+        dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Check that the intent was refunded.
         assertEq(_fromToken.balanceOf(intentAddr), 0);
@@ -581,9 +585,12 @@ contract DaimoPayTest is Test {
         DaimoPayCCTPV2Bridger.ExtraData memory extraData = DaimoPayCCTPV2Bridger
             .ExtraData({maxFee: 0, minFinalityThreshold: 2000});
 
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _fromToken;
         uint256 gasBefore = gasleft();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: abi.encode(extraData)
         });
@@ -671,14 +678,17 @@ contract DaimoPayTest is Test {
 
         // Extra tokens should be refunded to the caller
         vm.expectEmit(address(_fromToken));
-        emit IERC20.Transfer(ACROSS_INTENT_ADDR, _alice, 10);
+        emit IERC20.Transfer(address(dp), _alice, 10);
 
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(ACROSS_INTENT_ADDR, intent);
 
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _fromToken;
         uint256 gasBefore = gasleft();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: abi.encode(extraData)
         });
@@ -759,9 +769,12 @@ contract DaimoPayTest is Test {
             })
         );
 
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _fromToken;
         uint256 gasBefore = gasleft();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: bridgeExtraData
         });
@@ -991,7 +1004,7 @@ contract DaimoPayTest is Test {
             nonce: _nonce
         });
 
-        vm.expectRevert("PI: insufficient token received");
+        vm.expectRevert("DP: insufficient token received");
 
         dp.claimIntent({intent: intent, calls: new Call[](0)});
 
@@ -1033,9 +1046,12 @@ contract DaimoPayTest is Test {
         _unregisteredToken.transfer(intentAddr, _toAmount);
 
         // Expect revert due to token mismatch
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _unregisteredToken;
         vm.expectRevert();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -1069,9 +1085,12 @@ contract DaimoPayTest is Test {
         _unregisteredToken.transfer(intentAddr, _toAmount);
 
         // Expect revert due to token mismatch
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _unregisteredToken;
         vm.expectRevert();
         dp.startIntent({
             intent: intent,
+            paymentTokens: paymentTokens,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -1131,5 +1150,98 @@ contract DaimoPayTest is Test {
         );
         // The Linea bridge route uses (_fromToken, _toToken) as the bridge token
         assertEq(actualSmallInputToken, address(_fromToken), "incorrect token");
+    }
+
+    // Assuming that Alice has already transferred to the intent address
+    // Assuming that relayer has already called `startIntent` on the source chain
+    // We are on the destination chain
+    // Before tokens have been successfully transferred to the bridge
+    // Before the relayer has called `fastFinishIntent` on the destination chain
+    function testMaliciousStartIntentOnDest() public {
+        vm.chainId(_acrossDestChainId);
+
+        PayIntent memory intent = PayIntent({
+            toChainId: _acrossDestChainId,
+            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            finalCall: Call({to: _bob, value: 0, data: ""}),
+            escrow: payable(address(dp)),
+            bridger: bridger,
+            refundAddress: _alice,
+            nonce: _nonce
+        });
+
+        address intentAddress = intentFactory.getIntentAddress(intent);
+
+        // Malicious relayer does these actions
+        address maliciousRelayer = address(
+            0x4444444444444444444444444444444444444444
+        );
+        _toToken.transfer(maliciousRelayer, _toAmount);
+        vm.startPrank(maliciousRelayer);
+
+        // Malicious relayer will call `startIntent` and make an infinite
+        // approval to himself
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call(
+            address(_toToken),
+            0,
+            abi.encodeCall(
+                IERC20.approve,
+                (maliciousRelayer, type(uint256).max)
+            )
+        );
+
+        // Attacker calls `startIntent` on the destination chain, provides funds
+        // so no revert
+        _toToken.transfer(address(intentAddress), _toAmount);
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _toToken;
+        dp.startIntent({
+            intent: intent,
+            paymentTokens: paymentTokens,
+            calls: calls,
+            bridgeExtraData: ""
+        });
+        // Attacker tries using the allowance from the arbitrary call to take
+        // their amount back out of the intent address immediately. This should
+        // revert because the approval is from the escrow contract, not the
+        // intent address.
+        uint256 intentBalance = _toToken.balanceOf(intentAddress);
+        vm.expectRevert();
+        _toToken.transferFrom(
+            intentAddress,
+            address(maliciousRelayer),
+            intentBalance
+        );
+        // Attacker tries taking funds from the escrow contract. The escrow
+        // contract has not tokens, so the relayer gets nothing.
+        uint256 escrowBalance = _toToken.balanceOf(address(dp));
+        assertEq(escrowBalance, 0);
+        _toToken.transferFrom(
+            address(dp),
+            address(maliciousRelayer),
+            escrowBalance
+        );
+        assertEq(_toToken.balanceOf(maliciousRelayer), 0);
+
+        console.log("intentBalance", _toToken.balanceOf(intentAddress));
+        console.log("maliciousBalance", _toToken.balanceOf(maliciousRelayer));
+
+        vm.stopPrank();
+
+        // Now the actual funds arrive from the cross-chain bridge
+        _toToken.transfer(intentAddress, _toAmount);
+
+        // Attacker comes in and tries to take funds before a fastFinishIntent
+        // can be called by genuine relayer
+        vm.startPrank(maliciousRelayer);
+        uint256 intentBalance2 = _toToken.balanceOf(intentAddress);
+        vm.expectRevert();
+        _toToken.transferFrom(intentAddress, maliciousRelayer, intentBalance2);
+        vm.stopPrank();
+
+        console.log("intentBalance", _toToken.balanceOf(intentAddress));
+        console.log("maliciousBalance", _toToken.balanceOf(maliciousRelayer));
     }
 }

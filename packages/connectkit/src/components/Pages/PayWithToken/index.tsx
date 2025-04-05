@@ -10,7 +10,7 @@ import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 enum PayState {
-  RequestingPayment = "Requesting Payment",
+  RequestingPayment = "Waiting for Payment",
   SwitchingChain = "Switching Chain",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
@@ -139,7 +139,9 @@ const PayWithToken: React.FC = () => {
         {payState === PayState.RequestingPayment && wcWallet && isMobile && (
           <Button
             icon={<ExternalLinkIcon />}
-            href={wcWallet.getWalletConnectDeeplink?.("")}
+            href={
+              wcWallet.walletDeepLink || wcWallet.getWalletConnectDeeplink?.("")
+            }
           >
             Pay with {wcWallet.name}
           </Button>

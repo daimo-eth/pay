@@ -41,7 +41,7 @@ const MoreIcon = (
 
 const MobileConnectors: React.FC = () => {
   const context = usePayContext();
-  const { log, paymentState } = context;
+  const { log } = context;
   const locales = useLocales();
 
   const {
@@ -58,6 +58,7 @@ const MobileConnectors: React.FC = () => {
       const wallet = walletConfigs[walletId];
       if (wallets.find((w) => w.connector.id === walletId)) return false;
       if (!wallet.getWalletConnectDeeplink) return false;
+      if (!wallet.showInMobileConnectors) return false;
       return true;
     }) ?? [];
 

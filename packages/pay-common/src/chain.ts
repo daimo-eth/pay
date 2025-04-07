@@ -44,7 +44,7 @@ export const linea: Chain = {
   type: "evm",
   chainId: 59144,
   name: "Linea",
-  cctpDomain: null,
+  cctpDomain: 11,
 };
 
 export const mantle: Chain = {
@@ -96,6 +96,10 @@ export const supportedChains: Chain[] = [
   worldchain,
 ];
 
+// https://developers.circle.com/stablecoins/supported-domains
+const cctpV1Chains = [arbitrum, base, ethereum, optimism, polygon, solana];
+const cctpV2Chains = [base, ethereum, linea];
+
 /** Given a chainId, return the chain. */
 export function getChainById(chainId: number): Chain {
   const ret = supportedChains.find((c) => c.chainId === chainId);
@@ -106,6 +110,21 @@ export function getChainById(chainId: number): Chain {
 /** Returns the chain name for the given chainId. */
 export function getChainName(chainId: number): string {
   return getChainById(chainId).name;
+}
+
+/** Returns the CCTP domain for the given chainId. */
+export function getCCTPDomain(chainId: number): number | null {
+  return getChainById(chainId).cctpDomain;
+}
+
+/** Returns true if the chain is a CCTP v1 chain. */
+export function isCCTPV1Chain(chainId: number): boolean {
+  return cctpV1Chains.some((c) => c.chainId === chainId);
+}
+
+/** Returns true if the chain is a CCTP v2 chain. */
+export function isCCTPV2Chain(chainId: number): boolean {
+  return cctpV2Chains.some((c) => c.chainId === chainId);
 }
 
 /**

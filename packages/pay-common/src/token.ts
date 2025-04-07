@@ -777,6 +777,10 @@ const tokensByChainAndType: Record<
   },
 };
 
+export function getToken(chainId: number, token: string): Token | undefined {
+  return knownTokens.find((t) => t.chainId === chainId && t.token === token);
+}
+
 export function getChainNativeToken(chainId: number): Token | undefined {
   return tokensByChainAndType[chainId][TokenType.NATIVE];
 }

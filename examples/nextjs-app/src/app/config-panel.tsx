@@ -1,6 +1,6 @@
-import { solana, supportedChains, supportedTokens } from "@daimo/pay-common";
+import { knownTokens, solana, supportedChains, Token } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { isAddress } from "viem";
 
 // Define the possible configuration types
@@ -77,7 +77,7 @@ export function ConfigPanel({
   ); // Exclude Solana
 
   // Get tokens for selected chain
-  const tokens = supportedTokens.filter(
+  const tokens = knownTokens.filter(
     (token) => token.chainId === config.chainId,
   );
 

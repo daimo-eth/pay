@@ -634,6 +634,15 @@ export const worldchainWETH: Token = {
   logoURI: TokenLogo.ETH,
 };
 
+export const worldchainWBTC: Token = {
+  chainId: worldchain.chainId,
+  token: getAddress("0x03c7054bcb39f7b2e5b2c7acb37583e32d70cfa3"),
+  decimals: 8,
+  name: "Wrapped Bitcoin",
+  symbol: "WBTC",
+  logoURI: TokenLogo.WBTC,
+};
+
 export const worldchainUSDCe: Token = {
   chainId: worldchain.chainId,
   token: getAddress("0x79A02482A880bCE3F13e09Da970dC34db4CD24d1"),
@@ -655,11 +664,18 @@ export const worldchainWLD: Token = {
 const worldchainTokens: Token[] = [
   worldchainETH,
   worldchainWETH,
+  worldchainWBTC,
   worldchainUSDCe,
   worldchainWLD,
 ];
 
-export const supportedTokens: Token[] = [
+/**
+ * Common tokens, included for convenience.
+ *
+ * Daimo Pay supports payment in many more tokens. In general, the goal for
+ * Pay is to accept all tokens with DEX liquidity on any major chain.
+ */
+export const knownTokens: Token[] = [
   ...arbitrumTokens,
   ...baseTokens,
   ...blastTokens,
@@ -672,24 +688,6 @@ export const supportedTokens: Token[] = [
   ...solanaTokens,
   ...worldchainTokens,
 ];
-
-/* --------------------- Token Utils --------------------- */
-
-// Export tokens for each supported chain
-const tokensByChainId = new Map<number, Token[]>();
-
-for (const token of supportedTokens) {
-  const toks = tokensByChainId.get(token.chainId) || [];
-  tokensByChainId.set(token.chainId, toks);
-  toks.push(token);
-}
-
-/** All supported tokens on a given chain. */
-export function getTokensForChain(chainId: number): Token[] {
-  const ret = tokensByChainId.get(chainId);
-  if (ret == null) throw new Error(`Unsupported chain ${chainId}`);
-  return ret;
-}
 
 /* --------------------- Tokens By Type --------------------- */
 

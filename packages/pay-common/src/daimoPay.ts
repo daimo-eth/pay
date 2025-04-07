@@ -341,10 +341,14 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
 }
 
 export type WalletPaymentOption = {
-  required: DaimoPayTokenAmount;
   balance: DaimoPayTokenAmount;
+
+  // TODO: deprecate, replace with requiredUsd / minRequiredUsd / feesUsd
+  // These are overly large objects that duplicate DaimoPayToken
+  required: DaimoPayTokenAmount;
   minimumRequired: DaimoPayTokenAmount;
   fees: DaimoPayTokenAmount;
+
   disabledReason?: string;
 };
 
@@ -400,9 +404,16 @@ export type DepositAddressPaymentOptionData = {
 
 export interface DaimoPayToken extends Token {
   token: Address | SolanaPublicKey;
-  usd: number; // per unit price in dollars, example 2300 (USD) for WETH
+  /** Price to convert 1.0 of this token to USD */
+  usd: number;
+  /** Max payment accepted in this token, based on liquidity. */
+  maxAcceptUsd: number;
+  /** Display decimals, separate from token decimals. Eg: 2 for USDC. */
   displayDecimals: number;
-  fiatSymbol?: string; // e.g. $ for USDC/USDT/DAI, € for EUROC, etc
+  /** ISO code for fiat currency, eg: "USD" */
+  fiatIso?: string;
+  /** Symbol for fiat currency, eg: "$" */
+  fiatSymbol?: string;
 }
 
 export interface DaimoPayTokenAmount {

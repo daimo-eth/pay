@@ -35,7 +35,6 @@ const MultiCurrencySelectAmount: React.FC<{
   const maxUsdLimit = paymentState.getOrderUsdLimit();
 
   const balanceToken = selectedTokenOption.balance.token;
-  const isUsdStablecoin = balanceToken.fiatSymbol === "$";
 
   const minimumMessage =
     selectedTokenOption.minimumRequired.usd > 0
@@ -173,7 +172,7 @@ const MultiCurrencySelectAmount: React.FC<{
           <MaxButton onClick={handleMax}>Max</MaxButton>
         </AmountInputContainer>
 
-        {!isUsdStablecoin && (
+        {balanceToken.fiatIso !== "USD" && (
           <SwitchContainer>
             <SwitchButton onClick={handleSwitchCurrency}>
               <SecondaryAmount>

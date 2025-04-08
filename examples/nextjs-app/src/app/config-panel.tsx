@@ -1,4 +1,4 @@
-import { knownTokens, solana, supportedChains, Token } from "@daimo/pay-common";
+import { knownTokens, solana, supportedChains } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useState } from "react";
 import { isAddress } from "viem";
@@ -19,7 +19,9 @@ export interface PaymentConfig extends BaseConfig {
 }
 
 // Deposit uses base config directly
-export type DepositConfig = BaseConfig;
+export interface DepositConfig extends BaseConfig {
+  amount: "";
+}
 
 // Common props for the config panel
 interface ConfigPanelProps {
@@ -120,7 +122,7 @@ export function ConfigPanel({
       onConfirm(config);
     } else {
       const { amount, ...depositConfig } = config;
-      onConfirm(depositConfig);
+      onConfirm({ ...depositConfig, amount: "" });
     }
 
     onClose();
@@ -205,7 +207,6 @@ export function ConfigPanel({
                 }))
               }
               className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
-              formNoValidate
             >
               <option value={0}>Select Chain</option>
               {chains.map((chain) => (
@@ -230,7 +231,6 @@ export function ConfigPanel({
                   }))
                 }
                 className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
-                formNoValidate
               >
                 <option value="">Select Token</option>
                 {tokens.map((token) => (

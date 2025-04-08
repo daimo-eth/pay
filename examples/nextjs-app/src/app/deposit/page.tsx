@@ -5,7 +5,7 @@ import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
   getChainNativeToken,
-  getTokensForChain,
+  knownTokens,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
@@ -23,6 +23,10 @@ export default function DemoDeposit() {
     tokenAddress: "",
   });
   const [codeSnippet, setCodeSnippet] = useState("");
+
+  // Only render the DaimoPayButton when we have valid config
+  const hasValidConfig =
+    config && config.recipientAddress && config.chainId && config.tokenAddress;
 
   // Add escape key handler
   useEffect(() => {
@@ -66,7 +70,7 @@ export default function DemoDeposit() {
     }
 
     // For non-native tokens
-    const tokens = getTokensForChain(config.chainId);
+    const tokens = knownTokens.filter((t) => t.chainId === config.chainId);
     const token = tokens.find((t) => t.token === config.tokenAddress);
     if (!token) return;
 
@@ -84,11 +88,7 @@ export default function DemoDeposit() {
   intent="Deposit"
 />`;
     setCodeSnippet(snippet);
-  }, [config]);
-
-  // Only render the DaimoPayButton when we have valid config
-  const hasValidConfig =
-    config && config.recipientAddress && config.chainId && config.tokenAddress;
+  }, [config, hasValidConfig]);
 
   return (
     <Container className="max-w-4xl mx-auto p-6">

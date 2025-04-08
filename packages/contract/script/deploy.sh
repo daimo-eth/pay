@@ -7,9 +7,8 @@ set -e
 # ETHERSCAN_API_KEY_... for each target chain
 
 SCRIPTS=(
-    # Utils
+    # Deployment
     # "script/DeployCreate3Factory.s.sol"
-    # "script/DeployDaimoPayBatchReadUtils.s.sol"
 
     # Daimo Pay
     # "script/DeployDaimoPayCCTPBridger.s.sol"
@@ -21,6 +20,7 @@ SCRIPTS=(
     # "script/DeployDaimoPay.s.sol"
 
     # Relayer
+    # "script/DeployPayBalanceFactory.sol"
     # "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
 )
 CHAINS=(

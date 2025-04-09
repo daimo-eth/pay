@@ -30,7 +30,7 @@ library TokenUtils {
     /// Approves a token transfer.
     function approve(IERC20 token, address spender, uint256 amount) internal {
         if (address(token) != address(0)) {
-            token.approve({spender: spender, value: amount});
+            token.forceApprove({spender: spender, value: amount});
         } // Do nothing for native token.
     }
 
@@ -90,9 +90,11 @@ library TokenUtils {
     }
 
     /// Check that the address has enough of at least one of the tokenAmounts.
+    /// Returns the address and expected amount (not the balance!) of the first
+    /// token that has sufficient balance.
     function checkBalance(
         TokenAmount[] calldata tokenAmounts
-    ) internal view returns (bool) {
+    ) internal view returns (IERC20 token, uint256 amount) {
         uint256 n = tokenAmounts.length;
         for (uint256 i = 0; i < n; ++i) {
             TokenAmount calldata tokenAmount = tokenAmounts[i];
@@ -101,9 +103,9 @@ library TokenUtils {
                 addr: address(this)
             });
             if (balance >= tokenAmount.amount) {
-                return true;
+                return (tokenAmount.token, tokenAmount.amount);
             }
         }
-        return false;
+        return (IERC20(address(0)), 0);
     }
 }

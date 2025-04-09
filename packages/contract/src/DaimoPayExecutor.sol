@@ -21,25 +21,25 @@ struct Call {
 /// @custom:security-contact security@daimo.com
 /// @notice This contract is used to execute arbitrary contract calls on behalf
 /// of the DaimoPay escrow contract.
-contract DaimoPayExecutioner is Initializable, ReentrancyGuard {
+contract DaimoPayExecutor is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// The only address that is allowed to call the `execute` function.
-    address payable public escrow;
+    address public immutable escrow;
 
-    constructor() {}
-
-    function initialize(address payable _escrow) public initializer {
+    constructor(address _escrow) {
         escrow = _escrow;
     }
 
     /// Execute arbitrary calls. Revert if any fail.
-    /// Check that at least one of the expectedOutput tokens is present.
-    /// Transfer the full balance of each expectedOutput token to the escrow.
+    /// Check that at least one of the expectedOutput tokens is present. Assumes
+    /// that exactly one token is present as transfers it to the recipient.
+    /// Returns any surplus tokens to the surplus recipient.
     function execute(
         Call[] calldata calls,
         TokenAmount[] calldata expectedOutput,
-        address payable recipient
+        address payable recipient,
+        address payable surplusRecipient
     ) external nonReentrant {
         require(msg.sender == escrow, "DPCE: only escrow");
 
@@ -52,16 +52,20 @@ contract DaimoPayExecutioner is Initializable, ReentrancyGuard {
 
         /// Check that at least one of the expectedOutput tokens is present
         /// with enough balance.
-        bool outputOk = TokenUtils.checkBalance({tokenAmounts: expectedOutput});
-        require(outputOk, "DPCE: insufficient output");
+        (IERC20 token, uint256 amount) = TokenUtils.checkBalance({
+            tokenAmounts: expectedOutput
+        });
+        require(amount > 0, "DPCE: insufficient output");
 
-        uint256 expectedOutputLength = expectedOutput.length;
-        for (uint256 i = 0; i < expectedOutputLength; ++i) {
-            TokenUtils.transferBalance({
-                token: expectedOutput[i].token,
-                recipient: recipient
-            });
-        }
+        // Transfer the expected amount of the token to the recipient.
+        TokenUtils.transfer({
+            token: token,
+            recipient: recipient,
+            amount: amount
+        });
+
+        // Transfer any surplus tokens to the surplus recipient.
+        TokenUtils.transferBalance({token: token, recipient: surplusRecipient});
     }
 
     /// Execute a final call. Approve the final token and make the call.

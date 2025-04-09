@@ -5,7 +5,7 @@ import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import {Call} from "./DaimoPayExecutioner.sol";
+import {Call} from "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
@@ -81,27 +81,28 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
         }
     }
 
-    /// Check that at least one of the token amounts is present, then send the
-    /// tokens to a recipient.
+    /// Check that at least one of the token amounts is present. Assumes exactly
+    /// one token is present, then sends the token to a recipient.
     function checkBalanceAndSendTokens(
         PayIntent calldata intent,
         TokenAmount[] calldata tokenAmounts,
         address payable recipient
-    ) public nonReentrant returns (uint256[] memory amounts) {
+    ) public nonReentrant {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
-        bool balanceOk = TokenUtils.checkBalance({tokenAmounts: tokenAmounts});
-        require(balanceOk, "PI: insufficient balance");
+        // Check that at least one of the token amounts is present.
+        (IERC20 token, uint256 amount) = TokenUtils.checkBalance({
+            tokenAmounts: tokenAmounts
+        });
+        require(amount > 0, "PI: insufficient balance");
 
-        uint256 n = tokenAmounts.length;
-        amounts = new uint256[](n);
-        for (uint256 i = 0; i < n; ++i) {
-            amounts[i] = TokenUtils.transferBalance({
-                token: tokenAmounts[i].token,
-                recipient: recipient
-            });
-        }
+        // Transfer the token amount to the recipient.
+        TokenUtils.transfer({
+            token: token,
+            recipient: recipient,
+            amount: amount
+        });
     }
 
     /// Accept native-token (eg ETH) inputs

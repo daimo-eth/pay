@@ -1,4 +1,10 @@
-import { knownTokens, solana, supportedChains } from "@daimo/pay-common";
+import {
+  ethereum,
+  getTokensForChain,
+  solana,
+  supportedChains,
+  Token,
+} from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useState } from "react";
 import { isAddress } from "viem";
@@ -11,6 +17,7 @@ interface BaseConfig {
   recipientAddress: string;
   chainId: number;
   tokenAddress: string;
+  amount: string;
 }
 
 // Payment extends base with amount
@@ -75,13 +82,15 @@ export function ConfigPanel({
 
   // Extract unique chains
   const chains = supportedChains.filter(
-    (chain) => chain.chainId !== solana.chainId,
-  ); // Exclude Solana
+    (chain) =>
+      chain.chainId !== solana.chainId && chain.chainId !== ethereum.chainId,
+  ); // Exclude Solana and Ethereum
 
   // Get tokens for selected chain
-  const tokens = knownTokens.filter(
-    (token) => token.chainId === config.chainId,
-  );
+  let tokens: Token[] = [];
+  if (config.chainId !== 0) {
+    tokens = getTokensForChain(config.chainId);
+  }
 
   // Validate address on change
   const validateAddress = useCallback((address: string) => {
@@ -121,8 +130,7 @@ export function ConfigPanel({
     if (configType === "payment") {
       onConfirm(config);
     } else {
-      const { amount, ...depositConfig } = config;
-      onConfirm({ ...depositConfig, amount: "" });
+      onConfirm({ ...config, amount: "" });
     }
 
     onClose();

@@ -13,7 +13,6 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
-import { useExtractWcWallet } from "../../../hooks/useExtractWcWallet";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -45,8 +44,6 @@ export default function SelectMethod() {
     senderEnsName,
   } = paymentState;
   const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
-
-  useExtractWcWallet();
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;

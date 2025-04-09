@@ -2,6 +2,7 @@ import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
+import { usePayContext } from "../../../hooks/usePayContext";
 import {
   detectBrowser,
   isCoinbaseWalletConnector,
@@ -10,7 +11,6 @@ import {
 import { WalletProps, useWallets } from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
 import { useWeb3 } from "../../contexts/web3";
-import { usePayContext } from "../../../hooks/usePayContext";
 import Alert from "../Alert";
 import {
   ConnectorButton,
@@ -114,12 +114,13 @@ const ConnectorItem = ({
       disabled={context.route !== ROUTES.CONNECTORS}
       onClick={
         deeplink
-          ? () => {
-              if (!isMobile) return;
-              context.setConnector({ id: wallet.id });
-              context.setWcWallet(wallet);
-            }
-          : () => {
+          ? undefined
+          : // ? () => {
+            //     if (!isMobile) return;
+            //     context.setConnector({ id: wallet.id });
+            //     context.setWcWallet(wallet);
+            //   }
+            () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);
               } else {
@@ -127,8 +128,8 @@ const ConnectorItem = ({
                   connect({ connector: wallet?.connector });
                 }
                 context.setRoute(ROUTES.CONNECT);
-                context.setConnector({ id: wallet.id });
-                context.setWcWallet(wallet);
+                // context.setConnector({ id: wallet.id });
+                // context.setWcWallet(wallet);
               }
             }
       }

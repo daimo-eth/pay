@@ -222,6 +222,7 @@ export const walletConfigs: {
       brave: "https://rainbow.me/extension?utm_source=daimopay",
     },
     showInMobileConnectors: true,
+    isWcMobileConnector: false,
     getWalletConnectDeeplink: (uri: string) => {
       return `https://rnbwapp.com/wc?uri=${encodeURIComponent(
         uri,

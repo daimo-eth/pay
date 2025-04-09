@@ -23,6 +23,7 @@ import Tooltip from "../../Common/Tooltip";
 
 import SquircleSpinner from "../../Spinners/SquircleSpinner";
 
+import { useAccount } from "wagmi";
 import {
   AlertIcon,
   ExternalLinkIcon,
@@ -31,10 +32,10 @@ import {
 } from "../../../assets/icons";
 import { useConnect } from "../../../hooks/useConnect";
 import useLocales from "../../../hooks/useLocales";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { detectBrowser, isWalletConnectConnector } from "../../../utils";
 import { useWallet } from "../../../wallets/useWallets";
 import BrowserIcon from "../../Common/BrowserIcon";
-import { usePayContext } from "../../../hooks/usePayContext";
 import CircleSpinner from "../../Spinners/CircleSpinner";
 
 export const states = {
@@ -129,9 +130,9 @@ const ConnectWithInjector: React.FC<{
     },
   });
 
-  const { triggerResize, connector: c } = usePayContext();
-  const id = c.id;
-  const wallet = useWallet(id);
+  const { triggerResize } = usePayContext();
+  const { connector } = useAccount();
+  const wallet = useWallet(connector?.id ?? "");
 
   const walletInfo = {
     name: wallet?.name,

@@ -6,13 +6,13 @@ import {
 
 import CustomQRCode from "../../Common/CustomQRCode";
 
+import { useAccount } from "wagmi";
 import useLocales from "../../../hooks/useLocales";
 import { useWallet } from "../../../wallets/useWallets";
-import { usePayContext } from "../../../hooks/usePayContext";
 
 const DownloadApp = () => {
-  const context = usePayContext();
-  const wallet = useWallet(context.connector.id);
+  const { connector } = useAccount();
+  const wallet = useWallet(connector?.id ?? "");
 
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,

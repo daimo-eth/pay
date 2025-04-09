@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-import { useWallet } from "../../wallets/useWallets";
 import { usePayContext } from "../../hooks/usePayContext";
+import { useWallet } from "../../wallets/useWallets";
 
 import ConnectWithInjector from "./ConnectWithInjector";
 import ConnectWithQRCode from "./ConnectWithQRCode";
 
+import { useAccount } from "wagmi";
 import Alert from "../Common/Alert";
 import { contentVariants } from "../Common/Modal";
 
@@ -17,7 +18,8 @@ const states = {
 
 const ConnectUsing = () => {
   const context = usePayContext();
-  const wallet = useWallet(context.connector.id);
+  const { connector } = useAccount();
+  const wallet = useWallet(connector?.id ?? "");
 
   // If cannot be scanned, display injector flow, which if extension is not installed will show CTA to install it
   const isQrCode = !wallet?.isInstalled && wallet?.getWalletConnectDeeplink;
@@ -38,7 +40,7 @@ const ConnectUsing = () => {
     if (status === states.INJECTOR) checkProvider();
   }, []);
 
-  if (!wallet) return <Alert>Connector not found {context.connector.id}</Alert>;
+  if (!wallet) return <Alert>Connector not found: {connector?.id}</Alert>;
 
   return (
     <AnimatePresence>

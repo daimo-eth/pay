@@ -1,7 +1,6 @@
 import React, { createContext } from "react";
+import { SolanaWalletName } from "../components/contexts/solana";
 import { ROUTES } from "../constants/routes";
-import { useConnectCallbackProps } from "./useConnectCallback";
-import { PaymentState } from "./usePaymentState";
 import { Languages } from "../localizations";
 import {
   CustomTheme,
@@ -11,7 +10,8 @@ import {
   Theme,
 } from "../types";
 import { WalletConfigProps } from "../wallets/walletConfigs";
-import { SolanaWalletName } from "../components/contexts/solana";
+import { useConnectCallbackProps } from "./useConnectCallback";
+import { PaymentState } from "./usePaymentState";
 
 /** Daimo Pay internal context. */
 export const usePayContext = () => {
@@ -22,6 +22,8 @@ export const usePayContext = () => {
 
 /** Meant for internal use. This will be non-exported in a future SDK version. */
 export const PayContext = createContext<PayContextValue | null>(null);
+
+export type PayLogFn = (message: string, ...props: any[]) => void;
 
 /** Daimo Pay internal context. */
 export type PayContextValue = {
@@ -37,15 +39,15 @@ export type PayContextValue = {
   setOpen: (open: boolean, meta?: Record<string, any>) => void;
   route: string;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
-  connector: Connector;
-  setConnector: React.Dispatch<React.SetStateAction<Connector>>;
+  // connector: Connector;
+  // setConnector: React.Dispatch<React.SetStateAction<Connector>>;
   wcWallet: WalletConfigProps | undefined;
-  setWcWallet: React.Dispatch<
-    React.SetStateAction<WalletConfigProps | undefined>
-  >;
+  // setWcWallet: React.Dispatch<
+  //   React.SetStateAction<WalletConfigProps | undefined>
+  // >;
   errorMessage: string | React.ReactNode | null;
   debugMode?: boolean;
-  log: (...props: any) => void;
+  log: PayLogFn;
   displayError: (message: string | React.ReactNode | null, code?: any) => void;
   resize: number;
   triggerResize: () => void;
@@ -79,6 +81,6 @@ export type PayContextValue = {
 } & useConnectCallbackProps;
 
 /** Chosen Ethereum wallet, eg MM or Rainbow. Specifies wallet ID. */
-type Connector = {
-  id: string;
-};
+// type Connector = {
+//   id: string;
+// };

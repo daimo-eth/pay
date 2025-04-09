@@ -37,6 +37,7 @@ import { getChainName } from "@daimo/pay-common";
 import { useTransition } from "react-transition-state";
 import { useAccount, useSwitchChain } from "wagmi";
 import { AuthIcon } from "../../../assets/icons";
+import { ROUTES } from "../../../constants/routes";
 import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
@@ -44,7 +45,6 @@ import { CustomTheme } from "../../../types";
 import { useWallet } from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
-import { ROUTES } from "../../../constants/routes";
 
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (
   <div style={{ position: "relative" }}>
@@ -212,7 +212,8 @@ const Modal: React.FC<ModalProps> = ({
     selectedDepositAddressOption,
   } = context.paymentState;
 
-  const wallet = useWallet(context.connector?.id);
+  const { connector } = useAccount();
+  const wallet = useWallet(connector?.id ?? "");
 
   const walletInfo = {
     name: wallet?.name,

@@ -1,6 +1,5 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
-import { useExtractWcWallet } from "../../../hooks/useExtractWcWallet";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
@@ -12,11 +11,9 @@ import TokenChainLogo from "../../Common/TokenChainLogo";
 
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
-  const { setRoute, paymentState, wcWallet, setWcWallet, log } =
-    usePayContext();
+  const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
-  useExtractWcWallet();
 
   const optionsList =
     walletPaymentOptions.options?.map((option) => {

@@ -16,15 +16,16 @@ import "./dummy/axelar.sol";
 import "./dummy/cctp.sol";
 import "./dummy/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0x99755A0F204e89fA3f1DdEB33e08E2b3cb845f08;
-address constant CCTP_V2_INTENT_ADDR = 0xECC9D95bb1e79F676E5f2B0408Eb2a0170dbfD81;
-address constant ACROSS_INTENT_ADDR = 0x00308C0494226f39e42BDe37695368D76236D934;
-address constant AXELAR_INTENT_ADDR = 0x11B0ae9eA3c56Bbaa025Cc24357d8Ba6B4552441;
+address constant CCTP_INTENT_ADDR = 0x5a1CE7235BeDd4B3Da3046B00d667829F3c493bB;
+address constant CCTP_V2_INTENT_ADDR = 0x4F6Ec5745b44877ACdF1192A6aFc57Ef66CeD23b;
+address constant ACROSS_INTENT_ADDR = 0xDE181e1Bac63C9EFA9E5fAa3Dfd60a209D57a099;
+address constant AXELAR_INTENT_ADDR = 0xFa0EdaAcCedB5e4BEBF89b8cdAE385FF498904c9;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts
     DaimoPay public dp;
     PayIntentFactory public intentFactory;
+    DaimoPayExecutioner public executioner;
 
     // Bridging contracts
     DaimoPayBridger public bridger;
@@ -81,8 +82,6 @@ contract DaimoPayTest is Test {
     uint256 immutable _nonce = 1;
 
     function setUp() public {
-        intentFactory = new PayIntentFactory();
-
         // Initialize CCTP bridger
         tokenMinter = new DummyTokenMinter();
         tokenMinter.setLocalToken(
@@ -223,10 +222,14 @@ contract DaimoPayTest is Test {
             _bridgers: bridgers
         });
 
-        dp = new DaimoPay(intentFactory);
+        intentFactory = new PayIntentFactory();
+        executioner = new DaimoPayExecutioner();
+        dp = new DaimoPay(intentFactory, executioner);
+        executioner.initialize(payable(address(dp)));
 
         // Log addresses of initialized contracts
         console.log("PayIntentFactory address:", address(intentFactory));
+        console.log("DaimoPayExecutioner address:", address(executioner));
         console.log("DummyTokenMinter address:", address(tokenMinter));
         console.log("DummyCCTPMessenger address:", address(messenger));
         console.log("DummyTokenMinterV2 address:", address(tokenMinterV2));
@@ -403,7 +406,13 @@ contract DaimoPayTest is Test {
         // Fast-finish it, fronting some native token.
         (bool success, ) = payable(address(dp)).call{value: 100}("");
         require(success, "send failed");
-        dp.fastFinishIntent({intent: intent, calls: new Call[](0)});
+        IERC20[] memory fastFinishTokens = new IERC20[](1);
+        fastFinishTokens[0] = IERC20(address(0));
+        dp.fastFinishIntent({
+            intent: intent,
+            calls: new Call[](0),
+            tokens: fastFinishTokens
+        });
 
         // We still can't refund.
         vm.expectRevert(bytes("DP: not claimed"));
@@ -829,8 +838,11 @@ contract DaimoPayTest is Test {
             nonce: _nonce
         });
 
-        // LP transfers the token to the intent address
+        // LP transfers the token to the DaimoPay escrow contract to call
+        // fastFinishIntent.
         _toToken.transfer({to: address(dp), value: _toAmount});
+        IERC20[] memory fastFinishTokens = new IERC20[](1);
+        fastFinishTokens[0] = _toToken;
 
         vm.expectEmit(address(dp));
         emit DaimoPay.IntentFinished({
@@ -845,7 +857,11 @@ contract DaimoPayTest is Test {
             newRecipient: _lp
         });
 
-        dp.fastFinishIntent({intent: intent, calls: new Call[](0)});
+        dp.fastFinishIntent({
+            intent: intent,
+            calls: new Call[](0),
+            tokens: fastFinishTokens
+        });
 
         vm.stopPrank();
 
@@ -879,12 +895,18 @@ contract DaimoPayTest is Test {
         // LP transfers too much of finalCallToken to finish the intent.
         // Only 1 is needed, but 10 is sent.
         _toToken.transfer({to: address(dp), value: 10});
+        IERC20[] memory fastFinishTokens = new IERC20[](1);
+        fastFinishTokens[0] = _toToken;
 
         // An extra 9 of finalCallToken should be sent back to the LP
         vm.expectEmit(address(_toToken));
         emit IERC20.Transfer(address(dp), _lp, 9);
 
-        dp.fastFinishIntent({intent: intent, calls: new Call[](0)});
+        dp.fastFinishIntent({
+            intent: intent,
+            calls: new Call[](0),
+            tokens: fastFinishTokens
+        });
 
         vm.stopPrank();
 
@@ -1004,7 +1026,7 @@ contract DaimoPayTest is Test {
             nonce: _nonce
         });
 
-        vm.expectRevert("DP: insufficient token received");
+        vm.expectRevert("PI: insufficient balance");
 
         dp.claimIntent({intent: intent, calls: new Call[](0)});
 

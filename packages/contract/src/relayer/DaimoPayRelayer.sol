@@ -228,7 +228,10 @@ contract DaimoPayRelayer is AccessControl {
             recipient: payable(address(dp)),
             amount: tokenIn.amount
         });
-        dp.fastFinishIntent(intent, calls);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = tokenIn.token;
+        dp.fastFinishIntent({intent: intent, calls: calls, tokens: tokens});
     }
 
     function claimAndKeep(

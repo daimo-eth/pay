@@ -4,6 +4,8 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
+import {Call} from "./DaimoPayExecutioner.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 
@@ -17,9 +19,10 @@ struct PayIntent {
     TokenAmount[] bridgeTokenOutOptions;
     /// Expected token amount after swapping on the destination chain.
     TokenAmount finalCallToken;
-    /// If finalCall.data is empty, the tokens are transferred to finalCall.to.
-    /// Otherwise, (token, amount) is approved to finalCall.to and finalCall.to
-    /// is called with finalCall.data and finalCall.value.
+    /// Contract call to execute on the destination chain. If finalCall.data is
+    /// empty, the tokens are transferred to finalCall.to. Otherwise, (token,
+    /// amount) is approved to finalCall.to and finalCall.to is called with
+    /// finalCall.data and finalCall.value.
     Call finalCall;
     /// Escrow contract. All calls are made through this contract.
     address payable escrow;
@@ -58,21 +61,45 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
         intentHash = _intentHash;
     }
 
-    /// Send funds to the escrow contract for processing.
-    function sendToEscrow(
+    /// Send tokens to a recipient.
+    function sendTokens(
         PayIntent calldata intent,
-        IERC20[] calldata tokens
+        IERC20[] calldata tokens,
+        address payable recipient
     ) public nonReentrant returns (uint256[] memory amounts) {
         require(calcIntentHash(intent) == intentHash, "PI: intent");
         require(msg.sender == intent.escrow, "PI: only escrow");
 
         uint256 n = tokens.length;
         amounts = new uint256[](n);
-        // Send tokens to escrow contract
+        // Send tokens to recipient
         for (uint256 i = 0; i < n; ++i) {
             amounts[i] = TokenUtils.transferBalance({
                 token: tokens[i],
-                recipient: intent.escrow
+                recipient: recipient
+            });
+        }
+    }
+
+    /// Check that at least one of the token amounts is present, then send the
+    /// tokens to a recipient.
+    function checkBalanceAndSendTokens(
+        PayIntent calldata intent,
+        TokenAmount[] calldata tokenAmounts,
+        address payable recipient
+    ) public nonReentrant returns (uint256[] memory amounts) {
+        require(calcIntentHash(intent) == intentHash, "PI: intent");
+        require(msg.sender == intent.escrow, "PI: only escrow");
+
+        bool balanceOk = TokenUtils.checkBalance({tokenAmounts: tokenAmounts});
+        require(balanceOk, "PI: insufficient balance");
+
+        uint256 n = tokenAmounts.length;
+        amounts = new uint256[](n);
+        for (uint256 i = 0; i < n; ++i) {
+            amounts[i] = TokenUtils.transferBalance({
+                token: tokenAmounts[i].token,
+                recipient: recipient
             });
         }
     }

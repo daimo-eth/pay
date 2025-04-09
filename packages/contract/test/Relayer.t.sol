@@ -587,7 +587,8 @@ contract MockDaimoPay {
 
     function fastFinishIntent(
         PayIntent calldata intent,
-        Call[] calldata calls
+        Call[] calldata calls,
+        IERC20[] calldata tokens
     ) public {}
 
     function claimIntent(

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import "./DaimoPayBridger.sol";
+import "./DaimoPayExecutioner.sol";
 import "./PayIntentFactory.sol";
 import "./TokenUtils.sol";
 
@@ -49,6 +49,9 @@ contract DaimoPay is ReentrancyGuard {
 
     /// Efficiently generates + deploys CREATE2 intent addresses.
     PayIntentFactory public immutable intentFactory;
+    /// Contract that executes arbitrary contract calls on behalf of the
+    /// DaimoPay escrow contract.
+    DaimoPayExecutioner public immutable executioner;
 
     /// On the source chain, record intents that have been sent.
     mapping(address intentAddr => bool) public intentSent;
@@ -88,8 +91,12 @@ contract DaimoPay is ReentrancyGuard {
         PayIntent intent
     );
 
-    constructor(PayIntentFactory _intentFactory) {
+    constructor(
+        PayIntentFactory _intentFactory,
+        DaimoPayExecutioner _executioner
+    ) {
         intentFactory = _intentFactory;
+        executioner = _executioner;
     }
 
     /// Starts an intent, bridging to the destination chain if necessary.
@@ -104,31 +111,32 @@ contract DaimoPay is ReentrancyGuard {
         // Ensure we don't reuse a nonce in the case where Alice is sending to
         // same destination with the same nonce multiple times.
         require(!intentSent[address(intentContract)], "DP: already sent");
+        // Mark the intent as sent
         intentSent[address(intentContract)] = true;
 
-        // Transfer from intent contract to this contract
-        intentContract.sendToEscrow({intent: intent, tokens: paymentTokens});
-
-        // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary.
-        _executeCalls(calls);
+        // Transfer from intent contract to the executioner contract to run
+        // relayer-provided calls.
+        intentContract.sendTokens({
+            intent: intent,
+            tokens: paymentTokens,
+            recipient: payable(address(executioner))
+        });
 
         if (intent.toChainId == block.chainid) {
-            // Same chain. Check that the relayer calls produced enough output
-            // tokens.
-            bool balanceOk = _checkBridgeTokenOutBalance(
-                intent.bridgeTokenOutOptions
-            );
-            require(balanceOk, "PI: insufficient token");
+            // Same chain. Swap the tokens to one of the bridgeTokenOutOptions
+            // and send them back to the intent contract for later claimIntent.
 
-            // Send tokens to the intent address for later claimIntent.
-            uint256 tokenOptionsLength = intent.bridgeTokenOutOptions.length;
-            for (uint256 i = 0; i < tokenOptionsLength; ++i) {
-                TokenUtils.transferBalance({
-                    token: intent.bridgeTokenOutOptions[i].token,
-                    recipient: payable(address(intentContract))
-                });
-            }
+            // Run arbitrary calls provided by the relayer. These will generally
+            // approve the swap contract and swap if necessary.
+            // The executioner contract checks that at least one of the
+            // bridgeTokenOutOptions is present.
+            executioner.execute({
+                calls: calls,
+                expectedOutput: intent.bridgeTokenOutOptions,
+                recipient: payable(address(intentContract))
+            });
+
+            // TODO: transfer surplus tokens to the caller
         } else {
             // Different chains. Get the input token and amount required to
             // initiate bridging
@@ -139,10 +147,19 @@ contract DaimoPay is ReentrancyGuard {
                     bridgeTokenOutOptions: intent.bridgeTokenOutOptions
                 });
 
-            // Check that the swap produced sufficient tokens to initiate
-            // bridging.
-            uint256 balance = IERC20(bridgeTokenIn).balanceOf(address(this));
-            require(balance >= inAmount, "PI: insufficient bridge token");
+            // Run arbitrary calls provided by the relayer. These will generally
+            // approve the swap contract and swap if necessary.
+            // The executioner contract checks that the output is sufficient.
+            TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+            expectedOutput[0] = TokenAmount({
+                token: IERC20(bridgeTokenIn),
+                amount: inAmount
+            });
+            executioner.execute({
+                calls: calls,
+                expectedOutput: expectedOutput,
+                recipient: payable(address(this))
+            });
 
             // Approve bridger and initiate bridging
             IERC20(bridgeTokenIn).forceApprove({
@@ -178,7 +195,8 @@ contract DaimoPay is ReentrancyGuard {
     /// to claim the bridged tokens.
     function fastFinishIntent(
         PayIntent calldata intent,
-        Call[] calldata calls
+        Call[] calldata calls,
+        IERC20[] calldata tokens
     ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
 
@@ -191,9 +209,18 @@ contract DaimoPay is ReentrancyGuard {
             intentToRecipient[intentAddr] == address(0),
             "DP: already finished"
         );
-
         // Record relayer as new recipient when the bridged tokens arrive
         intentToRecipient[intentAddr] = msg.sender;
+
+        // Transfer tokens to the executioner contract to run relayer-provided
+        // calls in _finishIntent.
+        uint256 n = tokens.length;
+        for (uint256 i = 0; i < n; ++i) {
+            TokenUtils.transferBalance({
+                token: tokens[i],
+                recipient: payable(address(executioner))
+            });
+        }
 
         // Finish the intent and return any leftover tokens to the caller
         _finishIntent({intentAddr: intentAddr, intent: intent, calls: calls});
@@ -220,24 +247,22 @@ contract DaimoPay is ReentrancyGuard {
         // If intent is double-paid after it has already been claimed, then
         // the recipient should call refundIntent to get their funds back.
         require(recipient != ADDR_MAX, "DP: already claimed");
-
-        // Transfer from intent contract to this contract
-        uint256 tokenOptionsLength = intent.bridgeTokenOutOptions.length;
-        IERC20[] memory tokens = new IERC20[](tokenOptionsLength);
-        for (uint256 i = 0; i < tokenOptionsLength; ++i) {
-            tokens[i] = intent.bridgeTokenOutOptions[i].token;
-        }
-        intentContract.sendToEscrow({intent: intent, tokens: tokens});
-
-        // Check that enough tokens were received. Revert otherwise.
-        bool balanceOk = _checkBridgeTokenOutBalance(
-            intent.bridgeTokenOutOptions
-        );
-        require(balanceOk, "DP: insufficient token received");
+        // Mark intent as claimed
+        intentToRecipient[address(intentContract)] = ADDR_MAX;
 
         if (recipient == address(0)) {
             // No relayer showed up, so just complete the intent.
             recipient = intent.finalCall.to;
+
+            // Send tokens from the intent contract to the executioner contract
+            // to run relayer-provided calls in _finishIntent.
+            // The intent contract will check that sufficient bridge tokens
+            // were received.
+            intentContract.checkBalanceAndSendTokens({
+                intent: intent,
+                tokenAmounts: intent.bridgeTokenOutOptions,
+                recipient: payable(address(executioner))
+            });
 
             // Complete the intent and return any leftover tokens to the caller
             _finishIntent({
@@ -247,16 +272,14 @@ contract DaimoPay is ReentrancyGuard {
             });
         } else {
             // Otherwise, the relayer fastFinished the intent. Repay them.
-            for (uint256 i = 0; i < tokenOptionsLength; ++i) {
-                TokenUtils.transferBalance({
-                    token: tokens[i],
-                    recipient: payable(recipient)
-                });
-            }
+            // The intent contract will check that sufficient bridge tokens
+            // were received.
+            intentContract.checkBalanceAndSendTokens({
+                intent: intent,
+                tokenAmounts: intent.bridgeTokenOutOptions,
+                recipient: payable(recipient)
+            });
         }
-
-        // Mark as claimed
-        intentToRecipient[address(intentContract)] = ADDR_MAX;
 
         emit Claim({
             intentAddr: address(intentContract),
@@ -283,20 +306,13 @@ contract DaimoPay is ReentrancyGuard {
             require(intentSent[intentAddr], "DP: not started");
         }
 
-        // Collect tokens from intent contract.
-        uint256[] memory amounts = intentContract.sendToEscrow({
+        // Collect tokens from intent contract and refund them to the refund
+        // address.
+        uint256[] memory amounts = intentContract.sendTokens({
             intent: intent,
-            tokens: tokens
+            tokens: tokens,
+            recipient: payable(intent.refundAddress)
         });
-
-        // Refund tokens to the refund address
-        for (uint256 i = 0; i < tokens.length; ++i) {
-            TokenUtils.transfer({
-                token: tokens[i],
-                recipient: payable(intent.refundAddress),
-                amount: amounts[i]
-            });
-        }
 
         emit IntentRefunded({
             intentAddr: intentAddr,
@@ -318,29 +334,21 @@ contract DaimoPay is ReentrancyGuard {
     ) internal {
         // Run arbitrary calls provided by the relayer. These will generally
         // approve the swap contract and swap if necessary.
-        _executeCalls(calls);
-
-        // Check that the swap had a fair price
-        uint256 finalCallTokenBalance = TokenUtils.getBalanceOf({
-            token: intent.finalCallToken.token,
-            addr: address(this)
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = intent.finalCallToken;
+        executioner.execute({
+            calls: calls,
+            expectedOutput: expectedOutput,
+            recipient: payable(address(this))
         });
-        require(
-            finalCallTokenBalance >= intent.finalCallToken.amount,
-            "DP: insufficient final call token received"
-        );
 
         bool success;
         if (intent.finalCall.data.length > 0) {
             // If the intent is a call, approve the final token and make the call
-            TokenUtils.approve({
-                token: intent.finalCallToken.token,
-                spender: address(intent.finalCall.to),
-                amount: intent.finalCallToken.amount
+            success = executioner.executeFinalCall({
+                finalCall: intent.finalCall,
+                finalCallToken: intent.finalCallToken
             });
-            (success, ) = intent.finalCall.to.call{
-                value: intent.finalCall.value
-            }(intent.finalCall.data);
         } else {
             // If the final call is a transfer, transfer the token.
             success = TokenUtils.tryTransfer(
@@ -371,34 +379,6 @@ contract DaimoPay is ReentrancyGuard {
             token: intent.finalCallToken.token,
             recipient: payable(msg.sender)
         });
-    }
-
-    /// Check if the contract has enough balance for at least one of the bridge
-    /// token output options.
-    function _checkBridgeTokenOutBalance(
-        TokenAmount[] calldata bridgeTokenOutOptions
-    ) internal view returns (bool) {
-        uint256 n = bridgeTokenOutOptions.length;
-        bool balanceOk = false;
-        for (uint256 i = 0; i < n; ++i) {
-            TokenAmount calldata tokenOut = bridgeTokenOutOptions[i];
-            uint256 balance = tokenOut.token.balanceOf(address(this));
-            if (balance >= tokenOut.amount) {
-                balanceOk = true;
-                break;
-            }
-        }
-        return balanceOk;
-    }
-
-    /// Execute arbitrary calls. Revert if any fail.
-    function _executeCalls(Call[] calldata calls) internal {
-        uint256 n = calls.length;
-        for (uint256 i = 0; i < n; ++i) {
-            Call calldata call = calls[i];
-            (bool success, ) = call.to.call{value: call.value}(call.data);
-            require(success, "DP: call failed");
-        }
     }
 
     receive() external payable {}

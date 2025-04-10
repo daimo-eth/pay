@@ -9,6 +9,9 @@ import "openzeppelin-contracts/contracts/utils/Create2.sol";
 contract PayBalanceFactory {
     bytes32 private constant SALT = bytes32(0);
 
+    /// Emitted when a new PayBalanceReader is deployed
+    event Deploy(address indexed reader, uint256 nTokens);
+
     /// Predicts the address where a PayBalanceReader will be deployed.
     function getBalanceReader(
         IERC20[] memory _tokens
@@ -23,12 +26,15 @@ contract PayBalanceFactory {
         IERC20[] memory _tokens
     ) public returns (address) {
         bytes memory bytecode = _getCreationBytecode(_tokens);
-        return Create2.deploy(0, SALT, bytecode);
+        address reader = Create2.deploy(0, SALT, bytecode);
+        emit Deploy(reader, _tokens.length);
+        return reader;
     }
 
     function _getCreationBytecode(
         IERC20[] memory _tokens
     ) private pure returns (bytes memory) {
+        require(_tokens.length > 0, "No tokens provided");
         bytes memory creationBytecode = type(PayBalanceReader).creationCode;
         return abi.encodePacked(creationBytecode, abi.encode(_tokens));
     }

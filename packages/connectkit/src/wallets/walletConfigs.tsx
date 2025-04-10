@@ -383,7 +383,7 @@ export const walletConfigs: {
     getWalletConnectDeeplink: (uri: string) => {
       return `https://app.zerion.io/wc?uri=${encodeURIComponent(uri)}`;
     },
-    showInMobileConnectors: true,
+    showInMobileConnectors: false,
   },
   slope: {
     name: "Slope",

@@ -92,16 +92,16 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
         require(msg.sender == intent.escrow, "PI: only escrow");
 
         // Check that at least one of the token amounts is present.
-        (IERC20 token, uint256 amount) = TokenUtils.checkBalance({
+        uint256 tokenIndex = TokenUtils.checkBalance({
             tokenAmounts: tokenAmounts
         });
-        require(amount > 0, "PI: insufficient balance");
+        require(tokenIndex < tokenAmounts.length, "PI: insufficient balance");
 
         // Transfer the token amount to the recipient.
         TokenUtils.transfer({
-            token: token,
+            token: tokenAmounts[tokenIndex].token,
             recipient: recipient,
-            amount: amount
+            amount: tokenAmounts[tokenIndex].amount
         });
     }
 

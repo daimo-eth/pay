@@ -26,9 +26,9 @@ import "./TokenUtils.sol";
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Enables fast cross-chain transfers with optimistic intents.
-/// WARNING: Never approve tokens directly to this contract. Never
-/// transfer tokens to this contract as a standalone transaction.
-/// Such tokens can be stolen by anyone. Instead:
+/// WARNING: Never approve tokens directly to this contract. Never transfer
+/// tokens to this contract as a standalone transaction. Such tokens can be
+/// stolen by anyone. Instead:
 /// - Users should only interact by sending funds to an intent address.
 /// - Relayers should transfer funds and call this contract atomically via their
 ///   own contracts.
@@ -108,6 +108,11 @@ contract DaimoPay is ReentrancyGuard {
         // Ensure we don't reuse a nonce in the case where Alice is sending to
         // same destination with the same nonce multiple times.
         require(!intentSent[address(intentContract)], "DP: already sent");
+        // Can't call startIntent if the intent has already been claimed.
+        require(
+            intentToRecipient[address(intentContract)] != ADDR_MAX,
+            "DP: already claimed"
+        );
         // Mark the intent as sent
         intentSent[address(intentContract)] = true;
 
@@ -299,8 +304,7 @@ contract DaimoPay is ReentrancyGuard {
             require(intentSent[intentAddr], "DP: not started");
         }
 
-        // Collect tokens from intent contract and refund them to the refund
-        // address.
+        // Send tokens directly from intent contract to the refund address.
         uint256[] memory amounts = intentContract.sendTokens({
             intent: intent,
             tokens: tokens,

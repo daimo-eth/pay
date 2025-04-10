@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
@@ -21,7 +20,10 @@ struct Call {
 /// @custom:security-contact security@daimo.com
 /// @notice This contract is used to execute arbitrary contract calls on behalf
 /// of the DaimoPay escrow contract.
-contract DaimoPayExecutor is Initializable, ReentrancyGuard {
+/// WARNING: Never approve tokens directly to this contract. Never transfer
+/// tokens to this contract. Such tokens can be stolen by anyone. All
+/// interactions with this contract should be done via the DaimoPay contract.
+contract DaimoPayExecutor is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// The only address that is allowed to call the `execute` function.
@@ -33,7 +35,7 @@ contract DaimoPayExecutor is Initializable, ReentrancyGuard {
 
     /// Execute arbitrary calls. Revert if any fail.
     /// Check that at least one of the expectedOutput tokens is present. Assumes
-    /// that exactly one token is present as transfers it to the recipient.
+    /// that exactly one token is present and transfers it to the recipient.
     /// Returns any surplus tokens to the surplus recipient.
     function execute(
         Call[] calldata calls,
@@ -43,6 +45,7 @@ contract DaimoPayExecutor is Initializable, ReentrancyGuard {
     ) external nonReentrant {
         require(msg.sender == escrow, "DPCE: only escrow");
 
+        // Execute provided calls.
         uint256 callsLength = calls.length;
         for (uint256 i = 0; i < callsLength; ++i) {
             Call calldata call = calls[i];
@@ -52,20 +55,26 @@ contract DaimoPayExecutor is Initializable, ReentrancyGuard {
 
         /// Check that at least one of the expectedOutput tokens is present
         /// with enough balance.
-        (IERC20 token, uint256 amount) = TokenUtils.checkBalance({
+        uint256 outputIndex = TokenUtils.checkBalance({
             tokenAmounts: expectedOutput
         });
-        require(amount > 0, "DPCE: insufficient output");
+        require(
+            outputIndex < expectedOutput.length,
+            "DPCE: insufficient output"
+        );
 
         // Transfer the expected amount of the token to the recipient.
         TokenUtils.transfer({
-            token: token,
+            token: expectedOutput[outputIndex].token,
             recipient: recipient,
-            amount: amount
+            amount: expectedOutput[outputIndex].amount
         });
 
         // Transfer any surplus tokens to the surplus recipient.
-        TokenUtils.transferBalance({token: token, recipient: surplusRecipient});
+        TokenUtils.transferBalance({
+            token: expectedOutput[outputIndex].token,
+            recipient: surplusRecipient
+        });
     }
 
     /// Execute a final call. Approve the final token and make the call.
@@ -76,12 +85,14 @@ contract DaimoPayExecutor is Initializable, ReentrancyGuard {
     ) external nonReentrant returns (bool success) {
         require(msg.sender == escrow, "DPCE: only escrow");
 
+        // Approve the final call token to the final call contract.
         TokenUtils.approve({
             token: finalCallToken.token,
             spender: address(finalCall.to),
             amount: finalCallToken.amount
         });
 
+        // Then, execute the final call.
         (success, ) = finalCall.to.call{value: finalCall.value}(finalCall.data);
     }
 

@@ -90,11 +90,11 @@ library TokenUtils {
     }
 
     /// Check that the address has enough of at least one of the tokenAmounts.
-    /// Returns the address and expected amount (not the balance!) of the first
-    /// token that has sufficient balance.
+    /// Returns the index of the first token that has sufficient balance, or
+    /// the length of the tokenAmounts array if no token has sufficient balance.
     function checkBalance(
         TokenAmount[] calldata tokenAmounts
-    ) internal view returns (IERC20 token, uint256 amount) {
+    ) internal view returns (uint256) {
         uint256 n = tokenAmounts.length;
         for (uint256 i = 0; i < n; ++i) {
             TokenAmount calldata tokenAmount = tokenAmounts[i];
@@ -103,9 +103,9 @@ library TokenUtils {
                 addr: address(this)
             });
             if (balance >= tokenAmount.amount) {
-                return (tokenAmount.token, tokenAmount.amount);
+                return i;
             }
         }
-        return (IERC20(address(0)), 0);
+        return n;
     }
 }

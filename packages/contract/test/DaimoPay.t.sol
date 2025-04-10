@@ -1391,9 +1391,6 @@ contract DaimoPayTest is Test {
         address victimIntentAddress = intentFactory.getIntentAddress(
             victimIntent
         );
-        address maliciousIntentAddress = intentFactory.getIntentAddress(
-            maliciousIntent
-        );
 
         // Funds arrive from the bridge onto the destination chain victim's
         // intent address

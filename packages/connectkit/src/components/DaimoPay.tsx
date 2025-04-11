@@ -182,6 +182,7 @@ const DaimoPayProviderWithoutSolana = ({
   >(undefined);
 
   const [resize, onResize] = useState<number>(0);
+  const [pendingId, setPendingId] = useState<string | undefined>(undefined);
 
   // Include Google Font that is needed for a themes
   if (opts.embedGoogleFonts) useThemeFont(theme);
@@ -304,8 +305,9 @@ const DaimoPayProviderWithoutSolana = ({
     setOpen,
     route,
     setRoute,
-    //connector,
-
+    // pending connector
+    pendingId,
+    setPendingId,
     // Daimo Pay context
     wcWallet,
     // setWcWallet,

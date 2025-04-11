@@ -16,7 +16,6 @@ import Button from "../Common/Button";
 import CopyToClipboard from "../Common/CopyToClipboard";
 import CustomQRCode from "../Common/CustomQRCode";
 
-import { useAccount } from "wagmi";
 import { useWallet } from "../../wallets/useWallets";
 import { useWeb3 } from "../contexts/web3";
 
@@ -24,15 +23,15 @@ const ConnectWithQRCode: React.FC<{
   switchConnectMethod: (id?: string) => void;
 }> = () => {
   const context = usePayContext();
-  const { connector } = useAccount();
-  const wallet = useWallet(connector?.id ?? "");
+  const { pendingId } = context;
+  const wallet = useWallet(pendingId ?? "");
 
   const { open: openW3M, isOpen: isOpenW3M } = useWalletConnectModal();
   const {
     connect: { getUri },
   } = useWeb3();
 
-  const wcUri = getUri(connector?.id);
+  const wcUri = getUri(pendingId ?? "");
   const uri = wcUri
     ? (wallet?.getWalletConnectDeeplink?.(wcUri) ?? wcUri)
     : undefined;
@@ -41,13 +40,13 @@ const ConnectWithQRCode: React.FC<{
     CONNECTORNAME: wallet?.name,
   });
 
-  if (!wallet) return <>Wallet not found {connector?.id}</>;
+  if (!wallet) return <>Wallet not found {pendingId}</>;
 
   const downloads = wallet?.downloadUrls;
 
   const hasApps = downloads && Object.keys(downloads).length !== 0;
 
-  const showAdditionalOptions = isWalletConnectConnector(connector?.id);
+  const showAdditionalOptions = isWalletConnectConnector(pendingId ?? "");
 
   return (
     <PageContent>

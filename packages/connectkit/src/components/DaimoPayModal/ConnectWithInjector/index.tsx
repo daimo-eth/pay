@@ -23,7 +23,6 @@ import Tooltip from "../../Common/Tooltip";
 
 import SquircleSpinner from "../../Spinners/SquircleSpinner";
 
-import { useAccount } from "wagmi";
 import {
   AlertIcon,
   ExternalLinkIcon,
@@ -131,8 +130,8 @@ const ConnectWithInjector: React.FC<{
   });
 
   const { triggerResize } = usePayContext();
-  const { connector } = useAccount();
-  const wallet = useWallet(connector?.id ?? "");
+  const { pendingId } = usePayContext();
+  const wallet = useWallet(pendingId ?? "");
 
   const walletInfo = {
     name: wallet?.name,

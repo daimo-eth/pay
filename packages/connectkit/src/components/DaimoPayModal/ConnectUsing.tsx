@@ -7,7 +7,6 @@ import { useWallet } from "../../wallets/useWallets";
 import ConnectWithInjector from "./ConnectWithInjector";
 import ConnectWithQRCode from "./ConnectWithQRCode";
 
-import { useAccount } from "wagmi";
 import Alert from "../Common/Alert";
 import { contentVariants } from "../Common/Modal";
 
@@ -18,8 +17,9 @@ const states = {
 
 const ConnectUsing = () => {
   const context = usePayContext();
-  const { connector } = useAccount();
-  const wallet = useWallet(connector?.id ?? "");
+  const { pendingId } = context;
+  const wallet = useWallet(pendingId ?? "");
+  if (!wallet) return <Alert>Connector not found</Alert>;
 
   // If cannot be scanned, display injector flow, which if extension is not installed will show CTA to install it
   const isQrCode = !wallet?.isInstalled && wallet?.getWalletConnectDeeplink;
@@ -31,7 +31,7 @@ const ConnectUsing = () => {
   useEffect(() => {
     // if no provider, change to qrcode
     const checkProvider = async () => {
-      const res = await wallet?.connector.getProvider();
+      const res = await wallet?.connector?.getProvider();
       if (!res) {
         setStatus(states.QRCODE);
         setTimeout(context.triggerResize, 10); // delay required here for modal to resize
@@ -39,8 +39,6 @@ const ConnectUsing = () => {
     };
     if (status === states.INJECTOR) checkProvider();
   }, []);
-
-  if (!wallet) return <Alert>Connector not found: {connector?.id}</Alert>;
 
   return (
     <AnimatePresence>

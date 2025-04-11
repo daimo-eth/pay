@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ROUTES } from "../../constants/routes";
+import { usePayContext } from "../../hooks/usePayContext";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
-import { usePayContext } from "../../hooks/usePayContext";
 
 import About from "../Pages/About";
 import Connectors from "../Pages/Connectors";
@@ -166,7 +166,6 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SOLANA_SELECT_TOKEN]: <SelectSolanaToken />,
     [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
     [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,
-
     // Unused routes. Kept to minimize connectkit merge conflicts.
     [ROUTES.ONBOARDING]: <Onboarding />,
     [ROUTES.ABOUT]: <About />,

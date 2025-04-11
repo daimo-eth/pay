@@ -12,7 +12,6 @@ import {
 import { WalletConfigProps } from "../wallets/walletConfigs";
 import { useConnectCallbackProps } from "./useConnectCallback";
 import { PaymentState } from "./usePaymentState";
-
 /** Daimo Pay internal context. */
 export const usePayContext = () => {
   const context = React.useContext(PayContext);
@@ -39,12 +38,6 @@ export type PayContextValue = {
   setOpen: (open: boolean, meta?: Record<string, any>) => void;
   route: string;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
-  // connector: Connector;
-  // setConnector: React.Dispatch<React.SetStateAction<Connector>>;
-  wcWallet: WalletConfigProps | undefined;
-  // setWcWallet: React.Dispatch<
-  //   React.SetStateAction<WalletConfigProps | undefined>
-  // >;
   errorMessage: string | React.ReactNode | null;
   debugMode?: boolean;
   log: PayLogFn;
@@ -55,6 +48,11 @@ export type PayContextValue = {
   // All options below are new, specific to Daimo Pay.
   /** Session ID. */
   sessionId: string;
+  /** EVM mobile connector */
+  wcWallet: WalletConfigProps | undefined;
+  /** EVM pending connector */
+  pendingId: string | undefined;
+  setPendingId: (id: string) => void;
   /** Chosen Solana wallet, eg Phantom.*/
   solanaConnector: SolanaWalletName | undefined;
   setSolanaConnector: React.Dispatch<
@@ -79,8 +77,3 @@ export type PayContextValue = {
     React.SetStateAction<string | undefined>
   >;
 } & useConnectCallbackProps;
-
-/** Chosen Ethereum wallet, eg MM or Rainbow. Specifies wallet ID. */
-// type Connector = {
-//   id: string;
-// };

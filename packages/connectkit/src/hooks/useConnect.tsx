@@ -20,11 +20,18 @@ export function useConnect({ ...props }: UseConnectParameters = {}) {
       ...props.mutation,
       onError(err) {
         if (err.message) {
+          if (err.message === "Proposal expired") {
+            context.log(
+              "[CONNECT] Connection request timed out. Please try again.",
+              err,
+            );
+            return;
+          }
           if (err.message !== "User rejected request") {
-            context.log(err.message, err);
+            context.log(`[CONNECT] ${err.message}`, err);
           }
         } else {
-          context.log(`Could not connect.`, err);
+          context.log(`[CONNECT] Could not connect.`, err);
         }
       },
     },

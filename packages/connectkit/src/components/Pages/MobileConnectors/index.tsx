@@ -10,6 +10,7 @@ import {
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
 import useLocales from "../../../hooks/useLocales";
+import { usePayContext } from "../../../hooks/usePayContext";
 import { useWalletConnectModal } from "../../../hooks/useWalletConnectModal";
 import { useWallets } from "../../../wallets/useWallets";
 import {
@@ -20,7 +21,6 @@ import CopyToClipboard from "../../Common/CopyToClipboard";
 import { ScrollArea } from "../../Common/ScrollArea";
 import { Spinner } from "../../Common/Spinner";
 import { useWeb3 } from "../../contexts/web3";
-import { usePayContext } from "../../../hooks/usePayContext";
 
 const MoreIcon = (
   <svg
@@ -63,7 +63,7 @@ const MobileConnectors: React.FC = () => {
     }) ?? [];
 
   const connectWallet = (wallet: WalletConfigProps) => {
-    context.setWcWallet(wallet);
+    // context.setWcWallet(wallet);
     const uri = wallet.getWalletConnectDeeplink?.(wcUri!);
     log(`[MobileConnectors] clicked ${wallet.name}: ${uri}`);
     // Using open(.., '_blank') to open the wallet connect modal.

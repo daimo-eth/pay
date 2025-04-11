@@ -4,7 +4,7 @@ import { usePayContext } from "../../hooks/usePayContext";
 
 import { useWalletConnectModal } from "../../hooks/useWalletConnectModal";
 
-import { detectBrowser, isWalletConnectConnector } from "../../utils";
+import { isWalletConnectConnector } from "../../utils";
 
 import { OrDivider } from "../Common/Modal";
 import { ModalContent, PageContent } from "../Common/Modal/styles";
@@ -23,17 +23,15 @@ const ConnectWithQRCode: React.FC<{
   switchConnectMethod: (id?: string) => void;
 }> = () => {
   const context = usePayContext();
-
-  const id = context.connector.id;
-
-  const wallet = useWallet(context.connector.id);
+  const { pendingId } = context;
+  const wallet = useWallet(pendingId ?? "");
 
   const { open: openW3M, isOpen: isOpenW3M } = useWalletConnectModal();
   const {
     connect: { getUri },
   } = useWeb3();
 
-  const wcUri = getUri(id);
+  const wcUri = getUri(pendingId ?? "");
   const uri = wcUri
     ? (wallet?.getWalletConnectDeeplink?.(wcUri) ?? wcUri)
     : undefined;
@@ -42,13 +40,13 @@ const ConnectWithQRCode: React.FC<{
     CONNECTORNAME: wallet?.name,
   });
 
-  if (!wallet) return <>Wallet not found {context.connector.id}</>;
+  if (!wallet) return <>Wallet not found {pendingId}</>;
 
   const downloads = wallet?.downloadUrls;
 
   const hasApps = downloads && Object.keys(downloads).length !== 0;
 
-  const showAdditionalOptions = isWalletConnectConnector(id);
+  const showAdditionalOptions = isWalletConnectConnector(pendingId ?? "");
 
   return (
     <PageContent>
@@ -57,7 +55,7 @@ const ConnectWithQRCode: React.FC<{
           value={uri}
           image={wallet?.icon}
           tooltipMessage={
-            isWalletConnectConnector(id) ? (
+            showAdditionalOptions ? (
               <>
                 <ScanIconWithLogos />
                 <span>{locales.scanScreen_tooltip_walletConnect}</span>

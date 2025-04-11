@@ -5,7 +5,7 @@ import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
   getChainNativeToken,
-  knownTokens,
+  getTokensForChain,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
@@ -70,9 +70,10 @@ export default function DemoDeposit() {
     }
 
     // For non-native tokens
-    const tokens = knownTokens.filter((t) => t.chainId === config.chainId);
-    const token = tokens.find((t) => t.token === config.tokenAddress);
-    if (!token) return;
+    if (config.chainId != 0) {
+      const tokens = getTokensForChain(config.chainId);
+      const token = tokens.find((t) => t.token === config.tokenAddress);
+      if (!token) return;
 
     // Find the variable name in pay-common exports
     const tokenVarName =

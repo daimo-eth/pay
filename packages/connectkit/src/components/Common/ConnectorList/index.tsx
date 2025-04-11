@@ -82,16 +82,6 @@ const ConnectorItem = ({
 
   const { connect } = useConnect();
 
-  /*
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    (async () => {
-      const provider = await wallet.connector.getProvider();
-      setReady(!!provider);
-    })();
-  }, [wallet, setReady]);
-  */
-
   let deeplink =
     (!wallet.isInstalled && isMobile) ||
     (wallet.shouldDeeplinkDesktop && !isMobile)
@@ -115,21 +105,15 @@ const ConnectorItem = ({
       onClick={
         deeplink
           ? undefined
-          : // ? () => {
-            //     if (!isMobile) return;
-            //     context.setConnector({ id: wallet.id });
-            //     context.setWcWallet(wallet);
-            //   }
-            () => {
+          : () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);
               } else {
                 if (shouldConnectImmediately) {
-                  connect({ connector: wallet?.connector });
+                  connect({ connector: wallet.connector });
                 }
                 context.setRoute(ROUTES.CONNECT);
-                // context.setConnector({ id: wallet.id });
-                // context.setWcWallet(wallet);
+                context.setPendingId(wallet.id);
               }
             }
       }

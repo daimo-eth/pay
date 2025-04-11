@@ -1,6 +1,6 @@
 import {
   ethereum,
-  getTokensForChain,
+  knownTokens,
   solana,
   supportedChains,
   Token,
@@ -89,7 +89,7 @@ export function ConfigPanel({
   // Get tokens for selected chain
   let tokens: Token[] = [];
   if (config.chainId !== 0) {
-    tokens = getTokensForChain(config.chainId);
+    tokens = knownTokens.filter((t) => t.chainId === config.chainId);
   }
 
   // Validate address on change

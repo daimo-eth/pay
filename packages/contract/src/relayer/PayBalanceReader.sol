@@ -4,6 +4,7 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
+import "solmate/utils/SSTORE2.sol";
 
 /// Factory to deploy PayBalanceReader contracts at deterministic addresses.
 contract PayBalanceFactory {
@@ -40,19 +41,34 @@ contract PayBalanceFactory {
     }
 }
 
-/// Efficiently fetches token balances.
+/// Efficiently fetches token balances using SSTORE2 for address storage.
 contract PayBalanceReader {
-    IERC20[] public tokens;
+    /// Pointer to SSTORE2 storage containing packed token addresses
+    address public immutable pointer;
 
     constructor(IERC20[] memory _tokens) {
-        tokens = new IERC20[](_tokens.length);
+        bytes memory packed = new bytes(_tokens.length * 20);
         for (uint256 i = 0; i < _tokens.length; ++i) {
-            tokens[i] = _tokens[i];
+            bytes20 tokenAddr = bytes20(address(_tokens[i]));
+            assembly {
+                mstore(add(add(packed, 32), mul(i, 20)), tokenAddr)
+            }
         }
+        pointer = SSTORE2.write(packed);
     }
 
-    /// List of ERC-20 tokens. We fetch balances for these and the native asset.
+    /// Returns list of ERC-20 tokens by reading from SSTORE2 storage
     function getAllTokens() public view returns (IERC20[] memory) {
+        bytes memory packed = SSTORE2.read(pointer);
+        uint256 n = packed.length / 20;
+        IERC20[] memory tokens = new IERC20[](n);
+        for (uint256 i = 0; i < n; ++i) {
+            bytes20 tokenAddr;
+            assembly {
+                tokenAddr := mload(add(add(packed, 32), mul(i, 20)))
+            }
+            tokens[i] = IERC20(address(tokenAddr));
+        }
         return tokens;
     }
 
@@ -61,6 +77,7 @@ contract PayBalanceReader {
     function getTokenBalances(
         address owner
     ) public view returns (uint256[] memory balances) {
+        IERC20[] memory tokens = getAllTokens();
         uint256 n = tokens.length;
 
         balances = new uint256[](n + 1);

@@ -7,12 +7,12 @@ import {
 import CustomQRCode from "../../Common/CustomQRCode";
 
 import useLocales from "../../../hooks/useLocales";
-import { useWallet } from "../../../wallets/useWallets";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { useWallet } from "../../../wallets/useWallets";
 
 const DownloadApp = () => {
-  const context = usePayContext();
-  const wallet = useWallet(context.connector.id);
+  const { pendingConnectorId } = usePayContext();
+  const wallet = useWallet(pendingConnectorId ?? "");
 
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,

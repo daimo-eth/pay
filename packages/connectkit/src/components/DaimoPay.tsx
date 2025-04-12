@@ -17,6 +17,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { useAccount, WagmiContext } from "wagmi";
 
+import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
 import { useChainIsSupported } from "../hooks/useChainIsSupported";
 import { useChains } from "../hooks/useChains";
@@ -24,7 +25,9 @@ import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
+import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
 import { useThemeFont } from "../hooks/useGoogleFont";
+import { PayContext, PayContextValue } from "../hooks/usePayContext";
 import { usePaymentState } from "../hooks/usePaymentState";
 import defaultTheme from "../styles/defaultTheme";
 import {
@@ -36,12 +39,9 @@ import {
   Theme,
 } from "../types";
 import { createTrpcClient } from "../utils/trpc";
-import { WalletConfigProps } from "../wallets/walletConfigs";
 import { DaimoPayModal } from "./DaimoPayModal";
 import { SolanaContextProvider, SolanaWalletName } from "./contexts/solana";
 import { Web3ContextProvider } from "./contexts/web3";
-import { PayContext, PayContextValue } from "../hooks/usePayContext";
-import { ROUTES } from "../constants/routes";
 
 type DaimoPayProviderProps = {
   children?: React.ReactNode;
@@ -156,10 +156,7 @@ const DaimoPayProviderWithoutSolana = ({
       data: meta ?? {},
     });
   };
-  const [connector, setConnector] = useState<PayContextValue["connector"]>({
-    id: "",
-  });
-  const [wcWallet, setWcWallet] = useState<WalletConfigProps>();
+
   const [solanaConnector, setSolanaConnector] = useState<
     SolanaWalletName | undefined
   >();
@@ -185,6 +182,9 @@ const DaimoPayProviderWithoutSolana = ({
   >(undefined);
 
   const [resize, onResize] = useState<number>(0);
+  const [pendingConnectorId, setPendingConnectorId] = useState<
+    string | undefined
+  >(undefined);
 
   // Include Google Font that is needed for a themes
   if (opts.embedGoogleFonts) useThemeFont(theme);
@@ -195,7 +195,7 @@ const DaimoPayProviderWithoutSolana = ({
   useEffect(() => setErrorMessage(null), [route, open]);
 
   // Check if chain is supported, elsewise redirect to switches page
-  const { chain, isConnected } = useAccount();
+  const { chain, isConnected, connector } = useAccount();
   const isChainSupported = useChainIsSupported(chain?.id);
 
   useEffect(() => {
@@ -209,6 +209,11 @@ const DaimoPayProviderWithoutSolana = ({
 
   // Track sessions. Each generates separate intent IDs unless using externalId.
   const [sessionId] = useState(() => crypto.randomUUID().replaceAll("-", ""));
+
+  // Single source of truth for the currently-connected wallet is the connector
+  // exposed by wagmi. See useAccount(). We watch this connector and use it to
+  // extract the current WalletConnect wallet, if any.
+  const wcWallet = useExtractWcWallet({ connector, log });
 
   // Connect to the Daimo Pay TRPC API
   const trpc = useMemo(
@@ -302,12 +307,11 @@ const DaimoPayProviderWithoutSolana = ({
     setOpen,
     route,
     setRoute,
-    connector,
-    wcWallet,
-    setWcWallet,
     // Daimo Pay context
+    pendingConnectorId,
+    setPendingConnectorId,
+    wcWallet,
     sessionId,
-    setConnector,
     solanaConnector,
     setSolanaConnector,
     onConnect,

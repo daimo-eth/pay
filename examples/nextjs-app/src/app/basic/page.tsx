@@ -73,8 +73,7 @@ export default function DemoBasic() {
     }
 
     // For non-native tokens
-    const tokens = knownTokens.filter((t) => t.chainId === config.chainId);
-    const token = tokens.find((t) => t.token === config.tokenAddress);
+    const token = knownTokens.find((t) => t.token === config.tokenAddress);
     if (!token) return;
 
     // Find the variable name in pay-common exports

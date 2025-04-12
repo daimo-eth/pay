@@ -1,5 +1,5 @@
-import { assertNotNull, WalletPaymentOption } from "@daimo/pay-common";
-import React, { useEffect, useMemo, useState } from "react";
+import { WalletPaymentOption } from "@daimo/pay-common";
+import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";

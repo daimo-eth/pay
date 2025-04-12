@@ -70,15 +70,16 @@ export default function DemoDeposit() {
     }
 
     // For non-native tokens
-    const tokens = knownTokens.filter((t) => t.chainId === config.chainId);
-    const token = tokens.find((t) => t.token === config.tokenAddress);
-    if (!token) return;
+    if (config.chainId != 0) {
+      const token = knownTokens.find((t) => t.token === config.tokenAddress);
+      if (!token) return;
 
-    // Find the variable name in pay-common exports
-    const tokenVarName =
-      Object.entries(Tokens).find(([_, t]) => t === token)?.[0] || token.symbol;
+      // Find the variable name in pay-common exports
+      const tokenVarName =
+        Object.entries(Tokens).find(([_, t]) => t === token)?.[0] ||
+        token.symbol;
 
-    const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
+      const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
 
 <DaimoPayButton
   appId="${APP_ID}"
@@ -87,7 +88,8 @@ export default function DemoDeposit() {
   toToken={getAddress(${tokenVarName}.token)}
   intent="Deposit"
 />`;
-    setCodeSnippet(snippet);
+      setCodeSnippet(snippet);
+    }
   }, [config, hasValidConfig]);
 
   return (

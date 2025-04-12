@@ -1,7 +1,6 @@
 import React, { createContext } from "react";
+import { SolanaWalletName } from "../components/contexts/solana";
 import { ROUTES } from "../constants/routes";
-import { useConnectCallbackProps } from "./useConnectCallback";
-import { PaymentState } from "./usePaymentState";
 import { Languages } from "../localizations";
 import {
   CustomTheme,
@@ -11,8 +10,8 @@ import {
   Theme,
 } from "../types";
 import { WalletConfigProps } from "../wallets/walletConfigs";
-import { SolanaWalletName } from "../components/contexts/solana";
-
+import { useConnectCallbackProps } from "./useConnectCallback";
+import { PaymentState } from "./usePaymentState";
 /** Daimo Pay internal context. */
 export const usePayContext = () => {
   const context = React.useContext(PayContext);
@@ -22,6 +21,8 @@ export const usePayContext = () => {
 
 /** Meant for internal use. This will be non-exported in a future SDK version. */
 export const PayContext = createContext<PayContextValue | null>(null);
+
+export type PayLogFn = (message: string, ...props: any[]) => void;
 
 /** Daimo Pay internal context. */
 export type PayContextValue = {
@@ -37,15 +38,9 @@ export type PayContextValue = {
   setOpen: (open: boolean, meta?: Record<string, any>) => void;
   route: string;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
-  connector: Connector;
-  setConnector: React.Dispatch<React.SetStateAction<Connector>>;
-  wcWallet: WalletConfigProps | undefined;
-  setWcWallet: React.Dispatch<
-    React.SetStateAction<WalletConfigProps | undefined>
-  >;
   errorMessage: string | React.ReactNode | null;
   debugMode?: boolean;
-  log: (...props: any) => void;
+  log: PayLogFn;
   displayError: (message: string | React.ReactNode | null, code?: any) => void;
   resize: number;
   triggerResize: () => void;
@@ -53,6 +48,11 @@ export type PayContextValue = {
   // All options below are new, specific to Daimo Pay.
   /** Session ID. */
   sessionId: string;
+  /** EVM mobile connector */
+  wcWallet: WalletConfigProps | undefined;
+  /** EVM pending connector */
+  pendingConnectorId: string | undefined;
+  setPendingConnectorId: (id: string) => void;
   /** Chosen Solana wallet, eg Phantom.*/
   solanaConnector: SolanaWalletName | undefined;
   setSolanaConnector: React.Dispatch<
@@ -77,8 +77,3 @@ export type PayContextValue = {
     React.SetStateAction<string | undefined>
   >;
 } & useConnectCallbackProps;
-
-/** Chosen Ethereum wallet, eg MM or Rainbow. Specifies wallet ID. */
-type Connector = {
-  id: string;
-};

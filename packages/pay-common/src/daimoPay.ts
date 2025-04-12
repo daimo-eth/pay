@@ -404,10 +404,14 @@ export type DepositAddressPaymentOptionData = {
 
 export interface DaimoPayToken extends Token {
   token: Address | SolanaPublicKey;
-  /** Price to convert 1.0 of this token to USD */
+  /** Price to convert 1.0 of this token to a USD stablecoin. */
   usd: number;
-  /** Max payment accepted in this token, based on liquidity. */
+  /** Price to convert $1 to this token T. If 2.00, then we receive 0.5 T. */
+  priceFromUsd: number;
+  /** Max payment accepted in this token, based on liquidity & mode. */
   maxAcceptUsd: number;
+  /** Max payment we can send from this token, based on liquidity & mode. */
+  maxSendUsd: number;
   /** Display decimals, separate from token decimals. Eg: 2 for USDC. */
   displayDecimals: number;
   /** ISO code for fiat currency, eg: "USD" */

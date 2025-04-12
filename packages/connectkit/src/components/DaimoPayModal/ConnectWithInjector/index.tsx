@@ -130,8 +130,8 @@ const ConnectWithInjector: React.FC<{
   });
 
   const { triggerResize } = usePayContext();
-  const { pendingId } = usePayContext();
-  const wallet = useWallet(pendingId ?? "");
+  const { pendingConnectorId } = usePayContext();
+  const wallet = useWallet(pendingConnectorId ?? "");
 
   const walletInfo = {
     name: wallet?.name,

@@ -51,8 +51,8 @@ export type PayContextValue = {
   /** EVM mobile connector */
   wcWallet: WalletConfigProps | undefined;
   /** EVM pending connector */
-  pendingId: string | undefined;
-  setPendingId: (id: string) => void;
+  pendingConnectorId: string | undefined;
+  setPendingConnectorId: (id: string) => void;
   /** Chosen Solana wallet, eg Phantom.*/
   solanaConnector: SolanaWalletName | undefined;
   setSolanaConnector: React.Dispatch<

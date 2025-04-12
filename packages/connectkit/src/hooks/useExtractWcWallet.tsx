@@ -31,7 +31,7 @@ export function useExtractWcWallet({
   return wcWallet;
 }
 
-function extractWcWalletFromProvider(p: any, log: (props: any) => void) {
+function extractWcWalletFromProvider(p: any, log: PayLogFn) {
   // First, try to find our own walletConfig matching the connected wallet.
   // This requires heuristic matching due to WalletConnect lack of ID.
   let name = p.session?.peer?.metadata?.name;

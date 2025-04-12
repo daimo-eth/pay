@@ -23,15 +23,15 @@ const ConnectWithQRCode: React.FC<{
   switchConnectMethod: (id?: string) => void;
 }> = () => {
   const context = usePayContext();
-  const { pendingId } = context;
-  const wallet = useWallet(pendingId ?? "");
+  const { pendingConnectorId } = context;
+  const wallet = useWallet(pendingConnectorId ?? "");
 
   const { open: openW3M, isOpen: isOpenW3M } = useWalletConnectModal();
   const {
     connect: { getUri },
   } = useWeb3();
 
-  const wcUri = getUri(pendingId ?? "");
+  const wcUri = getUri(pendingConnectorId ?? "");
   const uri = wcUri
     ? (wallet?.getWalletConnectDeeplink?.(wcUri) ?? wcUri)
     : undefined;
@@ -40,13 +40,15 @@ const ConnectWithQRCode: React.FC<{
     CONNECTORNAME: wallet?.name,
   });
 
-  if (!wallet) return <>Wallet not found {pendingId}</>;
+  if (!wallet) return <>Wallet not found {pendingConnectorId}</>;
 
   const downloads = wallet?.downloadUrls;
 
   const hasApps = downloads && Object.keys(downloads).length !== 0;
 
-  const showAdditionalOptions = isWalletConnectConnector(pendingId ?? "");
+  const showAdditionalOptions = isWalletConnectConnector(
+    pendingConnectorId ?? "",
+  );
 
   return (
     <PageContent>

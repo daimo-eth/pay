@@ -11,8 +11,8 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import { useWallet } from "../../../wallets/useWallets";
 
 const DownloadApp = () => {
-  const { pendingId } = usePayContext();
-  const wallet = useWallet(pendingId ?? "");
+  const { pendingConnectorId } = usePayContext();
+  const wallet = useWallet(pendingConnectorId ?? "");
 
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,

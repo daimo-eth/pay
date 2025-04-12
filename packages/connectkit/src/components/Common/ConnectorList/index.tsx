@@ -113,7 +113,7 @@ const ConnectorItem = ({
                   connect({ connector: wallet.connector });
                 }
                 context.setRoute(ROUTES.CONNECT);
-                context.setPendingId(wallet.id);
+                context.setPendingConnectorId(wallet.id);
               }
             }
       }

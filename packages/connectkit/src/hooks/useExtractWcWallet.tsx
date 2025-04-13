@@ -20,7 +20,9 @@ export function useExtractWcWallet({
       setWcWallet(undefined);
       // Clear any stored deeplink choice when using a known wallet
       localStorage.removeItem("WALLETCONNECT_DEEPLINK_CHOICE");
-    } else {
+    } else if (typeof connector.getProvider === "function") {
+      // Workaround a wagmi bug where getProvider is sometimes missing:
+      // https://github.com/wevm/wagmi/issues/3589
       connector
         .getProvider()
         .then((p: any) => setWcWallet(extractWcWalletFromProvider(p, log)))

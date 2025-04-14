@@ -25,6 +25,9 @@ const SelectExternalAmount: React.FC = () => {
       ? `Minimum ${formatUsd(selectedExternalOption?.minimumUsd ?? 0, "up")}`
       : null;
 
+  const logoURI = selectedExternalOption?.logos?.[0]?.uri ?? "";
+  const logoShape = selectedExternalOption?.logos?.[0]?.shape ?? "circle";
+
   const [usdInput, setUsdInput] = useState<string>("");
   const [message, setMessage] = useState<string | null>(minimumMessage);
   const [continueDisabled, setContinueDisabled] = useState(true);
@@ -72,8 +75,8 @@ const SelectExternalAmount: React.FC = () => {
   return (
     <PageContent>
       <ExternalPaymentSpinner
-        logoURI={selectedExternalOption.logoURI}
-        logoShape={selectedExternalOption.logoShape}
+        logoURI={logoURI}
+        logoShape={logoShape}
         showSpinner={false}
       />
       <ModalContent $preserveDisplay={true}>

@@ -363,6 +363,7 @@ export type ExternalPaymentOptionMetadata = {
   minimumUsd?: number;
 };
 
+/** @deprecated use PaymentMethod instead */
 export enum ExternalPaymentOptions {
   Daimo = "Daimo",
   Coinbase = "Coinbase",

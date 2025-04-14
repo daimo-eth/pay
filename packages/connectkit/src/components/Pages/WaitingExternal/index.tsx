@@ -26,6 +26,9 @@ const WaitingExternal: React.FC = () => {
     daimoPayOrder,
   } = paymentState;
 
+  const logoURI = selectedExternalOption?.logos?.[0]?.uri ?? "";
+  const logoShape = selectedExternalOption?.logos?.[0]?.shape ?? "circle";
+
   const [externalURL, setExternalURL] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,7 +58,8 @@ const WaitingExternal: React.FC = () => {
 
   const openExternalWindow = (url: string) => {
     if (selectedExternalOption?.id === "Coinbase") {
-      //opening Coinbase onramp in a popup window in portrait mode in the center of the screen
+      // Open Coinbase onramp as a popup window in portrait mode in the center
+      // of the screen
       window.open(
         url,
         "popupWindow",
@@ -78,10 +82,7 @@ const WaitingExternal: React.FC = () => {
 
   return (
     <PageContent>
-      <ExternalPaymentSpinner
-        logoURI={selectedExternalOption.logoURI}
-        logoShape={selectedExternalOption.logoShape}
-      />
+      <ExternalPaymentSpinner logoURI={logoURI} logoShape={logoShape} />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
         <ModalH1>Waiting For Payment</ModalH1>
         {paymentWaitingMessage && (

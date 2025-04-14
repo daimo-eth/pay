@@ -5,13 +5,19 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import { PageContent } from "../../Common/Modal/styles";
 
 import {
-  DepositAddressPaymentOptionMetadata,
-  ExternalPaymentOptions,
   getAddressContraction,
+  PaymentMethod,
+  PaymentMethodMetadata,
+  PaymentMethodType,
 } from "@daimo/pay-common";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
+import { useWallet, WalletContextState } from "@solana/wallet-adapter-react";
+import {
+  Connector,
+  useAccount,
+  UseAccountReturnType,
+  useDisconnect,
+} from "wagmi";
+import { Ethereum, Solana } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
@@ -19,8 +25,17 @@ import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
 
+type PaymentMethodDisplay = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  icons: (React.ReactNode | string)[];
+  onClick: () => void;
+  disabled?: boolean;
+};
+
 export default function SelectMethod() {
-  const { isMobile, isIOS } = useIsMobile();
+  const isOnMobile = useIsMobile();
 
   const {
     address,
@@ -31,29 +46,24 @@ export default function SelectMethod() {
   const {
     connected: isSolanaConnected,
     wallet: solanaWallet,
+    wallets: solanaWallets,
     publicKey,
   } = useWallet();
   const { setRoute, paymentState, wcWallet, log } = usePayContext();
   const { disconnectAsync } = useDisconnect();
 
   const {
-    daimoPayOrder,
     setSelectedExternalOption,
     externalPaymentOptions,
-    depositAddressOptions,
     senderEnsName,
+    paymentMethods,
   } = paymentState;
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  console.log("[SELECT_METHOD] paymentMethods***", paymentMethods);
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
 
-    const connectedOptions: {
-      id: string;
-      title: string;
-      icons: JSX.Element[];
-      onClick: () => void;
-    }[] = [];
+    const connectedOptions: PaymentMethodDisplay[] = [];
 
     if (isEthConnected) {
       const ethWalletDisplayName =
@@ -145,78 +155,103 @@ export default function SelectMethod() {
     return connectedOptions;
   };
 
-  // Solana payment option
-  // Include by default if paymentOptions not provided
-  const includeSolana =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.Solana);
-  // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
-  // Include by default if paymentOptions not provided
-  const includeDepositAddressOption =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
-
-  const connectedWalletOptions = getConnectedWalletOptions();
-  const unconnectedWalletOption = {
-    id: "unconnectedWallet",
-    title:
-      isEthConnected || isSolanaConnected
-        ? `Pay with another wallet`
-        : `Pay with wallet`,
-    icons: getBestUnconnectedWalletIcons(connector),
-    onClick: async () => {
-      await disconnectAsync();
-      setRoute(ROUTES.CONNECTORS);
-    },
-  };
-
-  const options: {
-    id: string;
-    title: string;
-    subtitle?: string;
-    icons: (React.ReactNode | string)[];
-    onClick: () => void;
-    disabled?: boolean;
-  }[] = [];
-  options.push(...connectedWalletOptions);
-  options.push(unconnectedWalletOption);
-
   log(
     `[SELECT_METHOD] loading: ${externalPaymentOptions.loading}, options: ${JSON.stringify(
       externalPaymentOptions.options,
     )}`,
   );
 
-  if (includeSolana) {
-    const solanaOption = getSolanaOption(isIOS);
-    if (solanaOption) {
-      options.push(solanaOption);
-    }
-  }
+  const handleDepositAddressOnClick = () => {
+    setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
+  };
 
-  // External payment options, e.g. Binance, Coinbase, etc.
-  options.push(
-    ...(externalPaymentOptions.options ?? []).map((option) => ({
-      id: option.id,
-      title: option.cta,
-      icons: [option.logoURI],
-      onClick: () => {
-        setSelectedExternalOption(option);
-        const meta = { event: "click-option", option: option.id };
-        if (paymentState.isDepositFlow) {
-          setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
-        } else {
-          setRoute(ROUTES.WAITING_EXTERNAL, meta);
+  const handleEVMOnClick = async () => {
+    await disconnectAsync();
+    setRoute(ROUTES.CONNECTORS);
+  };
+
+  const handleExternalOnClick = (option: PaymentMethodMetadata) => {
+    setSelectedExternalOption(option);
+    const meta = { event: "click-option", option: option.id };
+    if (paymentState.isDepositFlow) {
+      setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+    } else {
+      setRoute(ROUTES.WAITING_EXTERNAL, meta);
+    }
+  };
+
+  const handleSolanaOnClick = () => {
+    setRoute(ROUTES.SOLANA_CONNECT);
+  };
+
+  // // External payment options, e.g. Binance, Coinbase, etc.
+  // options.push(
+  //   ...(externalPaymentOptions.options ?? []).map((option) => ({
+  //     id: option.id,
+  //     title: option.cta,
+  //     icons: [option.logoURI],
+  //     onClick: () => {
+  //       setSelectedExternalOption(option);
+  //       const meta = { event: "click-option", option: option.id };
+  //       if (paymentState.isDepositFlow) {
+  //         setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+  //       } else {
+  //         setRoute(ROUTES.WAITING_EXTERNAL, meta);
+  //       }
+  //     },
+  //     disabled: option.disabled,
+  //     subtitle: option.message,
+  //   })),
+  // );
+
+  // if (includeDepositAddressOption) {
+  //   const depositAddressOption = getDepositAddressOption(depositAddressOptions);
+  //   options.push(depositAddressOption);
+  // }
+
+  let options: PaymentMethodDisplay[] = paymentMethods.methods.map(
+    (method) => ({
+      id: method.id,
+      title: method.cta,
+      icons: method.logos?.map((logo) => logo.uri) || [],
+      onClick: async () => {
+        if (method.type === PaymentMethodType.DepositAddress) {
+          handleDepositAddressOnClick();
+        } else if (method.type === PaymentMethodType.EVMWallets) {
+          await handleEVMOnClick();
+        } else if (method.type === PaymentMethodType.External) {
+          handleExternalOnClick(method);
+        } else if (method.type === PaymentMethodType.SolanaWallets) {
+          handleSolanaOnClick();
         }
       },
-      disabled: option.disabled,
-      subtitle: option.message,
-    })),
+      disabled: method.disabled,
+      subtitle: method.message,
+    }),
   );
 
-  if (includeDepositAddressOption) {
-    const depositAddressOption = getDepositAddressOption(depositAddressOptions);
-    options.push(depositAddressOption);
+  const connectedWalletOptions = getConnectedWalletOptions();
+  options = [...connectedWalletOptions, ...options];
+
+  // Fill in the logos for the other EVM wallets option
+  const evmWalletsMethod = options.find(
+    (method) => method.id === PaymentMethod.EVMWallets,
+  );
+  if (evmWalletsMethod) {
+    evmWalletsMethod.icons = getBestUnconnectedEVMWalletIcons(connector);
+    evmWalletsMethod.title = `Pay with ${
+      isEthConnected ? "another wallet" : "wallet"
+    }`;
+  }
+
+  // Remove solana option if no solana wallets are connected on desktop.
+  // If there are no available solana wallets on mobile, we show deeplink
+  // options for the most popular solana wallets.
+  const isMobile = useIsMobile();
+  if (solanaWallets.length === 0 && !isMobile) {
+    options = options.filter(
+      (method) => method.id !== PaymentMethod.SolanaWallets,
+    );
   }
 
   return (
@@ -224,7 +259,7 @@ export default function SelectMethod() {
       <OrderHeader />
 
       <OptionsList
-        requiredSkeletons={isMobile ? 4 : 3} // TODO: programmatically determine skeletons to best avoid layout shifts
+        requiredSkeletons={isOnMobile ? 4 : 3} // TODO: programmatically determine skeletons to best avoid layout shifts
         isLoading={externalPaymentOptions.loading}
         options={externalPaymentOptions.loading ? [] : options}
       />
@@ -233,8 +268,41 @@ export default function SelectMethod() {
   );
 }
 
+/** Hydrate payment methods with local data like connected wallets. */
+function hydratePaymentMethods(
+  paymentMethods: PaymentMethodDisplay[],
+  evmWallet: UseAccountReturnType,
+  senderEnsName: string | undefined,
+  solWallet: WalletContextState,
+) {
+  // Fill in the logos for the other EVM wallets option
+  const evmWalletsMethod = paymentMethods.find(
+    (method) => method.id === PaymentMethod.EVMWallets,
+  );
+  if (evmWalletsMethod) {
+    evmWalletsMethod.icons = getBestUnconnectedEVMWalletIcons(
+      evmWallet.connector,
+    );
+    evmWalletsMethod.title = `Pay with ${
+      evmWallet.isConnected ? "another wallet" : "wallet"
+    }`;
+  }
+
+  // Remove solana option if no solana wallets are connected on desktop.
+  // If there are no available solana wallets on mobile, we show deeplink
+  // options for the most popular solana wallets.
+  const isMobile = useIsMobile();
+  if (solWallet.wallets.length === 0 && !isMobile) {
+    paymentMethods = paymentMethods.filter(
+      (method) => method.id !== PaymentMethod.SolanaWallets,
+    );
+  }
+
+  return paymentMethods;
+}
+
 // Get 3 icons, skipping the one that is already connected
-function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
+function getBestUnconnectedEVMWalletIcons(connector: Connector | undefined) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
   const [isMetaMask, isRainbow, isCoinbase] = [
@@ -249,45 +317,4 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
   if (icons.length < 3) icons.push(<Rabby />);
 
   return icons;
-}
-
-function getSolanaOption(isOnIOS: boolean) {
-  const { wallets } = useWallet();
-  const { setRoute } = usePayContext();
-
-  if (wallets.length === 0 && !isOnIOS) return null;
-
-  return {
-    id: "solana",
-    title: "Pay on Solana",
-    icons: [<Solana />],
-    onClick: () => {
-      setRoute(ROUTES.SOLANA_CONNECT);
-    },
-  };
-}
-
-function getDepositAddressOption(depositAddressOptions: {
-  loading: boolean;
-  options: DepositAddressPaymentOptionMetadata[];
-}) {
-  const { setRoute, paymentState } = usePayContext();
-
-  // TODO: API should serve the subtitle and disabled
-  const disabled =
-    !paymentState.isDepositFlow &&
-    !depositAddressOptions.loading &&
-    depositAddressOptions.options.length === 0;
-  const subtitle = disabled ? "Minimum $20.00" : "Bitcoin, Tron, Zcash...";
-
-  return {
-    id: "depositAddress",
-    title: "Pay on another chain",
-    subtitle,
-    icons: [<Bitcoin />, <Tron />, <Zcash />],
-    onClick: () => {
-      setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
-    },
-    disabled,
-  };
 }

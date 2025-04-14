@@ -2,13 +2,13 @@ import {
   DaimoPayHydratedOrder,
   DaimoPayOrder,
   ExternalPaymentOptionData,
-  ExternalPaymentOptions,
+  PaymentMethod,
 } from "@daimo/pay-common";
 
 export type CreateOrHydrateFn = (opts: {
   order: DaimoPayOrder;
   refundAddress?: string;
-  externalPaymentOption?: ExternalPaymentOptions;
+  paymentMethod?: PaymentMethod;
 }) => Promise<{
   hydratedOrder: DaimoPayHydratedOrder;
   externalPaymentOptionData: ExternalPaymentOptionData | null;

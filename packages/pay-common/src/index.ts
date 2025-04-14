@@ -1,3 +1,4 @@
+export * from "./apiTypes";
 export * from "./assert";
 export * from "./chain";
 export * from "./daimoPay";

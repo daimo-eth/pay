@@ -7,8 +7,9 @@ import {
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
   ethereum,
-  ExternalPaymentOptionMetadata,
-  ExternalPaymentOptions,
+  getOrderDestChainId,
+  PaymentMethod,
+  PaymentMethodMetadata,
   PlatformType,
   readDaimoPayOrderID,
   SolanaPublicKey,
@@ -25,6 +26,7 @@ import { TrpcClient } from "../utils/trpc";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
+import { usePaymentMethods } from "./usePaymentMethods";
 import { usePayWithSolanaToken } from "./usePayWithSolanaToken";
 import { usePayWithToken } from "./usePayWithToken";
 import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
@@ -80,18 +82,19 @@ export interface PaymentState {
   modalOptions: DaimoPayModalOptions;
   setModalOptions: (modalOptions: DaimoPayModalOptions) => void;
   paymentWaitingMessage: string | undefined;
+  paymentMethods: ReturnType<typeof usePaymentMethods>;
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
   depositAddressOptions: ReturnType<typeof useDepositAddressOptions>;
-  selectedExternalOption: ExternalPaymentOptionMetadata | undefined;
+  selectedExternalOption: PaymentMethodMetadata | undefined;
   selectedTokenOption: WalletPaymentOption | undefined;
   selectedSolanaTokenOption: WalletPaymentOption | undefined;
   selectedDepositAddressOption: DepositAddressPaymentOptionMetadata | undefined;
   getOrderUsdLimit: () => number;
   setPaymentWaitingMessage: (message: string | undefined) => void;
   setSelectedExternalOption: (
-    option: ExternalPaymentOptionMetadata | undefined,
+    option: PaymentMethodMetadata | undefined,
   ) => void;
   setSelectedTokenOption: (option: WalletPaymentOption | undefined) => void;
   setSelectedSolanaTokenOption: (
@@ -102,7 +105,7 @@ export interface PaymentState {
   ) => void;
   setChosenUsd: (usd: number) => void;
   payWithToken: (walletOption: WalletPaymentOption) => Promise<void>;
-  payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
+  payWithExternal: (paymentMethod: PaymentMethod) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
   ) => Promise<DepositAddressPaymentOptionData | null>;
@@ -155,6 +158,15 @@ export function usePaymentState({
   const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>({});
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
+  const paymentMethods = usePaymentMethods({
+    trpc,
+    isOrderReady: daimoPayOrder != null,
+    paymentMethods: daimoPayOrder?.metadata.payer?.paymentOptions,
+    platform,
+    usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
+    mode: daimoPayOrder?.mode,
+    destChainId: daimoPayOrder ? getOrderDestChainId(daimoPayOrder) : undefined,
+  });
   const externalPaymentOptions = useExternalPaymentOptions({
     trpc,
     filterIds: daimoPayOrder?.metadata.payer?.paymentOptions,
@@ -195,7 +207,7 @@ export function usePaymentState({
   }: {
     order: DaimoPayOrder;
     refundAddress?: string;
-    externalPaymentOption?: ExternalPaymentOptions;
+    externalPaymentOption?: PaymentMethod;
   }) => {
     assert(!!platform, "[CREATE/HYDRATE] missing platform");
 
@@ -206,7 +218,7 @@ export function usePaymentState({
         chosenFinalTokenAmount: order.destFinalCallTokenAmount.amount,
         platform,
         refundAddress,
-        externalPaymentOption,
+        paymentMethod: externalPaymentOption,
         redirectReturnUrl,
       });
     }
@@ -229,7 +241,7 @@ export function usePaymentState({
       },
       platform,
       refundAddress,
-      externalPaymentOption,
+      paymentMethod: externalPaymentOption,
       redirectReturnUrl,
     });
   };
@@ -252,7 +264,7 @@ export function usePaymentState({
   });
 
   const [selectedExternalOption, setSelectedExternalOption] =
-    useState<ExternalPaymentOptionMetadata>();
+    useState<PaymentMethodMetadata>();
 
   const [selectedTokenOption, setSelectedTokenOption] =
     useState<WalletPaymentOption>();
@@ -274,12 +286,12 @@ export function usePaymentState({
       : DEFAULT_USD_LIMIT;
   };
 
-  const payWithExternal = async (option: ExternalPaymentOptions) => {
+  const payWithExternal = async (paymentMethod: PaymentMethod) => {
     assert(!!daimoPayOrder, "[PAY EXTERNAL] daimoPayOrder cannot be null");
     assert(!!platform, "[PAY EXTERNAL] platform cannot be null");
     const { hydratedOrder, externalPaymentOptionData } = await createOrHydrate({
       order: daimoPayOrder,
-      externalPaymentOption: option,
+      externalPaymentOption: paymentMethod,
     });
     assert(
       !!externalPaymentOptionData,
@@ -289,7 +301,7 @@ export function usePaymentState({
     log(
       `[PAY EXTERNAL] hydrated order: ${JSON.stringify(
         hydratedOrder,
-      )}, checking out with external payment: ${option}`,
+      )}, checking out with external payment: ${paymentMethod}`,
     );
 
     setPaymentWaitingMessage(externalPaymentOptionData.waitingMessage);
@@ -447,6 +459,7 @@ export function usePaymentState({
     selectedExternalOption,
     selectedTokenOption,
     selectedSolanaTokenOption,
+    paymentMethods,
     externalPaymentOptions,
     walletPaymentOptions,
     solanaPaymentOptions,

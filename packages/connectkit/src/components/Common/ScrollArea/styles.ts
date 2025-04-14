@@ -64,7 +64,8 @@ export const ScrollAreaContainer = styled.div<{
 }>`
   --bg: ${({ $backgroundColor }) =>
     $backgroundColor || "var(--ck-body-background)"};
-  --fade-height: 1px;
+  --fade-height-top: 1px;
+  --fade-height-bottom: ${(props) => (props.$hideBottomLine ? "32px" : "1px")};
   position: relative;
   z-index: 1;
 
@@ -84,7 +85,7 @@ export const ScrollAreaContainer = styled.div<{
             position: sticky;
             top: 0;
             bottom: 0;
-            width: var(--fade-height);
+            width: var(--fade-height-bottom);
             background: var(
               --ck-body-divider-secondary,
               var(--ck-body-divider)
@@ -115,7 +116,7 @@ export const ScrollAreaContainer = styled.div<{
           max-height: ${$height ? `${$height}px` : "310px"};
           overflow-y: scroll;
           padding: 0 10px;
-          margin: calc(var(--fade-height) * -1) -16px 0 -10px;
+          margin: calc(var(--fade-height-top) * -1) -16px 0 -10px;
 
           &:before,
           &:after {
@@ -126,10 +127,10 @@ export const ScrollAreaContainer = styled.div<{
             position: sticky;
             left: 0;
             right: 0;
-            height: var(--fade-height);
           }
           &:before {
             top: 0;
+            height: var(--fade-height-top);
             background: var(
               --ck-body-divider-secondary,
               var(--ck-body-divider)
@@ -138,12 +139,11 @@ export const ScrollAreaContainer = styled.div<{
           }
           &:after {
             bottom: 0;
+            height: var(--fade-height-bottom);
             background: ${$hideBottomLine
-              ? "transparent"
+              ? "linear-gradient(to bottom, transparent, var(--bg))"
               : "var(--ck-body-divider-secondary, var(--ck-body-divider))"};
-            box-shadow: ${$hideBottomLine
-              ? "none"
-              : "var(--ck-body-divider-box-shadow)"};
+            box-shadow: none;
           }
 
           &.scroll-start {

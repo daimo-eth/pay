@@ -11,7 +11,6 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
 import Button from "../../Common/Button";
-import { OrDivider } from "../../Common/Modal";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -172,18 +171,15 @@ export default function SelectToken() {
         orDivider={optionsList.length != 0}
       />
       {optionsList.length != 0 && (
-        <>
-          <OrDivider />
-          <div className="mt-2">
-            <OptionsList
-              options={
-                externalPaymentOptions.options.length > 0
-                  ? [selectMethodOption]
-                  : [selectWalletOption]
-              }
-            />
-          </div>
-        </>
+        <div className="mt-2">
+          <OptionsList
+            options={
+              externalPaymentOptions.options.length > 0
+                ? [selectMethodOption]
+                : [selectWalletOption]
+            }
+          />
+        </div>
       )}
     </PageContent>
   );

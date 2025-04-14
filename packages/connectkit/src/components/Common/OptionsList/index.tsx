@@ -70,6 +70,7 @@ const OptionsList = ({
         mobileDirection={"vertical"}
         height={shortScroll ? 225 : 300}
         hideBottomLine={orDivider}
+        totalItems={options.length}
       >
         <OptionsContainer $totalResults={options.length}>
           {options.map((option) => (

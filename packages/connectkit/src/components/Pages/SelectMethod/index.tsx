@@ -106,7 +106,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (isSolanaConnected) {
+    if (isSolanaConnected && includeSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
@@ -252,8 +252,11 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
 }
 
 function getSolanaOption(isOnIOS: boolean) {
-  const { wallets } = useWallet();
+  const { wallets, disconnect } = useWallet();
   const { setRoute } = usePayContext();
+  const disconnectSolana = () => {
+    disconnect();
+  };
 
   if (wallets.length === 0 && !isOnIOS) return null;
 
@@ -261,7 +264,8 @@ function getSolanaOption(isOnIOS: boolean) {
     id: "solana",
     title: "Pay on Solana",
     icons: [<Solana />],
-    onClick: () => {
+    onClick: async () => {
+      await disconnectSolana();
       setRoute(ROUTES.SOLANA_CONNECT);
     },
   };

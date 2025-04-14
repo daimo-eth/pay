@@ -169,6 +169,7 @@ export default function SelectToken() {
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
         shortScroll={isMobile}
+        orDivider={optionsList.length != 0}
       />
       {optionsList.length != 0 && (
         <>

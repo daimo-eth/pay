@@ -206,10 +206,10 @@ export const DaimoPayModal: React.FC<{
           address,
         });
       }
-    } else if (context.open && isSolanaConnected) {
-      if (context.route === ROUTES.SELECT_METHOD) {
-        context.setRoute(ROUTES.SOLANA_SELECT_TOKEN);
-      }
+      // } else if (context.open && isSolanaConnected) {
+      //   if (context.route === ROUTES.SELECT_METHOD) {
+      //     context.setRoute(ROUTES.SOLANA_SELECT_TOKEN);
+      //   }
     }
   }, [context.open]);
 

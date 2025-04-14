@@ -27,11 +27,13 @@ const OptionsList = ({
   isLoading,
   requiredSkeletons,
   shortScroll,
+  orDivider = false,
 }: {
   options: Option[];
   isLoading?: boolean;
   requiredSkeletons?: number;
   shortScroll?: boolean;
+  orDivider?: boolean;
 }) => {
   const { triggerResize, log } = usePayContext();
   const optionsLength = options.length;
@@ -62,7 +64,11 @@ const OptionsList = ({
   }
 
   return (
-    <ScrollArea mobileDirection={"vertical"} height={shortScroll ? 225 : 300}>
+    <ScrollArea
+      mobileDirection={"vertical"}
+      height={shortScroll ? 225 : 300}
+      hideBottomLine={orDivider}
+    >
       <OptionsContainer $totalResults={options.length}>
         {options.map((option) => (
           <OptionItem key={option.id} option={option} />

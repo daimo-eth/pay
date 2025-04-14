@@ -60,6 +60,7 @@ export const ScrollAreaContainer = styled.div<{
   $mobile?: boolean;
   $height?: number;
   $backgroundColor?: string;
+  $hideBottomLine?: boolean;
 }>`
   --bg: ${({ $backgroundColor }) =>
     $backgroundColor || "var(--ck-body-background)"};
@@ -67,7 +68,7 @@ export const ScrollAreaContainer = styled.div<{
   position: relative;
   z-index: 1;
 
-  ${({ $mobile, $height, $mobileDirection }) =>
+  ${({ $mobile, $height, $mobileDirection, $hideBottomLine }) =>
     $mobile && $mobileDirection === "horizontal"
       ? css`
           overflow-x: scroll;
@@ -126,18 +127,23 @@ export const ScrollAreaContainer = styled.div<{
             left: 0;
             right: 0;
             height: var(--fade-height);
+          }
+          &:before {
+            top: 0;
             background: var(
               --ck-body-divider-secondary,
               var(--ck-body-divider)
             );
             box-shadow: var(--ck-body-divider-box-shadow);
-            transition: opacity 300ms ease;
-          }
-          &:before {
-            top: 0;
           }
           &:after {
             bottom: 0;
+            background: ${$hideBottomLine
+              ? "transparent"
+              : "var(--ck-body-divider-secondary, var(--ck-body-divider))"};
+            box-shadow: ${$hideBottomLine
+              ? "none"
+              : "var(--ck-body-divider-box-shadow)"};
           }
 
           &.scroll-start {

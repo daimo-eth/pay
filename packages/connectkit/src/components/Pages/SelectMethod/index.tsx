@@ -104,6 +104,45 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
+    const binance = (
+      <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+        <img
+          src="https://pay.daimo.com/wallet-logos/binance-logo.svg"
+          alt="Binance"
+        />
+      </div>
+    );
+
+    const lemon = (
+      <div
+        style={{
+          borderRadius: "22.5%",
+          overflow: "hidden",
+          background: "white",
+        }}
+      >
+        <img
+          src="https://pay.daimo.com/wallet-logos/lemon-logo.svg"
+          alt="Lemon"
+        />
+      </div>
+    );
+
+    if (includeExchangeOption) {
+      const exchangeOption = {
+        id: "exchange",
+        title: "Pay with Exchange",
+        icons: [<Coinbase />, binance, lemon],
+        onClick: () => {
+          setRoute(ROUTES.DEPOSIT_ADDRESS_EXCHANGE, {
+            event: "click-wallet",
+            walletId: "exchange",
+          });
+        },
+      };
+      connectedOptions.push(exchangeOption);
+    }
+
     if (isSolanaConnected && includeSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
@@ -153,6 +192,10 @@ export default function SelectMethod() {
   const includeDepositAddressOption =
     paymentOptions == null ||
     paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
+
+  const includeExchangeOption =
+    paymentOptions == null ||
+    paymentOptions.includes(ExternalPaymentOptions.Exchange);
 
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {

@@ -19,6 +19,7 @@ import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import Confirmation from "../Pages/Confirmation";
+import DepositAddressExchange from "../Pages/DepositAddressExchange";
 import PayWithToken from "../Pages/PayWithToken";
 import SelectAmount from "../Pages/SelectAmount";
 import SelectDepositAddressAmount from "../Pages/SelectDepositAddressAmount";
@@ -74,6 +75,9 @@ export const DaimoPayModal: React.FC<{
     paymentOptions == null ||
     paymentOptions.includes(ExternalPaymentOptions.Solana);
   const chainIsSupported = useChainIsSupported(chain?.id);
+  const includeDepositAddressExchange =
+    paymentOptions == null ||
+    paymentOptions.includes(ExternalPaymentOptions.Exchange);
 
   //if chain is unsupported we enforce a "switch chain" prompt
   const closeable = !(
@@ -187,6 +191,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.MOBILECONNECTORS]: <MobileConnectors />,
     [ROUTES.CONNECT]: <ConnectUsing />,
     [ROUTES.SWITCHNETWORKS]: <SwitchNetworks />,
+    [ROUTES.DEPOSIT_ADDRESS_EXCHANGE]: <DepositAddressExchange />,
   };
 
   function hide() {

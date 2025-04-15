@@ -20,7 +20,7 @@ import CopyToClipboard from "../../Common/CopyToClipboard";
 import CustomQRCode from "../../Common/CustomQRCode";
 import { OrDivider } from "../../Common/Modal";
 
-const WaitingDepositAddress: React.FC = () => {
+const DepositAddressExchange: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
   const trpc = context.trpc as TrpcClient;
@@ -123,4 +123,4 @@ const WaitingDepositAddress: React.FC = () => {
   );
 };
 
-export default WaitingDepositAddress;
+export default DepositAddressExchange;

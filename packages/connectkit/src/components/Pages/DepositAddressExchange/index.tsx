@@ -5,7 +5,6 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import {
   ModalBody,
   ModalContent,
-  ModalH1,
   PageContent,
 } from "../../Common/Modal/styles";
 
@@ -80,16 +79,7 @@ const PayWithBinance: React.FC = () => {
     return (
       <PageContent>
         <ModalContent>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "300px",
-            }}
-          >
-            <CustomQRCode value={undefined} image={binanceLogo} />
-          </div>
+          <CustomQRCode image={binanceLogo} />
         </ModalContent>
       </PageContent>
     );
@@ -98,8 +88,6 @@ const PayWithBinance: React.FC = () => {
   return (
     <PageContent>
       <ModalContent>
-        <ModalH1>Pay with Binance</ModalH1>
-
         <CustomQRCode
           value={address}
           image={binanceLogo}
@@ -124,11 +112,11 @@ const PayWithBinance: React.FC = () => {
             >
               1. Select USDC
               <br />
-              2. Scan QR code or copy address
+              2. Scan the QR code or copy the addres
               <br />
-              3. Select Arbitrum
+              3. Choose Arbitrum as the network
               <br />
-              4. Copy amount and Send
+              4. Copy the amount and send
             </p>
             <div
               style={{
@@ -136,6 +124,7 @@ const PayWithBinance: React.FC = () => {
                 alignItems: "center",
                 cursor: "pointer",
                 marginTop: 16,
+                userSelect: "none",
               }}
               onClick={() => setTermsChecked(!termsChecked)}
             >
@@ -143,6 +132,7 @@ const PayWithBinance: React.FC = () => {
                 style={{
                   width: 20,
                   height: 20,
+                  borderRadius: "5px",
                   border: `2px solid var(--ck-body-color)`,
                   marginRight: 8,
                   display: "flex",
@@ -155,6 +145,7 @@ const PayWithBinance: React.FC = () => {
                     style={{
                       width: 12,
                       height: 12,
+                      borderRadius: "2px",
                       background: "var(--ck-body-color)",
                     }}
                   />
@@ -165,6 +156,7 @@ const PayWithBinance: React.FC = () => {
                   cursor: "pointer",
                   fontSize: "14px",
                   color: "var(--ck-body-color-muted)",
+                  userSelect: "none",
                 }}
               >
                 I acknowledge that I have read these instructions

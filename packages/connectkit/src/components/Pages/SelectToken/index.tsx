@@ -70,7 +70,7 @@ export default function SelectToken() {
 
   return (
     <PageContent>
-      <OrderHeader minified />
+      <OrderHeader minified showEth={true} />
 
       {!walletPaymentOptions.isLoading && optionsList.length === 0 && (
         <ModalContent
@@ -83,9 +83,7 @@ export default function SelectToken() {
           }}
         >
           <ModalH1>Insufficient balance.</ModalH1>
-          <div className="w-full mt-4">
-            <SelectAnotherMethodButton />
-          </div>
+          <SelectAnotherMethodButton />
         </ModalContent>
       )}
 
@@ -93,14 +91,10 @@ export default function SelectToken() {
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
-        shortScroll={isMobile}
+        scrollHeight={isMobile ? 225 : 300}
         orDivider={optionsList.length != 0}
       />
-      {optionsList.length != 0 && (
-        <div className="mt-2">
-          <SelectAnotherMethodButton />
-        </div>
-      )}
+      {optionsList.length != 0 && <SelectAnotherMethodButton />}
     </PageContent>
   );
 }

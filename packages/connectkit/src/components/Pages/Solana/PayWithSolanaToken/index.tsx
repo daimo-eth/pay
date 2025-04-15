@@ -15,8 +15,8 @@ import {
 import { assert } from "@daimo/pay-common";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
+import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
-
 enum PayState {
   RequestingPayment = "Waiting For Payment",
   RequestCancelled = "Payment Cancelled",
@@ -88,20 +88,7 @@ const PayWithSolanaToken: React.FC = () => {
         {payState === PayState.RequestCancelled && (
           <Button onClick={handleTransfer}>Retry Payment</Button>
         )}
-        {payState === PayState.RequestFailed && (
-          <Button
-            onClick={() => {
-              assert(
-                payParams != null,
-                "[PAY SOLANA] payParams cannot be null in deposit flow",
-              );
-              generatePreviewOrder(payParams);
-              setRoute(ROUTES.SELECT_METHOD, { event: "click-select-another" });
-            }}
-          >
-            Select Another Method
-          </Button>
-        )}
+        {payState === PayState.RequestFailed && <SelectAnotherMethodButton />}
       </ModalContent>
     </PageContent>
   );

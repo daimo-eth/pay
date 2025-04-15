@@ -15,10 +15,10 @@ import {
 } from "@daimo/pay-common";
 import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
 import type { TrpcClient } from "../../../utils/trpc";
-import Button from "../../Common/Button";
 import CopyToClipboard from "../../Common/CopyToClipboard";
 import CustomQRCode from "../../Common/CustomQRCode";
 import { OrDivider } from "../../Common/Modal";
+import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const WaitingDepositAddress: React.FC = () => {
   const context = usePayContext();
@@ -71,13 +71,7 @@ const WaitingDepositAddress: React.FC = () => {
             We're unable to process {selectedDepositAddressOption?.id} payments
             at this time. Please select another payment method.
           </ModalBody>
-          <Button
-            onClick={() =>
-              setRoute(ROUTES.SELECT_METHOD, { event: "click-select-another" })
-            }
-          >
-            Select Another Method
-          </Button>
+          <SelectAnotherMethodButton />
         </ModalContent>
       ) : (
         <ModalContent>

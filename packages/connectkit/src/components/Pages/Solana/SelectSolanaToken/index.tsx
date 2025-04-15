@@ -65,7 +65,7 @@ const SelectSolanaToken: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified />
+      <OrderHeader minified showSolana={true} />
 
       {!solanaPaymentOptions.isLoading && optionsList.length === 0 && (
         <ModalContent
@@ -88,11 +88,7 @@ const SelectSolanaToken: React.FC = () => {
         options={optionsList}
         orDivider={optionsList.length != 0}
       />
-      {optionsList.length != 0 && (
-        <div className="mt-2">
-          <SelectAnotherMethodButton />
-        </div>
-      )}
+      {optionsList.length != 0 && <SelectAnotherMethodButton />}
     </PageContent>
   );
 };

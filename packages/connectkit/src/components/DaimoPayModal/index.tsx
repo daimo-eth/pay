@@ -223,9 +223,6 @@ export const DaimoPayModal: React.FC<{
       context.wcWallet === undefined &&
       includeSolana
     ) {
-      console.log("solana connected on open");
-      console.log("isEthConnected ", isEthConnected);
-      console.log("context.wcWallet ", context.wcWallet);
       if (context.route === ROUTES.SELECT_METHOD) {
         context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
           event: "solana_connected_on_open",

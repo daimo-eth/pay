@@ -1,4 +1,8 @@
+import { getAddressContraction } from "@daimo/pay-common";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
+import React from "react";
+import { useAccount } from "wagmi";
 import {
   Arbitrum,
   Base,
@@ -8,16 +12,37 @@ import {
   Solana,
 } from "../../../assets/chains";
 import { USDC } from "../../../assets/coins";
+import { MetaMask } from "../../../assets/logos";
 import defaultTheme from "../../../constants/defaultTheme";
-import styled from "../../../styles/styled";
-import { formatUsd } from "../../../utils/format";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
+import styled from "../../../styles/styled";
+import { formatUsd } from "../../../utils/format";
 
 /** Shows payment amount. */
-export const OrderHeader = ({ minified = false }: { minified?: boolean }) => {
-  const { paymentState, route } = usePayContext();
+export const OrderHeader = ({
+  minified = false,
+  showEth = false,
+  showSolana = false,
+}: {
+  minified?: boolean;
+  showEth?: boolean;
+  showSolana?: boolean;
+}) => {
+  const { paymentState, route, wcWallet } = usePayContext();
+  const { isConnected: isEthConnected, address, connector } = useAccount();
+  const {
+    connected: isSolanaConnected,
+    publicKey,
+    wallet: solanaWallet,
+  } = useWallet();
+  const { senderEnsName } = paymentState;
 
+  const ethWalletDisplayName =
+    senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
+  const solWalletDisplayName = getAddressContraction(
+    publicKey?.toBase58() ?? "",
+  );
   const orderUsd = paymentState.daimoPayOrder?.destFinalCallTokenAmount.usd;
 
   const titleAmountContent = (() => {
@@ -36,12 +61,63 @@ export const OrderHeader = ({ minified = false }: { minified?: boolean }) => {
     }
   })();
 
+  const renderIcon = (
+    icon: React.ReactNode | string | undefined,
+    name?: string,
+    size = 32,
+  ): JSX.Element => {
+    if (!icon) return <MetaMask />;
+
+    return (
+      <LogoContainer $size={size} $zIndex={1} style={{ borderRadius: "22.5%" }}>
+        {typeof icon === "string" ? (
+          <img
+            src={icon}
+            alt={name || "wallet"}
+            style={{ maxWidth: "100%", maxHeight: "100%" }}
+          />
+        ) : (
+          icon
+        )}
+      </LogoContainer>
+    );
+  };
+
+  let walletIcon = renderIcon(
+    connector?.icon || wcWallet?.icon,
+    wcWallet?.name,
+  );
+  let solanaIcon = renderIcon(
+    solanaWallet?.adapter.icon || <Solana />,
+    solanaWallet?.adapter.name,
+  );
+
   if (minified) {
     if (titleAmountContent != null) {
       return (
         <MinifiedContainer>
           <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
-          <CoinLogos $size={32} />
+          {showEth && isEthConnected && (
+            <>
+              <SubtitleContainer>
+                <Subtitle>{ethWalletDisplayName}</Subtitle>
+                {walletIcon}
+              </SubtitleContainer>
+            </>
+          )}
+          {showSolana && isSolanaConnected && (
+            <>
+              <SubtitleContainer>
+                <Subtitle>{solWalletDisplayName}</Subtitle>
+                {solanaIcon}
+              </SubtitleContainer>
+            </>
+          )}
+          {!showEth && !showSolana && (
+            <>
+              <CoinLogos $size={32} />
+            </>
+          )}
         </MinifiedContainer>
       );
     } else {
@@ -179,4 +255,11 @@ const Logos = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const SubtitleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 `;

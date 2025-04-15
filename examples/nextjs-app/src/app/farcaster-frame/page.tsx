@@ -2,11 +2,10 @@
 
 import { DaimoPayButton } from "@daimo/pay";
 import { baseUSDC } from "@daimo/pay-common";
-import sdk from "@farcaster/frame-sdk";
+import { sdk } from "@farcaster/frame-sdk";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
-import { CopyButton } from "../../shared/copy-button";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import { APP_ID, Container, DAIMO_ADDRESS } from "../shared";
 
@@ -32,38 +31,19 @@ export default function DemoFarcasterFrame() {
   return (
     <Container>
       <Text>
-        Daimo Pay can be embedded in a Farcaster Framev2. Make contract calls or
-        accept payments from any coin on any chain from inside a Farcaster
-        Frame.
+        Daimo Pay can be used in a Mini app. Make contract calls or accept
+        payments from any coin on any chain from inside a Farcaster Mini app.
       </Text>
+      <Text className="mt-4">Try this demo from inside a Mini app.</Text>
       <Text>
-        You will still need to install the{" "}
         <Link
-          href="https://docs.farcaster.xyz/developers/frames/v2/"
-          target="_blank"
-          className="underline"
-        >
-          Farcaster Frame SDK
-        </Link>{" "}
-        to use Daimo Pay in a Frame.
-      </Text>
-      <Text className="mt-4">Try this demo from inside a Farcaster Frame.</Text>
-      <Text>
-        1. <CopyButton textToCopy={url} />
-      </Text>
-      <Text>
-        1.{" "}
-        <Link
-          href="https://warpcast.com/~/developers/frames"
+          href="https://warpcast.com/~/developers/mini-apps/preview?url=https%3A%2F%2Fdaimo-pay-demo.vercel.app%2Ffarcaster-frame"
           target="_blank"
           className="underline"
         >
           Open the Frame developer portal
         </Link>{" "}
-        and paste the copied URL into the URL field of the &quot;Launch
-        Frame&quot; section.
       </Text>
-
       <div />
       <DaimoPayButton
         appId={APP_ID}

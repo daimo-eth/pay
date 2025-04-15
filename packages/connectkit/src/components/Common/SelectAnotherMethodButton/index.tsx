@@ -1,10 +1,16 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
+import styled from "styled-components";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 import OptionsList from "../OptionsList";
+
+const OptionsContainer = styled.div`
+  width: 100%;
+  margin-top: 1rem;
+`;
 
 export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
@@ -91,12 +97,14 @@ export default function SelectAnotherMethodButton() {
   }
 
   return (
-    <OptionsList
-      options={
-        allPaymentOptions.length > 0
-          ? [selectMethodOption]
-          : [selectWalletOption]
-      }
-    />
+    <OptionsContainer>
+      <OptionsList
+        options={
+          allPaymentOptions.length > 0
+            ? [selectMethodOption]
+            : [selectWalletOption]
+        }
+      />
+    </OptionsContainer>
   );
 }

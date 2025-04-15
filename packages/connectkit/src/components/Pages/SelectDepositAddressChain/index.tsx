@@ -4,9 +4,9 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
-import Button from "../../Common/Button";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
+import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
@@ -32,9 +32,7 @@ const SelectDepositAddressChain: React.FC = () => {
             }}
           >
             <ModalH1>Chains unavailable.</ModalH1>
-            <Button onClick={() => setRoute(ROUTES.SELECT_METHOD)}>
-              Select Another Method
-            </Button>
+            <SelectAnotherMethodButton />
           </ModalContent>
         )}
 

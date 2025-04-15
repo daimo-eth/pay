@@ -13,11 +13,11 @@ import {
   Solflare,
   SquircleIcon,
 } from "../../../../assets/logos";
-import { isMobile } from "../../../../utils";
-import Button from "../../../Common/Button";
-import OptionsList from "../../../Common/OptionsList";
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
+import { isMobile } from "../../../../utils";
+import OptionsList from "../../../Common/OptionsList";
+import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 
 interface Option {
   id: string;
@@ -118,13 +118,7 @@ const ConnectSolana: React.FC = () => {
           }}
         >
           <ModalH1>No Solana wallets detected.</ModalH1>
-          <Button
-            onClick={() =>
-              setRoute(ROUTES.SELECT_METHOD, { event: "click-select-another" })
-            }
-          >
-            Select Another Method
-          </Button>
+          <SelectAnotherMethodButton />
         </ModalContent>
       )}
 

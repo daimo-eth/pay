@@ -28,7 +28,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectMethodOption = {
     id: "select-method",
-    title: `Pay With Another Method`,
+    title: `Pay with another method`,
     icons: getBestPaymentMethodIcons(),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);
@@ -37,7 +37,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectWalletOption = {
     id: "select-wallet",
-    title: "Select Another Wallet",
+    title: "Pay with another wallet",
     icons: getBestUnconnectedWalletIcons(connector),
     onClick: async () => {
       await disconnectAsync();

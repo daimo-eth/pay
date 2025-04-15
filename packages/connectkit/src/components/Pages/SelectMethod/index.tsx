@@ -252,11 +252,8 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
 }
 
 function getSolanaOption(isOnIOS: boolean) {
-  const { wallets, disconnect } = useWallet();
+  const { wallets, disconnect: disconnectSolana } = useWallet();
   const { setRoute } = usePayContext();
-  const disconnectSolana = () => {
-    disconnect();
-  };
 
   if (wallets.length === 0 && !isOnIOS) return null;
 

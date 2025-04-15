@@ -112,7 +112,7 @@ const PayWithBinance: React.FC = () => {
             >
               1. Select USDC
               <br />
-              2. Scan the QR code or copy the addres
+              2. Scan the QR code or copy the address
               <br />
               3. Choose Arbitrum as the network
               <br />

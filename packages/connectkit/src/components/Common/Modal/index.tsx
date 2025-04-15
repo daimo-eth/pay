@@ -384,6 +384,10 @@ const Modal: React.FC<ModalProps> = ({
         return `Pay with ${chainName} ${selectedTokenOption.balance.token.symbol}`;
       case ROUTES.CONFIRMATION:
         return "Payment Successful";
+      case ROUTES.EXCHANGES:
+        return "Select Exchange";
+      case ROUTES.WAITING_DEPOSIT_ADDRESS_EXCHANGE:
+        return "Pay with Binance";
     }
   }
 

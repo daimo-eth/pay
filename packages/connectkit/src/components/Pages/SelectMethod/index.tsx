@@ -104,45 +104,6 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    const binance = (
-      <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
-        <img
-          src="https://pay.daimo.com/wallet-logos/binance-logo.svg"
-          alt="Binance"
-        />
-      </div>
-    );
-
-    const lemon = (
-      <div
-        style={{
-          borderRadius: "22.5%",
-          overflow: "hidden",
-          background: "white",
-        }}
-      >
-        <img
-          src="https://pay.daimo.com/wallet-logos/lemon-logo.svg"
-          alt="Lemon"
-        />
-      </div>
-    );
-
-    if (includeExchangeOption) {
-      const exchangeOption = {
-        id: "exchange",
-        title: "Pay with Exchange",
-        icons: [<Coinbase />, binance, lemon],
-        onClick: () => {
-          setRoute(ROUTES.DEPOSIT_ADDRESS_EXCHANGE, {
-            event: "click-wallet",
-            walletId: "exchange",
-          });
-        },
-      };
-      connectedOptions.push(exchangeOption);
-    }
-
     if (isSolanaConnected && includeSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
@@ -193,10 +154,6 @@ export default function SelectMethod() {
     paymentOptions == null ||
     paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
 
-  const includeExchangeOption =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.Exchange);
-
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {
     id: "unconnectedWallet",
@@ -236,24 +193,51 @@ export default function SelectMethod() {
   }
 
   // External payment options, e.g. Binance, Coinbase, etc.
-  options.push(
-    ...(externalPaymentOptions.options ?? []).map((option) => ({
-      id: option.id,
-      title: option.cta,
-      icons: [option.logoURI],
-      onClick: () => {
-        setSelectedExternalOption(option);
-        const meta = { event: "click-option", option: option.id };
-        if (paymentState.isDepositFlow) {
-          setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
-        } else {
-          setRoute(ROUTES.WAITING_EXTERNAL, meta);
-        }
-      },
-      disabled: option.disabled,
-      subtitle: option.message,
-    })),
+  // options.push(
+  //   ...(externalPaymentOptions.options ?? []).map((option) => ({
+  //     id: option.id,
+  //     title: option.cta,
+  //     icons: [option.logoURI],
+  //     onClick: () => {
+  //       setSelectedExternalOption(option);
+  //       const meta = { event: "click-option", option: option.id };
+  //       if (paymentState.isDepositFlow) {
+  //         setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+  //       } else {
+  //         setRoute(ROUTES.WAITING_EXTERNAL, meta);
+  //       }
+  //     },
+  //     disabled: option.disabled,
+  //     subtitle: option.message,
+  //   })),
+  // );
+
+  // TEMP HACK: hardcode exchange deposit address option
+  const lemonLogo = (
+    <div
+      style={{ borderRadius: "50%", overflow: "hidden", background: "white" }}
+    >
+      <img
+        src="https://pay.daimo.com/wallet-logos/lemon-logo.svg"
+        alt="Lemon"
+      />
+    </div>
   );
+  options.push({
+    id: "exchange",
+    title: "Pay with exchange",
+    icons: [
+      "https://pay.daimo.com/wallet-logos/coinbase-logo.svg",
+      "https://pay.daimo.com/wallet-logos/binance-logo.svg",
+      lemonLogo,
+    ],
+    onClick: () => {
+      setRoute(ROUTES.EXCHANGES, {
+        event: "click-option",
+        option: "exchange",
+      });
+    },
+  });
 
   if (includeDepositAddressOption) {
     const depositAddressOption = getDepositAddressOption(depositAddressOptions);

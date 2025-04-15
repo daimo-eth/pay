@@ -15,6 +15,8 @@ export enum ROUTES {
   SOLANA_SELECT_AMOUNT = "daimoPaySolanaSelectAmount",
   SOLANA_PAY_WITH_TOKEN = "daimoPaySolanaPayWithToken",
   DEPOSIT_ADDRESS_EXCHANGE = "daimoPayDepositAddressExchange",
+  EXCHANGES = "daimoPayExchanges",
+  WAITING_DEPOSIT_ADDRESS_EXCHANGE = "daimoPayWaitingDepositAddressExchange",
 
   // Unused routes. Kept to minimize connectkit merge conflicts.
   ONBOARDING = "onboarding",

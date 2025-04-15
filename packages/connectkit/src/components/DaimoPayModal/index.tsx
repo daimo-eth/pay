@@ -20,6 +20,7 @@ import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import Confirmation from "../Pages/Confirmation";
 import DepositAddressExchange from "../Pages/DepositAddressExchange";
+import Exchanges from "../Pages/Exchanges";
 import PayWithToken from "../Pages/PayWithToken";
 import SelectAmount from "../Pages/SelectAmount";
 import SelectDepositAddressAmount from "../Pages/SelectDepositAddressAmount";
@@ -75,9 +76,6 @@ export const DaimoPayModal: React.FC<{
     paymentOptions == null ||
     paymentOptions.includes(ExternalPaymentOptions.Solana);
   const chainIsSupported = useChainIsSupported(chain?.id);
-  const includeDepositAddressExchange =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.Exchange);
 
   //if chain is unsupported we enforce a "switch chain" prompt
   const closeable = !(
@@ -162,6 +160,20 @@ export const DaimoPayModal: React.FC<{
         setSelectedSolanaTokenOption(undefined);
         context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta);
       }
+    } else if (context.route === ROUTES.EXCHANGES) {
+      context.setRoute(ROUTES.SELECT_METHOD, meta);
+    } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS_EXCHANGE) {
+      if (isDepositFlow) {
+        assert(
+          payParams != null,
+          "[PAY MODAL] payParams cannot be null in deposit flow",
+        );
+        generatePreviewOrder(payParams);
+        context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+      } else {
+        setSelectedExternalOption(undefined);
+        context.setRoute(ROUTES.SELECT_METHOD, meta);
+      }
     } else {
       context.setRoute(ROUTES.SELECT_METHOD, meta);
     }
@@ -183,6 +195,9 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SOLANA_SELECT_TOKEN]: <SelectSolanaToken />,
     [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
     [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,
+    [ROUTES.EXCHANGES]: <Exchanges />,
+    [ROUTES.WAITING_DEPOSIT_ADDRESS_EXCHANGE]: <DepositAddressExchange />,
+
     // Unused routes. Kept to minimize connectkit merge conflicts.
     [ROUTES.ONBOARDING]: <Onboarding />,
     [ROUTES.ABOUT]: <About />,

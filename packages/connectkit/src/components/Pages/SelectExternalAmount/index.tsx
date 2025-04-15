@@ -14,6 +14,7 @@ import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
 import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 
 const SelectExternalAmount: React.FC = () => {
   const { paymentState, setRoute, triggerResize } = usePayContext();
@@ -66,7 +67,11 @@ const SelectExternalAmount: React.FC = () => {
   const handleContinue = () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     paymentState.setChosenUsd(amountUsd);
-    setRoute(ROUTES.WAITING_EXTERNAL, { amountUsd });
+    if (selectedExternalOption.id === ExternalPaymentOptions.Coinbase) {
+      setRoute(ROUTES.WAITING_EXTERNAL, { amountUsd });
+    } else {
+      setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS_EXCHANGE, { amountUsd });
+    }
   };
 
   return (

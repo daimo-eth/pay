@@ -3,12 +3,11 @@ import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
-import Button from "../../Common/Button";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
+import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
-
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
   const { setRoute, paymentState, wcWallet } = usePayContext();
@@ -84,9 +83,9 @@ export default function SelectToken() {
           }}
         >
           <ModalH1>Insufficient balance.</ModalH1>
-          <Button onClick={() => setRoute(ROUTES.SELECT_METHOD)}>
-            Select Another Method
-          </Button>
+          <div className="w-full mt-4">
+            <SelectAnotherMethodButton />
+          </div>
         </ModalContent>
       )}
 
@@ -94,7 +93,14 @@ export default function SelectToken() {
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
+        shortScroll={isMobile}
+        orDivider={optionsList.length != 0}
       />
+      {optionsList.length != 0 && (
+        <div className="mt-2">
+          <SelectAnotherMethodButton />
+        </div>
+      )}
     </PageContent>
   );
 }

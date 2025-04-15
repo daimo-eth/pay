@@ -56,10 +56,21 @@ const WaitingExternal: React.FC = () => {
   const openExternalWindow = (url: string) => {
     if (selectedExternalOption?.id === "Coinbase") {
       //opening Coinbase onramp in a popup window in portrait mode in the center of the screen
+      const width = 500;
+      const height = 700;
+      const left = Math.max(
+        0,
+        Math.floor((window.innerWidth - width) / 2) + window.screenX,
+      );
+      const top = Math.max(
+        0,
+        Math.floor((window.innerHeight - height) / 2) + window.screenY,
+      );
+
       window.open(
         url,
         "popupWindow",
-        `width=500,height=700,left=${(window.screen.width - 500) / 2},top=${(window.screen.height - 700) / 2}`,
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`,
       );
     } else {
       window.open(url, "_blank");

@@ -61,14 +61,12 @@ export default function SelectMethod() {
 
       let walletIcon: JSX.Element;
       if (connector?.icon) {
-        log("[SELECT_METHOD] connector?.icon", connector?.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             <img src={connector.icon} alt={connector.name} />
           </div>
         );
       } else if (wcWallet?.icon) {
-        log("[SELECT_METHOD] wcWallet.icon", wcWallet.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             {typeof wcWallet.icon === "string" ? (
@@ -79,7 +77,7 @@ export default function SelectMethod() {
           </div>
         );
       } else {
-        log("[SELECT_METHOD] else");
+        // TODO: remove this once we have a default icon for wagmi wallets
         walletIcon = <MetaMask />;
       }
 
@@ -106,7 +104,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (isSolanaConnected) {
+    if (isSolanaConnected && includeSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
@@ -243,8 +241,8 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
     strippedId?.includes("coinbase"),
   ];
 
-  if (!isMetaMask) icons.push(<MetaMask />);
   if (!isRainbow) icons.push(<Rainbow />);
+  if (!isMetaMask) icons.push(<MetaMask />);
   if (!isCoinbase) icons.push(<Coinbase />);
   if (icons.length < 3) icons.push(<Rabby />);
 
@@ -252,7 +250,7 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
 }
 
 function getSolanaOption(isOnIOS: boolean) {
-  const { wallets } = useWallet();
+  const { wallets, disconnect: disconnectSolana } = useWallet();
   const { setRoute } = usePayContext();
 
   if (wallets.length === 0 && !isOnIOS) return null;
@@ -261,7 +259,8 @@ function getSolanaOption(isOnIOS: boolean) {
     id: "solana",
     title: "Pay on Solana",
     icons: [<Solana />],
-    onClick: () => {
+    onClick: async () => {
+      await disconnectSolana();
       setRoute(ROUTES.SOLANA_CONNECT);
     },
   };

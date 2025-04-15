@@ -60,14 +60,18 @@ export const ScrollAreaContainer = styled.div<{
   $mobile?: boolean;
   $height?: number;
   $backgroundColor?: string;
+  $hideBottomLine?: boolean;
+  $totalItems: number;
 }>`
   --bg: ${({ $backgroundColor }) =>
     $backgroundColor || "var(--ck-body-background)"};
-  --fade-height: 1px;
+  --fade-height-top: 1px;
+  --fade-height-bottom: ${(props) =>
+    props.$hideBottomLine && props.$totalItems > 2 ? "32px" : "1px"};
   position: relative;
   z-index: 1;
 
-  ${({ $mobile, $height, $mobileDirection }) =>
+  ${({ $mobile, $height, $mobileDirection, $hideBottomLine }) =>
     $mobile && $mobileDirection === "horizontal"
       ? css`
           overflow-x: scroll;
@@ -83,7 +87,7 @@ export const ScrollAreaContainer = styled.div<{
             position: sticky;
             top: 0;
             bottom: 0;
-            width: var(--fade-height);
+            width: var(--fade-height-bottom);
             background: var(
               --ck-body-divider-secondary,
               var(--ck-body-divider)
@@ -114,7 +118,7 @@ export const ScrollAreaContainer = styled.div<{
           max-height: ${$height ? `${$height}px` : "310px"};
           overflow-y: scroll;
           padding: 0 10px;
-          margin: calc(var(--fade-height) * -1) -16px 0 -10px;
+          margin: calc(var(--fade-height-top) * -1) -16px 0 -10px;
 
           &:before,
           &:after {
@@ -125,19 +129,23 @@ export const ScrollAreaContainer = styled.div<{
             position: sticky;
             left: 0;
             right: 0;
-            height: var(--fade-height);
+          }
+          &:before {
+            top: 0;
+            height: var(--fade-height-top);
             background: var(
               --ck-body-divider-secondary,
               var(--ck-body-divider)
             );
             box-shadow: var(--ck-body-divider-box-shadow);
-            transition: opacity 300ms ease;
-          }
-          &:before {
-            top: 0;
           }
           &:after {
             bottom: 0;
+            height: var(--fade-height-bottom);
+            background: ${$hideBottomLine
+              ? "linear-gradient(to bottom, transparent, var(--bg))"
+              : "var(--ck-body-divider-secondary, var(--ck-body-divider))"};
+            box-shadow: none;
           }
 
           &.scroll-start {

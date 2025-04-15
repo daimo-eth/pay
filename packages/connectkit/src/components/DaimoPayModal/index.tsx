@@ -13,7 +13,8 @@ import Onboarding from "../Pages/Onboarding";
 import SwitchNetworks from "../Pages/SwitchNetworks";
 import ConnectUsing from "./ConnectUsing";
 
-import { assert } from "@daimo/pay-common";
+import { assert, ExternalPaymentOptions } from "@daimo/pay-common";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
@@ -32,7 +33,6 @@ import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SelectSolanaToken from "../Pages/Solana/SelectSolanaToken";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
-
 const customThemeDefault: object = {};
 
 export const DaimoPayModal: React.FC<{
@@ -59,28 +59,41 @@ export const DaimoPayModal: React.FC<{
     setSelectedDepositAddressOption,
   } = paymentState;
 
-  const { isConnected, connector, chain, address } = useAccount();
+  const {
+    isConnected: isEthConnected,
+    connector,
+    chain,
+    address,
+  } = useAccount();
+  const { connected: isSolanaConnected } = useWallet();
+  const { daimoPayOrder } = paymentState;
+  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  // Solana payment option
+  // Include by default if paymentOptions not provided
+  const includeSolana =
+    paymentOptions == null ||
+    paymentOptions.includes(ExternalPaymentOptions.Solana);
   const chainIsSupported = useChainIsSupported(chain?.id);
 
   //if chain is unsupported we enforce a "switch chain" prompt
   const closeable = !(
     context.options?.enforceSupportedChains &&
-    isConnected &&
+    isEthConnected &&
     !chainIsSupported
   );
 
   const showBackButton =
     closeable &&
     context.route !== ROUTES.SELECT_METHOD &&
-    context.route !== ROUTES.CONFIRMATION;
+    context.route !== ROUTES.CONFIRMATION &&
+    context.route !== ROUTES.SELECT_TOKEN &&
+    context.route !== ROUTES.SOLANA_SELECT_TOKEN;
 
   const onBack = () => {
     const meta = { event: "click-back" };
     if (context.route === ROUTES.DOWNLOAD) {
       context.setRoute(ROUTES.CONNECT, meta);
     } else if (context.route === ROUTES.CONNECTORS) {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
-    } else if (context.route === ROUTES.SELECT_TOKEN) {
       context.setRoute(ROUTES.SELECT_METHOD, meta);
     } else if (context.route === ROUTES.SELECT_AMOUNT) {
       setSelectedTokenOption(undefined);
@@ -187,13 +200,48 @@ export const DaimoPayModal: React.FC<{
     context.setOpen(false, { event: "click-close" });
   }
 
+  // Separate effect for initial route when modal opens
+  useEffect(() => {
+    if (
+      context.open &&
+      !isSolanaConnected &&
+      (context.wcWallet || isEthConnected)
+    ) {
+      // Only set initial route if we're at SELECT_METHOD when opening
+      if (context.route === ROUTES.SELECT_METHOD) {
+        context.setRoute(ROUTES.SELECT_TOKEN, {
+          event: "eth_connected_on_open",
+          walletId: connector?.id,
+          chainId: chain?.id,
+          address,
+        });
+      }
+    } else if (
+      context.open &&
+      isSolanaConnected &&
+      !isEthConnected &&
+      context.wcWallet === undefined &&
+      includeSolana
+    ) {
+      console.log("solana connected on open");
+      console.log("isEthConnected ", isEthConnected);
+      console.log("context.wcWallet ", context.wcWallet);
+      if (context.route === ROUTES.SELECT_METHOD) {
+        context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
+          event: "solana_connected_on_open",
+        });
+      }
+    }
+    // If both are connected, do nothing and stay on SELECT_METHOD
+  }, [context.open]);
+
   useEffect(() => {
     if (
       context.route === ROUTES.CONNECT ||
       context.route === ROUTES.CONNECTORS ||
       context.route === ROUTES.MOBILECONNECTORS
     ) {
-      if (isConnected) {
+      if (isEthConnected) {
         context.setRoute(ROUTES.SELECT_TOKEN, {
           event: "connected",
           walletId: connector?.id,
@@ -202,7 +250,7 @@ export const DaimoPayModal: React.FC<{
         });
       }
     }
-  }, [isConnected, context.route]);
+  }, [isEthConnected, context.route]);
 
   useEffect(() => context.setMode(mode), [mode]);
   useEffect(() => context.setTheme(theme), [theme]);

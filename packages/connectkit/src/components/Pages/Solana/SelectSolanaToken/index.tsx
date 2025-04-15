@@ -10,9 +10,9 @@ import {
 
 import { DaimoPayToken } from "@daimo/pay-common";
 import { formatUsd, roundTokenAmount } from "../../../../utils/format";
-import Button from "../../../Common/Button";
 import OptionsList from "../../../Common/OptionsList";
 import { OrderHeader } from "../../../Common/OrderHeader";
+import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../../Common/TokenChainLogo";
 
 function getDaimoSolanaTokenKey(token: DaimoPayToken) {
@@ -78,9 +78,7 @@ const SelectSolanaToken: React.FC = () => {
           }}
         >
           <ModalH1>Insufficient balance.</ModalH1>
-          <Button onClick={() => setRoute(ROUTES.SELECT_METHOD)}>
-            Select Another Method
-          </Button>
+          <SelectAnotherMethodButton />
         </ModalContent>
       )}
 
@@ -88,7 +86,13 @@ const SelectSolanaToken: React.FC = () => {
         requiredSkeletons={4}
         isLoading={solanaPaymentOptions.isLoading}
         options={optionsList}
+        orDivider={optionsList.length != 0}
       />
+      {optionsList.length != 0 && (
+        <div className="mt-2">
+          <SelectAnotherMethodButton />
+        </div>
+      )}
     </PageContent>
   );
 };

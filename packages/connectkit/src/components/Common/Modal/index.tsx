@@ -228,7 +228,7 @@ const Modal: React.FC<ModalProps> = ({
   });
 
   const [state, setOpen] = useTransition({
-    timeout: mobile ? 160 : 160, // different animations, 10ms extra to avoid final-frame drops
+    timeout: 160,
     preEnter: true,
     mountOnEnter: true,
     unmountOnExit: true,

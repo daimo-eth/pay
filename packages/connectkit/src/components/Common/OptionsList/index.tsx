@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { keyframes } from "styled-components";
-import styled from "../../../styles/styled";
 import { usePayContext } from "../../../hooks/usePayContext";
+import styled from "../../../styles/styled";
+import { OrDivider } from "../Modal";
 import { ScrollArea } from "../ScrollArea";
 import {
   OptionButton,
@@ -26,10 +27,14 @@ const OptionsList = ({
   options,
   isLoading,
   requiredSkeletons,
+  shortScroll,
+  orDivider = false,
 }: {
   options: Option[];
   isLoading?: boolean;
   requiredSkeletons?: number;
+  shortScroll?: boolean;
+  orDivider?: boolean;
 }) => {
   const { triggerResize, log } = usePayContext();
   const optionsLength = options.length;
@@ -60,13 +65,21 @@ const OptionsList = ({
   }
 
   return (
-    <ScrollArea mobileDirection={"vertical"} height={300}>
-      <OptionsContainer $totalResults={options.length}>
-        {options.map((option) => (
-          <OptionItem key={option.id} option={option} />
-        ))}
-      </OptionsContainer>
-    </ScrollArea>
+    <>
+      <ScrollArea
+        mobileDirection={"vertical"}
+        height={shortScroll ? 225 : 300}
+        hideBottomLine={orDivider}
+        totalItems={options.length}
+      >
+        <OptionsContainer $totalResults={options.length}>
+          {options.map((option) => (
+            <OptionItem key={option.id} option={option} />
+          ))}
+        </OptionsContainer>
+      </ScrollArea>
+      {orDivider && <OrDivider />}
+    </>
   );
 };
 

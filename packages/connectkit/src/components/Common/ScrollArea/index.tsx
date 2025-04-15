@@ -25,11 +25,15 @@ export const ScrollArea = ({
   height,
   backgroundColor,
   mobileDirection,
+  hideBottomLine = false,
+  totalItems,
 }: {
   children: React.ReactNode;
   height?: number;
   backgroundColor?: string;
   mobileDirection?: "horizontal" | "vertical";
+  hideBottomLine?: boolean;
+  totalItems?: number;
 }) => {
   const { log } = usePayContext();
   const ref = useRef<HTMLDivElement>(null);
@@ -97,6 +101,8 @@ export const ScrollArea = ({
         $height={height}
         $backgroundColor={backgroundColor}
         $mobileDirection={mobileDirection}
+        $hideBottomLine={hideBottomLine}
+        $totalItems={totalItems}
       >
         {children}
       </ScrollAreaContainer>

@@ -243,8 +243,8 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
     strippedId?.includes("coinbase"),
   ];
 
-  if (!isMetaMask) icons.push(<MetaMask />);
   if (!isRainbow) icons.push(<Rainbow />);
+  if (!isMetaMask) icons.push(<MetaMask />);
   if (!isCoinbase) icons.push(<Coinbase />);
   if (icons.length < 3) icons.push(<Rabby />);
 

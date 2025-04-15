@@ -20,13 +20,24 @@ export function useExtractWcWallet({
       setWcWallet(undefined);
       // Clear any stored deeplink choice when using a known wallet
       localStorage.removeItem("WALLETCONNECT_DEEPLINK_CHOICE");
-    } else if (typeof connector.getProvider === "function") {
-      // Workaround a wagmi bug where getProvider is sometimes missing:
-      // https://github.com/wevm/wagmi/issues/3589
-      connector
-        .getProvider()
-        .then((p: any) => setWcWallet(extractWcWalletFromProvider(p, log)))
-        .catch((e: any) => console.error(`[WCWALLET] err getting provider`, e));
+    } else {
+      // Check if getProvider exists and is a function before calling
+      if (typeof connector.getProvider === "function") {
+        connector
+          .getProvider()
+          .then((p: any) => setWcWallet(extractWcWalletFromProvider(p, log)))
+          .catch((e: any) =>
+            console.error(`[WCWALLET] err getting provider`, e),
+          );
+      } else {
+        // Log a warning if getProvider is not available
+        console.warn(
+          `[WCWALLET] connector does not have getProvider method`,
+          connector,
+        );
+        // Potentially reset wcWallet state if the connector is invalid/unexpected
+        setWcWallet(undefined);
+      }
     }
   }, [connector]);
 

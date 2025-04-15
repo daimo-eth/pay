@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { keyframes } from "styled-components";
-import styled from "../../../styles/styled";
 import { usePayContext } from "../../../hooks/usePayContext";
+import styled from "../../../styles/styled";
 import { ScrollArea } from "../ScrollArea";
 import {
   OptionButton,
@@ -26,10 +26,12 @@ const OptionsList = ({
   options,
   isLoading,
   requiredSkeletons,
+  shortScroll,
 }: {
   options: Option[];
   isLoading?: boolean;
   requiredSkeletons?: number;
+  shortScroll?: boolean;
 }) => {
   const { triggerResize, log } = usePayContext();
   const optionsLength = options.length;
@@ -60,7 +62,7 @@ const OptionsList = ({
   }
 
   return (
-    <ScrollArea mobileDirection={"vertical"} height={300}>
+    <ScrollArea mobileDirection={"vertical"} height={shortScroll ? 225 : 300}>
       <OptionsContainer $totalResults={options.length}>
         {options.map((option) => (
           <OptionItem key={option.id} option={option} />

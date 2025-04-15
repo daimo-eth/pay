@@ -1,9 +1,17 @@
-import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import {
+  DaimoPayToken,
+  ExternalPaymentOptions,
+  getChainName,
+} from "@daimo/pay-common";
+import { Connector, useAccount, useDisconnect } from "wagmi";
+import { Bitcoin, Solana } from "../../../assets/chains";
+import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
 import Button from "../../Common/Button";
+import { OrDivider } from "../../Common/Modal";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -11,10 +19,17 @@ import TokenChainLogo from "../../Common/TokenChainLogo";
 
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
-  const { setRoute, paymentState, wcWallet } = usePayContext();
-  const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
-    paymentState;
+  const { setRoute, paymentState, wcWallet, open } = usePayContext();
+  const {
+    isDepositFlow,
+    walletPaymentOptions,
+    setSelectedTokenOption,
+    payParams,
+    externalPaymentOptions,
+  } = paymentState;
 
+  const { connector } = useAccount();
+  const { disconnectAsync } = useDisconnect();
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
       const chainName = getChainName(option.balance.token.chainId);
@@ -69,6 +84,65 @@ export default function SelectToken() {
       };
     }) ?? [];
 
+  const selectMethodOption = {
+    id: "select-method",
+    title: `${payParams?.intent && payParams.intent.length <= 7 ? payParams.intent : "Pay"} With Another Method`,
+    icons: getBestPaymentMethod(),
+    onClick: () => {
+      setRoute(ROUTES.SELECT_METHOD);
+    },
+  };
+
+  const selectWalletOption = {
+    id: "select-wallet",
+    title: "Select Another Wallet",
+    icons: getBestUnconnectedWalletIcons(connector),
+    onClick: async () => {
+      await disconnectAsync();
+      setRoute(ROUTES.CONNECTORS);
+    },
+  };
+
+  function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
+    const icons: JSX.Element[] = [];
+    const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
+    const [isMetaMask, isRainbow, isCoinbase] = [
+      strippedId?.includes("metamask"),
+      strippedId?.includes("rainbow"),
+      strippedId?.includes("coinbase"),
+    ];
+
+    if (!isRainbow) icons.push(<Rainbow />);
+    if (!isMetaMask) icons.push(<MetaMask />);
+    if (!isCoinbase) icons.push(<Coinbase />);
+    if (icons.length < 3) icons.push(<Rabby />);
+
+    return icons;
+  }
+
+  function getBestPaymentMethod() {
+    const icons: JSX.Element[] = [];
+    icons.push(
+      ...externalPaymentOptions.options
+        .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
+        .map((option, index) => (
+          <div
+            key={index}
+            style={{ borderRadius: "22.5%", overflow: "hidden" }}
+          >
+            <img src={option.logoURI} alt="" />
+          </div>
+        )),
+    );
+    if (icons.length < 3) {
+      icons.push(<Solana />);
+    }
+    if (icons.length < 3) {
+      icons.push(<Bitcoin />);
+    }
+    return icons;
+  }
+
   return (
     <PageContent>
       <OrderHeader minified />
@@ -94,7 +168,22 @@ export default function SelectToken() {
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
+        shortScroll={isMobile}
       />
+      {optionsList.length != 0 && (
+        <>
+          <OrDivider />
+          <div className="mt-2">
+            <OptionsList
+              options={
+                externalPaymentOptions.options.length > 0
+                  ? [selectMethodOption]
+                  : [selectWalletOption]
+              }
+            />
+          </div>
+        </>
+      )}
     </PageContent>
   );
 }

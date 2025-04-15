@@ -61,14 +61,12 @@ export default function SelectMethod() {
 
       let walletIcon: JSX.Element;
       if (connector?.icon) {
-        log("[SELECT_METHOD] connector?.icon", connector?.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             <img src={connector.icon} alt={connector.name} />
           </div>
         );
       } else if (wcWallet?.icon) {
-        log("[SELECT_METHOD] wcWallet.icon", wcWallet.icon);
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             {typeof wcWallet.icon === "string" ? (
@@ -79,7 +77,7 @@ export default function SelectMethod() {
           </div>
         );
       } else {
-        log("[SELECT_METHOD] else");
+        // TODO: remove this once we have a default icon for wagmi wallets
         walletIcon = <MetaMask />;
       }
 

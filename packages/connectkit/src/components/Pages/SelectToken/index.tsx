@@ -3,7 +3,6 @@ import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
-import Button from "../../Common/Button";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -84,9 +83,9 @@ export default function SelectToken() {
           }}
         >
           <ModalH1>Insufficient balance.</ModalH1>
-          <Button onClick={() => setRoute(ROUTES.SELECT_METHOD)}>
-            Select Another Method
-          </Button>
+          <div className="w-full mt-4">
+            <SelectAnotherMethodButton />
+          </div>
         </ModalContent>
       )}
 

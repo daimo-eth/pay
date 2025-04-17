@@ -52,7 +52,8 @@ contract RelayerTest is Test {
                 finalCall: Call({to: _bob, value: 0, data: ""}),
                 escrow: payable(address(mockDp)),
                 refundAddress: address(_bob),
-                nonce: 1
+                nonce: 1,
+                expirationTimestamp: block.timestamp + 100_000
             });
     }
 

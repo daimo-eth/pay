@@ -17,10 +17,10 @@ import "./dummy/axelar.sol";
 import "./dummy/cctp.sol";
 import "./dummy/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0xF3490B45EC3676B24C7e939A0e73eD126336c1Aa;
-address constant CCTP_V2_INTENT_ADDR = 0x5a31C566EAeF59a622d5B97112879531df598E6d;
-address constant ACROSS_INTENT_ADDR = 0x20670e02a2c586aD5e92401dFE5E16C0EBFD1771;
-address constant AXELAR_INTENT_ADDR = 0x35D627518Ff40170026977AEcc939b5864Dd03E0;
+address constant CCTP_INTENT_ADDR = 0xF7510782DdB1C1f6235604bBA935cf78fd2a1707;
+address constant CCTP_V2_INTENT_ADDR = 0x52ffD0B634B3987550a8E7113503e1b821D80F97;
+address constant ACROSS_INTENT_ADDR = 0x73F37b43995B7848546790E6307aEd015D94d276;
+address constant AXELAR_INTENT_ADDR = 0xA25C85b7F073692992F8f3e2912632C0CBC965f3;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts
@@ -264,16 +264,7 @@ contract DaimoPayTest is Test {
     }
 
     function testGetIntentAddr() public view {
-        PayIntent memory cctpIntent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
+        PayIntent memory cctpIntent = getSimpleCCTPPayIntent();
 
         address actualCCTPIntentAddr = intentFactory.getIntentAddress(
             cctpIntent
@@ -288,7 +279,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         address actualCCTPV2IntentAddr = intentFactory.getIntentAddress(
@@ -305,7 +297,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
         address actualAcrossIntentAddr = intentFactory.getIntentAddress(
             acrossIntent
@@ -321,7 +314,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
         address actualAxelarIntentAddr = intentFactory.getIntentAddress(
             axelarIntent
@@ -350,7 +344,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: _toAmount, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
     }
 
@@ -428,6 +423,16 @@ contract DaimoPayTest is Test {
         assertEq(_toToken.balanceOf(_alice), 355);
 
         // ...and refund.
+        uint256[] memory refundAmounts = new uint256[](1);
+        refundAmounts[0] = 100;
+        vm.expectEmit(address(dp));
+        emit DaimoPay.IntentRefunded({
+            intentAddr: intentAddr,
+            refundAddr: intent.refundAddress,
+            tokens: refundTokens,
+            amounts: refundAmounts,
+            intent: intent
+        });
         dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Check that the intent was refunded.
@@ -435,7 +440,7 @@ contract DaimoPayTest is Test {
         assertEq(_toToken.balanceOf(_alice), 455);
     }
 
-    function getSimpleCrossChainPayIntent()
+    function getSimpleCCTPPayIntent()
         public
         view
         returns (PayIntent memory intent)
@@ -448,7 +453,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
     }
 
@@ -463,7 +469,7 @@ contract DaimoPayTest is Test {
         // Alice initiates a transfer
         vm.startPrank(_alice);
 
-        PayIntent memory intent = getSimpleCrossChainPayIntent();
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         // Alice sends some coins to the intent address
         address intentAddr = intentFactory.getIntentAddress(intent);
@@ -521,7 +527,7 @@ contract DaimoPayTest is Test {
     // Test refundIntent for a cross-chain intent. The refund should only be
     // possible after the intent has been started.
     function testCrossChainRefundAfterStart() public {
-        PayIntent memory intent = getSimpleCrossChainPayIntent();
+        PayIntent memory intent = getSimpleCCTPPayIntent();
         address intentAddr = intentFactory.getIntentAddress(intent);
 
         IERC20[] memory refundTokens = new IERC20[](1);
@@ -542,6 +548,16 @@ contract DaimoPayTest is Test {
         assertEq(_fromToken.balanceOf(_alice), 355);
 
         // ...and refund.
+        uint256[] memory refundAmounts = new uint256[](1);
+        refundAmounts[0] = 100;
+        vm.expectEmit(address(dp));
+        emit DaimoPay.IntentRefunded({
+            intentAddr: intentAddr,
+            refundAddr: intent.refundAddress,
+            tokens: refundTokens,
+            amounts: refundAmounts,
+            intent: intent
+        });
         dp.refundIntent({intent: intent, tokens: refundTokens});
 
         // Check that the intent was refunded.
@@ -568,7 +584,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         // Alice sends some coins to the intent address
@@ -649,7 +666,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         // Create the ExtraData struct for Across bridging
@@ -744,7 +762,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         // Alice sends some coins to the intent address
@@ -825,16 +844,7 @@ contract DaimoPayTest is Test {
         // Immediately after Alice's tx confirms, LP sends to Bob
         vm.startPrank(_lp);
 
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         // LP transfers the token to the DaimoPay escrow contract to call
         // fastFinishIntent.
@@ -879,26 +889,17 @@ contract DaimoPayTest is Test {
         // Immediately after Alice's tx confirms, LP sends to Bob
         vm.startPrank(_lp);
 
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: 1}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         // LP transfers too much of finalCallToken to finish the intent.
-        // Only 1 is needed, but 10 is sent.
-        _toToken.transfer({to: address(dp), value: 10});
+        // Only _toAmount is needed, but _toAmount + 10 is sent.
+        _toToken.transfer({to: address(dp), value: _toAmount + 10});
         IERC20[] memory fastFinishTokens = new IERC20[](1);
         fastFinishTokens[0] = _toToken;
 
-        // An extra 9 of finalCallToken should be sent back to the LP
+        // An extra 10 of finalCallToken should be sent back to the LP
         vm.expectEmit(address(_toToken));
-        emit IERC20.Transfer(address(dp.executor()), _lp, 9);
+        emit IERC20.Transfer(address(dp.executor()), _lp, 10);
 
         dp.fastFinishIntent({
             intent: intent,
@@ -908,14 +909,17 @@ contract DaimoPayTest is Test {
 
         vm.stopPrank();
 
-        // LP sent only 1 of finalCallToken to the recipient and 9 were sent back
-        assertEq(_toToken.balanceOf(_lp), _lpToTokenInitBalance - 1);
-        assertEq(_toToken.balanceOf(_bob), 1);
+        // LP sent only _toAmount of finalCallToken to the recipient and 10
+        // were sent back
+        assertEq(_toToken.balanceOf(_lp), _lpToTokenInitBalance - _toAmount);
+        assertEq(_toToken.balanceOf(_bob), _toAmount);
     }
 
     // Test that the LP can claim the funds after the bridged funds arrive.
     function testSimpleLPClaim() public {
         testSimpleFastFinish();
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         // Wait for CCTP to relay the message
         vm.warp(block.timestamp + 20 minutes);
@@ -925,17 +929,6 @@ contract DaimoPayTest is Test {
 
         // Then, LP claims the funds
         vm.prank(_lp);
-
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
 
         vm.expectEmit(address(dp));
         emit DaimoPay.Claim({
@@ -956,6 +949,8 @@ contract DaimoPayTest is Test {
     function testClaimWithoutFastFinish() public {
         vm.chainId(_cctpDestchainId);
 
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
         // Wait for CCTP to relay the message
         vm.warp(block.timestamp + 20 minutes);
 
@@ -964,17 +959,6 @@ contract DaimoPayTest is Test {
 
         // Then, a third party calls claimIntent
         vm.prank(_lp);
-
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
 
         vm.expectEmit(address(dp));
         emit DaimoPay.IntentFinished({
@@ -1013,16 +997,7 @@ contract DaimoPayTest is Test {
         // Then, LP claims the funds
         vm.prank(_lp);
 
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         vm.expectRevert("PI: insufficient balance");
 
@@ -1050,16 +1025,7 @@ contract DaimoPayTest is Test {
         // Alice initiates a transfer
         vm.startPrank(_alice);
 
-        PayIntent memory intent = PayIntent({
-            toChainId: _cctpDestchainId,
-            bridger: bridger,
-            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
-            finalCall: Call({to: _bob, value: 0, data: ""}),
-            escrow: payable(address(dp)),
-            refundAddress: _alice,
-            nonce: _nonce
-        });
+        PayIntent memory intent = getSimpleCCTPPayIntent();
 
         // Alice sends some coins to the intent address
         address intentAddr = intentFactory.getIntentAddress(intent);
@@ -1097,7 +1063,8 @@ contract DaimoPayTest is Test {
             finalCall: Call({to: _bob, value: 0, data: ""}),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         // Alice sends some coins to the intent address
@@ -1263,6 +1230,157 @@ contract DaimoPayTest is Test {
         assertEq(_toToken.balanceOf(_bob), _toAmount);
     }
 
+    // Test that startIntent can't be called after the intent has expired
+    function testExpiredIntentCantStart() public {
+        vm.chainId(_fromChainId);
+
+        // Give Alice some coins
+        _fromToken.transfer(_alice, 555);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
+        // Alice sends some coins to the intent address
+        vm.startPrank(_alice);
+        address intentAddr = intentFactory.getIntentAddress(intent);
+        _fromToken.transfer(intentAddr, _toAmount);
+        vm.stopPrank();
+
+        // The intent expires
+        vm.warp(intent.expirationTimestamp + 100 minutes);
+
+        // LP goes to call startIntent
+        vm.startPrank(_lp);
+
+        // The call reverts because the intent has expired
+        vm.expectRevert("DP: intent expired");
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _fromToken;
+        dp.startIntent({
+            intent: intent,
+            paymentTokens: paymentTokens,
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+
+        vm.stopPrank();
+    }
+
+    // Test that fastFinishIntent can't be called after the intent has expired
+    function testExpiredIntentCantFastFinish() public {
+        vm.chainId(_cctpDestchainId);
+
+        // Seed the LP with an initial balance
+        _toToken.transfer(_lp, _lpToTokenInitBalance);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
+        // The intent expires
+        vm.warp(intent.expirationTimestamp + 100 minutes);
+
+        // LP transfers the token to the DaimoPay escrow contract to call
+        // fastFinishIntent.
+        vm.prank(_lp);
+        _toToken.transfer({to: address(dp), value: _toAmount});
+        IERC20[] memory fastFinishTokens = new IERC20[](1);
+        fastFinishTokens[0] = _toToken;
+
+        // The call reverts because the intent has expired
+        vm.expectRevert("DP: intent expired");
+        dp.fastFinishIntent({
+            intent: intent,
+            calls: new Call[](0),
+            tokens: fastFinishTokens
+        });
+    }
+
+    // Test that claimIntent can't be called after the intent has expired
+    function testExpiredIntentCantClaim() public {
+        vm.chainId(_cctpDestchainId);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
+        // The intent expires
+        vm.warp(intent.expirationTimestamp + 100 minutes);
+
+        // CCTP receiveMessage() sends funds to the intent address
+        _toToken.transfer(CCTP_INTENT_ADDR, _toAmount);
+
+        // Then, a third party calls claimIntent
+        vm.prank(_lp);
+
+        // The call reverts because the intent has expired
+        vm.expectRevert("DP: intent expired");
+        dp.claimIntent({intent: intent, calls: new Call[](0)});
+    }
+
+    // Test that an intent can only be refunded on the source chain after
+    // the intent has expired
+    function testExpiredIntentSourceRefund() public {
+        vm.chainId(_fromChainId);
+
+        // Give Alice some coins
+        _fromToken.transfer(_alice, 555);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
+        // Alice sends some coins to the intent address
+        vm.startPrank(_alice);
+        address intentAddr = intentFactory.getIntentAddress(intent);
+        _fromToken.transfer(intentAddr, _toAmount);
+
+        // Alice tries to refund. Reverts because the intent isn't expired or
+        // started.
+        IERC20[] memory refundTokens = new IERC20[](1);
+        refundTokens[0] = _fromToken;
+        vm.expectRevert("DP: not started");
+        dp.refundIntent({intent: intent, tokens: refundTokens});
+
+        // The intent expires
+        vm.warp(intent.expirationTimestamp + 100 minutes);
+
+        // Alice can now refund
+        dp.refundIntent({intent: intent, tokens: refundTokens});
+
+        // Alice should have the original 555 tokens
+        assertEq(_fromToken.balanceOf(_alice), 555);
+
+        vm.stopPrank();
+    }
+
+    // Test that an intent can only be refunded on the destination chain after
+    // the intent has expired
+    function testExpiredIntentDestRefund() public {
+        vm.chainId(_cctpDestchainId);
+
+        // Give Alice some coins
+        _toToken.transfer(_alice, 555);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+
+        // Alice sends some coins to the intent address
+        vm.startPrank(_alice);
+        address intentAddr = intentFactory.getIntentAddress(intent);
+        _toToken.transfer(intentAddr, _toAmount);
+
+        // Alice tries to refund. Reverts because the intent isn't expired or
+        // claimed.
+        IERC20[] memory refundTokens = new IERC20[](1);
+        refundTokens[0] = _toToken;
+        vm.expectRevert("DP: not claimed");
+        dp.refundIntent({intent: intent, tokens: refundTokens});
+
+        // The intent expires
+        vm.warp(intent.expirationTimestamp + 100 minutes);
+
+        // Alice can now refund
+        dp.refundIntent({intent: intent, tokens: refundTokens});
+
+        // Alice should have the original 555 tokens
+        assertEq(_toToken.balanceOf(_alice), 555);
+
+        vm.stopPrank();
+    }
+
     // Assuming that Alice has already transferred to the intent address
     // Assuming that relayer has already called `startIntent` on the source chain
     // We are on the destination chain
@@ -1279,7 +1397,8 @@ contract DaimoPayTest is Test {
             escrow: payable(address(dp)),
             bridger: bridger,
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         address intentAddress = intentFactory.getIntentAddress(intent);
@@ -1371,7 +1490,8 @@ contract DaimoPayTest is Test {
             bridger: IDaimoPayBridger(bridger),
             escrow: payable(address(dp)),
             refundAddress: _alice,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         PayIntent memory maliciousIntent = PayIntent({
@@ -1382,7 +1502,8 @@ contract DaimoPayTest is Test {
             bridger: IDaimoPayBridger(bridger),
             escrow: payable(address(dp)),
             refundAddress: _bob,
-            nonce: _nonce
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
         });
 
         address maliciousRelayer = address(

@@ -32,6 +32,8 @@ struct PayIntent {
     address refundAddress;
     /// Nonce. PayIntent receiving addresses are one-time use.
     uint256 nonce;
+    /// Timestamp after which intent expires and can be refunded
+    uint256 expirationTimestamp;
 }
 
 /// Calculates the intent hash of a PayIntent struct.

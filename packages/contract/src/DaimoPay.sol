@@ -103,6 +103,11 @@ contract DaimoPay is ReentrancyGuard {
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) public nonReentrant {
+        require(
+            block.timestamp < intent.expirationTimestamp,
+            "DP: intent expired"
+        );
+
         PayIntentContract intentContract = intentFactory.createIntent(intent);
 
         // Ensure we don't reuse a nonce in the case where Alice is sending to
@@ -197,6 +202,10 @@ contract DaimoPay is ReentrancyGuard {
         IERC20[] calldata tokens
     ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
+        require(
+            block.timestamp < intent.expirationTimestamp,
+            "DP: intent expired"
+        );
 
         // Calculate intent address
         address intentAddr = intentFactory.getIntentAddress(intent);
@@ -237,6 +246,10 @@ contract DaimoPay is ReentrancyGuard {
         Call[] calldata calls
     ) public nonReentrant {
         require(intent.toChainId == block.chainid, "DP: wrong chain");
+        require(
+            block.timestamp < intent.expirationTimestamp,
+            "DP: intent expired"
+        );
 
         PayIntentContract intentContract = intentFactory.createIntent(intent);
 
@@ -294,14 +307,17 @@ contract DaimoPay is ReentrancyGuard {
     ) public nonReentrant {
         PayIntentContract intentContract = intentFactory.createIntent(intent);
         address intentAddr = address(intentContract);
+
+        bool expired = block.timestamp >= intent.expirationTimestamp;
+
         if (intent.toChainId == block.chainid) {
-            // Refund only if already claimed.
+            // Refund only if already claimed or the intent has expired.
             bool claimed = intentToRecipient[address(intentContract)] ==
                 ADDR_MAX;
-            require(claimed, "DP: not claimed");
+            require(claimed || expired, "DP: not claimed");
         } else {
-            // Refund only if already started.
-            require(intentSent[intentAddr], "DP: not started");
+            // Refund only if already started or the intent has expired.
+            require(intentSent[intentAddr] || expired, "DP: not started");
         }
 
         // Send tokens directly from intent contract to the refund address.

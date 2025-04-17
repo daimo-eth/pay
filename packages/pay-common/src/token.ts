@@ -35,19 +35,19 @@ export type Token = {
 
 export enum TokenLogo {
   ETH = "https://pay.daimo.com/chain-logos/ethereum.png",
-  USDC = "https://assets.coingecko.com/coins/images/6319/large/usdc.png",
-  EURC = "https://assets.coingecko.com/coins/images/26045/large/euro.png",
+  USDC = "https://pay.daimo.com/coin-logos/usdc.png",
+  EURC = "https://pay.daimo.com/coin-logos/eurc.png",
   USDT = "https://pay.daimo.com/coin-logos/usdt.png",
   DAI = "https://pay.daimo.com/coin-logos/dai.png",
-  POL = "https://assets.coingecko.com/coins/images/4713/large/polygon.png",
-  AVAX = "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
-  BNB = "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
-  SOL = "https://solana.com/src/img/branding/solanaLogoMark.png",
-  WLD = "https://assets.coingecko.com/coins/images/31069/large/worldcoin.jpeg",
-  USDB = "https://assets.coingecko.com/coins/images/35595/large/65c67f0ebf2f6a1bd0feb13c_usdb-icon-yellow.png",
-  BLAST = "https://assets.coingecko.com/coins/images/35494/large/Blast.jpg",
-  WBTC = "https://s2.coinmarketcap.com/static/img/coins/128x128/3717.png",
-  MNT = "https://assets.coingecko.com/coins/images/30980/large/Mantle-Logo-mark.png",
+  POL = "https://pay.daimo.com/coin-logos/pol.png",
+  AVAX = "https://pay.daimo.com/coin-logos/avax.png",
+  BNB = "https://pay.daimo.com/coin-logos/bnb.png",
+  SOL = "https://pay.daimo.com/coin-logos/sol.png",
+  WLD = "https://pay.daimo.com/coin-logos/wld.jpeg",
+  USDB = "https://pay.daimo.com/coin-logos/usdb.png",
+  BLAST = "https://pay.daimo.com/coin-logos/blast.jpg",
+  WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
+  MNT = "https://pay.daimo.com/coin-logos/mnt.png",
 }
 
 /* --------------------- Tokens Constants --------------------- */
@@ -169,7 +169,7 @@ export const baseUSDbC: Token = token({
   symbol: "USDbC",
   fiatISO: "USD",
   decimals: 6,
-  logoURI: `https://daimo.com/assets/foreign-coin-logos/USDbC.png`,
+  logoURI: "https://pay.daimo.com/coin-logos/usdbc.png",
 });
 
 export const baseDAI: Token = token({

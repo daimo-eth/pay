@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { isMobile } from "../../../utils";
+import defaultTheme from "./../../../constants/defaultTheme";
 import { MoreIndicator, ScrollAreaContainer, ScrollContainer } from "./styles";
 
 const ArrowDown = () => (
@@ -39,7 +40,8 @@ export const ScrollArea = ({
   const ref = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  const { isMobile } = useIsMobile();
+  const isMobileFormat =
+    isMobile() || window?.innerWidth < defaultTheme.mobileWidth;
 
   useEffect(() => {
     const el = ref.current;
@@ -97,7 +99,7 @@ export const ScrollArea = ({
     <ScrollContainer>
       <ScrollAreaContainer
         ref={ref}
-        $mobile={isMobile}
+        $mobile={isMobileFormat}
         $height={height}
         $backgroundColor={backgroundColor}
         $mobileDirection={mobileDirection}

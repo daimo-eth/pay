@@ -1,4 +1,5 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -8,8 +9,11 @@ import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
+
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
+  const isMobileFormat =
+    useIsMobile() || window?.innerWidth < defaultTheme.mobileWidth;
   const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
@@ -91,7 +95,7 @@ export default function SelectToken() {
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
-        scrollHeight={isMobile ? 225 : 300}
+        scrollHeight={isMobileFormat ? 225 : 300}
         orDivider={optionsList.length != 0}
       />
       {optionsList.length != 0 && <SelectAnotherMethodButton />}

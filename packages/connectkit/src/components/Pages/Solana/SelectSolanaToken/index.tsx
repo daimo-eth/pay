@@ -9,6 +9,8 @@ import {
 } from "../../../Common/Modal/styles";
 
 import { DaimoPayToken } from "@daimo/pay-common";
+import defaultTheme from "../../../../constants/defaultTheme";
+import useIsMobile from "../../../../hooks/useIsMobile";
 import { formatUsd, roundTokenAmount } from "../../../../utils/format";
 import OptionsList from "../../../Common/OptionsList";
 import { OrderHeader } from "../../../Common/OrderHeader";
@@ -23,6 +25,8 @@ const SelectSolanaToken: React.FC = () => {
   const { paymentState, setRoute } = usePayContext();
   const { isDepositFlow, solanaPaymentOptions, setSelectedSolanaTokenOption } =
     paymentState;
+  const isMobileFormat =
+    useIsMobile() || window?.innerWidth < defaultTheme.mobileWidth;
 
   const optionsList =
     solanaPaymentOptions.options?.map((option) => {
@@ -86,6 +90,7 @@ const SelectSolanaToken: React.FC = () => {
         requiredSkeletons={4}
         isLoading={solanaPaymentOptions.isLoading}
         options={optionsList}
+        scrollHeight={isMobileFormat ? 225 : 300}
         orDivider={optionsList.length != 0}
       />
       {optionsList.length != 0 && <SelectAnotherMethodButton />}

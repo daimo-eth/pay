@@ -119,6 +119,10 @@ type PayButtonPaymentProps =
        * Developer metadata. E.g. correlation ID.
        * */
       metadata?: DaimoPayUserMetadata;
+      /**
+       * The address to refund to if the payment bounces or a refund is requested.
+       */
+      refundAddress?: Address;
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
@@ -214,6 +218,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
           evmChains: props.evmChains,
           externalId: props.externalId,
           metadata: props.metadata,
+          refundAddress: props.refundAddress,
         }
       : null;
   let payId = "payId" in props ? props.payId : null;

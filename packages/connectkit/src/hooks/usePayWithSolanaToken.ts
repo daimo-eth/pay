@@ -6,18 +6,20 @@ import {
 } from "@daimo/pay-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { VersionedTransaction } from "@solana/web3.js";
-import { hexToBytes } from "viem";
+import { Address, hexToBytes } from "viem";
 import { TrpcClient } from "../utils/trpc";
 import { CreateOrHydrateFn } from "./hookTypes";
 
 export function usePayWithSolanaToken({
   trpc,
+  refundAddress,
   daimoPayOrder,
   setDaimoPayOrder,
   createOrHydrate,
   log,
 }: {
   trpc: TrpcClient;
+  refundAddress: Address | undefined;
   daimoPayOrder: DaimoPayOrder | undefined;
   setDaimoPayOrder: (order: DaimoPayOrder) => void;
   createOrHydrate: CreateOrHydrateFn;
@@ -33,6 +35,7 @@ export function usePayWithSolanaToken({
     const orderId = daimoPayOrder.id;
     const { hydratedOrder } = await createOrHydrate({
       order: daimoPayOrder,
+      refundAddress,
     });
 
     log(

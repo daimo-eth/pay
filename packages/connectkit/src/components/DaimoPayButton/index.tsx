@@ -119,6 +119,10 @@ type PayButtonPaymentProps =
        * Developer metadata. E.g. correlation ID.
        * */
       metadata?: DaimoPayUserMetadata;
+      /**
+       * The address to refund to if the payment bounces or a refund is requested.
+       */
+      refundAddress?: Address;
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
@@ -132,6 +136,10 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   onPaymentCompleted?: (event: DaimoPayCompletedEvent) => void;
   /** Called when destination call reverts and funds are refunded */
   onPaymentBounced?: (event: DaimoPayBouncedEvent) => void;
+  /** Called when the modal is opened. */
+  onOpen?: () => void;
+  /** Called when the modal is closed. */
+  onClose?: () => void;
   /** Automatically close the modal after a successful payment. */
   closeOnSuccess?: boolean;
   /** Open the modal by default. */
@@ -214,11 +222,14 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
           evmChains: props.evmChains,
           externalId: props.externalId,
           metadata: props.metadata,
+          refundAddress: props.refundAddress,
         }
       : null;
   let payId = "payId" in props ? props.payId : null;
 
   const { paymentState } = context;
+
+  // Set the payId or payParams
   useEffect(() => {
     if (payId != null) {
       paymentState.setPayId(payId);
@@ -227,6 +238,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
     }
   }, [payId, JSON.stringify(payParams || {})]);
 
+  // Set the confirmation message
   const { setConfirmationMessage } = context;
   useEffect(() => {
     if (props.confirmationMessage) {
@@ -234,12 +246,25 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
     }
   }, [props.confirmationMessage, setConfirmationMessage]);
 
+  // Set the redirect return url
   const { setRedirectReturnUrl } = context;
   useEffect(() => {
     if (props.redirectReturnUrl) {
       setRedirectReturnUrl(props.redirectReturnUrl);
     }
   }, [props.redirectReturnUrl, setRedirectReturnUrl]);
+
+  // Set the onOpen and onClose callbacks
+  const { setOnOpen, setOnClose } = context;
+  useEffect(() => {
+    setOnOpen(props.onOpen);
+    return () => setOnOpen(undefined);
+  }, [props.onOpen, setOnOpen]);
+
+  useEffect(() => {
+    setOnClose(props.onClose);
+    return () => setOnClose(undefined);
+  }, [props.onClose, setOnClose]);
 
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
@@ -296,11 +321,12 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
     }
   }, [hydOrder?.id, intentStatus]);
 
+  // Open the modal by default if the defaultOpen prop is true
   useEffect(() => {
-    if (props.defaultOpen) {
+    if (props.defaultOpen && order != null) {
       show();
     }
-  }, [order != null]);
+  }, [order != null, props.defaultOpen]);
 
   // Validation
   if ((payId == null) == (payParams == null)) {

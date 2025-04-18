@@ -66,6 +66,8 @@ export interface PayParams {
   externalId?: string;
   /** Developer metadata. E.g. correlation ID. */
   metadata?: DaimoPayUserMetadata;
+  /** The address to refund to if the payment bounces or a refund is requested. */
+  refundAddress?: Address;
 }
 
 /** Creates (or loads) a payment and manages the corresponding modal. */
@@ -237,6 +239,7 @@ export function usePaymentState({
   const { payWithToken } = usePayWithToken({
     trpc,
     senderAddr,
+    refundAddress: payParams?.refundAddress,
     daimoPayOrder,
     setDaimoPayOrder,
     createOrHydrate,
@@ -245,6 +248,7 @@ export function usePaymentState({
 
   const { payWithSolanaToken } = usePayWithSolanaToken({
     trpc,
+    refundAddress: payParams?.refundAddress,
     daimoPayOrder,
     setDaimoPayOrder,
     createOrHydrate,
@@ -421,6 +425,7 @@ export function usePaymentState({
       },
       externalId: payParams.externalId,
       userMetadata: payParams.metadata,
+      refundAddress: payParams.refundAddress,
     });
 
     log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);

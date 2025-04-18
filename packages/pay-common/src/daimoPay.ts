@@ -216,7 +216,7 @@ export type DaimoPayHydratedOrder = {
   destFinalCallTokenAmount: DaimoPayTokenAmount;
   destFinalCall: OnChainCall;
   usdValue: number;
-  destRefundAddr: Address;
+  refundAddr: Address;
   destNonce: bigint;
   sourceFulfillerAddr: Address | SolanaPublicKey | null;
   sourceTokenAmount: DaimoPayTokenAmount | null;

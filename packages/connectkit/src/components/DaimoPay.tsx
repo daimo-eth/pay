@@ -12,6 +12,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { ThemeProvider } from "styled-components";
@@ -147,30 +148,30 @@ const DaimoPayProviderWithoutSolana = ({
     customTheme ?? {},
   );
   const [ckLang, setLang] = useState<Languages>("en-US");
-  const [open, setOpenState] = useState<boolean>(false);
-  const setOpen = (open: boolean, meta?: Record<string, any>) => {
-    setOpenState(open);
-    trpc.nav.mutate({
-      action: open ? "navOpenPay" : "navClosePay",
-      orderId: daimoPayOrder?.id?.toString(),
-      data: meta ?? {},
-    });
-  };
 
+  const onOpenRef = useRef<(() => void) | undefined>();
+  const onCloseRef = useRef<(() => void) | undefined>();
+  const setOnOpen = useCallback((fn?: () => void) => {
+    onOpenRef.current = fn;
+  }, []);
+  const setOnClose = useCallback((fn?: () => void) => {
+    onCloseRef.current = fn;
+  }, []);
+  const [open, setOpenState] = useState<boolean>(false);
+  const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
+
+  // Daimo Pay context
+  const [daimoPayOrder, setDaimoPayOrderInner] = useState<DaimoPayOrder>();
+  const [pendingConnectorId, setPendingConnectorId] = useState<
+    string | undefined
+  >(undefined);
+  // Track sessions. Each generates separate intent IDs unless using externalId.
+  const [sessionId] = useState(() => crypto.randomUUID().replaceAll("-", ""));
   const [solanaConnector, setSolanaConnector] = useState<
     SolanaWalletName | undefined
   >();
-  const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
-  const setRoute = (route: ROUTES, data?: Record<string, any>) => {
-    const action = route.replace("daimoPay", "");
-    log(`[SET ROUTE] ${action} ${daimoPayOrder?.id} ${debugJson(data ?? {})}`);
-    trpc.nav.mutate({
-      action,
-      orderId: daimoPayOrder?.id?.toString(),
-      data: data ?? {},
-    });
-    setRouteState(route);
-  };
+
+  // Other configuration
   const [errorMessage, setErrorMessage] = useState<
     string | React.ReactNode | null
   >("");
@@ -180,14 +181,48 @@ const DaimoPayProviderWithoutSolana = ({
   const [redirectReturnUrl, setRedirectReturnUrl] = useState<
     string | undefined
   >(undefined);
-
+  const log = debugMode ? console.log : () => {};
+  // Connect to the Daimo Pay TRPC API
+  const trpc = useMemo(
+    () => createTrpcClient(payApiUrl, sessionId),
+    [payApiUrl],
+  );
   const [resize, onResize] = useState<number>(0);
-  const [pendingConnectorId, setPendingConnectorId] = useState<
-    string | undefined
-  >(undefined);
+
+  const setOpen = useCallback(
+    (open: boolean, meta?: Record<string, any>) => {
+      setOpenState(open);
+
+      trpc.nav.mutate({
+        action: open ? "navOpenPay" : "navClosePay",
+        orderId: daimoPayOrder?.id?.toString(),
+        data: meta ?? {},
+      });
+
+      if (open) onOpenRef.current?.();
+      else onCloseRef.current?.();
+    },
+    [trpc, daimoPayOrder?.id],
+  );
+
+  const setRoute = useCallback(
+    (route: ROUTES, data?: Record<string, any>) => {
+      const action = route.replace("daimoPay", "");
+      log(
+        `[SET ROUTE] ${action} ${daimoPayOrder?.id} ${debugJson(data ?? {})}`,
+      );
+      trpc.nav.mutate({
+        action,
+        orderId: daimoPayOrder?.id?.toString(),
+        data: data ?? {},
+      });
+      setRouteState(route);
+    },
+    [trpc, daimoPayOrder?.id, log],
+  );
 
   // Include Google Font that is needed for a themes
-  if (opts.embedGoogleFonts) useThemeFont(theme);
+  if (opts.embedGoogleFonts) useThemeFont(ckTheme);
 
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
@@ -201,31 +236,19 @@ const DaimoPayProviderWithoutSolana = ({
   useEffect(() => {
     if (isConnected && opts.enforceSupportedChains && !isChainSupported) {
       setOpen(true);
-      setRoute(ROUTES.SWITCHNETWORKS);
+      if (route !== ROUTES.SWITCHNETWORKS) setRoute(ROUTES.SWITCHNETWORKS);
     }
   }, [isConnected, isChainSupported, chain, route, open]);
-
-  const log = debugMode ? console.log : () => {};
-
-  // Track sessions. Each generates separate intent IDs unless using externalId.
-  const [sessionId] = useState(() => crypto.randomUUID().replaceAll("-", ""));
 
   // Single source of truth for the currently-connected wallet is the connector
   // exposed by wagmi. See useAccount(). We watch this connector and use it to
   // extract the current WalletConnect wallet, if any.
   const wcWallet = useExtractWcWallet({ connector, log });
 
-  // Connect to the Daimo Pay TRPC API
-  const trpc = useMemo(
-    () => createTrpcClient(payApiUrl, sessionId),
-    [payApiUrl],
-  );
-
   // PaymentInfo is a second, inner context object containing a DaimoPayOrder
   // plus all associated status and callbacks. In order for useContext() and
   // downstream hooks like useDaimoPayStatus() to work correctly, we must set
   // set refresh context when payment status changes; done via setDaimoPayOrder.
-  const [daimoPayOrder, setDaimoPayOrderInner] = useState<DaimoPayOrder>();
   const setDaimoPayOrder = useCallback(
     (order: DaimoPayOrder) => {
       setDaimoPayOrderInner(order);
@@ -235,7 +258,7 @@ const DaimoPayProviderWithoutSolana = ({
       }
       log(`[PAY] setDaimoPayOrder: ${order.id} ${extra}`);
     },
-    [setDaimoPayOrderInner],
+    [log],
   );
   const paymentState = usePaymentState({
     trpc,
@@ -272,7 +295,6 @@ const DaimoPayProviderWithoutSolana = ({
   }, [daimoPayOrder]);
 
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
-    const { daimoPayOrder } = paymentState;
     const id = daimoPayOrder?.id;
     log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
 
@@ -303,6 +325,8 @@ const DaimoPayProviderWithoutSolana = ({
     setCustomTheme,
     lang: ckLang,
     setLang,
+    setOnOpen,
+    setOnClose,
     open,
     setOpen,
     route,

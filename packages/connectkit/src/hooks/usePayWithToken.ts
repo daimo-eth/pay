@@ -13,6 +13,7 @@ import { CreateOrHydrateFn } from "./hookTypes";
 export function usePayWithToken({
   trpc,
   senderAddr,
+  refundAddress,
   daimoPayOrder,
   setDaimoPayOrder,
   createOrHydrate,
@@ -21,6 +22,7 @@ export function usePayWithToken({
   trpc: TrpcClient;
   createOrHydrate: CreateOrHydrateFn;
   senderAddr: Address | undefined;
+  refundAddress: Address | undefined;
   daimoPayOrder: DaimoPayOrder | undefined;
   setDaimoPayOrder: (order: DaimoPayOrder) => void;
   log: (message: string) => void;
@@ -41,7 +43,8 @@ export function usePayWithToken({
 
     const { hydratedOrder } = await createOrHydrate({
       order: daimoPayOrder,
-      refundAddress: senderAddr,
+      // Use the developer-provided refund address. Default to the sender.
+      refundAddress: refundAddress ?? senderAddr,
     });
 
     log(

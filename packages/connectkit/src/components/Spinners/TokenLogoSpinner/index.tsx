@@ -23,9 +23,7 @@ const TokenLogoSpinner = ({
           )}
           <CircleSpinner
             key="CircleSpinner"
-            logo={
-              <img src={token.logoURI} alt={token.symbol} key={token.logoURI} />
-            }
+            logo={<img src={token.logoURI} alt={token.symbol} />}
             loading={showSpinner}
             unavailable={false}
           />

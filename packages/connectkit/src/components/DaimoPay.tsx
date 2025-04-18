@@ -202,7 +202,7 @@ const DaimoPayProviderWithoutSolana = ({
       if (open) onOpenRef.current?.();
       else onCloseRef.current?.();
     },
-    [trpc, daimoPayOrder?.id], // minimal deps; refs don’t go here
+    [trpc, daimoPayOrder?.id],
   );
 
   const setRoute = useCallback(

@@ -34,6 +34,8 @@ export type PayContextValue = {
   setCustomTheme: React.Dispatch<React.SetStateAction<CustomTheme | undefined>>;
   lang: Languages;
   setLang: React.Dispatch<React.SetStateAction<Languages>>;
+  setOnOpen: (fn?: () => void) => void;
+  setOnClose: (fn?: () => void) => void;
   open: boolean;
   setOpen: (open: boolean, meta?: Record<string, any>) => void;
   route: string;

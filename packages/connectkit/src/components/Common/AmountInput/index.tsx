@@ -23,7 +23,6 @@ import {
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
 import Button from "../../Common/Button";
 import SwitchButton from "../../Common/SwitchButton";
-import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 import AmountInputField from "./AmountInputField";
 
 const MultiCurrencySelectAmount: React.FC<{
@@ -158,7 +157,7 @@ const MultiCurrencySelectAmount: React.FC<{
 
   return (
     <PageContent>
-      <TokenLogoSpinner token={balanceToken} showSpinner={false} />
+      {/* <TokenLogoSpinner token={balanceToken} showSpinner={false} /> */}
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>
           {/* Invisible div to balance spacing */}

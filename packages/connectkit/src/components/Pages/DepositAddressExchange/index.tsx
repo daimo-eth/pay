@@ -1,29 +1,131 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import styled from "styled-components";
+import binanceTutorialVideo from "../../../assets/videos/binance-tutorial.mp4";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
+import { ExternalLinkIcon } from "../../../assets/icons";
+import { isMobile } from "../../../utils";
+import type { TrpcClient } from "../../../utils/trpc";
+import Button from "../../Common/Button";
+import CopyToClipboard from "../../Common/CopyToClipboard";
 import {
   ModalBody,
   ModalContent,
   PageContent,
 } from "../../Common/Modal/styles";
+const StepIndicator = styled.div`
+  color: var(--ck-body-muted);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+`;
 
-import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
-import type { TrpcClient } from "../../../utils/trpc";
-import Button from "../../Common/Button";
-import CopyToClipboard from "../../Common/CopyToClipboard";
-import CustomQRCode from "../../Common/CustomQRCode";
-import { OrDivider } from "../../Common/Modal";
+const ContentBox = styled.div`
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  color: var(--ck-body-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 200ms ease;
+`;
+
+const StepContent = styled.div`
+  text-align: left;
+  font-size: 17px;
+  line-height: 24px;
+  color: var(--ck-body-color);
+`;
+
+const FinalStepContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .copy-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .instruction {
+    font-size: 17px;
+    line-height: 24px;
+  }
+`;
+
+const GoldenButtonWrapper = styled.div`
+  button {
+    background-color: #eeb80f !important;
+    &:hover {
+      background-color: #d6a50e !important;
+    }
+    &:active {
+      background-color: #bf920d !important;
+    }
+
+    /* Style the icon to be white and fully opaque */
+    svg {
+      color: white !important;
+      path {
+        fill-opacity: 1 !important;
+      } 
+       
+       }
+    }
+  }
+`;
+
+const StyledModalBody = styled(ModalBody)<{ $isLastStep: boolean }>`
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const StepContainer = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 16px;
+`;
+
+const NonFinalStepContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const VideoContainer = styled.div`
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+`;
+
+const Video = styled.video`
+  width: 360px;
+  aspect-ratio: 9/16;
+`;
 
 const PayWithBinance: React.FC = () => {
+  const mobile = isMobile();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [addressCopied, setAddressCopied] = useState(false);
+  const [amountCopied, setAmountCopied] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
   const trpc = context.trpc as TrpcClient;
 
   const { daimoPayOrder } = paymentState;
-
-  const [termsChecked, setTermsChecked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Use intentAddr for address if order is hydrated
   const address =
@@ -56,140 +158,146 @@ const PayWithBinance: React.FC = () => {
     return () => clearInterval(interval);
   }, [daimoPayOrder?.id]);
 
-  useEffect(() => {
-    // Simulate initial loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      triggerResize();
-    }, 1000);
+  // useEffect(() => {
+  //   // Start playing the video silently in the background
+  //   if (videoRef.current) {
+  //     videoRef.current.play().catch(console.error);
+  //   }
+  // }, []);
 
-    return () => clearTimeout(timer);
-  }, []);
+  const handleAddressButtonClick = () => {
+    setAddressCopied(true);
+  };
 
-  const binanceLogo = (
-    <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
-      <img
-        src="https://pay.daimo.com/wallet-logos/binance-logo.svg"
-        alt="Binance"
-      />
-    </div>
-  );
+  const handleAmountButtonClick = () => {
+    setAmountCopied(true);
+  };
 
-  if (isLoading) {
-    return (
-      <PageContent>
-        <ModalContent>
-          <CustomQRCode image={binanceLogo} />
-        </ModalContent>
-      </PageContent>
-    );
-  }
+  const handleOpenBinance = async () => {
+    if (mobile) {
+      try {
+        if (videoRef.current) {
+          videoRef.current.play().catch(console.error);
+          await videoRef.current.requestPictureInPicture();
+          // Short delay to ensure PiP is active
+          setTimeout(() => {
+            window.location.href = "bnc://";
+          }, 100);
+        }
+      } catch (error) {
+        console.error("PiP failed:", error);
+        window.location.href = "bnc://";
+      }
+    } else {
+      window.open(
+        "https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/USDC",
+        "_blank",
+      );
+    }
+  };
+
+  const steps = {
+    1: {
+      content: (
+        <NonFinalStepContainer>
+          <ContentBox>
+            <StepContent>
+              Open the Binance app and go to the 'Withdraw' section. Select USDC
+              as the currency you want to withdraw.
+            </StepContent>
+          </ContentBox>
+          <Button variant="primary" arrow onClick={() => setCurrentStep(2)}>
+            Next
+          </Button>
+        </NonFinalStepContainer>
+      ),
+    },
+    2: {
+      content: (
+        <NonFinalStepContainer>
+          <ContentBox>
+            <StepContent>
+              Choose Arbitrum as the network for your withdrawal. This ensures
+              fast and low-cost transactions.
+            </StepContent>
+          </ContentBox>
+          <Button variant="primary" arrow onClick={() => setCurrentStep(3)}>
+            Next
+          </Button>
+        </NonFinalStepContainer>
+      ),
+    },
+    3: {
+      content: (
+        <FinalStepContainer>
+          <ContentBox>
+            <StepContent className="instruction">
+              Copy the address and amount below, then click 'Open Binance' to
+              complete your withdrawal:
+            </StepContent>
+          </ContentBox>
+          <div className="copy-buttons">
+            <div onClick={handleAddressButtonClick}>
+              <CopyToClipboard
+                variant="button"
+                string={
+                  daimoPayOrder?.mode === "hydrated"
+                    ? daimoPayOrder?.intentAddr
+                    : address
+                }
+              >
+                Copy Address
+              </CopyToClipboard>
+            </div>
+            {/* <div onClick={handleAmountButtonClick}>
+              <CopyToClipboard
+                variant="button"
+                string={
+                  daimoPayOrder?.destFinalCallTokenAmount?.usd?.toString() ||
+                  amount
+                }
+              >
+                Copy Amount ($
+                {daimoPayOrder?.destFinalCallTokenAmount?.usd?.toString() ||
+                  amount}
+                )
+              </CopyToClipboard>
+            </div> */}
+          </div>
+          <GoldenButtonWrapper>
+            <Button
+              icon={<ExternalLinkIcon />}
+              variant="primary"
+              disabled={!addressCopied && !amountCopied}
+              onClick={handleOpenBinance}
+            >
+              Open Binance
+            </Button>
+          </GoldenButtonWrapper>
+        </FinalStepContainer>
+      ),
+    },
+  };
 
   return (
     <PageContent>
-      <ModalContent>
-        <CustomQRCode
-          value={address}
-          image={binanceLogo}
-          tooltipMessage={
-            <>
-              <ScanIconWithLogos logo={binanceLogo} />
-              <span>Scan this code with your Binance app</span>
-            </>
-          }
+      <VideoContainer>
+        <Video
+          ref={videoRef}
+          src={binanceTutorialVideo}
+          playsInline
+          muted
+          loop
+          autoPlay
         />
-
-        <OrDivider />
-
-        <ModalBody>
-          <div style={{ textAlign: "left", marginBottom: 16 }}>
-            <p
-              style={{
-                marginBottom: 8,
-                fontSize: "15px",
-                lineHeight: "21px",
-              }}
-            >
-              1. Select USDC
-              <br />
-              2. Scan the QR code or copy the address
-              <br />
-              3. Choose Arbitrum as the network
-              <br />
-              4. Copy the amount and send
-            </p>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer",
-                marginTop: 16,
-                userSelect: "none",
-              }}
-              onClick={() => setTermsChecked(!termsChecked)}
-            >
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "5px",
-                  border: `2px solid var(--ck-body-color)`,
-                  marginRight: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {termsChecked && (
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: "2px",
-                      background: "var(--ck-body-color)",
-                    }}
-                  />
-                )}
-              </div>
-              <label
-                style={{
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  color: "var(--ck-body-color-muted)",
-                  userSelect: "none",
-                }}
-              >
-                I acknowledge that I have read these instructions
-              </label>
-            </div>
-          </div>
-        </ModalBody>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            opacity: termsChecked ? 1 : 0.4,
-          }}
-        >
-          {termsChecked ? (
-            <>
-              <CopyToClipboard variant="button" string={address}>
-                Copy Address
-              </CopyToClipboard>
-
-              <CopyToClipboard variant="button" string={amount}>
-                Copy Amount
-              </CopyToClipboard>
-            </>
-          ) : (
-            <>
-              <Button disabled>Copy Address</Button>
-              <Button disabled>Copy Amount</Button>
-            </>
-          )}
-        </div>
+      </VideoContainer>
+      <ModalContent>
+        <StyledModalBody $isLastStep={currentStep === 3}>
+          <StepContainer>
+            <StepIndicator>Step {currentStep} of 3</StepIndicator>
+            {steps[currentStep].content}
+          </StepContainer>
+        </StyledModalBody>
       </ModalContent>
     </PageContent>
   );

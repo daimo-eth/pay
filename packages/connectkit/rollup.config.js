@@ -1,5 +1,6 @@
 import json from "@rollup/plugin-json";
 import typescript from "@rollup/plugin-typescript";
+import url from "@rollup/plugin-url";
 import dts from "rollup-plugin-dts";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
 
@@ -34,7 +35,17 @@ export default [
         sourcemap: true,
       },
     ],
-    plugins: [peerDepsExternal(), json(), typescript()],
+    plugins: [
+      peerDepsExternal(),
+      json(),
+      typescript(),
+      url({
+        include: ["**/*.mp4"],
+        limit: 0,
+        fileName: "[name][extname]",
+        destDir: "build/assets/videos",
+      }),
+    ],
   },
   // Build types: index.d.ts
   {

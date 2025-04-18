@@ -8,13 +8,13 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 import styled from "../../../styles/styled";
 import { formatUsd, USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
 import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
-import { ExternalPaymentOptions } from "@daimo/pay-common";
 
 const SelectExternalAmount: React.FC = () => {
   const { paymentState, setRoute, triggerResize } = usePayContext();

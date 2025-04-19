@@ -43,23 +43,28 @@ export type DaimoPayEvent = {
    */
   chainId: number;
   /**
-   * The transaction hash for this event. Hex for all EVM events, Base58 for
-   * payment_started on Solana.
-   */
-  txHash: Hex | string;
-  /**
    * Payment details.
    */
   payment: DaimoPayment;
 };
 export type DaimoPayStartedEvent = DaimoPayEvent & {
   type: "payment_started";
+  /**
+   * The transaction hash sent by the user, if found. (There are rare edge cases
+   * where a payment can be paid without a txhash.) Hex for all EVM events,
+   * Base58 for payment_started on Solana.
+   */
+  txHash: Hex | string | null;
 };
 export type DaimoPayCompletedEvent = DaimoPayEvent & {
   type: "payment_completed";
+  /** The transaction hash completing this payment. */
+  txHash: Hex;
 };
 export type DaimoPayBouncedEvent = DaimoPayEvent & {
   type: "payment_bounced";
+  /** The transaction hash containing the reverted final call and refund. */
+  txHash: Hex;
 };
 
 /** Props for DaimoPayButton. */
@@ -292,10 +297,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
         type: DaimoPayIntentStatus.STARTED,
         paymentId: writeDaimoPayOrderID(hydOrder.id),
         chainId: hydOrder.destFinalCallTokenAmount.token.chainId,
-        txHash: assertNotNull(
-          hydOrder.sourceInitiateTxHash,
-          `[PAY BUTTON] source initiate tx hash null on order ${hydOrder.id} when intent status is ${intentStatus}`,
-        ),
+        txHash: hydOrder.sourceInitiateTxHash ?? null,
         payment: getDaimoPayOrderView(hydOrder),
       });
     } else if (

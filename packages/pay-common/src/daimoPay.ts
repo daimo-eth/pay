@@ -475,7 +475,7 @@ export type PaymentCompletedEvent = {
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
   chainId: number;
-  txHash: Hex | string;
+  txHash: Hex;
   payment: DaimoPayOrderView;
 };
 
@@ -484,7 +484,7 @@ export type PaymentBouncedEvent = {
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
   chainId: number;
-  txHash: Hex | string;
+  txHash: Hex;
   payment: DaimoPayOrderView;
 };
 

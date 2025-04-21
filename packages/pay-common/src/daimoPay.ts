@@ -190,7 +190,7 @@ export type DaimoPayDehydratedOrder = {
   id: bigint;
   destFinalCallTokenAmount: DaimoPayTokenAmount;
   destFinalCall: OnChainCall;
-  destNonce: bigint;
+  nonce: bigint;
   redirectUri: string | null;
   orgId: string | null;
   createdAt: number | null;
@@ -205,7 +205,10 @@ export type DaimoPayHydratedOrder = {
   mode: DaimoPayOrderMode.HYDRATED;
   id: bigint;
   intentAddr: Address;
+  /** Nullable because old intents don't record escrow address. */
   escrowContractAddress: Address | null;
+  /** Nullable because old intents don't record bridger address. */
+  bridgerContractAddress: Address | null;
   /**
    * @deprecated included for backcompat with old versions. Remove soon.
    */
@@ -217,7 +220,7 @@ export type DaimoPayHydratedOrder = {
   destFinalCall: OnChainCall;
   usdValue: number;
   refundAddr: Address;
-  destNonce: bigint;
+  nonce: bigint;
   sourceFulfillerAddr: Address | SolanaPublicKey | null;
   sourceTokenAmount: DaimoPayTokenAmount | null;
   sourceInitiateTxHash: Hex | null;
@@ -234,6 +237,8 @@ export type DaimoPayHydratedOrder = {
   metadata: DaimoPayOrderMetadata;
   externalId: string | null;
   userMetadata: DaimoPayUserMetadata | null;
+  /** Nullable because old intents don't have expiration time. */
+  expirationTs: bigint | null;
 };
 
 export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<

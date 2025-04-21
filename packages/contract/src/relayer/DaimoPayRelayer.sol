@@ -24,19 +24,27 @@ contract DaimoPayRelayer is AccessControl {
         uint256 maxPostTip
     );
 
+    // Enabled only within transactions. Otherwise zero.
+    bytes32 private approvedSwapAndTipHash;
+
+    // For gas efficiency, set to 1 to disable swapAndTip.
+    bytes32 private constant NO_APPROVED_HASH = bytes32(uint256(1));
+
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(RELAYER_EOA_ROLE, admin);
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    // Add a new address that can use the relayer functions.
+    /// Add a new address that can trigger the relayer.
+    /// We use multiple relayer EOAs to avoid nonce contention.
     function grantRelayerEOARole(
         address relayer
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(RELAYER_EOA_ROLE, relayer);
     }
 
-    // Withdraws an amount of tokens from the contract to the admin.
+    /// Withdraws an amount of tokens from the contract to the admin.
     function withdrawAmount(
         IERC20 token,
         uint256 amount
@@ -44,26 +52,25 @@ contract DaimoPayRelayer is AccessControl {
         TokenUtils.transfer(token, payable(msg.sender), amount);
     }
 
-    // Withdraws the full balance of a token from the contract to the admin.
+    /// Withdraws the full balance of a token from the relayer to the admin.
     function withdrawBalance(
         IERC20 token
     ) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
         return TokenUtils.transferBalance(token, payable(msg.sender));
     }
 
-    // Makes a swap from requiredTokenIn.token to requiredTokenOut.token. The
-    // relayer supplies a "tip" either on the input or output side so that
-    // we get sufficient token output.
-    //
-    // Pre-tip: The relayer tips up to maxPreTip of requiredTokenIn.token so
-    // that there is sufficient input to guarantee the swap outputs enough of
-    // the output token.
-    //
-    // Post-tip: Swap with however much input token the user has provided. The
-    // relayer tips up to maxPostTip of requiredTokenOut.token so that the
-    // output amount reaches the required amount.
+    /// Makes a swap from requiredTokenIn.token to requiredTokenOut.token. The
+    /// relayer supplies a "tip" either on the input or output side so that
+    /// we get sufficient token output.
+    ///
+    /// Pre-tip: The relayer tips up to maxPreTip of requiredTokenIn.token so
+    /// that there is sufficient input to guarantee the swap outputs enough of
+    /// the output token.
+    ///
+    /// Post-tip: Swap with however much input token the user has provided. The
+    /// relayer tips up to maxPostTip of requiredTokenOut.token so that the
+    /// output amount reaches the required amount.
     function swapAndTip(
-        // supplied comes from the user, required is the gap we need to fill with tip.
         TokenAmount calldata requiredTokenIn,
         uint256 suppliedTokenInAmount,
         TokenAmount calldata requiredTokenOut,
@@ -71,7 +78,20 @@ contract DaimoPayRelayer is AccessControl {
         uint256 maxPostTip,
         Call calldata innerSwap
     ) external payable {
-        require(hasRole(RELAYER_EOA_ROLE, tx.origin), "DPR: only relayer");
+        // Check that this exact swapAndTip call was approved.
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        require(approvedSwapAndTipHash == swapAndTipHash, "DPR: wrong hash");
+        // Single-use
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
 
         //////////////////////////////////////////////////////////////
         // PRE-SWAP
@@ -186,6 +206,7 @@ contract DaimoPayRelayer is AccessControl {
         });
     }
 
+    /// Starts a new intent.
     function startIntent(
         Call[] calldata preCalls,
         DaimoPay dp,
@@ -193,8 +214,11 @@ contract DaimoPayRelayer is AccessControl {
         IERC20[] calldata paymentTokens,
         Call[] calldata startCalls,
         bytes calldata bridgeExtraData,
-        Call[] calldata postCalls
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
         // Make pre-start calls
         for (uint256 i = 0; i < preCalls.length; ++i) {
             Call calldata call = preCalls[i];
@@ -215,6 +239,8 @@ contract DaimoPayRelayer is AccessControl {
             (bool success, ) = call.to.call{value: call.value}(call.data);
             require(success, "DPR: postCall failed");
         }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     function fastFinish(
@@ -239,8 +265,11 @@ contract DaimoPayRelayer is AccessControl {
         DaimoPay dp,
         PayIntent calldata intent,
         Call[] calldata claimCalls,
-        Call[] calldata postCalls
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
         // Make pre-claim calls
         for (uint256 i = 0; i < preCalls.length; ++i) {
             Call calldata call = preCalls[i];
@@ -256,6 +285,8 @@ contract DaimoPayRelayer is AccessControl {
             (bool success, ) = call.to.call{value: call.value}(call.data);
             require(success, "DPR: postCall failed");
         }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     receive() external payable {}

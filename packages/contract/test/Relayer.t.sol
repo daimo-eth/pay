@@ -76,7 +76,8 @@ contract RelayerTest is Test {
             paymentTokens: paymentTokens,
             startCalls: new Call[](0),
             bridgeExtraData: "",
-            postCalls: new Call[](0)
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
 
@@ -88,7 +89,8 @@ contract RelayerTest is Test {
             paymentTokens: paymentTokens,
             startCalls: new Call[](0),
             bridgeExtraData: "",
-            postCalls: new Call[](0)
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
     }
@@ -134,7 +136,8 @@ contract RelayerTest is Test {
             dp: DaimoPay(payable(address(0))),
             intent: createSampleIntent(),
             claimCalls: new Call[](0),
-            postCalls: new Call[](0)
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
 
@@ -144,7 +147,8 @@ contract RelayerTest is Test {
             dp: DaimoPay(payable(address(mockDp))),
             intent: createSampleIntent(),
             claimCalls: new Call[](0),
-            postCalls: new Call[](0)
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
     }
@@ -281,10 +285,9 @@ contract RelayerTest is Test {
         assertEq(withdrawnAmount, 1000);
     }
 
-    function testNonRelayerCannotSwapAndTip() public {
-        // msg.sender is _noRole, tx.origin is _noRole
-        vm.startPrank(_noRole, _noRole);
-        vm.expectRevert("DPR: only relayer");
+    function testSwapAndTipAuth() public {
+        // swapAndTip is accepts only a single, preauthorized call
+        vm.expectRevert("DPR: wrong hash");
         relayerContract.swapAndTip({
             requiredTokenIn: TokenAmount(_token1, 0),
             suppliedTokenInAmount: 0,
@@ -293,13 +296,21 @@ contract RelayerTest is Test {
             maxPostTip: 0,
             innerSwap: Call(address(0), 0, "")
         });
-        vm.stopPrank();
 
-        // msg.sender is _relayer, tx.origin is _noRole
-        // This should revert because swapAndTip requires tx.origin to have the
-        // RELAYER_EOA_ROLE.
-        vm.startPrank(_relayer, _noRole);
-        vm.expectRevert("DPR: only relayer");
+        // Pre-approve the call
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                TokenAmount(_token1, 0),
+                0,
+                TokenAmount(_token1, 0),
+                0,
+                0,
+                Call(address(0), 0, "")
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        // Execute the call
         relayerContract.swapAndTip({
             requiredTokenIn: TokenAmount(_token1, 0),
             suppliedTokenInAmount: 0,
@@ -308,7 +319,6 @@ contract RelayerTest is Test {
             maxPostTip: 0,
             innerSwap: Call(address(0), 0, "")
         });
-        vm.stopPrank();
     }
 
     // Test case where relayer tips before the swap to ensure the swap goes
@@ -339,8 +349,20 @@ contract RelayerTest is Test {
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
-        // Execute swap where tx.origin is relayer and msg.sender is bob
-        vm.startPrank(_bob, _relayer);
+        // Execute swap
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        vm.startPrank(_bob);
         vm.expectEmit(address(relayerContract));
         emit DaimoPayRelayer.SwapAndTip({
             requiredTokenIn: address(requiredTokenIn.token),
@@ -399,8 +421,20 @@ contract RelayerTest is Test {
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
-        // Execute swap where tx.origin is relayer and msg.sender is bob
-        vm.startPrank(_bob, _relayer);
+        // Execute swap
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        vm.startPrank(_bob);
         vm.expectEmit(address(relayerContract));
         emit DaimoPayRelayer.SwapAndTip({
             requiredTokenIn: address(requiredTokenIn.token),
@@ -460,6 +494,19 @@ contract RelayerTest is Test {
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
+        // Prepare the swapAndTip hash
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
         // Execute swap where tx.origin is relayer and msg.sender is bob
         vm.startPrank(_bob, _relayer);
         vm.expectRevert("DPR: excessive pre tip");
@@ -503,7 +550,19 @@ contract RelayerTest is Test {
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
         // Execute swap where tx.origin is relayer and msg.sender is bob
-        vm.startPrank(_bob, _relayer);
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        vm.startPrank(_bob);
         vm.expectRevert("DPR: excessive post tip");
         relayerContract.swapAndTip({
             requiredTokenIn: requiredTokenIn,
@@ -538,6 +597,19 @@ contract RelayerTest is Test {
             (1000, 1000) // Swap 1000 token1 for 1000 token2
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
+
+        // Prepare the swapAndTip hash
+        bytes32 swapAndTipHash = keccak256(
+            abi.encode(
+                requiredTokenIn,
+                suppliedTokenInAmount,
+                requiredTokenOut,
+                maxPreTip,
+                maxPostTip,
+                innerSwap
+            )
+        );
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
         // Execute swap where tx.origin is relayer and msg.sender is bob
         vm.startPrank(_bob, _relayer);

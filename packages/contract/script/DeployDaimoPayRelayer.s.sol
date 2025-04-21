@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
-import "./Constants.s.sol";
+import "./constants/Constants.s.sol";
 
 contract DeployDaimoPayRelayer is Script {
     function run() public {
@@ -14,7 +14,7 @@ contract DeployDaimoPayRelayer is Script {
         vm.startBroadcast();
 
         address daimoPayRelayer = CREATE3.deploy(
-            keccak256("DaimoPayRelayer-audit2"),
+            keccak256("DaimoPayRelayer-1"),
             abi.encodePacked(
                 type(DaimoPayRelayer).creationCode,
                 abi.encode(owner)

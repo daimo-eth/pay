@@ -5,7 +5,11 @@ import "forge-std/Script.sol";
 import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "../src/DaimoPayBridger.sol";
-import "./Constants.s.sol";
+import "./constants/AcrossBridgeRouteConstants.sol";
+import "./constants/AxelarBridgeRouteConstants.sol";
+import "./constants/CCTPBridgeRouteConstants.sol";
+import "./constants/CCTPV2BridgeRouteConstants.sol";
+import "./constants/Constants.s.sol";
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -16,8 +20,14 @@ contract DeployDaimoPayBridger is Script {
             address[] memory bridgers
         ) = _getBridgersAndChainIds();
 
+        console.log("--------------------------------");
+        for (uint256 i = 0; i < chainIds.length; ++i) {
+            console.log("toChain:", chainIds[i], "bridger:", bridgers[i]);
+        }
+        console.log("--------------------------------");
+
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayBridger-audit2"),
+            keccak256("DaimoPayBridger-deploy2"),
             abi.encodePacked(
                 type(DaimoPayBridger).creationCode,
                 abi.encode(chainIds, bridgers)
@@ -40,115 +50,89 @@ contract DeployDaimoPayBridger is Script {
             return (new uint256[](0), new address[](0));
         }
 
+        // Get addresses of deployed bridger implementations
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPBridger-audit2")
+            keccak256("DaimoPayCCTPBridger-deploy2")
         );
         address cctpV2Bridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPV2Bridger-audit2")
+            keccak256("DaimoPayCCTPV2Bridger-deploy2")
         );
         address acrossBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAcrossBridger-audit2")
+            keccak256("DaimoPayAcrossBridger-deploy2")
         );
         address axelarBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAxelarBridger-audit2")
+            keccak256("DaimoPayAxelarBridger-deploy2")
         );
+
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
         console.log("acrossBridger address:", acrossBridger);
         console.log("axelarBridger address:", axelarBridger);
 
-        // Bridge to CCTP chains using CCTP.
-        // Linea uses Across.
-        // BSC uses Axelar.
-        uint256[] memory allChainIds = new uint256[](11);
-        address[] memory allBridgers = new address[](11);
+        // Get all supported destination chains from the generated constants
+        // CCTP
+        (uint256[] memory cctpChainIds, ) = getCCTPBridgeRoutes(block.chainid);
 
-        allChainIds[0] = ARBITRUM_MAINNET;
-        allChainIds[1] = AVAX_MAINNET;
-        allChainIds[2] = BASE_MAINNET;
-        allChainIds[3] = ETH_MAINNET;
-        allChainIds[4] = OP_MAINNET;
-        allChainIds[5] = POLYGON_MAINNET;
-        allChainIds[6] = LINEA_MAINNET;
-        allChainIds[7] = BSC_MAINNET;
-        allChainIds[8] = WORLDCHAIN_MAINNET;
-        allChainIds[9] = BLAST_MAINNET;
-        allChainIds[10] = MANTLE_MAINNET;
+        // CCTP V2
+        (uint256[] memory cctpV2ChainIds, ) = getCCTPV2BridgeRoutes(
+            block.chainid
+        );
 
-        allBridgers[0] = cctpBridger;
-        allBridgers[1] = cctpBridger;
-        allBridgers[2] = cctpBridger;
-        allBridgers[3] = cctpBridger;
-        allBridgers[4] = cctpBridger;
-        allBridgers[5] = cctpBridger;
-        allBridgers[6] = acrossBridger;
-        allBridgers[7] = axelarBridger;
-        allBridgers[8] = acrossBridger;
-        allBridgers[9] = acrossBridger;
-        allBridgers[10] = axelarBridger;
+        // Across
+        (uint256[] memory acrossChainIds, ) = getAcrossBridgeRoutes(
+            block.chainid
+        );
 
-        chainIds = new uint256[](10);
-        bridgers = new address[](10);
+        // Axelar
+        (uint256[] memory axelarChainIds, ) = getAxelarBridgeRoutes(
+            block.chainid,
+            axelarBridger
+        );
 
-        // Include all chainIds except the current chainId
-        uint256 count = 0;
-        for (uint256 i = 0; i < allChainIds.length; ++i) {
-            if (allChainIds[i] != block.chainid) {
-                chainIds[count] = allChainIds[i];
-                // Base and Linea bridge to each other using CCTPv2.
-                if (
-                    block.chainid == BASE_MAINNET &&
-                    allChainIds[i] == LINEA_MAINNET
-                ) {
-                    bridgers[count] = cctpV2Bridger;
-                } else {
-                    bridgers[count] = allBridgers[i];
-                }
-                ++count;
-            }
+        // Count total number of supported chains
+        uint256 totalChains = cctpChainIds.length +
+            cctpV2ChainIds.length +
+            acrossChainIds.length +
+            axelarChainIds.length;
+
+        // Initialize arrays for the combined result
+        chainIds = new uint256[](totalChains);
+        bridgers = new address[](totalChains);
+
+        // Populate arrays with each bridger type
+        uint256 index = 0;
+
+        // Add CCTP routes
+        for (uint256 i = 0; i < cctpChainIds.length; i++) {
+            chainIds[index] = cctpChainIds[i];
+            bridgers[index] = cctpBridger;
+            index++;
         }
 
-        if (
-            block.chainid == LINEA_MAINNET ||
-            block.chainid == WORLDCHAIN_MAINNET ||
-            block.chainid == BLAST_MAINNET
-        ) {
-            // Linea, Worldchain, and Blast bridge to other chains using Across.
-            // Override all bridgers with Across.
-            // The exceptions are BSC and Mantle, which use Axelar.
-            for (uint256 i = 0; i < bridgers.length; ++i) {
-                if (
-                    chainIds[i] == BSC_MAINNET || chainIds[i] == MANTLE_MAINNET
-                ) {
-                    bridgers[i] = axelarBridger;
-                } else if (
-                    block.chainid == LINEA_MAINNET &&
-                    chainIds[i] == BASE_MAINNET
-                ) {
-                    bridgers[i] = cctpV2Bridger;
-                } else {
-                    bridgers[i] = acrossBridger;
-                }
-            }
-        } else if (
-            block.chainid == BSC_MAINNET || block.chainid == MANTLE_MAINNET
-        ) {
-            // BSC and Mantle bridges to other chains using Axelar. Override all
-            // bridgers with Axelar.
-            for (uint256 i = 0; i < bridgers.length; ++i) {
-                bridgers[i] = axelarBridger;
-            }
+        // Add CCTP V2 routes
+        for (uint256 i = 0; i < cctpV2ChainIds.length; i++) {
+            chainIds[index] = cctpV2ChainIds[i];
+            bridgers[index] = cctpV2Bridger;
+            index++;
         }
 
-        console.log("--------------------------------");
-        for (uint256 i = 0; i < chainIds.length; ++i) {
-            console.log("toChain:", chainIds[i], "bridger:", bridgers[i]);
+        // Add Across routes
+        for (uint256 i = 0; i < acrossChainIds.length; i++) {
+            chainIds[index] = acrossChainIds[i];
+            bridgers[index] = acrossBridger;
+            index++;
         }
-        console.log("--------------------------------");
+
+        // Add Axelar routes
+        for (uint256 i = 0; i < axelarChainIds.length; i++) {
+            chainIds[index] = axelarChainIds[i];
+            bridgers[index] = axelarBridger;
+            index++;
+        }
 
         return (chainIds, bridgers);
     }

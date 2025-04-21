@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import {CREATE3Factory} from "../vendor/create3/CREATE3Factory.sol";
+import {CREATE3Factory} from "../../vendor/create3/CREATE3Factory.sol";
 
 // Uniswap deployments
 // https://docs.uniswap.org/contracts/v3/reference/deployments/

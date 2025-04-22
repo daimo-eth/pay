@@ -14,7 +14,7 @@ contract DeployDaimoPayRelayer is Script {
         vm.startBroadcast();
 
         address daimoPayRelayer = CREATE3.deploy(
-            keccak256("DaimoPayRelayer-1"),
+            keccak256("DaimoPayRelayer-3"),
             abi.encodePacked(
                 type(DaimoPayRelayer).creationCode,
                 abi.encode(owner)
@@ -24,8 +24,8 @@ contract DeployDaimoPayRelayer is Script {
         console.log("daimoPayRelayer deployed at address:", daimoPayRelayer);
 
         address[] memory additionalRelayers = new address[](2);
-        additionalRelayers[0] = 0xA602141Bfc2577A37B43D6156728b09c900b33c3; // startAndClaimRelayer
-        additionalRelayers[1] = 0x2F321372E8A9755CD2Ca6114eB8da32A14F8100b; // dev relayer
+        additionalRelayers[0] = 0xA602141Bfc2577A37B43D6156728b09c900b33c3; // startAndClaim relayer
+        additionalRelayers[1] = 0x723A63fb50dA50A26997Fb99A2Eb151E4F8c5227; // fastFinish relayer
 
         for (uint256 i = 0; i < additionalRelayers.length; i++) {
             DaimoPayRelayer(payable(daimoPayRelayer)).grantRelayerEOARole(

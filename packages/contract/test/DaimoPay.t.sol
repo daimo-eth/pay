@@ -945,6 +945,67 @@ contract DaimoPayTest is Test {
         assertEq(_toToken.balanceOf(_bob), _toAmount);
     }
 
+    function testFastFinishWithPaidCall() public {
+        vm.chainId(_cctpDestchainId);
+
+        // Seed the LP with an initial balance
+        _toToken.transfer(_lp, _lpToTokenInitBalance);
+
+        // Deploy the dummy final call contract
+        DummyFinalCallContract dummyFinalCallContract = new DummyFinalCallContract();
+
+        // Create a PayIntent with a finalCall that uses the DummyFinalCallContract
+        PayIntent memory intent = PayIntent({
+            toChainId: _cctpDestchainId,
+            bridger: bridger,
+            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            finalCall: Call({
+                to: address(dummyFinalCallContract),
+                value: 0,
+                data: abi.encodeCall(
+                    DummyFinalCallContract.transferFromToken,
+                    (address(_toToken), address(dp.executor()), _bob, _toAmount)
+                )
+            }),
+            escrow: payable(address(dp)),
+            refundAddress: _alice,
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 1
+        });
+
+        address intentAddr = intentFactory.getIntentAddress(intent);
+
+        // LP sends tokens to the DaimoPay contract
+        vm.startPrank(_lp);
+        _toToken.transfer({to: address(dp), value: _toAmount});
+        IERC20[] memory fastFinishTokens = new IERC20[](1);
+        fastFinishTokens[0] = _toToken;
+
+        vm.expectEmit(address(dp));
+        emit DaimoPay.IntentFinished({
+            intentAddr: intentAddr,
+            destinationAddr: address(dummyFinalCallContract),
+            success: true,
+            intent: intent
+        });
+        vm.expectEmit(address(dp));
+        emit DaimoPay.FastFinish({intentAddr: intentAddr, newRecipient: _lp});
+
+        dp.fastFinishIntent({
+            intent: intent,
+            calls: new Call[](0),
+            tokens: fastFinishTokens
+        });
+
+        vm.stopPrank();
+
+        // LP sent funds as part of the paid contract call
+        assertEq(_toToken.balanceOf(_lp), _lpToTokenInitBalance - _toAmount);
+        // Bob received the funds via the contract call
+        assertEq(_toToken.balanceOf(_bob), _toAmount);
+    }
+
     // Test that the funds are sent to the final recipient if no LP claims.
     function testClaimWithoutFastFinish() public {
         vm.chainId(_cctpDestchainId);
@@ -1162,7 +1223,8 @@ contract DaimoPayTest is Test {
         vm.expectRevert(bytes("DPCE: only escrow"));
         executor.executeFinalCall({
             finalCall: Call({to: _bob, value: 0, data: ""}),
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount})
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            refundAddr: payable(_alice)
         });
         vm.stopPrank();
     }
@@ -1220,14 +1282,148 @@ contract DaimoPayTest is Test {
         // approve finalCall.to before executing the call, so the transferFrom
         // should succeed.
         vm.startPrank(address(dp));
-        executor.executeFinalCall({
+        bool success = executor.executeFinalCall({
             finalCall: finalCall,
-            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount})
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            refundAddr: payable(_alice)
         });
+        assertEq(success, true);
         vm.stopPrank();
 
         // Bob should have the tokens
         assertEq(_toToken.balanceOf(_bob), _toAmount);
+
+        // No extra tokens for Alice.
+        assertEq(_toToken.balanceOf(_alice), 0);
+    }
+
+    /// Tests that unused tokens are refunded when finalCall uses less than approved amount
+    function testExecutorFinalCallRefundExtra() public {
+        // Give executor tokens
+        DaimoPayExecutor executor = DaimoPayExecutor(
+            payable(address(dp.executor()))
+        );
+        _toToken.transfer(address(executor), _toAmount);
+
+        // Deploy the dummy final call contract
+        DummyFinalCallContract dummyFinalCallContract = new DummyFinalCallContract();
+
+        // Setup finalCall to transfer less than approved amount
+        Call memory finalCall = Call({
+            to: address(dummyFinalCallContract),
+            value: 0,
+            data: abi.encodeCall(
+                DummyFinalCallContract.transferFromToken,
+                (address(_toToken), address(executor), _bob, _toAmount - 3)
+            )
+        });
+
+        vm.prank(address(dp));
+        bool success = executor.executeFinalCall({
+            finalCall: finalCall,
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            refundAddr: payable(_alice)
+        });
+
+        assertEq(success, true);
+        // Bob should have the partial amount
+        assertEq(_toToken.balanceOf(_bob), _toAmount - 3);
+        // Alice should get the refund
+        assertEq(_toToken.balanceOf(_alice), 3);
+    }
+
+    /// Tests that all tokens are refunded when finalCall fails due to insufficient approval
+    function testExecutorFinalCallRefundFailed() public {
+        // Give executor tokens
+        DaimoPayExecutor executor = DaimoPayExecutor(
+            payable(address(dp.executor()))
+        );
+        _toToken.transfer(address(executor), _toAmount);
+
+        // Deploy the dummy final call contract
+        DummyFinalCallContract dummyFinalCallContract = new DummyFinalCallContract();
+
+        // Setup finalCall to transfer more than approved amount
+        Call memory finalCall = Call({
+            to: address(dummyFinalCallContract),
+            value: 0,
+            data: abi.encodeCall(
+                DummyFinalCallContract.transferFromToken,
+                (address(_toToken), address(executor), _bob, _toAmount + 1)
+            )
+        });
+
+        vm.prank(address(dp));
+        bool success = executor.executeFinalCall({
+            finalCall: finalCall,
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            refundAddr: payable(_alice)
+        });
+
+        assertEq(success, false);
+        // Bob should have nothing
+        assertEq(_toToken.balanceOf(_bob), 0);
+        // Alice should get the full refund
+        assertEq(_toToken.balanceOf(_alice), _toAmount);
+    }
+
+    /// Intent was not fast-finished. Claim directly into a final contract call.
+    function testClaimWithFinalCall() public {
+        vm.chainId(_cctpDestchainId);
+
+        // Deploy the dummy final call contract
+        DummyFinalCallContract dummyFinalCallContract = new DummyFinalCallContract();
+
+        // Create intent with finalCall that transfers tokens
+        PayIntent memory intent = PayIntent({
+            toChainId: _cctpDestchainId,
+            bridger: bridger,
+            bridgeTokenOutOptions: getBridgeTokenOutOptions(),
+            finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
+            finalCall: Call({
+                to: address(dummyFinalCallContract),
+                value: 0,
+                data: abi.encodeCall(
+                    DummyFinalCallContract.transferFromToken,
+                    (
+                        address(_toToken),
+                        address(dp.executor()),
+                        _bob,
+                        _toAmount - 3
+                    )
+                )
+            }),
+            escrow: payable(address(dp)),
+            refundAddress: _alice,
+            nonce: _nonce,
+            expirationTimestamp: block.timestamp + 100 minutes
+        });
+
+        address intentAddr = intentFactory.getIntentAddress(intent);
+
+        // CCTP bridge would send token to intentAddr
+        _toToken.transfer(intentAddr, _toAmount);
+
+        // Claim the intent with no fast finish
+        vm.expectEmit(address(dp));
+        emit DaimoPay.IntentFinished({
+            intentAddr: intentAddr,
+            destinationAddr: address(dummyFinalCallContract),
+            success: true,
+            intent: intent
+        });
+        vm.expectEmit(address(dp));
+        emit DaimoPay.Claim({
+            intentAddr: intentAddr,
+            finalRecipient: address(dummyFinalCallContract)
+        });
+
+        dp.claimIntent({intent: intent, calls: new Call[](0)});
+
+        // Verify outcome: intent address emptied, Bob got tokens, Alice got refund
+        assertEq(_toToken.balanceOf(intentAddr), 0);
+        assertEq(_toToken.balanceOf(_bob), _toAmount - 3);
+        assertEq(_toToken.balanceOf(_alice), 3); // Refund of unused tokens
     }
 
     // Test that startIntent can't be called after the intent has expired

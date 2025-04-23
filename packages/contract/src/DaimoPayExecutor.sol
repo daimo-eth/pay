@@ -81,7 +81,8 @@ contract DaimoPayExecutor is ReentrancyGuard {
     /// Return whether the call succeeded.
     function executeFinalCall(
         Call calldata finalCall,
-        TokenAmount calldata finalCallToken
+        TokenAmount calldata finalCallToken,
+        address payable refundAddr
     ) external nonReentrant returns (bool success) {
         require(msg.sender == escrow, "DPCE: only escrow");
 
@@ -94,6 +95,12 @@ contract DaimoPayExecutor is ReentrancyGuard {
 
         // Then, execute the final call.
         (success, ) = finalCall.to.call{value: finalCall.value}(finalCall.data);
+
+        // Send any excess funds to the refund address.
+        TokenUtils.transferBalance({
+            token: finalCallToken.token,
+            recipient: refundAddr
+        });
     }
 
     /// Accept native-token (eg ETH) inputs

@@ -361,28 +361,32 @@ contract DaimoPay is ReentrancyGuard {
 
         bool success;
         if (intent.finalCall.data.length > 0) {
-            // If the intent is a call, approve the final token and make the call
-            success = executor.executeFinalCall({
-                finalCall: intent.finalCall,
-                finalCallToken: intent.finalCallToken
+            // If the intent is a call, make the call
+            success = TokenUtils.tryTransfer({
+                token: intent.finalCallToken.token,
+                recipient: payable(address(executor)),
+                amount: intent.finalCallToken.amount
             });
+            if (success) {
+                success = executor.executeFinalCall({
+                    finalCall: intent.finalCall,
+                    finalCallToken: intent.finalCallToken,
+                    refundAddr: payable(intent.refundAddress)
+                });
+            }
         } else {
             // If the final call is a transfer, transfer the token.
-            success = TokenUtils.tryTransfer(
-                intent.finalCallToken.token,
-                payable(intent.finalCall.to),
-                intent.finalCallToken.amount
-            );
-        }
-
-        // If the call fails, transfer the token to the refund address
-        if (!success) {
-            TokenUtils.transfer({
+            success = TokenUtils.tryTransfer({
                 token: intent.finalCallToken.token,
-                recipient: payable(intent.refundAddress),
+                recipient: payable(intent.finalCall.to),
                 amount: intent.finalCallToken.amount
             });
         }
+        // Transfer any excess to the refund address.
+        TokenUtils.transferBalance({
+            token: intent.finalCallToken.token,
+            recipient: payable(intent.refundAddress)
+        });
 
         emit IntentFinished({
             intentAddr: intentAddr,

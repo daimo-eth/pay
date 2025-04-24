@@ -32,6 +32,9 @@ export { wallets } from "./wallets";
 // Export utilities.
 export * from "./utils/exports";
 
+// Export types
+export * from "./types";
+
 // TODO: expose this more selectively.
 export {
   PayContext as DaimoPayContext,

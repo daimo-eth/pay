@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 import { usePayContext } from "../../hooks/usePayContext";
 import { TextContainer } from "./styles";
@@ -288,19 +288,22 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
   const hide = () => context.setOpen(false);
 
   // Emit event handlers when payment status changes
+  const sentStart = useRef(false);
   useEffect(() => {
     if (hydOrder == null) return;
     if (intentStatus === DaimoPayIntentStatus.UNPAID) return;
 
-    if (intentStatus === DaimoPayIntentStatus.STARTED) {
+    if (!sentStart.current && hydOrder.sourceTokenAmount) {
+      sentStart.current = true;
       onPaymentStarted?.({
         type: DaimoPayIntentStatus.STARTED,
         paymentId: writeDaimoPayOrderID(hydOrder.id),
-        chainId: hydOrder.destFinalCallTokenAmount.token.chainId,
+        chainId: hydOrder.sourceTokenAmount?.token.chainId,
         txHash: hydOrder.sourceInitiateTxHash ?? null,
         payment: getDaimoPayOrderView(hydOrder),
       });
-    } else if (
+    }
+    if (
       intentStatus === DaimoPayIntentStatus.COMPLETED ||
       intentStatus === DaimoPayIntentStatus.BOUNCED
     ) {
@@ -321,7 +324,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
         onPaymentBounced?.(event as PaymentBouncedEvent);
       }
     }
-  }, [hydOrder?.id, intentStatus]);
+  }, [hydOrder?.id, intentStatus, hydOrder?.sourceTokenAmount?.token.chainId]);
 
   // Open the modal by default if the defaultOpen prop is true
   useEffect(() => {

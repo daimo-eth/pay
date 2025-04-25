@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { ReactElement, useEffect, useRef } from "react";
 
 import { usePayContext } from "../../hooks/usePayContext";
 import { TextContainer } from "./styles";
@@ -171,14 +171,14 @@ export type DaimoPayButtonCustomProps = PayButtonCommonProps & {
   children: (renderProps: {
     show: () => void;
     hide: () => void;
-  }) => React.ReactNode;
+  }) => ReactElement;
 };
 
 /**
  * A button that shows the Daimo Pay checkout. Replaces the traditional
  * Connect Wallet » approve » execute sequence with a single action.
  */
-export function DaimoPayButton(props: DaimoPayButtonProps) {
+export function DaimoPayButton(props: DaimoPayButtonProps): JSX.Element {
   const { theme, mode, customTheme } = props;
   const context = usePayContext();
 
@@ -206,7 +206,7 @@ export function DaimoPayButton(props: DaimoPayButtonProps) {
 }
 
 /** Like DaimoPayButton, but with custom styling. */
-function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps) {
+function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const context = usePayContext();
 
   // Pre-load payment info in background.

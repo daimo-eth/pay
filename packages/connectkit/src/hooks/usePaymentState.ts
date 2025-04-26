@@ -352,14 +352,12 @@ export function usePaymentState({
   const setChosenUsd = (usd: number) => {
     assert(!!daimoPayOrder, "[SET CHOSEN USD] daimoPayOrder cannot be null");
     const token = daimoPayOrder.destFinalCallTokenAmount.token;
-    const tokenUnits = (usd / token.usd).toString();
+    const tokenUnits = (usd / token.priceFromUsd).toString();
     const tokenAmount = parseUnits(tokenUnits, token.decimals);
 
     // TODO: remove amount from destFinalCall, it is redundant with
     // destFinalCallTokenAmount. Here, we only modify one and not the other.
-    log(
-      `[CHECKOUT] setting chosen USD amount to $${usd} = ${tokenUnits} ${token.symbol}`,
-    );
+    log(`[CHECKOUT] chose USD amount $${usd} = ${tokenUnits} ${token.symbol}`);
     setDaimoPayOrder({
       ...daimoPayOrder,
       destFinalCallTokenAmount: {

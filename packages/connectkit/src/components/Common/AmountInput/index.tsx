@@ -172,7 +172,7 @@ const MultiCurrencySelectAmount: React.FC<{
           <MaxButton onClick={handleMax}>Max</MaxButton>
         </AmountInputContainer>
 
-        {balanceToken.fiatIso !== "USD" && (
+        {balanceToken.fiatISO !== "USD" && (
           <SwitchContainer>
             <SwitchButton onClick={handleSwitchCurrency}>
               <SecondaryAmount>

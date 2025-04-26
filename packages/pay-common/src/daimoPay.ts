@@ -419,8 +419,6 @@ export interface DaimoPayToken extends Token {
   maxSendUsd: number;
   /** Display decimals, separate from token decimals. Eg: 2 for USDC. */
   displayDecimals: number;
-  /** ISO code for fiat currency, eg: "USD" */
-  fiatIso?: string;
   /** Symbol for fiat currency, eg: "$" */
   fiatSymbol?: string;
 }

@@ -10,6 +10,7 @@ import {
 } from "../../Common/Modal/styles";
 
 import { ExternalLinkIcon } from "../../../assets/icons";
+import useIsMobile from "../../../hooks/useIsMobile";
 import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
@@ -18,6 +19,7 @@ const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
   const trpc = context.trpc as TrpcClient;
+  const { isMobile } = useIsMobile();
 
   const {
     selectedExternalOption,
@@ -54,8 +56,12 @@ const WaitingExternal: React.FC = () => {
   }, [selectedExternalOption]);
 
   const openExternalWindow = (url: string) => {
-    if (selectedExternalOption?.id === "Coinbase") {
-      //opening Coinbase onramp in a popup window in portrait mode in the center of the screen
+    if (isMobile) {
+      // on mobile: open in a new tab
+      window.open(url, "_blank");
+    } else {
+      // on desktop: open in a popup window in
+      // portrait mode in the center of the screen
       const width = 500;
       const height = 700;
       const left = Math.max(
@@ -72,8 +78,6 @@ const WaitingExternal: React.FC = () => {
         "popupWindow",
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`,
       );
-    } else {
-      window.open(url, "_blank");
     }
   };
 

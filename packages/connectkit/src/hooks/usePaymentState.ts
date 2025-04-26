@@ -76,6 +76,7 @@ export interface PaymentState {
   setPayParams: (payParams: PayParams | undefined) => void;
   payParams: PayParams | undefined;
   generatePreviewOrder: (payParams: PayParams) => void;
+  resetOrder: () => void;
 
   daimoPayOrder: DaimoPayOrder | undefined;
   isDepositFlow: boolean;
@@ -126,7 +127,7 @@ export function usePaymentState({
 }: {
   trpc: TrpcClient;
   daimoPayOrder: DaimoPayOrder | undefined;
-  setDaimoPayOrder: (o: DaimoPayOrder) => void;
+  setDaimoPayOrder: (o: DaimoPayOrder | undefined) => void;
   setOpen: (showModal: boolean, meta?: Record<string, any>) => void;
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;
@@ -439,6 +440,10 @@ export function usePaymentState({
     }
   };
 
+  const resetOrder = () => {
+    setDaimoPayOrder(undefined);
+  };
+
   return {
     setPayId,
     payParams,
@@ -458,6 +463,7 @@ export function usePaymentState({
     depositAddressOptions,
     selectedDepositAddressOption,
     getOrderUsdLimit,
+    resetOrder,
     setPaymentWaitingMessage,
     setSelectedExternalOption,
     setSelectedTokenOption,

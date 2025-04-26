@@ -250,8 +250,12 @@ const DaimoPayProviderWithoutSolana = ({
   // downstream hooks like useDaimoPayStatus() to work correctly, we must set
   // set refresh context when payment status changes; done via setDaimoPayOrder.
   const setDaimoPayOrder = useCallback(
-    (order: DaimoPayOrder) => {
+    (order: DaimoPayOrder | undefined) => {
       setDaimoPayOrderInner(order);
+      if (order == null) {
+        log(`[PAY] setDaimoPayOrder: reset`);
+        return;
+      }
       let extra = `> $${order.destFinalCallTokenAmount.usd.toFixed(2)} to ${order.destFinalCallTokenAmount.token.chainId} ${order.destFinalCall.to}`;
       if (order.mode === DaimoPayOrderMode.HYDRATED) {
         extra += ` via ${order.intentAddr} ${order.sourceStatus} ${order.intentStatus}`;

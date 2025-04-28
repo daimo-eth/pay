@@ -224,10 +224,9 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     isWcMobileConnector: false,
     getWalletConnectDeeplink: (uri: string) => {
-      return `https://rnbwapp.com/wc?uri=${encodeURIComponent(
-        uri,
-      )}&connector=daimopay`;
+      return `rainbow://wc?uri=${encodeURIComponent(uri)}&connector=daimopay`;
     },
+    walletDeepLink: "rainbow://",
   },
   "io.rabby": {
     name: "Rabby Wallet",

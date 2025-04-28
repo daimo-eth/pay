@@ -72,7 +72,8 @@ function extractWcWalletFromProvider(p: any, log: PayLogFn) {
   }
 
   log(
-    `[WCWALLET] name: ${name} wcWallet: ${wallet?.name} isWcMobileConnector: ${wallet?.isWcMobileConnector} provider: ${p}`,
+    `[WCWALLET] name: ${name} wcWallet: ${wallet?.name} isWcMobileConnector: ${wallet?.isWcMobileConnector} provider: `,
+    p,
   );
   return wallet;
 }

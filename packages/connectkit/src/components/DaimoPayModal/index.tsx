@@ -52,6 +52,7 @@ export const DaimoPayModal: React.FC<{
     payParams,
     generatePreviewOrder,
     isDepositFlow,
+    showSolanaPaymentMethod,
     setPaymentWaitingMessage,
     setSelectedExternalOption,
     setSelectedTokenOption,
@@ -200,38 +201,42 @@ export const DaimoPayModal: React.FC<{
     context.setOpen(false, { event: "click-close" });
   }
 
-  // Separate effect for initial route when modal opens
+  // If the user has a wallet already connected upon opening the modal, go
+  // straight to the select token screen
   useEffect(() => {
-    if (
-      context.open &&
-      !isSolanaConnected &&
-      (context.wcWallet || isEthConnected)
-    ) {
-      // Only set initial route if we're at SELECT_METHOD when opening
-      if (context.route === ROUTES.SELECT_METHOD) {
-        context.setRoute(ROUTES.SELECT_TOKEN, {
-          event: "eth_connected_on_open",
-          walletId: connector?.id,
-          chainId: chain?.id,
-          address,
-        });
-      }
-    } else if (
-      context.open &&
-      isSolanaConnected &&
-      !isEthConnected &&
-      context.wcWallet === undefined &&
-      includeSolana
-    ) {
-      if (context.route === ROUTES.SELECT_METHOD) {
-        context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
-          event: "solana_connected_on_open",
-        });
-      }
-    }
-    // If both are connected, do nothing and stay on SELECT_METHOD
-  }, [context.open]);
+    if (!context.open) return;
+    if (context.route !== ROUTES.SELECT_METHOD) return;
 
+    const ethMethodAvailable = context.wcWallet != null || isEthConnected;
+    const solanaMethodAvailable = isSolanaConnected && showSolanaPaymentMethod;
+
+    // Skip to token selection if exactly one wallet is connected. If both
+    // wallets are connected, stay on the SELECT_METHOD screen to allow the
+    // user to select which wallet to use
+    if (ethMethodAvailable && !solanaMethodAvailable) {
+      context.setRoute(ROUTES.SELECT_TOKEN, {
+        event: "eth_connected_on_open",
+        walletId: connector?.id,
+        chainId: chain?.id,
+        address,
+      });
+    } else if (solanaMethodAvailable && !ethMethodAvailable) {
+      context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
+        event: "solana_connected_on_open",
+      });
+    }
+    // Don't include context.route in the dependency array otherwise the user
+    // can't go back from the select token screen to the select method screen
+  }, [
+    context.open,
+    context.wcWallet,
+    isEthConnected,
+    isSolanaConnected,
+    showSolanaPaymentMethod,
+  ]);
+
+  // If we're on the connect page and the user successfully connects their
+  // wallet, go to the select token page
   useEffect(() => {
     if (
       context.route === ROUTES.CONNECT ||
@@ -247,7 +252,7 @@ export const DaimoPayModal: React.FC<{
         });
       }
     }
-  }, [isEthConnected, context.route]);
+  }, [isEthConnected, context.route, connector?.id, chain?.id, address]);
 
   useEffect(() => context.setMode(mode), [mode]);
   useEffect(() => context.setTheme(theme), [theme]);

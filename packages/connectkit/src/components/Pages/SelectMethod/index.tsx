@@ -8,8 +8,6 @@ import {
   DepositAddressPaymentOptionMetadata,
   ExternalPaymentOptions,
   getAddressContraction,
-  getOrderDestChainId,
-  isCCTPV1Chain,
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
@@ -42,6 +40,7 @@ export default function SelectMethod() {
     daimoPayOrder,
     setSelectedExternalOption,
     externalPaymentOptions,
+    showSolanaPaymentMethod,
     depositAddressOptions,
     senderEnsName,
   } = paymentState;
@@ -106,7 +105,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (isSolanaConnected && includeSolana) {
+    if (isSolanaConnected && showSolanaPaymentMethod) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
@@ -145,17 +144,9 @@ export default function SelectMethod() {
     return connectedOptions;
   };
 
-  // Solana payment option
-  // Include by default if paymentOptions not provided. Solana bridging is only
-  // supported on CCTP v1 chains.
-  const includeSolana =
-    (paymentOptions == null ||
-      paymentOptions.includes(ExternalPaymentOptions.Solana)) &&
-    daimoPayOrder != null &&
-    isCCTPV1Chain(getOrderDestChainId(daimoPayOrder));
   // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
   // Include by default if paymentOptions not provided
-  const includeDepositAddressOption =
+  const showDepositAddressMethod =
     paymentOptions == null ||
     paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
 
@@ -190,7 +181,7 @@ export default function SelectMethod() {
     )}`,
   );
 
-  if (includeSolana) {
+  if (showSolanaPaymentMethod) {
     const solanaOption = getSolanaOption(isIOS);
     if (solanaOption) {
       options.push(solanaOption);
@@ -217,7 +208,7 @@ export default function SelectMethod() {
     })),
   );
 
-  if (includeDepositAddressOption) {
+  if (showDepositAddressMethod) {
     const depositAddressOption = getDepositAddressOption(depositAddressOptions);
     options.push(depositAddressOption);
   }

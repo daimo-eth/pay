@@ -9,6 +9,8 @@ import {
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  getOrderDestChainId,
+  isCCTPV1Chain,
   PlatformType,
   readDaimoPayOrderID,
   SolanaPublicKey,
@@ -84,6 +86,7 @@ export interface PaymentState {
   setModalOptions: (modalOptions: DaimoPayModalOptions) => void;
   paymentWaitingMessage: string | undefined;
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
+  showSolanaPaymentMethod: boolean;
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
   depositAddressOptions: ReturnType<typeof useDepositAddressOptions>;
@@ -148,6 +151,16 @@ export function usePaymentState({
   // Solana wallet state.
   const solanaWallet = useWallet();
   const solanaPubKey = solanaWallet.publicKey?.toBase58();
+
+  // TODO: backend should determine whether to show solana payment method
+  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  // Include by default if paymentOptions not provided. Solana bridging is only
+  // supported on CCTP v1 chains.
+  const showSolanaPaymentMethod =
+    (paymentOptions == null ||
+      paymentOptions.includes(ExternalPaymentOptions.Solana)) &&
+    daimoPayOrder != null &&
+    isCCTPV1Chain(getOrderDestChainId(daimoPayOrder));
 
   // Daimo Pay order state.
   const [payParams, setPayParamsState] = useState<PayParams>();
@@ -456,6 +469,7 @@ export function usePaymentState({
     selectedTokenOption,
     selectedSolanaTokenOption,
     externalPaymentOptions,
+    showSolanaPaymentMethod,
     walletPaymentOptions,
     solanaPaymentOptions,
     depositAddressOptions,

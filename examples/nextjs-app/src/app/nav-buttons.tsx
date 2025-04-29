@@ -38,7 +38,7 @@ export default function NavButtons() {
         <Btn route="/contract">Contract</Btn>
         <Btn route="/checkout">Checkout</Btn>
         <Btn route="/deposit">Deposit</Btn>
-        <Btn route="/farcaster-frame">Farcaster</Btn>
+        <Btn route="/mini-app">Mini App</Btn>
       </div>
     </>
   );

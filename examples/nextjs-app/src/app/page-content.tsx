@@ -18,24 +18,25 @@ const demos: DemoCard[] = [
   {
     title: "Checkout Flow",
     description:
-      "Complete checkout experience with customizable payment options.",
+      "Deliver a great checkout experience with customizable payment options.",
     path: "/checkout",
   },
   {
     title: "Smart Contract",
-    description: "Interact with smart contracts through payment integration.",
+    description:
+      "Skip bridges, swaps and approvals. Let your users transact in one step.",
     path: "/contract",
   },
   {
     title: "Deposit Demo",
-    description: "Demonstrate deposit functionality with cross-chain support.",
+    description:
+      "Onboard users from any chain, any exchange, any coin into your app.",
     path: "/deposit",
   },
   {
-    title: "Farcaster Frame",
-    description:
-      "Integration example with Farcaster frames for social payments.",
-    path: "/farcaster-frame",
+    title: "Mini App",
+    description: "Ship World and Farcaster mini apps with social distribution.",
+    path: "/mini-app",
   },
 ];
 
@@ -44,7 +45,7 @@ export function DemoPageContent() {
     <Container>
       <div className="max-w-4xl mx-auto py-12">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4 text-green-dark">
+          <h1 className="text-4xl font-semibold mb-4 text-gray-800">
             Daimo Pay Integration Demos
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -55,22 +56,23 @@ export function DemoPageContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {demos.map((demo) => (
-            <Link
+            <div
               key={demo.path}
-              href={demo.path}
-              className="block p-8 rounded-xl bg-white shadow-sm border border-gray-100 
-                hover:shadow-md hover:border-green-medium hover:bg-cream-light transition-all duration-200"
+              className="block p-8 rounded-xl bg-white shadow-sm border border-gray-100"
             >
               <h2 className="text-2xl font-semibold mb-3 text-green-dark">
                 {demo.title}
               </h2>
               <p className="text-gray-600 text-lg">{demo.description}</p>
               <div className="mt-4">
-                <span className="inline-block px-4 py-2 bg-green-medium text-white rounded-lg hover:bg-green-dark transition-all">
+                <Link
+                  href={demo.path}
+                  className="inline-block px-4 py-2 bg-green-medium text-white rounded-lg hover:bg-green-dark transition-colors"
+                >
                   Try Demo
-                </span>
+                </Link>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

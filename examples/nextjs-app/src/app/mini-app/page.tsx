@@ -31,17 +31,20 @@ export default function DemoFarcasterFrame() {
   return (
     <Container>
       <Text>
-        Daimo Pay can be used in a Mini app. Make contract calls or accept
-        payments from any coin on any chain from inside a Farcaster Mini app.
+        Daimo Pay can be used to build mini apps that work in Farcaster, World
+        (& more coming soon). Ship your app with great UX and built-in social
+        distribution.
       </Text>
-      <Text className="mt-4">Try this demo from inside a Mini app.</Text>
+      <Text className="mt-4">
+        Try this demo as a Farcaster mini app using the developer portal.
+      </Text>
       <Text>
         <Link
-          href="https://warpcast.com/~/developers/mini-apps/preview?url=https%3A%2F%2Fdaimo-pay-demo.vercel.app%2Ffarcaster-frame"
+          href="https://warpcast.com/~/developers/mini-apps/preview?url=https%3A%2F%2Fdaimo-pay-demo.vercel.app%2Fmini-app"
           target="_blank"
           className="underline"
         >
-          Open the Frame developer portal
+          Open developer portal
         </Link>{" "}
       </Text>
       <div />
@@ -54,7 +57,7 @@ export default function DemoFarcasterFrame() {
       />
       <Text>
         <TextLink
-          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/farcaster-frame"
+          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/mini-app"
           target="_blank"
         >
           View on Github ↗

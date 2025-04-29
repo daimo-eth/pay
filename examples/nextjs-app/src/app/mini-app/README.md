@@ -8,6 +8,6 @@ You will still need to install the [Farcaster Frame SDK](https://docs.farcaster.
 
 Try this demo from inside a Farcaster Frame.
 
-1. Copy the demo URL: http://daimo-pay-demo.vercel.app/farcaster-frame
+1. Copy the demo URL: http://daimo-pay-demo.vercel.app/mini-app
 
 2. [Open the Frame developer portal](https://warpcast.com/~/developers/frames) and paste the copied URL into the URL field of the "Launch Frame" section.

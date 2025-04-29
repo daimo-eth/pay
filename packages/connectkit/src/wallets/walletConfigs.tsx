@@ -221,7 +221,7 @@ export const walletConfigs: {
       edge: "https://rainbow.me/extension?utm_source=daimopay",
       brave: "https://rainbow.me/extension?utm_source=daimopay",
     },
-    showInMobileConnectors: true,
+    showInMobileConnectors: false,
     isWcMobileConnector: false,
     getWalletConnectDeeplink: (uri: string) => {
       return `rainbow://wc?uri=${encodeURIComponent(uri)}&connector=daimopay`;
@@ -382,7 +382,7 @@ export const walletConfigs: {
     getWalletConnectDeeplink: (uri: string) => {
       return `https://app.zerion.io/wc?uri=${encodeURIComponent(uri)}`;
     },
-    showInMobileConnectors: false,
+    showInMobileConnectors: true,
   },
   slope: {
     name: "Slope",

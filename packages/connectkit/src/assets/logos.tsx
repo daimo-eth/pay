@@ -1092,7 +1092,7 @@ export const OtherWallets = ({ ...props }) => {
   return (
     <div style={column} {...props}>
       <div style={row}>
-        <div style={cell}>{<Rainbow />}</div>
+        <div style={cell}>{<Zerion />}</div>
         <div style={cell}>{<WalletConnect background />}</div>
       </div>
       <div style={row}>

@@ -24,7 +24,7 @@ const ConnectorList = () => {
   const context = usePayContext();
   const { isMobile } = useIsMobile();
 
-  const wallets = useWallets();
+  const wallets = useWallets(isMobile);
   const { lastConnectorId } = useLastConnector();
 
   const walletsToDisplay =
@@ -34,10 +34,10 @@ const ConnectorList = () => {
           // move last used wallet to top of list
           // using .filter and spread to avoid mutating original array order with .sort
           ...wallets.filter(
-            (wallet) => lastConnectorId === wallet.connector.id,
+            (wallet) => lastConnectorId === wallet.connector?.id,
           ),
           ...wallets.filter(
-            (wallet) => lastConnectorId !== wallet.connector.id,
+            (wallet) => lastConnectorId !== wallet.connector?.id,
           ),
         ];
 
@@ -92,7 +92,7 @@ const ConnectorItem = ({
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
-    isCoinbaseWalletConnector(wallet.connector.id);
+    isCoinbaseWalletConnector(wallet.connector?.id);
 
   if (redirectToMoreWallets || shouldConnectImmediately) deeplink = undefined; // mobile redirects to more wallets page
 
@@ -110,7 +110,7 @@ const ConnectorItem = ({
                 context.setRoute(ROUTES.MOBILECONNECTORS);
               } else {
                 if (shouldConnectImmediately) {
-                  connect({ connector: wallet.connector });
+                  connect({ connector: wallet.connector! });
                 }
                 context.setRoute(ROUTES.CONNECT);
                 context.setPendingConnectorId(wallet.id);

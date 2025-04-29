@@ -56,7 +56,7 @@ const MobileConnectors: React.FC = () => {
   const walletsIdsToDisplay =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
-      if (wallets.find((w) => w.connector.id === walletId)) return false;
+      if (wallets.find((w) => w.connector?.id === walletId)) return false;
       if (!wallet.getWalletConnectDeeplink) return false;
       if (!wallet.showInMobileConnectors) return false;
       return true;

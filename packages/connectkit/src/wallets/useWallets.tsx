@@ -1,13 +1,13 @@
 import { Connector } from "wagmi";
 
-import { usePayContext } from "../hooks/usePayContext";
 import { useConnectors } from "../hooks/useConnectors";
+import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
 export type WalletProps = {
   id: string;
-  connector: Connector;
+  connector?: Connector;
   isInstalled?: boolean;
 } & WalletConfigProps;
 
@@ -17,9 +17,44 @@ export const useWallet = (id: string): WalletProps | null => {
   if (!wallet) return null;
   return wallet;
 };
-export const useWallets = (): WalletProps[] => {
+export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
   const context = usePayContext();
+
+  if (isMobile) {
+    const mobileWallets: WalletProps[] = [];
+
+    // Add Rainbow first
+    mobileWallets.push({
+      id: "me.rainbow",
+      ...walletConfigs["me.rainbow"],
+    });
+
+    // Add MetaMask second
+    const metaMaskConnector = connectors.find((c) => c.id === "metaMask");
+    if (metaMaskConnector) {
+      mobileWallets.push({
+        id: metaMaskConnector.id,
+        connector: metaMaskConnector,
+        ...walletConfigs[
+          "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
+        ],
+      });
+    }
+
+    // Add WalletConnect and other wallets
+    connectors.forEach((connector) => {
+      if (connector.id === "metaMask") return;
+      if (isCoinbaseWalletConnector(connector.id)) return;
+      mobileWallets.push({
+        id: connector.id,
+        connector,
+        ...walletConfigs[connector.id],
+      });
+    });
+
+    return mobileWallets;
+  }
 
   const wallets = connectors.map((connector): WalletProps => {
     // use overrides
@@ -118,9 +153,9 @@ export const useWallets = (): WalletProps[] => {
       // order by isInstalled injected connectors first
       .sort((a, b) => {
         const AisInstalled =
-          a.isInstalled && isInjectedConnector(a.connector.type);
+          a.isInstalled && isInjectedConnector(a.connector?.type);
         const BisInstalled =
-          b.isInstalled && isInjectedConnector(b.connector.type);
+          b.isInstalled && isInjectedConnector(b.connector?.type);
 
         if (AisInstalled && !BisInstalled) return -1;
         if (!AisInstalled && BisInstalled) return 1;

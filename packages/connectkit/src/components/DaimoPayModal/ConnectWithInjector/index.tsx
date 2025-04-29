@@ -228,7 +228,7 @@ const ConnectWithInjector: React.FC<{
   }
 
   // TODO: Make this more generic
-  if (isWalletConnectConnector(wallet?.connector.id)) {
+  if (isWalletConnectConnector(wallet?.connector?.id)) {
     return (
       <PageContent>
         <Container>
@@ -397,12 +397,12 @@ const ConnectWithInjector: React.FC<{
               >
                 <ModalContent style={{ paddingBottom: 28 }}>
                   <ModalH1>
-                    {wallet.connector.id === "injected"
+                    {wallet.connector?.id === "injected"
                       ? locales.injectionScreen_connecting_injected_h1
                       : locales.injectionScreen_connecting_h1}
                   </ModalH1>
                   <ModalBody>
-                    {wallet.connector.id === "injected"
+                    {wallet.connector?.id === "injected"
                       ? locales.injectionScreen_connecting_injected_p
                       : locales.injectionScreen_connecting_p}
                   </ModalBody>

@@ -1,10 +1,10 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
-import styled from "../../../styles/styled";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
+import styled from "../../../styles/styled";
 import OptionsList from "../OptionsList";
 
 const OptionsContainer = styled.div`

@@ -158,7 +158,7 @@ const MultiCurrencySelectAmount: React.FC<{
 
   return (
     <PageContent>
-      <TokenLogoSpinner token={balanceToken} showSpinner={false} />
+      <TokenLogoSpinner token={balanceToken} />
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>
           {/* Invisible div to balance spacing */}

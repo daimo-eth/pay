@@ -70,7 +70,6 @@ const SelectDepositAddressAmount: React.FC = () => {
       <ExternalPaymentSpinner
         logoURI={selectedDepositAddressOption.logoURI}
         logoShape="circle"
-        showSpinner={false}
       />
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>

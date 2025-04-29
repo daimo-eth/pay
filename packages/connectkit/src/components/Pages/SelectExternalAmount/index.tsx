@@ -74,7 +74,6 @@ const SelectExternalAmount: React.FC = () => {
       <ExternalPaymentSpinner
         logoURI={selectedExternalOption.logoURI}
         logoShape={selectedExternalOption.logoShape}
-        showSpinner={false}
       />
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>

@@ -451,9 +451,10 @@ export function usePaymentState({
     }
   };
 
-  const resetOrder = () => {
-    setDaimoPayOrder(undefined);
-  };
+  const resetOrder = useCallback(() => {
+    if (payParams == null) return;
+    generatePreviewOrder(payParams);
+  }, [payParams]);
 
   return {
     setPayId,

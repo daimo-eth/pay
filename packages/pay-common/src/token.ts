@@ -14,6 +14,7 @@ import {
   worldchain,
 } from "./chain";
 
+/** An (unpriced) token, plus display metadata. */
 export type Token = {
   /** Chain ID, eg 10 for OP Mainnet */
   chainId: number;

@@ -1,4 +1,4 @@
-import { BigIntStr, DaimoPayToken } from "@daimo/pay-common";
+import { BigIntStr, DispToken } from "@daimo/pay-common";
 import { formatUnits } from "viem";
 
 export const USD_DECIMALS = 2;
@@ -63,7 +63,7 @@ export function roundUsd(
  */
 export function roundTokenAmount(
   amount: bigint | BigIntStr,
-  token: DaimoPayToken,
+  token: DispToken,
   round: "up" | "down" | "nearest" = "down",
 ): string {
   return roundDecimals(
@@ -78,7 +78,7 @@ export function roundTokenAmount(
  */
 export function roundTokenAmountUnits(
   amountUnits: number,
-  token: DaimoPayToken,
+  token: DispToken,
   round: "up" | "down" | "nearest" = "down",
 ): string {
   return roundDecimals(amountUnits, token.displayDecimals, round);
@@ -94,7 +94,7 @@ export function roundTokenAmountUnits(
  */
 export function usdToRoundedTokenAmount(
   usd: number,
-  token: DaimoPayToken,
+  token: DispToken,
   round: "up" | "down" | "nearest" = "down",
 ): string {
   return roundTokenAmountUnits(usd / token.usd, token, round);
@@ -110,7 +110,7 @@ export function usdToRoundedTokenAmount(
  */
 export function tokenAmountToRoundedUsd(
   amount: bigint | BigIntStr,
-  token: DaimoPayToken,
+  token: DispToken,
   round: "up" | "down" | "nearest" = "nearest",
 ): string {
   const amountUnits = formatUnits(BigInt(amount), token.decimals);

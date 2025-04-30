@@ -23,7 +23,7 @@ export default function SelectToken() {
       const chainName = getChainName(option.balance.token.chainId);
       const titlePrice = isDepositFlow
         ? formatUsd(option.balance.usd)
-        : roundTokenAmount(option.required.amount, option.required.token);
+        : roundTokenAmount(option.required.amount, option.balance.token);
       const title = `${titlePrice} ${option.balance.token.symbol} on ${chainName}`;
 
       const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;

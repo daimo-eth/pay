@@ -1,9 +1,9 @@
-import { DaimoPayToken } from "@daimo/pay-common";
+import { Token } from "@daimo/pay-common";
 import { motion } from "framer-motion";
 import { chainToLogo } from "../../../assets/chains";
 import styled from "../../../styles/styled";
 
-const TokenChainLogo = ({ token }: { token: DaimoPayToken }) => {
+const TokenChainLogo = ({ token }: { token: Token }) => {
   return (
     <TokenChainContainer>
       <img

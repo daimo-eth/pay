@@ -12,7 +12,6 @@ import {
   zeroAddress,
 } from "viem";
 import z from "zod";
-import { Token } from "./token";
 
 import { assertNotNull } from "./assert";
 import {
@@ -21,6 +20,7 @@ import {
   zAddress,
   zBigIntStr,
 } from "./primitiveTypes";
+import { Token } from "./token";
 
 // lifecycle: waiting payment -> pending processing -> start submitted -> processed (onchain tx was successful)
 export enum DaimoPayOrderStatusSource {
@@ -346,7 +346,7 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
 }
 
 export type WalletPaymentOption = {
-  balance: DaimoPayTokenAmount;
+  balance: DispTokenAmount;
 
   // TODO: deprecate, replace with requiredUsd / minRequiredUsd / feesUsd
   // These are overly large objects that duplicate DaimoPayToken
@@ -407,8 +407,29 @@ export type DepositAddressPaymentOptionData = {
   suffix: string;
 };
 
-export interface DaimoPayToken extends Token {
+/**
+ * A priced token. This is an overloaded type--DaimoPayToken is used both with
+ * "usd" based on pricing to-usd and from-usd depending on context.
+ */
+export interface DaimoPayToken {
+  /** Chain ID, eg 10 for OP Mainnet */
+  chainId: number;
+  /** Ethereum (capitalized) or Solana token address */
   token: Address | SolanaPublicKey;
+  /** Token symbol, eg "WBTC" */
+  symbol: string;
+  /** Token decimals, eg 8 for WBTC */
+  decimals: number;
+  /** Fiat ISO code for stablecoins, eg "USD" or "EUR" */
+  fiatISO?: string;
+  /** Price to convert 1.0 of this token to a USD stablecoin. */
+  usd: number;
+  /** Price to convert $1 to this token T. If 2.00, then we receive 0.5 T. */
+  priceFromUsd: number;
+}
+
+/** Full display token. Much larger--10kb+ with inline logo. */
+export interface DispToken extends Token {
   /** Price to convert 1.0 of this token to a USD stablecoin. */
   usd: number;
   /** Price to convert $1 to this token T. If 2.00, then we receive 0.5 T. */
@@ -423,10 +444,38 @@ export interface DaimoPayToken extends Token {
   fiatSymbol?: string;
 }
 
+export function getDPTFromDisp(disp: DispToken): DaimoPayToken {
+  return {
+    chainId: disp.chainId,
+    token: disp.token,
+    symbol: disp.symbol,
+    decimals: disp.decimals,
+    fiatISO: disp.fiatISO,
+    usd: disp.usd,
+    priceFromUsd: disp.priceFromUsd,
+  };
+}
+
+export function getDPTAFromDisp(disp: DispTokenAmount): DaimoPayTokenAmount {
+  return {
+    token: getDPTFromDisp(disp.token),
+    amount: disp.amount,
+    usd: disp.usd,
+  };
+}
+
+/** Light token amount. */
 export interface DaimoPayTokenAmount {
   token: DaimoPayToken;
   amount: BigIntStr;
   usd: number; // amount in dollars
+}
+
+/** Full display token amount, logo included. */
+export interface DispTokenAmount {
+  token: DispToken;
+  amount: BigIntStr;
+  usd: number;
 }
 
 export type OnChainCall = {

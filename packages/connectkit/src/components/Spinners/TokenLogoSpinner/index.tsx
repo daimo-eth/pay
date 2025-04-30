@@ -1,11 +1,11 @@
-import { DaimoPayToken } from "@daimo/pay-common";
+import { Token } from "@daimo/pay-common";
 import { AnimatePresence } from "framer-motion";
 import { chainToLogo } from "../../../assets/chains";
 import CircleSpinner from "../CircleSpinner";
 import { AnimationContainer, LoadingContainer } from "../styles";
 import { ChainLogoContainer } from "./styles";
 
-const TokenLogoSpinner = ({ token }: { token: DaimoPayToken }) => {
+const TokenLogoSpinner = ({ token }: { token: Token }) => {
   return (
     <LoadingContainer>
       <AnimationContainer $circle={true}>

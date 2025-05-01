@@ -62,29 +62,6 @@ export enum DaimoPayIntentStatus {
   BOUNCED = "payment_bounced",
 }
 
-/** Order updates used by services outside orderProcessor to listen for any
- * relevant or interesting changes to the order status. */
-export type DaimoPayOrderUpdate =
-  | {
-      type: "mode";
-      value: DaimoPayOrderMode;
-    }
-  | {
-      type: "source";
-      value: DaimoPayOrderStatusSource;
-      txHash: string | undefined; // Ethereum or Solana tx hash
-    }
-  | {
-      type: "dest";
-      value: DaimoPayOrderStatusDest;
-      txHash: Hex;
-    }
-  | {
-      type: "intent";
-      value: DaimoPayIntentStatus;
-      txHash: Hex;
-    };
-
 export interface DaimoPayOrderItem {
   name: string;
   description: string;
@@ -474,8 +451,15 @@ export const zUUID = z.string().uuid();
 
 export type UUID = z.infer<typeof zUUID>;
 
+export enum DaimoPayEventType {
+  PaymentStarted = "payment_started",
+  PaymentCompleted = "payment_completed",
+  PaymentBounced = "payment_bounced",
+  PaymentRefunded = "payment_refunded",
+}
+
 export type PaymentStartedEvent = {
-  type: "payment_started";
+  type: DaimoPayEventType.PaymentStarted;
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
   chainId: number;
@@ -484,7 +468,7 @@ export type PaymentStartedEvent = {
 };
 
 export type PaymentCompletedEvent = {
-  type: "payment_completed";
+  type: DaimoPayEventType.PaymentCompleted;
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
   chainId: number;
@@ -493,7 +477,7 @@ export type PaymentCompletedEvent = {
 };
 
 export type PaymentBouncedEvent = {
-  type: "payment_bounced";
+  type: DaimoPayEventType.PaymentBounced;
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
   chainId: number;
@@ -501,10 +485,22 @@ export type PaymentBouncedEvent = {
   payment: DaimoPayOrderView;
 };
 
+export type PaymentRefundedEvent = {
+  type: DaimoPayEventType.PaymentRefunded;
+  isTestEvent?: boolean;
+  paymentId: DaimoPayOrderID;
+  chainId: number;
+  txHash: Hex;
+  amountUnits: string;
+  tokenAddress: Address;
+  payment: DaimoPayOrderView;
+};
+
 export type DaimoPayEvent =
   | PaymentStartedEvent
   | PaymentCompletedEvent
-  | PaymentBouncedEvent;
+  | PaymentBouncedEvent
+  | PaymentRefundedEvent;
 
 export interface WebhookEndpoint {
   id: UUID;

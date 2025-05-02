@@ -23,18 +23,55 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
-
-    // Add Rainbow first
-    mobileWallets.push({
-      id: "me.rainbow",
-      ...walletConfigs["me.rainbow"],
+    // Add other wallets first
+    connectors.forEach((connector) => {
+      if (connector.id === "metaMask") return;
+      if (connector.id === "walletConnect") return;
+      if (isCoinbaseWalletConnector(connector.id)) return;
+      mobileWallets.push({
+        id: connector.id,
+        connector,
+        // get the name from the walletConfigs
+        shortName:
+          walletConfigs[
+            Object.keys(walletConfigs).find((id) =>
+              id
+                .split(",")
+                .map((i) => i.trim())
+                .includes(connector.id),
+            ) ?? connector.id
+          ].shortName,
+        // get the icon from the walletConfigs
+        iconConnector:
+          walletConfigs[
+            Object.keys(walletConfigs).find((id) =>
+              id
+                .split(",")
+                .map((i) => i.trim())
+                .includes(connector.id),
+            ) ?? connector.id
+          ].icon,
+        iconShape: "squircle",
+      });
     });
 
-    // Add MetaMask second
-    const metaMaskConnector = connectors.find((c) => c.id === "metaMask");
-    if (metaMaskConnector) {
+    const rainbowConnector = connectors.find((c) => c.id === "me.rainbow");
+    if (!rainbowConnector) {
+      // Add Rainbow second
       mobileWallets.push({
-        id: metaMaskConnector.id,
+        id: "me.rainbow",
+        ...walletConfigs["me.rainbow"],
+      });
+    }
+
+    const mobileMetaMaskConnector = connectors.find(
+      (c) => c.id === "io.metamask.mobile",
+    );
+    const metaMaskConnector = connectors.find((c) => c.id === "metaMask");
+    if (!mobileMetaMaskConnector) {
+      // Add MetaMask third
+      mobileWallets.push({
+        id: "metaMask",
         connector: metaMaskConnector,
         ...walletConfigs[
           "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
@@ -42,16 +79,17 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       });
     }
 
-    // Add WalletConnect and other wallets
-    connectors.forEach((connector) => {
-      if (connector.id === "metaMask") return;
-      if (isCoinbaseWalletConnector(connector.id)) return;
+    // Add WalletConnect last
+    const walletConnectConnector = connectors.find(
+      (c) => c.id === "walletConnect",
+    );
+    if (walletConnectConnector) {
       mobileWallets.push({
-        id: connector.id,
-        connector,
-        ...walletConfigs[connector.id],
+        id: walletConnectConnector.id,
+        connector: walletConnectConnector,
+        ...walletConfigs[walletConnectConnector.id],
       });
-    });
+    }
 
     return mobileWallets;
   }

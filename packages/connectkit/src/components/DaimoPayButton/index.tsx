@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useRef } from "react";
+import { ReactElement, useCallback, useEffect, useRef } from "react";
 
 import { usePayContext } from "../../hooks/usePayContext";
 import { TextContainer } from "./styles";
@@ -149,6 +149,8 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   closeOnSuccess?: boolean;
   /** Open the modal by default. */
   defaultOpen?: boolean;
+  /** Reset the payment after a successful payment. */
+  resetOnSuccess?: boolean;
   /** Custom message to display on confirmation page. */
   confirmationMessage?: string;
   /** Redirect URL to return to the app. E.g. after Coinbase, Binance, RampNetwork. */
@@ -241,6 +243,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
     } else if (payParams != null) {
       paymentState.setPayParams(payParams);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payId, JSON.stringify(payParams || {})]);
 
   // Set the confirmation message
@@ -279,13 +282,13 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const hydOrder = order?.mode === DaimoPayOrderMode.HYDRATED ? order : null;
 
   // Functions to show and hide the modal
-  const { children, closeOnSuccess } = props;
-  const modalOptions = { closeOnSuccess };
-  const show = () => {
+  const { children, closeOnSuccess, resetOnSuccess } = props;
+  const show = useCallback(() => {
     if (paymentState.daimoPayOrder == null) return;
+    const modalOptions = { closeOnSuccess, resetOnSuccess };
     context.showPayment(modalOptions);
-  };
-  const hide = () => context.setOpen(false);
+  }, [context, paymentState.daimoPayOrder, closeOnSuccess, resetOnSuccess]);
+  const hide = useCallback(() => context.setOpen(false), [context]);
 
   // Emit event handlers when payment status changes
   const sentStart = useRef(false);

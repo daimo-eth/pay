@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
@@ -13,6 +13,7 @@ import {
   DaimoPayOrderMode,
   DaimoPayOrderStatusDest,
   getChainExplorerTxUrl,
+  getOrderDestChainId,
 } from "@daimo/pay-common";
 import { motion } from "framer-motion";
 import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
@@ -21,28 +22,25 @@ import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
 const Confirmation: React.FC = () => {
-  const { paymentState, confirmationMessage } = usePayContext();
+  const { paymentState, confirmationMessage, onSuccess } = usePayContext();
   const { daimoPayOrder } = paymentState;
 
-  const { done, txURL } = (() => {
+  const { done, txURL } = useMemo(() => {
     if (daimoPayOrder && daimoPayOrder.mode === DaimoPayOrderMode.HYDRATED) {
-      // Frontends are optimistic, assume submits will be successful
       const { destStatus } = daimoPayOrder;
       if (
-        destStatus === DaimoPayOrderStatusDest.FAST_FINISH_SUBMITTED ||
         destStatus === DaimoPayOrderStatusDest.FAST_FINISHED ||
         destStatus === DaimoPayOrderStatusDest.CLAIM_SUCCESSFUL
       ) {
         const txHash =
           daimoPayOrder.destFastFinishTxHash ?? daimoPayOrder.destClaimTxHash;
-        const chainId = daimoPayOrder.destFinalCallTokenAmount.token.chainId;
+        const destChainId = getOrderDestChainId(daimoPayOrder);
         assert(
           txHash != null,
           `[CONFIRMATION] dest status: ${destStatus}, but missing txHash`,
         );
-        const txURL = getChainExplorerTxUrl(chainId, txHash);
+        const txURL = getChainExplorerTxUrl(destChainId, txHash);
 
-        paymentState.onSuccess({ txHash, txURL });
         return {
           done: true,
           txURL,
@@ -53,7 +51,13 @@ const Confirmation: React.FC = () => {
       done: false,
       txURL: undefined,
     };
-  })();
+  }, [daimoPayOrder]);
+
+  useEffect(() => {
+    if (done) {
+      onSuccess();
+    }
+  }, [done, onSuccess]);
 
   return (
     <PageContent
@@ -139,8 +143,6 @@ const Link = styled.a`
 
 const SuccessIcon = styled(TickIcon)<{ $status: boolean }>`
   color: var(--ck-body-color-valid);
-
-  transform: scale(0.5);
   transition: all 0.2s ease-in-out;
   position: absolute;
   opacity: ${(props) => (props.$status ? 1 : 0)};
@@ -152,7 +154,6 @@ const Spinner = styled(LoadingCircleIcon)<{ $status: boolean }>`
   transition: all 0.2s ease-in-out;
   animation: rotateSpinner 400ms linear infinite;
   opacity: ${(props) => (props.$status ? 0 : 1)};
-  transform: ${(props) => (props.$status ? "scale(0.5)" : "scale(1)")};
 
   @keyframes rotateSpinner {
     0% {

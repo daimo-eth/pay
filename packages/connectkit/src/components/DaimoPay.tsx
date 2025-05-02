@@ -20,14 +20,12 @@ import { useAccount, WagmiContext } from "wagmi";
 
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
-import { useChainIsSupported } from "../hooks/useChainIsSupported";
 import { useChains } from "../hooks/useChains";
 import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
 import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
-import { useThemeFont } from "../hooks/useGoogleFont";
 import { PayContext, PayContextValue } from "../hooks/usePayContext";
 import { usePaymentState } from "../hooks/usePaymentState";
 import defaultTheme from "../styles/defaultTheme";
@@ -158,7 +156,10 @@ const DaimoPayProviderWithoutSolana = ({
     onCloseRef.current = fn;
   }, []);
   const [open, setOpenState] = useState<boolean>(false);
+  const [lockPayParams, setLockPayParams] = useState<boolean>(false);
+  const [paymentCompleted, setPaymentCompleted] = useState<boolean>(false);
   const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
+  const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
 
   // Daimo Pay context
   const [daimoPayOrder, setDaimoPayOrderInner] = useState<DaimoPayOrder>();
@@ -181,11 +182,11 @@ const DaimoPayProviderWithoutSolana = ({
   const [redirectReturnUrl, setRedirectReturnUrl] = useState<
     string | undefined
   >(undefined);
-  const log = debugMode ? console.log : () => {};
+  const log = useMemo(() => (debugMode ? console.log : () => {}), [debugMode]);
   // Connect to the Daimo Pay TRPC API
   const trpc = useMemo(
     () => createTrpcClient(payApiUrl, sessionId),
-    [payApiUrl],
+    [payApiUrl, sessionId],
   );
   const [resize, onResize] = useState<number>(0);
 
@@ -193,17 +194,42 @@ const DaimoPayProviderWithoutSolana = ({
     (open: boolean, meta?: Record<string, any>) => {
       setOpenState(open);
 
+      // Lock pay params starting from the first time the modal is opened to
+      // prevent the daimo pay order from changing from under the user
+      if (open) {
+        setLockPayParams(true);
+      }
+      // Reset payment state on close if resetOnSuccess is true
+      if (!open && paymentCompleted && modalOptions?.resetOnSuccess) {
+        setPaymentCompleted(false);
+        setLockPayParams(false);
+        paymentState.resetOrder();
+      }
+
+      // Log the open/close event
       trpc.nav.mutate({
         action: open ? "navOpenPay" : "navClosePay",
         orderId: daimoPayOrder?.id?.toString(),
         data: meta ?? {},
       });
 
+      // Run the onOpen and onClose callbacks
       if (open) onOpenRef.current?.();
       else onCloseRef.current?.();
     },
-    [trpc, daimoPayOrder?.id],
+    // We don't have good caching on paymentState, so don't include it as a dep
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trpc, daimoPayOrder?.id, modalOptions?.resetOnSuccess, paymentCompleted],
   );
+
+  // Callback when a payment is successfully completed (regardless of whether
+  // the final call succeeded or bounced)
+  const onSuccess = useCallback(() => {
+    if (modalOptions?.closeOnSuccess) {
+      setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
+    }
+    setPaymentCompleted(true);
+  }, [modalOptions?.closeOnSuccess, setOpen, setPaymentCompleted]);
 
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
@@ -221,24 +247,12 @@ const DaimoPayProviderWithoutSolana = ({
     [trpc, daimoPayOrder?.id, log],
   );
 
-  // Include Google Font that is needed for a themes
-  if (opts.embedGoogleFonts) useThemeFont(ckTheme);
-
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(() => setErrorMessage(null), [route, open]);
 
-  // Check if chain is supported, elsewise redirect to switches page
-  const { chain, isConnected, connector } = useAccount();
-  const isChainSupported = useChainIsSupported(chain?.id);
-
-  useEffect(() => {
-    if (isConnected && opts.enforceSupportedChains && !isChainSupported) {
-      setOpen(true);
-      if (route !== ROUTES.SWITCHNETWORKS) setRoute(ROUTES.SWITCHNETWORKS);
-    }
-  }, [isConnected, isChainSupported, chain, route, open]);
+  const { connector } = useAccount();
 
   // Single source of truth for the currently-connected wallet is the connector
   // exposed by wagmi. See useAccount(). We watch this connector and use it to
@@ -264,11 +278,13 @@ const DaimoPayProviderWithoutSolana = ({
     },
     [log],
   );
+
   const paymentState = usePaymentState({
     trpc,
+    lockPayParams,
     daimoPayOrder,
     setDaimoPayOrder,
-    setOpen,
+    setRoute,
     log,
     redirectReturnUrl,
   });
@@ -296,13 +312,15 @@ const DaimoPayProviderWithoutSolana = ({
     );
 
     return () => clearTimeout(timeout);
-  }, [daimoPayOrder]);
+    // We don't have good caching on paymentState, so don't include it as a dep
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daimoPayOrder, log]);
 
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
     const id = daimoPayOrder?.id;
     log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
 
-    paymentState.setModalOptions(modalOptions);
+    setModalOptions(modalOptions);
 
     setOpen(true);
 
@@ -346,6 +364,7 @@ const DaimoPayProviderWithoutSolana = ({
     // Other configuration
     options: opts,
     errorMessage,
+    onSuccess,
     confirmationMessage,
     setConfirmationMessage,
     redirectReturnUrl,

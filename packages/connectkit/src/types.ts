@@ -54,6 +54,7 @@ export type DaimoPayContextOptions = {
 /** Modal UI options, set on the pay button triggering that modal. */
 export type DaimoPayModalOptions = {
   closeOnSuccess?: boolean;
+  resetOnSuccess?: boolean;
 };
 
 // TODO: move types here from daimo-common/daimoPay.ts:

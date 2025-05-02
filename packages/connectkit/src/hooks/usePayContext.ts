@@ -68,6 +68,8 @@ export type PayContextValue = {
   paymentState: PaymentState;
   /** TRPC API client. Internal use only. */
   trpc: any;
+  /** Callback to call when the payment is successful. */
+  onSuccess: () => void;
   /** Custom message to display on confirmation page. */
   confirmationMessage?: string;
   setConfirmationMessage: React.Dispatch<

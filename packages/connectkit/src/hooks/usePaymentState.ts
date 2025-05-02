@@ -22,7 +22,7 @@ import { Address, formatUnits, Hex, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
 import { ROUTES } from "../constants/routes";
-import { DaimoPayModalOptions, PaymentOption } from "../types";
+import { PaymentOption } from "../types";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
@@ -83,8 +83,6 @@ export interface PaymentState {
 
   daimoPayOrder: DaimoPayOrder | undefined;
   isDepositFlow: boolean;
-  modalOptions: DaimoPayModalOptions;
-  setModalOptions: (modalOptions: DaimoPayModalOptions) => void;
   paymentWaitingMessage: string | undefined;
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
   showSolanaPaymentMethod: boolean;
@@ -117,7 +115,6 @@ export interface PaymentState {
     inputToken: SolanaPublicKey,
   ) => Promise<string | undefined>;
   refreshOrder: () => Promise<void>;
-  onSuccess: () => void;
   senderEnsName: string | undefined;
 }
 
@@ -127,7 +124,6 @@ export function usePaymentState({
   setLockPayParams,
   daimoPayOrder,
   setDaimoPayOrder,
-  setOpen,
   setRoute,
   log,
   redirectReturnUrl,
@@ -137,7 +133,6 @@ export function usePaymentState({
   setLockPayParams: (b: boolean) => void;
   daimoPayOrder: DaimoPayOrder | undefined;
   setDaimoPayOrder: (o: DaimoPayOrder | undefined) => void;
-  setOpen: (showModal: boolean, meta?: Record<string, any>) => void;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;
@@ -177,9 +172,6 @@ export function usePaymentState({
   const [payParams, setPayParamsState] = useState<PayParams>();
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
-
-  // Payment UI config.
-  const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>({});
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
   const externalPaymentOptions = useExternalPaymentOptions({
@@ -462,12 +454,6 @@ export function usePaymentState({
     setDaimoPayOrder(orderPreview);
   };
 
-  const onSuccess = useCallback(() => {
-    if (modalOptions?.closeOnSuccess) {
-      setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
-    }
-  }, [modalOptions?.closeOnSuccess, setOpen]);
-
   const resetOrder = useCallback(() => {
     setLockPayParams(false);
 
@@ -501,8 +487,6 @@ export function usePaymentState({
     generatePreviewOrder,
     daimoPayOrder,
     isDepositFlow,
-    modalOptions,
-    setModalOptions,
     paymentWaitingMessage,
     selectedExternalOption,
     selectedTokenOption,
@@ -526,7 +510,6 @@ export function usePaymentState({
     payWithDepositAddress,
     payWithSolanaToken,
     refreshOrder,
-    onSuccess,
     senderEnsName: senderEnsName ?? undefined,
   };
 }

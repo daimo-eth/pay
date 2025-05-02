@@ -11,18 +11,14 @@ import { usePayContext } from "./usePayContext";
  * - `payment_bounced` - the final call or transfer reverted. Funds were sent
  *    to the payment's configured refund address on the destination chain.
  */
-export function useDaimoPayStatus(): {
-  paymentId?: string;
-  status?: DaimoPayIntentStatus;
-  reset: () => void;
-} {
+export function useDaimoPayStatus():
+  | { paymentId: string; status: DaimoPayIntentStatus }
+  | undefined {
   const { paymentState } = usePayContext();
-  const reset = paymentState.resetOrder;
-
-  if (!paymentState || !paymentState.daimoPayOrder) return { reset };
+  if (!paymentState || !paymentState.daimoPayOrder) return undefined;
 
   const order = paymentState.daimoPayOrder;
   const paymentId = writeDaimoPayOrderID(order.id);
 
-  return { paymentId, status: order.intentStatus, reset };
+  return { paymentId, status: order.intentStatus };
 }

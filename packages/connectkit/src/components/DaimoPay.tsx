@@ -159,7 +159,9 @@ const DaimoPayProviderWithoutSolana = ({
   }, []);
   const [open, setOpenState] = useState<boolean>(false);
   const [lockPayParams, setLockPayParams] = useState<boolean>(false);
+  const [paymentCompleted, setPaymentCompleted] = useState<boolean>(false);
   const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
+  const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
 
   // Daimo Pay context
   const [daimoPayOrder, setDaimoPayOrderInner] = useState<DaimoPayOrder>();
@@ -182,18 +184,28 @@ const DaimoPayProviderWithoutSolana = ({
   const [redirectReturnUrl, setRedirectReturnUrl] = useState<
     string | undefined
   >(undefined);
-  const log = debugMode ? console.log : () => {};
+  const log = useMemo(() => (debugMode ? console.log : () => {}), [debugMode]);
   // Connect to the Daimo Pay TRPC API
   const trpc = useMemo(
     () => createTrpcClient(payApiUrl, sessionId),
-    [payApiUrl],
+    [payApiUrl, sessionId],
   );
   const [resize, onResize] = useState<number>(0);
 
   const setOpen = useCallback(
     (open: boolean, meta?: Record<string, any>) => {
       setOpenState(open);
-      setLockPayParams(true);
+
+      // Lock pay params starting from first open to prevent payment order from
+      // changing from under the user
+      if (open) {
+        setLockPayParams(true);
+      }
+      // Reset payment state on close if resetOnSuccess is true
+      if (!open && paymentCompleted && modalOptions?.resetOnSuccess) {
+        setPaymentCompleted(false);
+        paymentState.resetOrder();
+      }
 
       trpc.nav.mutate({
         action: open ? "navOpenPay" : "navClosePay",
@@ -204,8 +216,15 @@ const DaimoPayProviderWithoutSolana = ({
       if (open) onOpenRef.current?.();
       else onCloseRef.current?.();
     },
-    [trpc, daimoPayOrder?.id],
+    [trpc, daimoPayOrder?.id, modalOptions?.resetOnSuccess, paymentCompleted],
   );
+
+  const onSuccess = useCallback(() => {
+    if (modalOptions?.closeOnSuccess) {
+      setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
+    }
+    setPaymentCompleted(true);
+  }, [modalOptions?.closeOnSuccess, setOpen, setPaymentCompleted]);
 
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
@@ -273,7 +292,6 @@ const DaimoPayProviderWithoutSolana = ({
     setLockPayParams,
     daimoPayOrder,
     setDaimoPayOrder,
-    setOpen,
     setRoute,
     log,
     redirectReturnUrl,
@@ -308,7 +326,7 @@ const DaimoPayProviderWithoutSolana = ({
     const id = daimoPayOrder?.id;
     log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
 
-    paymentState.setModalOptions(modalOptions);
+    setModalOptions(modalOptions);
 
     setOpen(true);
 
@@ -352,6 +370,7 @@ const DaimoPayProviderWithoutSolana = ({
     // Other configuration
     options: opts,
     errorMessage,
+    onSuccess,
     confirmationMessage,
     setConfirmationMessage,
     redirectReturnUrl,

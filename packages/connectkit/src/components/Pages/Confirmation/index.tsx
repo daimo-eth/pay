@@ -22,7 +22,7 @@ import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
 const Confirmation: React.FC = () => {
-  const { paymentState, confirmationMessage } = usePayContext();
+  const { paymentState, confirmationMessage, onSuccess } = usePayContext();
   const { daimoPayOrder } = paymentState;
 
   const { done, txURL } = useMemo(() => {
@@ -55,9 +55,9 @@ const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (done) {
-      paymentState.onSuccess();
+      onSuccess();
     }
-  }, [done, paymentState]);
+  }, [done, onSuccess]);
 
   return (
     <PageContent

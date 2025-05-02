@@ -17,10 +17,11 @@ import {
   WalletPaymentOption,
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Address, formatUnits, Hex, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
+import { ROUTES } from "../constants/routes";
 import { DaimoPayModalOptions, PaymentOption } from "../types";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
@@ -116,22 +117,28 @@ export interface PaymentState {
     inputToken: SolanaPublicKey,
   ) => Promise<string | undefined>;
   refreshOrder: () => Promise<void>;
-  onSuccess: (args: { txHash: string; txURL?: string }) => void;
+  onSuccess: () => void;
   senderEnsName: string | undefined;
 }
 
 export function usePaymentState({
   trpc,
+  lockPayParams,
+  setLockPayParams,
   daimoPayOrder,
   setDaimoPayOrder,
   setOpen,
+  setRoute,
   log,
   redirectReturnUrl,
 }: {
   trpc: TrpcClient;
+  lockPayParams: boolean;
+  setLockPayParams: (b: boolean) => void;
   daimoPayOrder: DaimoPayOrder | undefined;
   setDaimoPayOrder: (o: DaimoPayOrder | undefined) => void;
   setOpen: (showModal: boolean, meta?: Record<string, any>) => void;
+  setRoute: (route: ROUTES, data?: Record<string, any>) => void;
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;
 }): PaymentState {
@@ -162,7 +169,11 @@ export function usePaymentState({
     daimoPayOrder != null &&
     isCCTPV1Chain(getOrderDestChainId(daimoPayOrder));
 
-  // Daimo Pay order state.
+  // Refs the survive re-renders and stores any updated param values while
+  // lockPayParams is true
+  const latestPayParamsRef = useRef<PayParams | undefined>();
+  const latestPayIdRef = useRef<string | undefined>();
+  // Current pay params to do processing off of
   const [payParams, setPayParamsState] = useState<PayParams>();
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
@@ -359,7 +370,7 @@ export function usePaymentState({
         `[CHECKOUT] IGNORING refreshOrder, wrong ID: ${order.id} vs ${daimoPayOrder.id}`,
       );
     }
-  }, [daimoPayOrder?.id]);
+  }, [daimoPayOrder?.id, trpc, setDaimoPayOrder, log]);
 
   /** User picked a different deposit amount. */
   const setChosenUsd = (usd: number) => {
@@ -383,7 +394,9 @@ export function usePaymentState({
 
   const setPayId = useCallback(
     async (payId: string | undefined) => {
-      if (!payId) return;
+      latestPayIdRef.current = payId;
+
+      if (lockPayParams || !payId) return;
       const id = readDaimoPayOrderID(payId).toString();
 
       if (daimoPayOrder && BigInt(id) == daimoPayOrder.id) {
@@ -400,12 +413,17 @@ export function usePaymentState({
 
       setDaimoPayOrder(order);
     },
-    [daimoPayOrder],
+    [daimoPayOrder, lockPayParams],
   );
 
   /** Called whenever params change. */
   const setPayParams = async (payParams: PayParams | undefined) => {
+    latestPayParamsRef.current = payParams;
+
+    if (lockPayParams) return;
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
+
+    console.log("[SET PAY PARAMS] setting payParams");
     setPayParamsState(payParams);
     setIsDepositFlow(payParams.toUnits == null);
 
@@ -444,16 +462,37 @@ export function usePaymentState({
     setDaimoPayOrder(orderPreview);
   };
 
-  const onSuccess = ({ txHash, txURL }: { txHash: string; txURL?: string }) => {
+  const onSuccess = useCallback(() => {
     if (modalOptions?.closeOnSuccess) {
-      log(`[CHECKOUT] transaction succeeded, closing: ${txHash} ${txURL}`);
       setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
     }
-  };
+  }, [modalOptions?.closeOnSuccess, setOpen]);
 
-  const resetOrder = () => {
+  const resetOrder = useCallback(() => {
+    setLockPayParams(false);
+
+    // Clear the old order & UI
     setDaimoPayOrder(undefined);
-  };
+    setRoute(ROUTES.SELECT_METHOD);
+
+    // Prefer an explicit payId, otherwise use the queued payParams
+    if (latestPayIdRef.current) {
+      // fire-and-forget; setPayId will run the normal flow
+      setPayId(latestPayIdRef.current);
+      latestPayIdRef.current = undefined;
+    } else if (latestPayParamsRef.current) {
+      const p = latestPayParamsRef.current;
+      setPayParamsState(p);
+      generatePreviewOrder(p);
+    }
+  }, [
+    setLockPayParams,
+    setDaimoPayOrder,
+    setRoute,
+    setPayId,
+    setPayParamsState,
+    generatePreviewOrder,
+  ]);
 
   return {
     setPayId,

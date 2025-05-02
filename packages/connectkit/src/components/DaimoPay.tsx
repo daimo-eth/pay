@@ -158,6 +158,7 @@ const DaimoPayProviderWithoutSolana = ({
     onCloseRef.current = fn;
   }, []);
   const [open, setOpenState] = useState<boolean>(false);
+  const [lockPayParams, setLockPayParams] = useState<boolean>(false);
   const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
 
   // Daimo Pay context
@@ -192,6 +193,7 @@ const DaimoPayProviderWithoutSolana = ({
   const setOpen = useCallback(
     (open: boolean, meta?: Record<string, any>) => {
       setOpenState(open);
+      setLockPayParams(true);
 
       trpc.nav.mutate({
         action: open ? "navOpenPay" : "navClosePay",
@@ -264,11 +266,15 @@ const DaimoPayProviderWithoutSolana = ({
     },
     [log],
   );
+
   const paymentState = usePaymentState({
     trpc,
+    lockPayParams,
+    setLockPayParams,
     daimoPayOrder,
     setDaimoPayOrder,
     setOpen,
+    setRoute,
     log,
     redirectReturnUrl,
   });

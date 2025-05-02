@@ -20,14 +20,12 @@ import { useAccount, WagmiContext } from "wagmi";
 
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
-import { useChainIsSupported } from "../hooks/useChainIsSupported";
 import { useChains } from "../hooks/useChains";
 import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
 import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
-import { useThemeFont } from "../hooks/useGoogleFont";
 import { PayContext, PayContextValue } from "../hooks/usePayContext";
 import { usePaymentState } from "../hooks/usePaymentState";
 import defaultTheme from "../styles/defaultTheme";
@@ -216,6 +214,8 @@ const DaimoPayProviderWithoutSolana = ({
       if (open) onOpenRef.current?.();
       else onCloseRef.current?.();
     },
+    // We don't have good caching on paymentState, so don't include it as a dep
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [trpc, daimoPayOrder?.id, modalOptions?.resetOnSuccess, paymentCompleted],
   );
 
@@ -242,24 +242,13 @@ const DaimoPayProviderWithoutSolana = ({
     [trpc, daimoPayOrder?.id, log],
   );
 
-  // Include Google Font that is needed for a themes
-  if (opts.embedGoogleFonts) useThemeFont(ckTheme);
-
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(() => setErrorMessage(null), [route, open]);
 
   // Check if chain is supported, elsewise redirect to switches page
-  const { chain, isConnected, connector } = useAccount();
-  const isChainSupported = useChainIsSupported(chain?.id);
-
-  useEffect(() => {
-    if (isConnected && opts.enforceSupportedChains && !isChainSupported) {
-      setOpen(true);
-      if (route !== ROUTES.SWITCHNETWORKS) setRoute(ROUTES.SWITCHNETWORKS);
-    }
-  }, [isConnected, isChainSupported, chain, route, open]);
+  const { chain, connector } = useAccount();
 
   // Single source of truth for the currently-connected wallet is the connector
   // exposed by wagmi. See useAccount(). We watch this connector and use it to
@@ -320,7 +309,9 @@ const DaimoPayProviderWithoutSolana = ({
     );
 
     return () => clearTimeout(timeout);
-  }, [daimoPayOrder]);
+    // We don't have good caching on paymentState, so don't include it as a dep
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daimoPayOrder, log]);
 
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
     const id = daimoPayOrder?.id;

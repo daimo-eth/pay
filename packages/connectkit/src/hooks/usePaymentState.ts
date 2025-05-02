@@ -362,7 +362,7 @@ export function usePaymentState({
         `[CHECKOUT] IGNORING refreshOrder, wrong ID: ${order.id} vs ${daimoPayOrder.id}`,
       );
     }
-  }, [daimoPayOrder?.id, trpc, setDaimoPayOrder, log]);
+  }, [daimoPayOrder, trpc, setDaimoPayOrder, log]);
 
   /** User picked a different deposit amount. */
   const setChosenUsd = (usd: number) => {
@@ -405,7 +405,7 @@ export function usePaymentState({
 
       setDaimoPayOrder(order);
     },
-    [daimoPayOrder, lockPayParams],
+    [daimoPayOrder, lockPayParams, trpc, log, setDaimoPayOrder],
   );
 
   /** Called whenever params change. */
@@ -422,37 +422,40 @@ export function usePaymentState({
     generatePreviewOrder(payParams);
   };
 
-  const generatePreviewOrder = async (payParams: PayParams) => {
-    // toUnits is undefined if and only if we're in deposit flow.
-    // Set dummy value for deposit flow, since user can edit the amount.
-    const toUnits = payParams.toUnits == null ? "0" : payParams.toUnits;
+  const generatePreviewOrder = useCallback(
+    async (payParams: PayParams) => {
+      // toUnits is undefined if and only if we're in deposit flow.
+      // Set dummy value for deposit flow, since user can edit the amount.
+      const toUnits = payParams.toUnits == null ? "0" : payParams.toUnits;
 
-    const orderPreview = await trpc.previewOrder.query({
-      appId: payParams.appId,
-      toChain: payParams.toChain,
-      toToken: payParams.toToken,
-      toUnits,
-      toAddress: payParams.toAddress,
-      toCallData: payParams.toCallData,
-      isAmountEditable: payParams.toUnits == null,
-      metadata: {
-        intent: payParams.intent ?? "Pay",
-        items: [],
-        payer: {
-          paymentOptions: payParams.paymentOptions,
-          preferredChains: payParams.preferredChains,
-          preferredTokens: payParams.preferredTokens,
-          evmChains: payParams.evmChains,
+      const orderPreview = await trpc.previewOrder.query({
+        appId: payParams.appId,
+        toChain: payParams.toChain,
+        toToken: payParams.toToken,
+        toUnits,
+        toAddress: payParams.toAddress,
+        toCallData: payParams.toCallData,
+        isAmountEditable: payParams.toUnits == null,
+        metadata: {
+          intent: payParams.intent ?? "Pay",
+          items: [],
+          payer: {
+            paymentOptions: payParams.paymentOptions,
+            preferredChains: payParams.preferredChains,
+            preferredTokens: payParams.preferredTokens,
+            evmChains: payParams.evmChains,
+          },
         },
-      },
-      externalId: payParams.externalId,
-      userMetadata: payParams.metadata,
-      refundAddress: payParams.refundAddress,
-    });
+        externalId: payParams.externalId,
+        userMetadata: payParams.metadata,
+        refundAddress: payParams.refundAddress,
+      });
 
-    log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);
-    setDaimoPayOrder(orderPreview);
-  };
+      log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);
+      setDaimoPayOrder(orderPreview);
+    },
+    [trpc, log, setDaimoPayOrder],
+  );
 
   const resetOrder = useCallback(() => {
     setLockPayParams(false);

@@ -33,20 +33,25 @@ import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SelectSolanaToken from "../Pages/Solana/SelectSolanaToken";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
-const customThemeDefault: object = {};
 
 export const DaimoPayModal: React.FC<{
-  mode?: Mode;
-  theme?: Theme;
-  customTheme?: CustomTheme;
-  lang?: Languages;
+  mode: Mode;
+  theme: Theme;
+  customTheme: CustomTheme;
+  lang: Languages;
 }> = ({
-  mode = "auto",
-  theme = "auto",
-  customTheme = customThemeDefault,
-  lang = "en-US",
+  mode,
+  theme,
+  customTheme,
+  lang,
+}: {
+  mode: Mode;
+  theme: Theme;
+  customTheme: CustomTheme;
+  lang: Languages;
 }) => {
   const context = usePayContext();
+  const { setMode, setTheme, setCustomTheme, setLang } = context;
   const paymentState = context.paymentState;
   const {
     payParams,
@@ -227,12 +232,16 @@ export const DaimoPayModal: React.FC<{
     }
     // Don't include context.route in the dependency array otherwise the user
     // can't go back from the select token screen to the select method screen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     context.open,
     context.wcWallet,
     isEthConnected,
     isSolanaConnected,
     showSolanaPaymentMethod,
+    address,
+    chain?.id,
+    connector?.id,
   ]);
 
   // If we're on the connect page and the user successfully connects their
@@ -252,12 +261,13 @@ export const DaimoPayModal: React.FC<{
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEthConnected, context.route, connector?.id, chain?.id, address]);
 
-  useEffect(() => context.setMode(mode), [mode]);
-  useEffect(() => context.setTheme(theme), [theme]);
-  useEffect(() => context.setCustomTheme(customTheme), [customTheme]);
-  useEffect(() => context.setLang(lang), [lang]);
+  useEffect(() => setMode(mode), [mode, setMode]);
+  useEffect(() => setTheme(theme), [theme, setTheme]);
+  useEffect(() => setCustomTheme(customTheme), [customTheme, setCustomTheme]);
+  useEffect(() => setLang(lang), [lang, setLang]);
 
   /* When pulling data into WalletConnect, it prioritises the og:title tag over the title tag */
   useEffect(() => {

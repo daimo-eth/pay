@@ -194,23 +194,26 @@ const DaimoPayProviderWithoutSolana = ({
     (open: boolean, meta?: Record<string, any>) => {
       setOpenState(open);
 
-      // Lock pay params starting from first open to prevent payment order from
-      // changing from under the user
+      // Lock pay params starting from the first time the modal is opened to
+      // prevent the daimo pay order from changing from under the user
       if (open) {
         setLockPayParams(true);
       }
       // Reset payment state on close if resetOnSuccess is true
       if (!open && paymentCompleted && modalOptions?.resetOnSuccess) {
         setPaymentCompleted(false);
+        setLockPayParams(false);
         paymentState.resetOrder();
       }
 
+      // Log the open/close event
       trpc.nav.mutate({
         action: open ? "navOpenPay" : "navClosePay",
         orderId: daimoPayOrder?.id?.toString(),
         data: meta ?? {},
       });
 
+      // Run the onOpen and onClose callbacks
       if (open) onOpenRef.current?.();
       else onCloseRef.current?.();
     },
@@ -219,6 +222,8 @@ const DaimoPayProviderWithoutSolana = ({
     [trpc, daimoPayOrder?.id, modalOptions?.resetOnSuccess, paymentCompleted],
   );
 
+  // Callback when a payment is successfully completed (regardless of whether
+  // the final call succeeded or bounced)
   const onSuccess = useCallback(() => {
     if (modalOptions?.closeOnSuccess) {
       setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
@@ -247,8 +252,7 @@ const DaimoPayProviderWithoutSolana = ({
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(() => setErrorMessage(null), [route, open]);
 
-  // Check if chain is supported, elsewise redirect to switches page
-  const { chain, connector } = useAccount();
+  const { connector } = useAccount();
 
   // Single source of truth for the currently-connected wallet is the connector
   // exposed by wagmi. See useAccount(). We watch this connector and use it to
@@ -278,7 +282,6 @@ const DaimoPayProviderWithoutSolana = ({
   const paymentState = usePaymentState({
     trpc,
     lockPayParams,
-    setLockPayParams,
     daimoPayOrder,
     setDaimoPayOrder,
     setRoute,

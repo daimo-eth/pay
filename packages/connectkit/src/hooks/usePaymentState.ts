@@ -121,7 +121,6 @@ export interface PaymentState {
 export function usePaymentState({
   trpc,
   lockPayParams,
-  setLockPayParams,
   daimoPayOrder,
   setDaimoPayOrder,
   setRoute,
@@ -130,7 +129,6 @@ export function usePaymentState({
 }: {
   trpc: TrpcClient;
   lockPayParams: boolean;
-  setLockPayParams: (b: boolean) => void;
   daimoPayOrder: DaimoPayOrder | undefined;
   setDaimoPayOrder: (o: DaimoPayOrder | undefined) => void;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
@@ -458,15 +456,12 @@ export function usePaymentState({
   );
 
   const resetOrder = useCallback(() => {
-    setLockPayParams(false);
-
     // Clear the old order & UI
     setDaimoPayOrder(undefined);
     setRoute(ROUTES.SELECT_METHOD);
 
     // Prefer an explicit payId, otherwise use the queued payParams
     if (latestPayIdRef.current) {
-      // fire-and-forget; setPayId will run the normal flow
       setPayId(latestPayIdRef.current);
       latestPayIdRef.current = undefined;
     } else if (latestPayParamsRef.current) {
@@ -475,7 +470,6 @@ export function usePaymentState({
       generatePreviewOrder(p);
     }
   }, [
-    setLockPayParams,
     setDaimoPayOrder,
     setRoute,
     setPayId,

@@ -181,6 +181,7 @@ export const walletConfigs: {
   },
   "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK": {
     name: "MetaMask",
+    shortName: "MetaMask",
     icon: <Logos.MetaMask />,
     iconConnector: <Logos.MetaMask />,
     iconShouldShrink: true,

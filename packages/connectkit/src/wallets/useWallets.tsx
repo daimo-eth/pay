@@ -1,5 +1,6 @@
 import { Connector } from "wagmi";
 
+import { assertNotNull } from "@daimo/pay-common";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
@@ -23,35 +24,48 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
-
-    // Add Rainbow first
-    mobileWallets.push({
-      id: "me.rainbow",
-      ...walletConfigs["me.rainbow"],
-    });
-
-    // Add MetaMask second
-    const metaMaskConnector = connectors.find((c) => c.id === "metaMask");
-    if (metaMaskConnector) {
-      mobileWallets.push({
-        id: metaMaskConnector.id,
-        connector: metaMaskConnector,
-        ...walletConfigs[
-          "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
-        ],
-      });
-    }
-
-    // Add WalletConnect and other wallets
+    // Add injected wallet (if any) first
     connectors.forEach((connector) => {
       if (connector.id === "metaMask") return;
+      if (connector.id === "walletConnect") return;
       if (isCoinbaseWalletConnector(connector.id)) return;
       mobileWallets.push({
         id: connector.id,
         connector,
-        ...walletConfigs[connector.id],
+        shortName: connector.name,
+        iconConnector: <img src={connector.icon} alt={connector.name} />,
+        iconShape: "squircle",
       });
     });
+
+    function addIfNotPresent(idList: string) {
+      if (mobileWallets.find((w) => idList.includes(w.id))) return;
+      const wallet = assertNotNull(
+        walletConfigs[idList],
+        () => `missing ${idList}`,
+      );
+      mobileWallets.push({
+        id: idList,
+        ...wallet,
+      });
+    }
+
+    addIfNotPresent("me.rainbow");
+    addIfNotPresent(
+      "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
+    );
+
+    // Add WalletConnect last
+    const walletConnectConnector = connectors.find(
+      (c) => c.id === "walletConnect",
+    );
+    if (walletConnectConnector) {
+      mobileWallets.push({
+        id: walletConnectConnector.id,
+        connector: walletConnectConnector,
+        ...walletConfigs[walletConnectConnector.id],
+      });
+    }
 
     return mobileWallets;
   }

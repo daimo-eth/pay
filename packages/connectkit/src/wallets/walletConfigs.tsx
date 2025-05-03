@@ -1,3 +1,4 @@
+import { assert } from "@daimo/pay-common";
 import Logos from "../assets/logos";
 
 /**
@@ -46,6 +47,8 @@ export type WalletConfigProps = {
   showInMobileConnectors?: boolean;
   // Used for mobile wallets we got from WC mobile connector that don't have WC deeplink
   isWcMobileConnector?: boolean;
+  // Open a dapp directly in this wallet's in-app browser
+  getDappDeeplink?: (url: string) => string;
 };
 
 // Organised in alphabetical order by key
@@ -196,9 +199,10 @@ export const walletConfigs: {
         "https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
       edge: "https://microsoftedge.microsoft.com/addons/detail/metamask/ejbalbakoplchlghecdalmeeeajnimhm",
     },
-    showInMobileConnectors: false,
-    getWalletConnectDeeplink: (uri: string) => {
-      return `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+    showInMobileConnectors: true,
+    getDappDeeplink: (url: string) => {
+      assert(url.startsWith("https://"), "url must start with https://");
+      return `https://metamask.app.link/dapp/${url.replace("https://", "")}`;
     },
   },
   "app.phantom": {
@@ -223,8 +227,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     isWcMobileConnector: false,
-    getWalletConnectDeeplink: (uri: string) => {
-      return `rainbow://wc?uri=${encodeURIComponent(uri)}&connector=daimopay`;
+    getDappDeeplink: (url: string) => {
+      return `rainbow://dapp?url=${encodeURIComponent(url)}`;
     },
     walletDeepLink: "rainbow://",
   },

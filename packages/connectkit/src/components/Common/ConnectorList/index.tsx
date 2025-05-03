@@ -89,6 +89,7 @@ const ConnectorItem = ({
       : undefined;
 
   const redirectToMoreWallets = isMobile && isWalletConnectConnector(wallet.id);
+
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
@@ -107,7 +108,9 @@ const ConnectorItem = ({
           ? undefined
           : () => {
               if (redirectToMoreWallets) {
-                context.setRoute(ROUTES.MOBILECONNECTORS);
+                // WTF123
+                context.setRoute(ROUTES.WAITING_WALLET);
+                // context.setRoute(ROUTES.MOBILECONNECTORS);
               } else {
                 if (shouldConnectImmediately) {
                   connect({ connector: wallet.connector! });

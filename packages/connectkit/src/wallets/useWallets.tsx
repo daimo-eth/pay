@@ -1,5 +1,6 @@
 import { Connector } from "wagmi";
 
+import { assertNotNull } from "@daimo/pay-common";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
@@ -23,7 +24,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
-    // Add other wallets first
+    // Add injected wallet (if any) first
     connectors.forEach((connector) => {
       if (connector.id === "metaMask") return;
       if (connector.id === "walletConnect") return;
@@ -31,53 +32,28 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       mobileWallets.push({
         id: connector.id,
         connector,
-        // get the name from the walletConfigs
-        shortName:
-          walletConfigs[
-            Object.keys(walletConfigs).find((id) =>
-              id
-                .split(",")
-                .map((i) => i.trim())
-                .includes(connector.id),
-            ) ?? connector.id
-          ].shortName,
-        // get the icon from the walletConfigs
-        iconConnector:
-          walletConfigs[
-            Object.keys(walletConfigs).find((id) =>
-              id
-                .split(",")
-                .map((i) => i.trim())
-                .includes(connector.id),
-            ) ?? connector.id
-          ].icon,
+        shortName: connector.name,
+        iconConnector: <img src={connector.icon} alt={connector.name} />,
         iconShape: "squircle",
       });
     });
 
-    const rainbowConnector = connectors.find((c) => c.id === "me.rainbow");
-    if (!rainbowConnector) {
-      // Add Rainbow second
+    function addIfNotPresent(idList: string) {
+      if (mobileWallets.find((w) => idList.includes(w.id))) return;
+      const wallet = assertNotNull(
+        walletConfigs[idList],
+        () => `missing ${idList}`,
+      );
       mobileWallets.push({
-        id: "me.rainbow",
-        ...walletConfigs["me.rainbow"],
+        id: idList,
+        ...wallet,
       });
     }
 
-    const mobileMetaMaskConnector = connectors.find(
-      (c) => c.id === "io.metamask.mobile",
+    addIfNotPresent("me.rainbow");
+    addIfNotPresent(
+      "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
     );
-    const metaMaskConnector = connectors.find((c) => c.id === "metaMask");
-    if (!mobileMetaMaskConnector) {
-      // Add MetaMask third
-      mobileWallets.push({
-        id: "metaMask",
-        connector: metaMaskConnector,
-        ...walletConfigs[
-          "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
-        ],
-      });
-    }
 
     // Add WalletConnect last
     const walletConnectConnector = connectors.find(

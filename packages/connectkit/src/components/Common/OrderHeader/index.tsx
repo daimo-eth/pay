@@ -12,7 +12,6 @@ import {
   Solana,
 } from "../../../assets/chains";
 import { USDC } from "../../../assets/coins";
-import { MetaMask } from "../../../assets/logos";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -65,8 +64,10 @@ export const OrderHeader = ({
     icon: React.ReactNode | string | undefined,
     name?: string,
     size = 32,
-  ): JSX.Element => {
-    if (!icon) return <MetaMask />;
+  ): JSX.Element | null => {
+    if (!icon) {
+      return null;
+    }
 
     return (
       <LogoContainer $size={size} $zIndex={1} style={{ borderRadius: "22.5%" }}>

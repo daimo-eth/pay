@@ -218,7 +218,11 @@ export type DaimoPayHydratedOrder = {
   expirationTs: bigint | null;
 };
 
-export type DaimoPayOrderWithOrg = DaimoPayHydratedOrder & {
+export type DaimoPayOrderWithOrg = DaimoPayOrder & {
+  org: DaimoPayOrgPublicInfo;
+};
+
+export type DaimoPayHydratedOrderWithOrg = DaimoPayHydratedOrder & {
   org: DaimoPayOrgPublicInfo;
 };
 

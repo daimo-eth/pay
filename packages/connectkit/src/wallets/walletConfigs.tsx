@@ -199,8 +199,9 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     getWalletConnectDeeplink: (uri: string) => {
-      return `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+      return `metamask://wc?uri=${encodeURIComponent(uri)}`;
     },
+    walletDeepLink: "metamask://",
   },
   "app.phantom": {
     name: "Phantom",

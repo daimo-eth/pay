@@ -1,12 +1,8 @@
 import Logos from "../assets/logos";
 
-/**
- * EIP-6963: Multi Injected Provider Discovery
- * https://eips.ethereum.org/EIPS/eip-6963
- *
- */
-
-const daimoPayUrl = "https://pay.daimo.com/checkout?id=";
+// WTF123
+// const daimoPayUrl = "https://pay.daimo.com/pay?id=";
+const daimoPayUrl = "https://resolved-overly-kangaroo.ngrok-free.app/pay?id=";
 const encodedDaimoPayUrl = encodeURIComponent(daimoPayUrl);
 
 export type WalletConfigProps = {

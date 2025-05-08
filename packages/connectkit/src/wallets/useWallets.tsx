@@ -50,7 +50,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       });
     }
 
-    addIfNotPresent("me.rainbow");
+    addIfNotPresent("com.trustwallet.app");
     addIfNotPresent(
       "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
     );

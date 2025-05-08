@@ -1,3 +1,4 @@
+import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -10,7 +11,6 @@ import {
 } from "../../../utils";
 import { WalletProps, useWallets } from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
-import { useWeb3 } from "../../contexts/web3";
 import Alert from "../Alert";
 import {
   ConnectorButton,
@@ -73,19 +73,17 @@ const ConnectorItem = ({
   wallet: WalletProps;
   isRecent?: boolean;
 }) => {
-  const {
-    connect: { getUri },
-  } = useWeb3();
-  const uri = getUri();
   const { isMobile } = useIsMobile();
   const context = usePayContext();
 
   const { connect } = useConnect();
 
+  const order = context.paymentState.daimoPayOrder;
+  const payId = order && writeDaimoPayOrderID(order.id);
+
   let deeplink =
-    (!wallet.isInstalled && isMobile) ||
-    (wallet.shouldDeeplinkDesktop && !isMobile)
-      ? wallet.getWalletConnectDeeplink?.(uri ?? "")
+    !wallet.isInstalled && isMobile && payId
+      ? wallet.getDaimoPayDeeplink?.(payId)
       : undefined;
 
   const redirectToMoreWallets = isMobile && isWalletConnectConnector(wallet.id);

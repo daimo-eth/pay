@@ -54,8 +54,8 @@ export default function SelectToken() {
           } else {
             setRoute(ROUTES.PAY_WITH_TOKEN, meta);
             if (isMobile && isIOS) {
-              if (wcWallet?.walletDeepLink) {
-                window.open(wcWallet?.walletDeepLink, "_blank");
+              if (wcWallet?.deeplinkScheme) {
+                window.open(wcWallet?.deeplinkScheme, "_blank");
               } else {
                 //If the wallet is a wc mobile connector we don't have the deep link
                 if (!wcWallet?.isWcMobileConnector) {

@@ -489,10 +489,11 @@ export type PaymentRefundedEvent = {
   type: DaimoPayEventType.PaymentRefunded;
   isTestEvent?: boolean;
   paymentId: DaimoPayOrderID;
+  refundAddress: Address;
   chainId: number;
+  tokenAddress: Address;
   txHash: Hex;
   amountUnits: string;
-  tokenAddress: Address;
   payment: DaimoPayOrderView;
 };
 

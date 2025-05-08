@@ -2,6 +2,7 @@ import {
   assert,
   assertNotNull,
   DaimoPayOrder,
+  DaimoPayOrderWithOrg,
   DaimoPayUserMetadata,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
@@ -81,7 +82,7 @@ export interface PaymentState {
   generatePreviewOrder: (payParams: PayParams) => void;
   resetOrder: () => void;
 
-  daimoPayOrder: DaimoPayOrder | undefined;
+  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
   isDepositFlow: boolean;
   paymentWaitingMessage: string | undefined;
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
@@ -129,8 +130,8 @@ export function usePaymentState({
 }: {
   trpc: TrpcClient;
   lockPayParams: boolean;
-  daimoPayOrder: DaimoPayOrder | undefined;
-  setDaimoPayOrder: (o: DaimoPayOrder | undefined) => void;
+  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
+  setDaimoPayOrder: (o: DaimoPayOrderWithOrg | undefined) => void;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;

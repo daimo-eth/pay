@@ -1,8 +1,8 @@
 import {
   DaimoPayIntentStatus,
-  DaimoPayOrder,
   DaimoPayOrderMode,
   DaimoPayOrderStatusSource,
+  DaimoPayOrderWithOrg,
   debugJson,
   retryBackoff,
 } from "@daimo/pay-common";
@@ -162,7 +162,8 @@ const DaimoPayProviderWithoutSolana = ({
   const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
 
   // Daimo Pay context
-  const [daimoPayOrder, setDaimoPayOrderInner] = useState<DaimoPayOrder>();
+  const [daimoPayOrder, setDaimoPayOrderInner] =
+    useState<DaimoPayOrderWithOrg>();
   const [pendingConnectorId, setPendingConnectorId] = useState<
     string | undefined
   >(undefined);
@@ -264,7 +265,7 @@ const DaimoPayProviderWithoutSolana = ({
   // downstream hooks like useDaimoPayStatus() to work correctly, we must set
   // set refresh context when payment status changes; done via setDaimoPayOrder.
   const setDaimoPayOrder = useCallback(
-    (order: DaimoPayOrder | undefined) => {
+    (order: DaimoPayOrderWithOrg | undefined) => {
       setDaimoPayOrderInner(order);
       if (order == null) {
         log(`[PAY] setDaimoPayOrder: reset`);

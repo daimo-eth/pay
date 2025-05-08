@@ -241,6 +241,16 @@ export type DaimoPayHydratedOrder = {
   expirationTs: bigint | null;
 };
 
+export type DaimoPayOrderWithOrg = DaimoPayHydratedOrder & {
+  org: DaimoPayOrgPublicInfo;
+};
+
+export type DaimoPayOrgPublicInfo = {
+  orgId: string;
+  name: string;
+  logoURI?: string;
+};
+
 export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<
   DaimoPayHydratedOrder,
   "intentAddr" | "handoffAddr"

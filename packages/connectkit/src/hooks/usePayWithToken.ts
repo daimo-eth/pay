@@ -1,7 +1,7 @@
 import {
   assert,
   assertNotNull,
-  DaimoPayOrder,
+  DaimoPayOrderWithOrg,
   debugJson,
   WalletPaymentOption,
 } from "@daimo/pay-common";
@@ -23,8 +23,8 @@ export function usePayWithToken({
   createOrHydrate: CreateOrHydrateFn;
   senderAddr: Address | undefined;
   refundAddress: Address | undefined;
-  daimoPayOrder: DaimoPayOrder | undefined;
-  setDaimoPayOrder: (order: DaimoPayOrder) => void;
+  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
+  setDaimoPayOrder: (order: DaimoPayOrderWithOrg) => void;
   log: (message: string) => void;
 }) {
   const { writeContractAsync } = useWriteContract();

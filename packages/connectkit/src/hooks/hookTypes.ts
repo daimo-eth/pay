@@ -1,6 +1,6 @@
 import {
-  DaimoPayHydratedOrder,
   DaimoPayOrder,
+  DaimoPayOrderWithOrg,
   ExternalPaymentOptionData,
   ExternalPaymentOptions,
 } from "@daimo/pay-common";
@@ -10,6 +10,6 @@ export type CreateOrHydrateFn = (opts: {
   refundAddress?: string;
   externalPaymentOption?: ExternalPaymentOptions;
 }) => Promise<{
-  hydratedOrder: DaimoPayHydratedOrder;
+  hydratedOrder: DaimoPayOrderWithOrg;
   externalPaymentOptionData: ExternalPaymentOptionData | null;
 }>;

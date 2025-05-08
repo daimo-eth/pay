@@ -1,7 +1,7 @@
 import {
   assert,
   assertNotNull,
-  DaimoPayOrder,
+  DaimoPayOrderWithOrg,
   SolanaPublicKey,
 } from "@daimo/pay-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -20,8 +20,8 @@ export function usePayWithSolanaToken({
 }: {
   trpc: TrpcClient;
   refundAddress: Address | undefined;
-  daimoPayOrder: DaimoPayOrder | undefined;
-  setDaimoPayOrder: (order: DaimoPayOrder) => void;
+  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
+  setDaimoPayOrder: (order: DaimoPayOrderWithOrg) => void;
   createOrHydrate: CreateOrHydrateFn;
   log: (message: string) => void;
 }) {

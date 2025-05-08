@@ -9,6 +9,7 @@ import {
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
+import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { useWalletConnectModal } from "../../../hooks/useWalletConnectModal";
@@ -57,18 +58,21 @@ const MobileConnectors: React.FC = () => {
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
       if (wallets.find((w) => w.connector?.id === walletId)) return false;
-      if (!wallet.getWalletConnectDeeplink) return false;
       if (!wallet.showInMobileConnectors) return false;
       return true;
     }) ?? [];
 
   const connectWallet = (wallet: WalletConfigProps) => {
-    const uri = wallet.getWalletConnectDeeplink?.(wcUri!);
-    log(`[MobileConnectors] clicked ${wallet.name}: ${uri}`);
-    // Using open(.., '_blank') to open the wallet connect modal.
-    // Previously, we used window.location.href = uri, but this closes the dapp
-    // (losing state) if there's no deeplink handler for the URI.
-    if (uri) window.open(uri, "_blank");
+    if (wallet.getDaimoPayDeeplink) {
+      const order = context.paymentState.daimoPayOrder;
+      const payId = order && writeDaimoPayOrderID(order.id);
+      const deeplink = payId ? wallet.getDaimoPayDeeplink(payId) : undefined;
+      log(`[MobileConnectors] clicked ${wallet.name}: ${deeplink}`);
+      // Using open(.., '_blank') to open the wallet connect modal.
+      // Previously, we used window.location.href = uri, but this closes the dapp
+      // (losing state) if there's no deeplink handler for the URI.
+      if (deeplink) window.open(deeplink, "_blank");
+    }
   };
 
   return (

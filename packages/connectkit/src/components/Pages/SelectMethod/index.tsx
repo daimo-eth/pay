@@ -12,7 +12,7 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
-import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
+import { Coinbase, MetaMask, Rabby, Trust } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -20,7 +20,7 @@ import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
 
 export default function SelectMethod() {
-  const { isMobile, isIOS } = useIsMobile();
+  const { isMobile, isIOS, isAndroid } = useIsMobile();
 
   const {
     address,
@@ -182,7 +182,7 @@ export default function SelectMethod() {
   );
 
   if (showSolanaPaymentMethod) {
-    const solanaOption = getSolanaOption(isIOS);
+    const solanaOption = getSolanaOption(isIOS, isAndroid);
     if (solanaOption) {
       options.push(solanaOption);
     }
@@ -246,13 +246,13 @@ export default function SelectMethod() {
 function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isMetaMask, isRainbow, isCoinbase] = [
+  const [isMetaMask, isTrust, isCoinbase] = [
     strippedId?.includes("metamask"),
-    strippedId?.includes("rainbow"),
+    strippedId?.includes("trust"),
     strippedId?.includes("coinbase"),
   ];
 
-  if (!isRainbow) icons.push(<Rainbow />);
+  if (!isTrust) icons.push(<Trust />);
   if (!isMetaMask) icons.push(<MetaMask />);
   if (!isCoinbase) icons.push(<Coinbase />);
   if (icons.length < 3) icons.push(<Rabby />);
@@ -260,11 +260,13 @@ function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
   return icons;
 }
 
-function getSolanaOption(isOnIOS: boolean) {
+function getSolanaOption(isIOS: boolean, isAndroid: boolean) {
   const { wallets, disconnect: disconnectSolana } = useWallet();
   const { setRoute } = usePayContext();
-
-  if (wallets.length === 0 && !isOnIOS) return null;
+  // If we're on iOS and there are no wallets, we don't need to show the Solana option
+  // If we're on Android and there are less than 2 wallets, we don't need to show the Solana option because there is always a default wallet called Mobile Wallet Adapter that is not useful
+  if ((isIOS && wallets.length === 0) || (isAndroid && wallets.length < 2))
+    return null;
 
   return {
     id: "solana",

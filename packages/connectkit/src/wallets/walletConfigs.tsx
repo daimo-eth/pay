@@ -1,8 +1,6 @@
 import Logos from "../assets/logos";
 
-// WTF123
-// const daimoPayUrl = "https://pay.daimo.com/pay?id=";
-const daimoPayUrl = "https://resolved-overly-kangaroo.ngrok-free.app/pay?id=";
+const daimoPayUrl = "https://pay.daimo.com/pay?id=";
 const encodedDaimoPayUrl = encodeURIComponent(daimoPayUrl);
 
 export type WalletConfigProps = {
@@ -96,7 +94,7 @@ export const walletConfigs: {
     name: "Coinbase Wallet",
     shortName: "Coinbase",
     icon: <Logos.Coinbase />,
-    iconShape: "circle",
+    iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/coinbasewallet",
       website: "https://www.coinbase.com/wallet/getting-started-extension",
@@ -120,6 +118,7 @@ export const walletConfigs: {
     name: "Backpack",
     shortName: "Backpack",
     icon: <Logos.Backpack />,
+    iconShape: "squircle",
     showInMobileConnectors: true,
     getDaimoPayDeeplink: (payId: string) => {
       return (
@@ -134,6 +133,7 @@ export const walletConfigs: {
   bitget: {
     name: "Bitget",
     icon: <Logos.Bitget />,
+    iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "bitkeep://",
     getDaimoPayDeeplink: (payId: string) => {

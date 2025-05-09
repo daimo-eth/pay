@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
@@ -10,7 +10,6 @@ import {
 } from "../../Common/Modal/styles";
 
 import { ExternalLinkIcon } from "../../../assets/icons";
-import useIsMobile from "../../../hooks/useIsMobile";
 import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
@@ -19,16 +18,13 @@ const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
   const trpc = context.trpc as TrpcClient;
-  const { isMobile } = useIsMobile();
 
   const {
-    selectedExternalOption,
-    payWithExternal,
+    selectedWallet,
     paymentWaitingMessage,
     daimoPayOrder,
+    selectedWalletDeepLink,
   } = paymentState;
-
-  const [externalURL, setExternalURL] = useState<string | null>(null);
 
   useEffect(() => {
     const checkForSourcePayment = async () => {
@@ -47,58 +43,32 @@ const WaitingExternal: React.FC = () => {
     return () => clearInterval(interval);
   }, [daimoPayOrder?.id]);
 
-  useEffect(() => {
-    if (!selectedExternalOption) return;
-    payWithExternal(selectedExternalOption.id).then((url) => {
-      setExternalURL(url);
-      openExternalWindow(url);
-    });
-  }, [selectedExternalOption]);
-
-  const openExternalWindow = (url: string) => {
-    if (isMobile) {
-      // on mobile: open in a new tab
-      window.open(url, "_blank");
-    } else {
-      // on desktop: open in a popup window in
-      // portrait mode in the center of the screen
-      const width = 500;
-      const height = 700;
-      const left = Math.max(
-        0,
-        Math.floor((window.innerWidth - width) / 2) + window.screenX,
-      );
-      const top = Math.max(
-        0,
-        Math.floor((window.innerHeight - height) / 2) + window.screenY,
-      );
-
-      window.open(
-        url,
-        "popupWindow",
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`,
-      );
-    }
+  const openWalletWindow = (url: string) => {
+    window.open(url, "_blank");
   };
 
   const waitingMessageLength = paymentWaitingMessage?.length;
 
   useEffect(() => {
     triggerResize();
-  }, [waitingMessageLength, externalURL]);
+  }, [waitingMessageLength]);
 
-  if (!selectedExternalOption) {
-    return <PageContent></PageContent>;
+  if (!selectedWallet) {
+    return <PageContent> No wallet selected </PageContent>;
   }
 
   return (
     <PageContent>
       <ExternalPaymentSpinner
-        logo={selectedExternalOption.logoURI}
-        logoShape={selectedExternalOption.logoShape}
+        logo={selectedWallet.icon}
+        logoShape={
+          selectedWallet.iconShape === "square"
+            ? "squircle"
+            : selectedWallet.iconShape || "squircle"
+        }
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-        <ModalH1>Waiting For Payment</ModalH1>
+        <ModalH1>Finish Your Payment in {selectedWallet.name}</ModalH1>
         {paymentWaitingMessage && (
           <ModalBody style={{ marginTop: 12, marginBottom: 12 }}>
             {paymentWaitingMessage}
@@ -108,12 +78,12 @@ const WaitingExternal: React.FC = () => {
       <Button
         icon={<ExternalLinkIcon />}
         onClick={() => {
-          if (externalURL) {
-            openExternalWindow(externalURL);
+          if (selectedWalletDeepLink) {
+            openWalletWindow(selectedWalletDeepLink);
           }
         }}
       >
-        {selectedExternalOption.cta}
+        {`Open ${selectedWallet.name}`}
       </Button>
     </PageContent>
   );

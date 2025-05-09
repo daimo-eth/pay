@@ -33,6 +33,7 @@ import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SelectSolanaToken from "../Pages/Solana/SelectSolanaToken";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
+import WaitingWallet from "../Pages/WaitingWallet";
 
 export const DaimoPayModal: React.FC<{
   mode: Mode;
@@ -178,6 +179,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,
+    [ROUTES.WAITING_WALLET]: <WaitingWallet />,
     [ROUTES.CONFIRMATION]: <Confirmation />,
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
     [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,

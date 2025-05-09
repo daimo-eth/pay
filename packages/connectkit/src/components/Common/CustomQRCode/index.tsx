@@ -19,6 +19,7 @@ function CustomQRCode({
   imageBackground,
   imagePosition = "center",
   tooltipMessage,
+  contentPadding = 13,
 }: CustomQRCodeProps) {
   const windowSize = useWindowSize();
 
@@ -33,7 +34,7 @@ function CustomQRCode({
 
   return (
     <QRCodeContainer>
-      <QRCodeContent>
+      <QRCodeContent style={{ inset: contentPadding }}>
         {image && (
           <LogoContainer>
             <LogoIcon
@@ -64,6 +65,8 @@ function CustomQRCode({
                 size={576}
                 ecl="H"
                 clearArea={!!(imagePosition === "center" && image)}
+                image={imagePosition === "bottom right" ? image : undefined} // idk wtf
+                imageBackground={imageBackground}
               />
             </motion.div>
           ) : (

@@ -390,6 +390,45 @@ export function usePaymentState({
       )}, checking out with deposit address: ${option}`,
     );
 
+    // Special-case: USDT on Tron uses the Untron service rather than ChangeNow
+    if (option === DepositAddressPaymentOptions.TRON_USDT) {
+      // Ensure we have an appId for auth to backend
+      assert(
+        payParams?.appId != null,
+        "[PAY DEPOSIT ADDRESS] missing appId required for Tron USDT payments",
+      );
+      // Round up to the nearest integer number of USDT to avoid fractional tokens.
+      const amountTronUSDT = Math.ceil(
+        Number(hydratedOrder.destFinalCallTokenAmount.usd),
+      );
+
+      const untronResp = await trpc.untronTryCreateOrder.mutate({
+        appId: payParams.appId,
+        intentAddr: assertNotNull(
+          hydratedOrder.intentAddr,
+          `[PAY DEPOSIT ADDRESS] missing intentAddr on order ${hydratedOrder.id}`,
+        ),
+        amountTronUSDT,
+      });
+
+      if ("error" in untronResp) {
+        log(
+          `[PAY DEPOSIT ADDRESS] failed to create Untron order: ${untronResp.error}`,
+        );
+        return null;
+      }
+
+      const untronOrder = untronResp.untronOrder;
+      // Map Untron response to the generic deposit-address shape expected by the UI
+      return {
+        address: untronOrder.receiver,
+        amount: amountTronUSDT.toString(),
+        suffix: "USDT on Tron",
+        uri: `tron:${untronOrder.receiver}`,
+      } as DepositAddressPaymentOptionData;
+    }
+
+    // Default behaviour for all other tokens via ChangeNow
     const depositAddressOption = await trpc.getDepositAddressOptionData.query({
       input: option,
       usdRequired: hydratedOrder.destFinalCallTokenAmount.usd,

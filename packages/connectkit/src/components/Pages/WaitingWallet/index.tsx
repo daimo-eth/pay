@@ -83,7 +83,7 @@ const WaitingExternal: React.FC = () => {
           }
         }}
       >
-        {`Open ${selectedWallet.name}`}
+        {`Open ${selectedWallet.shortName || selectedWallet.name}`}
       </Button>
     </PageContent>
   );

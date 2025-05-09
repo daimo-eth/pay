@@ -1,7 +1,4 @@
-import {
-  ExternalPaymentOptions,
-  writeDaimoPayOrderID,
-} from "@daimo/pay-common";
+import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -106,13 +103,6 @@ const ConnectorItem = ({
       onClick={
         deeplink
           ? () => {
-              context.paymentState.setSelectedExternalOption({
-                id: ExternalPaymentOptions.ExternalChains,
-                cta: wallet.name || "",
-                logoURI: wallet.icon,
-                logoShape: "squircle",
-                disabled: false,
-              });
               context.paymentState.setSelectedWallet(wallet);
               context.paymentState.setSelectedWalletDeepLink(deeplink);
               context.setRoute(ROUTES.WAITING_WALLET, {

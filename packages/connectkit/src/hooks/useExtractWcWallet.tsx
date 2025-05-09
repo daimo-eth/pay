@@ -66,7 +66,7 @@ function extractWcWalletFromProvider(p: any, log: PayLogFn) {
     wallet = {
       name: name,
       icon: p.session?.peer?.metadata?.icons[0],
-      walletDeepLink: deeplinkUrl,
+      deeplinkScheme: deeplinkUrl,
       isWcMobileConnector: true,
     };
   }

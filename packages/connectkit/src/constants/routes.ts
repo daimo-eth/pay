@@ -5,6 +5,7 @@ export enum ROUTES {
   SELECT_EXTERNAL_AMOUNT = "daimoPaySelectExternalAmount",
   SELECT_DEPOSIT_ADDRESS_AMOUNT = "daimoPaySelectDepositAddressAmount",
   WAITING_EXTERNAL = "daimoPayWaitingExternal",
+  WAITING_WALLET = "daimoPayWaitingWallet",
   SELECT_DEPOSIT_ADDRESS_CHAIN = "daimoPaySelectDepositAddressChain",
   WAITING_DEPOSIT_ADDRESS = "daimoPayWaitingDepositAddress",
   PAY_WITH_TOKEN = "daimoPayPayWithToken",

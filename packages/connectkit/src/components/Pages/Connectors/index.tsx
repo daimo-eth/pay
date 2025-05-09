@@ -26,7 +26,6 @@ import { OrderHeader } from "../../Common/OrderHeader";
 const Wallets: React.FC = () => {
   const context = usePayContext();
   const locales = useLocales({});
-
   const { isMobile } = useIsMobile();
 
   return (

@@ -149,7 +149,7 @@ const PayWithToken: React.FC = () => {
             href={
               wcWallet.isWcMobileConnector
                 ? undefined
-                : wcWallet.walletDeepLink ||
+                : wcWallet.deeplinkScheme ||
                   wcWallet.getWalletConnectDeeplink?.("")
             }
           >

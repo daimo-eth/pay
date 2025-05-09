@@ -26,6 +26,7 @@ import { useAccount, useEnsName } from "wagmi";
 import { ROUTES } from "../constants/routes";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
+import { WalletConfigProps } from "../wallets/walletConfigs";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
@@ -86,6 +87,8 @@ export interface PaymentState {
   isDepositFlow: boolean;
   paymentWaitingMessage: string | undefined;
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
+  selectedWallet: WalletConfigProps | undefined;
+  selectedWalletDeepLink: string | undefined;
   showSolanaPaymentMethod: boolean;
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
@@ -96,6 +99,8 @@ export interface PaymentState {
   selectedDepositAddressOption: DepositAddressPaymentOptionMetadata | undefined;
   getOrderUsdLimit: () => number;
   setPaymentWaitingMessage: (message: string | undefined) => void;
+  setSelectedWallet: (wallet: WalletConfigProps | undefined) => void;
+  setSelectedWalletDeepLink: (deepLink: string | undefined) => void;
   setSelectedExternalOption: (
     option: ExternalPaymentOptionMetadata | undefined,
   ) => void;
@@ -282,6 +287,10 @@ export function usePaymentState({
 
   const [selectedDepositAddressOption, setSelectedDepositAddressOption] =
     useState<DepositAddressPaymentOptionMetadata>();
+
+  const [selectedWallet, setSelectedWallet] = useState<WalletConfigProps>();
+  const [selectedWalletDeepLink, setSelectedWalletDeepLink] =
+    useState<string>();
 
   const getOrderUsdLimit = () => {
     const DEFAULT_USD_LIMIT = 20000;
@@ -491,12 +500,16 @@ export function usePaymentState({
     selectedSolanaTokenOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,
+    selectedWallet,
+    selectedWalletDeepLink,
     walletPaymentOptions,
     solanaPaymentOptions,
     depositAddressOptions,
     selectedDepositAddressOption,
     getOrderUsdLimit,
     resetOrder,
+    setSelectedWallet,
+    setSelectedWalletDeepLink,
     setPaymentWaitingMessage,
     setSelectedExternalOption,
     setSelectedTokenOption,

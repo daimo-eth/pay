@@ -75,7 +75,11 @@ export default function SelectAnotherMethodButton() {
           key={option.id}
           style={{ borderRadius: "22.5%", overflow: "hidden" }}
         >
-          <img src={option.logoURI} alt="" />
+          {typeof option.logoURI === "string" ? (
+            <img src={option.logoURI} alt="" />
+          ) : (
+            option.logoURI
+          )}
         </div>
       ));
 

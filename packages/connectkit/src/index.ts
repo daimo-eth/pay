@@ -8,14 +8,10 @@ export { default as getDefaultConfig } from "./defaultConfig";
 
 // Pay button
 export {
-  DaimoPayBouncedEvent,
   DaimoPayButton,
   DaimoPayButtonCustomProps,
   DaimoPayButtonProps,
-  DaimoPayCompletedEvent,
-  DaimoPayEvent,
   DaimoPayment,
-  DaimoPayStartedEvent,
 } from "./components/DaimoPayButton";
 
 // Hooks to track payment status + UI status.

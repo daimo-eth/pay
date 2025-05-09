@@ -1,6 +1,7 @@
 import Logos from "../assets/logos";
 
-const daimoPayUrl = "https://pay.daimo.com/pay?id=";
+// const daimoPayUrl = "https://pay.daimo.com/pay?id=";
+const daimoPayUrl = "https://daimo.ngrok.app/pay?id=";
 const encodedDaimoPayUrl = encodeURIComponent(daimoPayUrl);
 
 export type WalletConfigProps = {

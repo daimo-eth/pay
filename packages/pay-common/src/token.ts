@@ -35,6 +35,7 @@ export type Token = {
 
 export enum TokenLogo {
   ETH = "https://pay.daimo.com/chain-logos/ethereum.png",
+  WETH = "https://pay.daimo.com/coin-logos/weth.png",
   USDC = "https://pay.daimo.com/coin-logos/usdc.png",
   EURC = "https://pay.daimo.com/coin-logos/eurc.png",
   USDT = "https://pay.daimo.com/coin-logos/usdt.png",
@@ -64,7 +65,7 @@ export const arbitrumWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const arbitrumUSDC: Token = token({
@@ -139,7 +140,7 @@ export const baseWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const baseUSDC: Token = token({
@@ -225,7 +226,7 @@ export const blastWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const blastUSDB: Token = token({
@@ -304,7 +305,7 @@ export const ethereumWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const ethereumUSDC: Token = token({
@@ -368,7 +369,7 @@ export const lineaWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const lineaUSDC: Token = token({
@@ -479,7 +480,7 @@ export const optimismWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const optimismUSDC: Token = token({
@@ -568,7 +569,7 @@ export const polygonWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const polygonUSDC: Token = token({
@@ -678,7 +679,7 @@ export const worldchainWETH: Token = token({
   decimals: 18,
   name: "Wrapped Ether",
   symbol: "WETH",
-  logoURI: TokenLogo.ETH,
+  logoURI: TokenLogo.WETH,
 });
 
 export const worldchainWBTC: Token = token({

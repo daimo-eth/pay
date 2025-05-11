@@ -225,7 +225,7 @@ export type DaimoPayOrderWithOrg = DaimoPayHydratedOrder & {
 export type DaimoPayOrgPublicInfo = {
   orgId: string;
   name: string;
-  logoURI?: string;
+  logo?: React.ReactNode | string;
 };
 
 export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<
@@ -347,7 +347,7 @@ export type WalletPaymentOption = {
 export type ExternalPaymentOptionMetadata = {
   id: ExternalPaymentOptions;
   cta: string;
-  logoURI: string;
+  logo: React.ReactNode | string;
   logoShape: "circle" | "squircle";
   paymentToken: DaimoPayToken;
   disabled: boolean;
@@ -364,6 +364,11 @@ export enum ExternalPaymentOptions {
   // ChangeNow chains. Bitcoin, Litecoin, Doge, Tron, etc.
   ExternalChains = "ExternalChains",
   Lemon = "Lemon",
+  Venmo = "Venmo",
+  CashApp = "CashApp",
+  MercadoPago = "MercadoPago",
+  Revolut = "Revolut",
+  Wise = "Wise",
 }
 
 export type ExternalPaymentOptionData = {

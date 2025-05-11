@@ -122,16 +122,6 @@ const WaitingExternal: React.FC = () => {
           if (externalURL) {
             openExternalWindow(externalURL);
           }
-          if (isPaymentApp) {
-            console.log("[WAITING EXTERNAL] daimoPayOrder", daimoPayOrder);
-            let url = `https://zkp2p.xyz/swap?
-referrer=Daimo+Pay
-&referrerLogo=https://pay.daimo.com/apple-touch-icon.png
-&callbackUrl=${window.location.origin}
-&amountUsdc=${daimoPayOrder?.destFinalCallTokenAmount.amount}
-&recipientAddress=${daimoPayOrder?.destFinalCall.to}`;
-            openExternalWindow(url);
-          }
         }}
       >
         {selectedExternalOption.cta}

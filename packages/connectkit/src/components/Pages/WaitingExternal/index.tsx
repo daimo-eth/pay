@@ -67,7 +67,7 @@ const WaitingExternal: React.FC = () => {
   }, [selectedExternalOption]);
 
   const openExternalWindow = (url: string) => {
-    if (isMobile) {
+    if (isMobile || isPaymentApp) {
       // on mobile: open in a new tab
       window.open(url, "_blank");
     } else {
@@ -75,10 +75,10 @@ const WaitingExternal: React.FC = () => {
       // portrait mode in the center of the screen
       let width = 500;
       let height = 700;
-      if (isPaymentApp) {
-        height = 800;
-        width = 800;
-      }
+      // if (isPaymentApp) {
+      //   height = 800;
+      //   width = 800;
+      // }
       const left = Math.max(
         0,
         Math.floor((window.innerWidth - width) / 2) + window.screenX,

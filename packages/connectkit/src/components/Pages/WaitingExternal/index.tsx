@@ -9,6 +9,7 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
 import type { TrpcClient } from "../../../utils/trpc";
@@ -27,6 +28,16 @@ const WaitingExternal: React.FC = () => {
     paymentWaitingMessage,
     daimoPayOrder,
   } = paymentState;
+
+  let isPaymentApp = false;
+  if (selectedExternalOption) {
+    isPaymentApp =
+      selectedExternalOption.id === ExternalPaymentOptions.Venmo ||
+      selectedExternalOption.id === ExternalPaymentOptions.CashApp ||
+      selectedExternalOption.id === ExternalPaymentOptions.MercadoPago ||
+      selectedExternalOption.id === ExternalPaymentOptions.Revolut ||
+      selectedExternalOption.id === ExternalPaymentOptions.Wise;
+  }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
 
@@ -56,7 +67,7 @@ const WaitingExternal: React.FC = () => {
   }, [selectedExternalOption]);
 
   const openExternalWindow = (url: string) => {
-    if (isMobile) {
+    if (isMobile || isPaymentApp) {
       // on mobile: open in a new tab
       window.open(url, "_blank");
     } else {
@@ -94,7 +105,7 @@ const WaitingExternal: React.FC = () => {
   return (
     <PageContent>
       <ExternalPaymentSpinner
-        logoURI={selectedExternalOption.logoURI}
+        logo={selectedExternalOption.logo}
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
@@ -110,6 +121,16 @@ const WaitingExternal: React.FC = () => {
         onClick={() => {
           if (externalURL) {
             openExternalWindow(externalURL);
+          }
+          if (isPaymentApp) {
+            console.log("[WAITING EXTERNAL] daimoPayOrder", daimoPayOrder);
+            let url = `https://zkp2p.xyz/swap?
+referrer=Daimo+Pay
+&referrerLogo=https://pay.daimo.com/apple-touch-icon.png
+&callbackUrl=${window.location.origin}
+&amountUsdc=${daimoPayOrder?.destFinalCallTokenAmount.amount}
+&recipientAddress=${daimoPayOrder?.destFinalCall.to}`;
+            openExternalWindow(url);
           }
         }}
       >

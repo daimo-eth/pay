@@ -373,6 +373,8 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_AMOUNT:
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:
+      case ROUTES.SELECT_ZKP2P:
+        return "Choose how to pay";
       case ROUTES.SOLANA_SELECT_AMOUNT:
         return "Select Amount";
       case ROUTES.PAY_WITH_TOKEN:

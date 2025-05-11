@@ -12,7 +12,15 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
-import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
+import {
+  CashApp,
+  Coinbase,
+  MercadoPago,
+  MetaMask,
+  Rabby,
+  Rainbow,
+  Venmo,
+} from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -188,12 +196,23 @@ export default function SelectMethod() {
     }
   }
 
+  if (!isMobile) {
+    options.push({
+      id: "selectZKP2P",
+      title: "Pay with Payment Apps",
+      icons: [<Venmo />, <CashApp />, <MercadoPago />],
+      onClick: () => {
+        setRoute(ROUTES.SELECT_ZKP2P);
+      },
+    });
+  }
+
   // External payment options, e.g. Binance, Coinbase, etc.
   options.push(
     ...(externalPaymentOptions.options ?? []).map((option) => ({
       id: option.id,
       title: option.cta,
-      icons: [option.logoURI],
+      icons: [option.logo],
       onClick: () => {
         setSelectedExternalOption(option);
         const meta = { event: "click-option", option: option.id };

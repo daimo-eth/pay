@@ -65,8 +65,8 @@ const SelectZKP2P: React.FC = () => {
       },
     },
     {
-      id: "CashApp",
-      title: "Pay with Cashapp",
+      id: "Cash App",
+      title: "Pay with Cash App",
       icons: [<CashApp />],
       onClick: () => {
         context.paymentState.setSelectedExternalOption({
@@ -84,13 +84,13 @@ const SelectZKP2P: React.FC = () => {
       },
     },
     {
-      id: "MercadoPago",
-      title: "Pay with MercadoPago",
+      id: "Mercado Pago",
+      title: "Pay with Mercado Pago",
       icons: [<MercadoPago />],
       onClick: () => {
         context.paymentState.setSelectedExternalOption({
           id: ExternalPaymentOptions.MercadoPago,
-          cta: "Pay with MercadoPago",
+          cta: "Pay with Mercado Pago",
           logo: <MercadoPago />,
           logoShape: "squircle",
           paymentToken: dpBaseUSDC,
@@ -105,6 +105,7 @@ const SelectZKP2P: React.FC = () => {
     {
       id: "Revolut",
       title: "Pay with Revolut",
+      subtitle: "Pay in EUR, AED, GBP, and more",
       icons: [<Revolut />],
       onClick: () => {
         context.paymentState.setSelectedExternalOption({
@@ -124,6 +125,7 @@ const SelectZKP2P: React.FC = () => {
     {
       id: "Wise",
       title: "Pay with Wise",
+      subtitle: "Pay in GBP, EUR, CNY, and more",
       icons: [<Wise />],
       onClick: () => {
         context.paymentState.setSelectedExternalOption({

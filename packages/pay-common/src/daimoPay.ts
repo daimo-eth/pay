@@ -372,6 +372,8 @@ export enum ExternalPaymentOptions {
   Wise = "Wise",
 }
 
+export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
+
 export type ExternalPaymentOptionData = {
   url: string;
   waitingMessage: string;

@@ -10,6 +10,7 @@ import {
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  ExternalPaymentOptionsString,
   getOrderDestChainId,
   isCCTPV1Chain,
   PlatformType,
@@ -23,7 +24,6 @@ import { Address, formatUnits, Hex, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
 import { ROUTES } from "../constants/routes";
-import { PaymentOption } from "../types";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
@@ -59,7 +59,7 @@ export interface PayParams {
   /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
   intent?: string;
   /** Payment options. By default, all are enabled. */
-  paymentOptions?: PaymentOption[];
+  paymentOptions?: ExternalPaymentOptionsString[];
   /** Preferred chain IDs. */
   preferredChains?: number[];
   /** Preferred tokens. These appear first in the token list. */

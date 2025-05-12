@@ -18,10 +18,9 @@ export default function SelectAnotherMethodButton() {
   const { connector } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
-  const allPaymentOptions = [
-    ...externalPaymentOptions.options.map((option) => option.id),
-    ...(paymentOptions ?? []),
-  ].flat();
+  const allPaymentOptions = Array.from(
+    externalPaymentOptions.options.values(),
+  ).flat();
 
   const includeSolana =
     paymentOptions == null ||
@@ -69,18 +68,14 @@ export default function SelectAnotherMethodButton() {
   }
 
   function getBestPaymentMethodIcons() {
-    let icons = externalPaymentOptions.options
+    let icons = (externalPaymentOptions.options.get("external") ?? [])
       .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
       .map((option) => (
         <div
           key={option.id}
           style={{ borderRadius: "22.5%", overflow: "hidden" }}
         >
-          {typeof option.logo === "string" ? (
-            <img src={option.logo} alt="" />
-          ) : (
-            option.logo
-          )}
+          <img src={option.logoURI} alt="" />
         </div>
       ));
 

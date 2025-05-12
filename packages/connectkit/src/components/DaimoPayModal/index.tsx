@@ -111,6 +111,8 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT) {
       setSelectedDepositAddressOption(undefined);
       context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+    } else if (context.route === ROUTES.SELECT_ZKP2P) {
+      context.setRoute(ROUTES.SELECT_METHOD, meta);
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {

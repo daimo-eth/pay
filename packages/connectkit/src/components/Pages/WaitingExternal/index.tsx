@@ -109,7 +109,7 @@ const WaitingExternal: React.FC = () => {
   return (
     <PageContent>
       <ExternalPaymentSpinner
-        logo={selectedExternalOption.logo}
+        logo={selectedExternalOption.logoURI}
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>

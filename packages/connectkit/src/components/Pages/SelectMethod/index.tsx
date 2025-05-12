@@ -12,15 +12,7 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
-import {
-  CashApp,
-  Coinbase,
-  MercadoPago,
-  MetaMask,
-  Rabby,
-  Rainbow,
-  Venmo,
-} from "../../../assets/logos";
+import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -196,11 +188,15 @@ export default function SelectMethod() {
     }
   }
 
-  if (!isMobile) {
+  // ZKP2P is currently only available on desktop. Check if the user is on
+  // desktop and if any ZKP2P options are available.
+  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
+  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
+  if (showZkp2pPaymentMethod) {
     options.push({
-      id: "selectZKP2P",
+      id: "ZKP2P",
       title: "Pay with Payment Apps",
-      icons: [<Venmo />, <CashApp />, <MercadoPago />],
+      icons: zkp2pOptions.slice(0, 3).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_ZKP2P);
       },
@@ -209,10 +205,10 @@ export default function SelectMethod() {
 
   // External payment options, e.g. Binance, Coinbase, etc.
   options.push(
-    ...(externalPaymentOptions.options ?? []).map((option) => ({
+    ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
       id: option.id,
       title: option.cta,
-      icons: [option.logo],
+      icons: [option.logoURI],
       onClick: () => {
         setSelectedExternalOption(option);
         const meta = { event: "click-option", option: option.id };

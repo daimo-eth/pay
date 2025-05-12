@@ -346,8 +346,9 @@ export type WalletPaymentOption = {
 
 export type ExternalPaymentOptionMetadata = {
   id: ExternalPaymentOptions;
+  optionType: "external" | "zkp2p";
   cta: string;
-  logo: React.ReactNode | string;
+  logoURI: string;
   logoShape: "circle" | "squircle";
   paymentToken: DaimoPayToken;
   disabled: boolean;

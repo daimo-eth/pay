@@ -72,7 +72,7 @@ const SelectExternalAmount: React.FC = () => {
   return (
     <PageContent>
       <ExternalPaymentSpinner
-        logo={selectedExternalOption.logoURI}
+        logoURI={selectedExternalOption.logoURI}
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent $preserveDisplay={true}>

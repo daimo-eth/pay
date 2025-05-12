@@ -4,33 +4,23 @@ import SquircleSpinner from "../SquircleSpinner";
 import { AnimationContainer, LoadingContainer } from "../styles";
 
 const ExternalPaymentSpinner = ({
-  logo,
+  logoURI,
   logoShape,
 }: {
-  logo: React.ReactNode | string;
+  logoURI: string;
   logoShape: "circle" | "squircle";
 }) => {
   const optionSpinner = (() => {
-    if (typeof logo === "string") {
-      if (logoShape === "circle") {
-        return (
-          <CircleSpinner
-            logo={<img src={logo} />}
-            loading={false}
-            unavailable={false}
-          />
-        );
-      } else {
-        return <SquircleSpinner logo={<img src={logo} />} loading={false} />;
-      }
+    if (logoShape === "circle") {
+      return (
+        <CircleSpinner
+          logo={<img src={logoURI} />}
+          loading={false}
+          unavailable={false}
+        />
+      );
     } else {
-      if (logoShape === "circle") {
-        return (
-          <CircleSpinner logo={logo} loading={false} unavailable={false} />
-        );
-      } else {
-        return <SquircleSpinner logo={logo} loading={false} />;
-      }
+      return <SquircleSpinner logo={<img src={logoURI} />} loading={false} />;
     }
   })();
 

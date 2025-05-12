@@ -26,6 +26,7 @@ import SelectDepositAddressChain from "../Pages/SelectDepositAddressChain";
 import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
+import SelectWallet from "../Pages/SelectWallet";
 import SelectZKP2P from "../Pages/SelectZkp2p";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import ConnectSolana from "../Pages/Solana/ConnectSolana";
@@ -65,6 +66,7 @@ export const DaimoPayModal: React.FC<{
     setSelectedTokenOption,
     setSelectedSolanaTokenOption,
     setSelectedDepositAddressOption,
+    setSelectedWallet,
   } = paymentState;
 
   const {
@@ -153,6 +155,18 @@ export const DaimoPayModal: React.FC<{
         setSelectedDepositAddressOption(undefined);
         context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
       }
+    } else if (context.route === ROUTES.WAITING_WALLET) {
+      if (isDepositFlow) {
+        assert(
+          payParams != null,
+          "[PAY MODAL] payParams cannot be null in deposit flow",
+        );
+        generatePreviewOrder(payParams);
+        context.setRoute(ROUTES.SELECT_WALLET, meta);
+      } else {
+        setSelectedWallet(undefined);
+        context.setRoute(ROUTES.SELECT_METHOD, meta);
+      }
     } else if (context.route === ROUTES.SOLANA_SELECT_AMOUNT) {
       setSelectedSolanaTokenOption(undefined);
       context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta);
@@ -179,6 +193,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SELECT_AMOUNT]: <SelectAmount />,
     [ROUTES.SELECT_EXTERNAL_AMOUNT]: <SelectExternalAmount />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: <SelectDepositAddressAmount />,
+    [ROUTES.SELECT_WALLET]: <SelectWallet />,
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,

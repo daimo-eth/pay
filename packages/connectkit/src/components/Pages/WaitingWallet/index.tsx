@@ -12,7 +12,7 @@ import {
 import { ExternalLinkIcon } from "../../../assets/icons";
 import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
-import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
+import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
 const WaitingExternal: React.FC = () => {
   const context = usePayContext();
@@ -59,7 +59,7 @@ const WaitingExternal: React.FC = () => {
 
   return (
     <PageContent>
-      <ExternalPaymentSpinner
+      <WalletPaymentSpinner
         logo={selectedWallet.icon}
         logoShape={
           selectedWallet.iconShape === "square"

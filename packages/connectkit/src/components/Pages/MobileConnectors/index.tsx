@@ -83,6 +83,11 @@ const MobileConnectors: React.FC = () => {
     }
   };
 
+  const depositWallet = (wallet: WalletConfigProps) => {
+    context.paymentState.setSelectedWallet(wallet);
+    setRoute(ROUTES.SELECT_WALLET);
+  };
+
   return (
     <PageContent style={{ width: 312 }}>
       <Container>
@@ -113,7 +118,11 @@ const MobileConnectors: React.FC = () => {
                   return (
                     <WalletItem
                       key={i}
-                      onClick={() => connectWallet(wallet)}
+                      onClick={() =>
+                        !paymentState.isDepositFlow
+                          ? connectWallet(wallet)
+                          : depositWallet(wallet)
+                      }
                       style={{
                         animationDelay: `${i * 50}ms`,
                       }}

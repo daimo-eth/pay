@@ -82,7 +82,10 @@ const ConnectorItem = ({
   const payId = order && writeDaimoPayOrderID(order.id);
 
   let deeplink =
-    !wallet.isInstalled && isMobile && payId
+    !wallet.isInstalled &&
+    isMobile &&
+    payId &&
+    !context.paymentState.isDepositFlow
       ? wallet.getDaimoPayDeeplink?.(payId)
       : undefined;
 
@@ -113,6 +116,9 @@ const ConnectorItem = ({
           : () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);
+              } else if (context.paymentState.isDepositFlow) {
+                context.paymentState.setSelectedWallet(wallet);
+                context.setRoute(ROUTES.SELECT_WALLET);
               } else {
                 if (shouldConnectImmediately) {
                   connect({ connector: wallet.connector! });

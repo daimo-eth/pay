@@ -229,7 +229,7 @@ export type DaimoPayHydratedOrderWithOrg = DaimoPayHydratedOrder & {
 export type DaimoPayOrgPublicInfo = {
   orgId: string;
   name: string;
-  logo?: React.ReactNode | string;
+  logoURI?: string;
 };
 
 export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<

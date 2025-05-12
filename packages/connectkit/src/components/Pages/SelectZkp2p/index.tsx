@@ -58,10 +58,17 @@ const SelectZKP2P: React.FC = () => {
           paymentToken: dpBaseUSDC,
           disabled: false,
         });
-        context.setRoute(ROUTES.WAITING_EXTERNAL, {
-          event: "click-option",
-          option: ExternalPaymentOptions.Venmo,
-        });
+        if (context.paymentState.isDepositFlow) {
+          context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Venmo,
+          });
+        } else {
+          context.setRoute(ROUTES.WAITING_EXTERNAL, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Venmo,
+          });
+        }
       },
     },
     {
@@ -77,10 +84,17 @@ const SelectZKP2P: React.FC = () => {
           paymentToken: dpBaseUSDC,
           disabled: false,
         });
-        context.setRoute(ROUTES.WAITING_EXTERNAL, {
-          event: "click-option",
-          option: ExternalPaymentOptions.CashApp,
-        });
+        if (context.paymentState.isDepositFlow) {
+          context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+            event: "click-option",
+            option: ExternalPaymentOptions.CashApp,
+          });
+        } else {
+          context.setRoute(ROUTES.WAITING_EXTERNAL, {
+            event: "click-option",
+            option: ExternalPaymentOptions.CashApp,
+          });
+        }
       },
     },
     {
@@ -96,10 +110,17 @@ const SelectZKP2P: React.FC = () => {
           paymentToken: dpBaseUSDC,
           disabled: false,
         });
-        context.setRoute(ROUTES.WAITING_EXTERNAL, {
-          event: "click-option",
-          option: ExternalPaymentOptions.MercadoPago,
-        });
+        if (context.paymentState.isDepositFlow) {
+          context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+            event: "click-option",
+            option: ExternalPaymentOptions.MercadoPago,
+          });
+        } else {
+          context.setRoute(ROUTES.WAITING_EXTERNAL, {
+            event: "click-option",
+            option: ExternalPaymentOptions.MercadoPago,
+          });
+        }
       },
     },
     {
@@ -116,10 +137,17 @@ const SelectZKP2P: React.FC = () => {
           paymentToken: dpBaseUSDC,
           disabled: false,
         });
-        context.setRoute(ROUTES.WAITING_EXTERNAL, {
-          event: "click-option",
-          option: ExternalPaymentOptions.Revolut,
-        });
+        if (context.paymentState.isDepositFlow) {
+          context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Revolut,
+          });
+        } else {
+          context.setRoute(ROUTES.WAITING_EXTERNAL, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Revolut,
+          });
+        }
       },
     },
     {
@@ -136,10 +164,18 @@ const SelectZKP2P: React.FC = () => {
           paymentToken: dpBaseUSDC,
           disabled: false,
         });
-        context.setRoute(ROUTES.WAITING_EXTERNAL, {
-          event: "click-option",
-          option: ExternalPaymentOptions.Wise,
-        });
+        if (context.paymentState.isDepositFlow) {
+          context.paymentState;
+          context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Wise,
+          });
+        } else {
+          context.setRoute(ROUTES.WAITING_EXTERNAL, {
+            event: "click-option",
+            option: ExternalPaymentOptions.Wise,
+          });
+        }
       },
     },
   ];

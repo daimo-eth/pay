@@ -1,7 +1,6 @@
 import {
   assert,
   assertNotNull,
-  DaimoPayOrderMode,
   DaimoPayOrderWithOrg,
   debugJson,
   WalletPaymentOption,
@@ -59,10 +58,7 @@ export function usePayWithToken({
       try {
         if (required.token.token === zeroAddress) {
           return await sendTransactionAsync({
-            to:
-              hydratedOrder.mode === DaimoPayOrderMode.HYDRATED
-                ? hydratedOrder.intentAddr
-                : zeroAddress,
+            to: hydratedOrder.intentAddr,
             value: paymentAmount,
           });
         } else {
@@ -70,12 +66,7 @@ export function usePayWithToken({
             abi: erc20Abi,
             address: getAddress(required.token.token),
             functionName: "transfer",
-            args: [
-              hydratedOrder.mode === DaimoPayOrderMode.HYDRATED
-                ? hydratedOrder.intentAddr
-                : zeroAddress,
-              paymentAmount,
-            ],
+            args: [hydratedOrder.intentAddr, paymentAmount],
           });
         }
       } catch (e) {

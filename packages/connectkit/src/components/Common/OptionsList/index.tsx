@@ -7,7 +7,6 @@ import { OrDivider } from "../Modal";
 import { ScrollArea } from "../ScrollArea";
 import {
   OptionButton,
-  OptionIcon,
   OptionLabel,
   OptionSubtitle,
   OptionTitle,
@@ -133,23 +132,19 @@ const OptionItem = ({ option }: { option: Option }) => {
   });
 
   const iconContent = (() => {
-    if (hydratedIcons.length === 1)
-      return <OptionIcon>{hydratedIcons[0]}</OptionIcon>;
-    else {
-      return (
-        <IconStackContainer>
-          {hydratedIcons.map((icon, index) => (
-            <IconStackItem
-              key={index}
-              $marginRight={index !== hydratedIcons.length - 1 ? -12 : 0}
-              $zIndex={hydratedIcons.length - index}
-            >
-              {icon}
-            </IconStackItem>
-          ))}
-        </IconStackContainer>
-      );
-    }
+    return (
+      <IconStackContainer>
+        {hydratedIcons.map((icon, index) => (
+          <IconStackItem
+            key={index}
+            $marginRight={index !== hydratedIcons.length - 1 ? -12 : 0}
+            $zIndex={hydratedIcons.length - index}
+          >
+            {icon}
+          </IconStackItem>
+        ))}
+      </IconStackContainer>
+    );
   })();
 
   return (

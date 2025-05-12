@@ -7,14 +7,14 @@ import {
 import { useEffect, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
-const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = [
-  ExternalPaymentOptions.Coinbase,
-  ExternalPaymentOptions.Binance,
-  ExternalPaymentOptions.Daimo,
-  ExternalPaymentOptions.RampNetwork,
-  ExternalPaymentOptions.Lemon,
-  // Solana and ExternalChains are handled in the SelectMethod component.
-];
+const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
+  ExternalPaymentOptions,
+).filter(
+  (opt) =>
+    // Solana and ExternalChains are handled in the SelectMethod component.
+    opt !== ExternalPaymentOptions.Solana &&
+    opt !== ExternalPaymentOptions.ExternalChains,
+);
 
 export function useExternalPaymentOptions({
   trpc,
@@ -28,8 +28,13 @@ export function useExternalPaymentOptions({
   platform: PlatformType | undefined;
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
-}) {
-  const [options, setOptions] = useState<ExternalPaymentOptionMetadata[]>([]);
+}): {
+  options: Map<string, ExternalPaymentOptionMetadata[]>;
+  loading: boolean;
+} {
+  const [options, setOptions] = useState<
+    Map<string, ExternalPaymentOptionMetadata[]>
+  >(new Map());
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -53,8 +58,17 @@ export function useExternalPaymentOptions({
         const filteredOptions = newOptions.filter((option) =>
           enabledExtPaymentOptions.includes(option.id),
         );
+        const optionsByType: Map<string, ExternalPaymentOptionMetadata[]> =
+          new Map();
+        filteredOptions.forEach((option) => {
+          const { optionType } = option;
+          if (!optionsByType.has(optionType)) {
+            optionsByType.set(optionType, []);
+          }
+          optionsByType.get(optionType)!.push(option);
+        });
 
-        setOptions(filteredOptions);
+        setOptions(optionsByType);
       } catch (error) {
         console.error(error);
       } finally {
@@ -65,10 +79,7 @@ export function useExternalPaymentOptions({
     if (usdRequired != null && mode != null) {
       refreshExternalPaymentOptions(usdRequired, mode);
     }
-  }, [usdRequired, filterIds, platform, mode]);
+  }, [usdRequired, filterIds, platform, mode, trpc]);
 
-  return {
-    options,
-    loading,
-  };
+  return { options, loading };
 }

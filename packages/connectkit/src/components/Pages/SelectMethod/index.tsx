@@ -188,9 +188,24 @@ export default function SelectMethod() {
     }
   }
 
+  // ZKP2P is currently only available on desktop. Check if the user is on
+  // desktop and if any ZKP2P options are available.
+  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
+  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
+  if (showZkp2pPaymentMethod) {
+    options.push({
+      id: "ZKP2P",
+      title: "Pay with Payment Apps",
+      icons: zkp2pOptions.slice(0, 3).map((option) => option.logoURI),
+      onClick: () => {
+        setRoute(ROUTES.SELECT_ZKP2P);
+      },
+    });
+  }
+
   // External payment options, e.g. Binance, Coinbase, etc.
   options.push(
-    ...(externalPaymentOptions.options ?? []).map((option) => ({
+    ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
       id: option.id,
       title: option.cta,
       icons: [option.logoURI],

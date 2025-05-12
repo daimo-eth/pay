@@ -370,6 +370,8 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.WAITING_DEPOSIT_ADDRESS:
         if (!selectedDepositAddressOption) return undefined;
         return `Pay with ${selectedDepositAddressOption.id}`;
+      case ROUTES.SELECT_ZKP2P:
+        return "Select App";
       case ROUTES.SELECT_AMOUNT:
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:

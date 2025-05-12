@@ -26,6 +26,7 @@ import SelectDepositAddressChain from "../Pages/SelectDepositAddressChain";
 import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
+import SelectZKP2P from "../Pages/SelectZkp2p";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
@@ -110,6 +111,8 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT) {
       setSelectedDepositAddressOption(undefined);
       context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+    } else if (context.route === ROUTES.SELECT_ZKP2P) {
+      context.setRoute(ROUTES.SELECT_METHOD, meta);
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
@@ -178,6 +181,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,
+    [ROUTES.SELECT_ZKP2P]: <SelectZKP2P />,
     [ROUTES.CONFIRMATION]: <Confirmation />,
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
     [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,

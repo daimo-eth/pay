@@ -127,33 +127,6 @@ export const OptionSubtitle = styled(motion.span)`
   width: 100%;
 `;
 
-export const OptionIcon = styled(motion.div)`
-  position: absolute;
-  right: 20px;
-  width: 32px;
-  height: 32px;
-  overflow: visible;
-  svg,
-  img {
-    display: block;
-    position: relative;
-    pointer-events: none;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-  }
-
-  &[data-shape="squircle"] {
-    border-radius: 22.5%;
-  }
-  &[data-shape="circle"] {
-    border-radius: 100%;
-  }
-  &[data-shape="square"] {
-    border-radius: 0;
-  }
-`;
-
 export const OptionsContainer = styled.div<{
   $disabled?: boolean;
 }>`

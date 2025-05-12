@@ -23,10 +23,12 @@ export const OrderHeader = ({
   minified = false,
   showEth = false,
   showSolana = false,
+  showZKP2P = false,
 }: {
   minified?: boolean;
   showEth?: boolean;
   showSolana?: boolean;
+  showZKP2P?: boolean;
 }) => {
   const { paymentState, route, wcWallet } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();
@@ -114,7 +116,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {!showEth && !showSolana && (
+          {!showEth && !showSolana && !showZKP2P && (
             <>
               <CoinLogos $size={32} />
             </>

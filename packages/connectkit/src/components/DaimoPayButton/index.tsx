@@ -10,6 +10,7 @@ import {
   DaimoPayOrderMode,
   DaimoPayOrderView,
   DaimoPayUserMetadata,
+  ExternalPaymentOptionsString,
   getDaimoPayOrderView,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
@@ -20,7 +21,7 @@ import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
 import { PayParams } from "../../hooks/usePaymentState";
 import { ResetContainer } from "../../styles";
-import { CustomTheme, Mode, PaymentOption, Theme } from "../../types";
+import { CustomTheme, Mode, Theme } from "../../types";
 import ThemedButton, { ThemeContainer } from "../Common/ThemedButton";
 
 /** Payment details and status. */
@@ -62,7 +63,7 @@ type PayButtonPaymentProps =
       /**
        * Payment options. By default, all are enabled.
        */
-      paymentOptions?: PaymentOption[];
+      paymentOptions?: ExternalPaymentOptionsString[];
       /**
        * Preferred chain IDs. Assets on these chains will appear first.
        */

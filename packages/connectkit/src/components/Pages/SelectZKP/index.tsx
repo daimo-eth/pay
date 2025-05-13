@@ -7,7 +7,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 
-const SelectZKP2P: React.FC = () => {
+const SelectZKP: React.FC = () => {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, setSelectedExternalOption } = paymentState;
   const zkp2pOptions = externalPaymentOptions.options.get("zkp2p");
@@ -46,4 +46,4 @@ const SelectZKP2P: React.FC = () => {
   );
 };
 
-export default SelectZKP2P;
+export default SelectZKP;

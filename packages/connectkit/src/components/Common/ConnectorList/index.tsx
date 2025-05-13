@@ -1,4 +1,4 @@
-import { writeDaimoPayOrderID } from "@daimo/pay-common";
+import { DaimoPayOrderMode, writeDaimoPayOrderID } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -79,23 +79,19 @@ const ConnectorItem = ({
   const { connect } = useConnect();
 
   const order = context.paymentState.daimoPayOrder;
-  const payId = order && writeDaimoPayOrderID(order.id);
 
-  let deeplink =
-    !wallet.isInstalled &&
-    isMobile &&
-    payId &&
-    !context.paymentState.isDepositFlow
-      ? wallet.getDaimoPayDeeplink?.(payId)
-      : undefined;
+  // Deeplink directly to wallet if we have a already-hydrated order.
+  const deeplink =
+    order?.mode === DaimoPayOrderMode.HYDRATED &&
+    wallet.getDaimoPayDeeplink?.(writeDaimoPayOrderID(order.id));
 
+  // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets = isMobile && isWalletConnectConnector(wallet.id);
+
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
     isCoinbaseWalletConnector(wallet.connector?.id);
-
-  if (redirectToMoreWallets || shouldConnectImmediately) deeplink = undefined; // mobile redirects to more wallets page
 
   return (
     <ConnectorButton
@@ -118,7 +114,7 @@ const ConnectorItem = ({
                 context.setRoute(ROUTES.MOBILECONNECTORS);
               } else if (context.paymentState.isDepositFlow) {
                 context.paymentState.setSelectedWallet(wallet);
-                context.setRoute(ROUTES.SELECT_WALLET);
+                context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
               } else {
                 if (shouldConnectImmediately) {
                   connect({ connector: wallet.connector! });

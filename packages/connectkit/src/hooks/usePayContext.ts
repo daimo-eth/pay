@@ -12,6 +12,7 @@ import {
 import { WalletConfigProps } from "../wallets/walletConfigs";
 import { useConnectCallbackProps } from "./useConnectCallback";
 import { PaymentState } from "./usePaymentState";
+
 /** Daimo Pay internal context. */
 export const usePayContext = () => {
   const context = React.useContext(PayContext);

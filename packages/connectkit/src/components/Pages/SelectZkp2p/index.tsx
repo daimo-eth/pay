@@ -7,15 +7,6 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 
-interface Option {
-  id: string;
-  title: string;
-  subtitle?: string;
-  icons: (React.ReactNode | string)[];
-  onClick: () => void;
-  disabled?: boolean;
-}
-
 const SelectZKP2P: React.FC = () => {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, setSelectedExternalOption } = paymentState;

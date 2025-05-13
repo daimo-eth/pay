@@ -26,8 +26,8 @@ import SelectDepositAddressChain from "../Pages/SelectDepositAddressChain";
 import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
-import SelectWallet from "../Pages/SelectWallet";
-import SelectZKP2P from "../Pages/SelectZkp2p";
+import SelectWalletAmount from "../Pages/SelectWalletAmount";
+import SelectZKP2P from "../Pages/SelectZKP2P";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
@@ -162,7 +162,7 @@ export const DaimoPayModal: React.FC<{
           "[PAY MODAL] payParams cannot be null in deposit flow",
         );
         generatePreviewOrder(payParams);
-        context.setRoute(ROUTES.SELECT_WALLET, meta);
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
         setSelectedWallet(undefined);
         context.setRoute(ROUTES.SELECT_METHOD, meta);
@@ -193,7 +193,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SELECT_AMOUNT]: <SelectAmount />,
     [ROUTES.SELECT_EXTERNAL_AMOUNT]: <SelectExternalAmount />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: <SelectDepositAddressAmount />,
-    [ROUTES.SELECT_WALLET]: <SelectWallet />,
+    [ROUTES.SELECT_WALLET_AMOUNT]: <SelectWalletAmount />,
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,

@@ -11,7 +11,7 @@ import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
-const SelectWallet: React.FC = () => {
+const SelectWalletAmount: React.FC = () => {
   const { paymentState } = usePayContext();
   const { selectedWallet, payWithWallet } = paymentState;
 
@@ -70,4 +70,4 @@ const AmountInputContainer = styled.div`
   justify-content: center;
 `;
 
-export default SelectWallet;
+export default SelectWalletAmount;

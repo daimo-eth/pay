@@ -242,6 +242,8 @@ const Modal: React.FC<ModalProps> = ({
         ? 2
         : 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   if (!positionInside) useLockBodyScroll(mounted);
 
   const prevPage = usePrevious(pageId, pageId);
@@ -283,6 +285,7 @@ const Modal: React.FC<ModalProps> = ({
       // Avoid transition mixups
       setInTransition(inTransition === undefined ? false : true);
       clearTimeout(blockTimeout);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       blockTimeout = setTimeout(() => setInTransition(false), 360);
 
       // Calculate new content bounds
@@ -376,7 +379,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:
       case ROUTES.SOLANA_SELECT_AMOUNT:
-      case ROUTES.SELECT_WALLET:
+      case ROUTES.SELECT_WALLET_AMOUNT:
         return "Select Amount";
       case ROUTES.PAY_WITH_TOKEN:
         if (selectedTokenOption == null) return undefined;

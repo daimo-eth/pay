@@ -122,8 +122,8 @@ export interface PaymentState {
     inputToken: SolanaPublicKey,
   ) => Promise<string | undefined>;
   payWithWallet: (
-    wallet: WalletConfigProps,
-    amountUsd: number,
+    wallet?: WalletConfigProps,
+    amountUsd?: number,
   ) => Promise<void>;
   refreshOrder: () => Promise<void>;
   senderEnsName: string | undefined;
@@ -358,23 +358,34 @@ export function usePaymentState({
     return depositAddressOption;
   };
 
+  /// Hydrates an order to prepare for paying in an in-wallet browser via
+  /// deeplink. Then, if wallet is specified, opens in that wallet.
   const payWithWallet = async (
-    wallet: WalletConfigProps,
-    amountUsd: number,
+    wallet?: WalletConfigProps,
+    amountUsd?: number,
   ) => {
+    if (daimoPayOrder == null) return;
+
+    // In deposit mode, set the amount
+    let order = daimoPayOrder;
+    if (amountUsd != null) {
+      assert(amountUsd > 0, "amount must be positive");
+      order = setChosenUsd(amountUsd);
+    }
+
+    // Hydrate the order
+    log(
+      `payWithWallet: hydrating order ${order.id}${amountUsd && ` for $${amountUsd}`}`,
+    );
+    const { hydratedOrder } = await createOrHydrate({ order });
+    setDaimoPayOrder(hydratedOrder);
+
+    // If we already picked a wallet, open in that wallet.
+    if (wallet == null) return;
     assert(
       wallet.getDaimoPayDeeplink != null,
       "payWithWallet: missing deeplink",
     );
-    if (daimoPayOrder == null) return;
-
-    const orderWithAmount = setChosenUsd(amountUsd);
-
-    const { hydratedOrder } = await createOrHydrate({
-      order: orderWithAmount,
-    });
-    setDaimoPayOrder(hydratedOrder);
-
     const payId = writeDaimoPayOrderID(hydratedOrder.id);
     const deeplink = wallet.getDaimoPayDeeplink(payId);
     window.open(deeplink, "_blank");

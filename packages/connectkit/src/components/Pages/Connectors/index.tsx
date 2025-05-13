@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
@@ -28,6 +28,13 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
+
+  // If we're on mobile & not in deposit mode, hydrate immediately.
+  useEffect(() => {
+    if (isMobile && !context.paymentState.isDepositFlow) {
+      context.paymentState.payWithWallet();
+    }
+  }, [isMobile, context.paymentState.isDepositFlow]);
 
   return (
     <PageContent>

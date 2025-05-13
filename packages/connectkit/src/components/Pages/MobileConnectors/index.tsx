@@ -9,7 +9,6 @@ import {
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
-import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
 import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -44,7 +43,7 @@ const MoreIcon = (
 const MobileConnectors: React.FC = () => {
   const locales = useLocales();
   const context = usePayContext();
-  const { paymentState, log, setRoute } = context;
+  const { paymentState, setRoute } = context;
   const {
     connect: { getUri },
   } = useWeb3();
@@ -62,33 +61,17 @@ const MobileConnectors: React.FC = () => {
       return true;
     }) ?? [];
 
-  const connectWallet = (wallet: WalletConfigProps) => {
+  const goToWallet = (wallet: WalletConfigProps) => {
     if (wallet.getDaimoPayDeeplink == null) {
-      console.error(`[MobileConnectors] wallet ${wallet.name} has no deeplink`);
+      console.error(`wallet ${wallet.name} has no deeplink`);
       return;
     }
-
-    const order = paymentState.daimoPayOrder;
-    const payId = order && writeDaimoPayOrderID(order.id);
-    const deeplink = payId ? wallet.getDaimoPayDeeplink(payId) : undefined;
-    log(`[MobileConnectors] clicked ${wallet.name}: ${deeplink}`);
-    // Using open(.., '_blank') to open the wallet connect modal.
-    // Previously, we used window.location.href = uri, but this closes the dapp
-    // (losing state) if there's no deeplink handler for the URI.
-    if (deeplink) {
-      window.open(deeplink, "_blank");
-      context.paymentState.setSelectedWallet(wallet);
-      context.paymentState.setSelectedWalletDeepLink(deeplink);
-      setRoute(ROUTES.WAITING_WALLET, {
-        event: "click-option",
-        wallet_name: wallet.name,
-      });
-    }
-  };
-
-  const depositWallet = (wallet: WalletConfigProps) => {
     context.paymentState.setSelectedWallet(wallet);
-    setRoute(ROUTES.SELECT_WALLET);
+    if (paymentState.isDepositFlow) {
+      setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+    } else {
+      paymentState.payWithWallet(wallet);
+    }
   };
 
   return (
@@ -121,11 +104,7 @@ const MobileConnectors: React.FC = () => {
                   return (
                     <WalletItem
                       key={i}
-                      onClick={() =>
-                        !paymentState.isDepositFlow
-                          ? connectWallet(wallet)
-                          : depositWallet(wallet)
-                      }
+                      onClick={() => goToWallet(wallet)}
                       style={{
                         animationDelay: `${i * 50}ms`,
                       }}

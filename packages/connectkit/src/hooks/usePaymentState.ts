@@ -17,6 +17,7 @@ import {
   readDaimoPayOrderID,
   SolanaPublicKey,
   WalletPaymentOption,
+  writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -120,6 +121,10 @@ export interface PaymentState {
   payWithSolanaToken: (
     inputToken: SolanaPublicKey,
   ) => Promise<string | undefined>;
+  payWithWallet: (
+    wallet: WalletConfigProps,
+    amountUsd: number,
+  ) => Promise<void>;
   refreshOrder: () => Promise<void>;
   senderEnsName: string | undefined;
 }
@@ -353,6 +358,34 @@ export function usePaymentState({
     return depositAddressOption;
   };
 
+  const payWithWallet = async (
+    wallet: WalletConfigProps,
+    amountUsd: number,
+  ) => {
+    assert(
+      wallet.getDaimoPayDeeplink != null,
+      "payWithWallet: missing deeplink",
+    );
+    if (daimoPayOrder == null) return;
+
+    const orderWithAmount = setChosenUsd(amountUsd);
+
+    const { hydratedOrder } = await createOrHydrate({
+      order: orderWithAmount,
+    });
+    setDaimoPayOrder(hydratedOrder);
+
+    const payId = writeDaimoPayOrderID(hydratedOrder.id);
+    const deeplink = wallet.getDaimoPayDeeplink(payId);
+    window.open(deeplink, "_blank");
+    setSelectedWalletDeepLink(deeplink);
+    setRoute(ROUTES.WAITING_WALLET, {
+      amountUsd,
+      payId,
+      wallet_name: wallet.name,
+    });
+  };
+
   const refreshOrder = useCallback(async () => {
     const id = daimoPayOrder?.id?.toString();
     if (!id) return;
@@ -382,14 +415,16 @@ export function usePaymentState({
     // TODO: remove amount from destFinalCall, it is redundant with
     // destFinalCallTokenAmount. Here, we only modify one and not the other.
     log(`[CHECKOUT] chose USD amount $${usd} = ${tokenUnits} ${token.symbol}`);
-    setDaimoPayOrder({
+    const ret = {
       ...daimoPayOrder,
       destFinalCallTokenAmount: {
         token,
         amount: tokenAmount.toString() as `${bigint}`,
         usd: usd,
       },
-    });
+    };
+    setDaimoPayOrder(ret);
+    return ret;
   };
 
   const setPayId = useCallback(
@@ -460,7 +495,7 @@ export function usePaymentState({
       });
 
       log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);
-      setDaimoPayOrder(orderPreview);
+      setDaimoPayOrder(orderPreview as DaimoPayOrderWithOrg);
     },
     [trpc, log, setDaimoPayOrder],
   );
@@ -520,6 +555,7 @@ export function usePaymentState({
     payWithExternal,
     payWithDepositAddress,
     payWithSolanaToken,
+    payWithWallet,
     refreshOrder,
     senderEnsName: senderEnsName ?? undefined,
   };

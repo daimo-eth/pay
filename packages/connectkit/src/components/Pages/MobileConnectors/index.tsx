@@ -63,23 +63,26 @@ const MobileConnectors: React.FC = () => {
     }) ?? [];
 
   const connectWallet = (wallet: WalletConfigProps) => {
-    if (wallet.getDaimoPayDeeplink) {
-      const order = paymentState.daimoPayOrder;
-      const payId = order && writeDaimoPayOrderID(order.id);
-      const deeplink = payId ? wallet.getDaimoPayDeeplink(payId) : undefined;
-      log(`[MobileConnectors] clicked ${wallet.name}: ${deeplink}`);
-      // Using open(.., '_blank') to open the wallet connect modal.
-      // Previously, we used window.location.href = uri, but this closes the dapp
-      // (losing state) if there's no deeplink handler for the URI.
-      if (deeplink) {
-        window.open(deeplink, "_blank");
-        context.paymentState.setSelectedWallet(wallet);
-        context.paymentState.setSelectedWalletDeepLink(deeplink);
-        setRoute(ROUTES.WAITING_WALLET, {
-          event: "click-option",
-          wallet_name: wallet.name,
-        });
-      }
+    if (wallet.getDaimoPayDeeplink == null) {
+      console.error(`[MobileConnectors] wallet ${wallet.name} has no deeplink`);
+      return;
+    }
+
+    const order = paymentState.daimoPayOrder;
+    const payId = order && writeDaimoPayOrderID(order.id);
+    const deeplink = payId ? wallet.getDaimoPayDeeplink(payId) : undefined;
+    log(`[MobileConnectors] clicked ${wallet.name}: ${deeplink}`);
+    // Using open(.., '_blank') to open the wallet connect modal.
+    // Previously, we used window.location.href = uri, but this closes the dapp
+    // (losing state) if there's no deeplink handler for the URI.
+    if (deeplink) {
+      window.open(deeplink, "_blank");
+      context.paymentState.setSelectedWallet(wallet);
+      context.paymentState.setSelectedWalletDeepLink(deeplink);
+      setRoute(ROUTES.WAITING_WALLET, {
+        event: "click-option",
+        wallet_name: wallet.name,
+      });
     }
   };
 

@@ -38,6 +38,7 @@ import {
   Theme,
 } from "../types";
 import { createTrpcClient } from "../utils/trpc";
+import { setInWalletPaymentUrlFromApiUrl } from "../wallets/walletConfigs";
 import { DaimoPayModal } from "./DaimoPayModal";
 import { SolanaContextProvider, SolanaWalletName } from "./contexts/solana";
 import { Web3ContextProvider } from "./contexts/web3";
@@ -185,10 +186,10 @@ const DaimoPayProviderWithoutSolana = ({
   >(undefined);
   const log = useMemo(() => (debugMode ? console.log : () => {}), [debugMode]);
   // Connect to the Daimo Pay TRPC API
-  const trpc = useMemo(
-    () => createTrpcClient(payApiUrl, sessionId),
-    [payApiUrl, sessionId],
-  );
+  const trpc = useMemo(() => {
+    setInWalletPaymentUrlFromApiUrl(payApiUrl);
+    return createTrpcClient(payApiUrl, sessionId);
+  }, [payApiUrl, sessionId]);
   const [resize, onResize] = useState<number>(0);
 
   const setOpen = useCallback(

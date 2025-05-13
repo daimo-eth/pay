@@ -9,12 +9,13 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
+import { DaimoPayOrderMode } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
-const WaitingExternal: React.FC = () => {
+const WaitingWallet: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
   const trpc = context.trpc as TrpcClient;
@@ -24,34 +25,33 @@ const WaitingExternal: React.FC = () => {
     paymentWaitingMessage,
     daimoPayOrder,
     selectedWalletDeepLink,
+    refreshOrder,
   } = paymentState;
 
   useEffect(() => {
-    const checkForSourcePayment = async () => {
-      if (!daimoPayOrder) return;
+    if (daimoPayOrder?.id == null) return;
 
+    const checkForSourcePayment = async () => {
       const found = await trpc.findSourcePayment.query({
         orderId: daimoPayOrder.id.toString(),
       });
-
       if (found) {
         setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
       }
     };
 
-    const interval = setInterval(checkForSourcePayment, 1000);
+    const pollFn =
+      daimoPayOrder?.mode === DaimoPayOrderMode.HYDRATED
+        ? checkForSourcePayment
+        : refreshOrder;
+    const interval = setInterval(pollFn, 1000);
     return () => clearInterval(interval);
-  }, [daimoPayOrder?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daimoPayOrder?.id, daimoPayOrder?.mode]);
 
   const openWalletWindow = (url: string) => {
     window.open(url, "_blank");
   };
-
-  const waitingMessageLength = paymentWaitingMessage?.length;
-
-  useEffect(() => {
-    triggerResize();
-  }, [waitingMessageLength]);
 
   if (!selectedWallet) {
     return <PageContent> No wallet selected </PageContent>;
@@ -92,4 +92,4 @@ const WaitingExternal: React.FC = () => {
   );
 };
 
-export default WaitingExternal;
+export default WaitingWallet;

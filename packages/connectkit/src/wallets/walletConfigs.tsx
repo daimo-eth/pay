@@ -1,8 +1,28 @@
 import Logos from "../assets/logos";
 
-// const daimoPayUrl = "https://pay.daimo.com/pay?id=";
-const daimoPayUrl = "https://daimo.ngrok.app/pay?id=";
-const encodedDaimoPayUrl = encodeURIComponent(daimoPayUrl);
+// Infer in-wallet payment URL from environment.
+let daimoPayHost = "https://pay.daimo.com";
+
+// TODO: add this as a parameter to getWalletConnectDeeplink
+export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
+  if (apiUrl.startsWith("http://localhost")) {
+    daimoPayHost = "http://localhost:3001";
+  } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
+    daimoPayHost = "https://pay-stage.daimo.xyz";
+  } else {
+    daimoPayHost = "https://pay.daimo.com";
+  }
+}
+
+function getDaimoPayUrl(payId: string) {
+  return daimoPayHost + "/pay?id=" + payId;
+}
+
+function getEncodedDaimoPayUrl(payId: string, includeRef?: boolean) {
+  let url = getDaimoPayUrl(payId);
+  if (includeRef) url += "&ref=" + window.location.origin;
+  return encodeURIComponent(url);
+}
 
 export type WalletConfigProps = {
   // Wallets name
@@ -88,7 +108,7 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "cbwallet://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + encodedDaimoPayUrl + payId;
+      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
   },
   "com.coinbase.wallet": {
@@ -107,7 +127,7 @@ export const walletConfigs: {
     showInMobileConnectors: false,
     deeplinkScheme: "cbwallet://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + encodedDaimoPayUrl + payId;
+      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
   },
   "com.crypto.wallet": {
@@ -124,10 +144,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://backpack.app/ul/v1/browse/" +
-        encodedDaimoPayUrl +
-        payId +
-        "?ref=" +
-        encodeURIComponent(window.location.origin)
+        getEncodedDaimoPayUrl(payId, true)
       );
     },
   },
@@ -138,7 +155,7 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "bitkeep://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "bitkeep://bkconnect?action=dapp&url=" + daimoPayUrl + payId;
+      return "bitkeep://bkconnect?action=dapp&url=" + getDaimoPayUrl(payId);
     },
   },
   dawn: {
@@ -164,7 +181,7 @@ export const walletConfigs: {
     },
     deeplinkScheme: "familywallet://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "familywallet://browser?url=" + daimoPayUrl + payId;
+      return "familywallet://browser?url=" + getDaimoPayUrl(payId);
     },
     showInMobileConnectors: true,
   },
@@ -195,7 +212,10 @@ export const walletConfigs: {
     showInMobileConnectors: false,
     deeplinkScheme: "metamask://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "https://metamask.app.link/dapp/" + daimoPayUrl + payId;
+      const daimoPayUrl = getDaimoPayUrl(payId);
+      return (
+        "https://metamask.app.link/dapp/" + daimoPayUrl.replace("https://", "")
+      );
     },
   },
   "app.phantom": {
@@ -206,11 +226,7 @@ export const walletConfigs: {
     deeplinkScheme: "phantom://",
     getDaimoPayDeeplink: (payId: string) => {
       return (
-        "https://phantom.app/ul/browse/" +
-        encodedDaimoPayUrl +
-        payId +
-        "?ref=" +
-        encodeURIComponent(window.location.origin)
+        "https://phantom.app/ul/browse/" + getEncodedDaimoPayUrl(payId, true)
       );
     },
   },
@@ -233,7 +249,7 @@ export const walletConfigs: {
     isWcMobileConnector: false,
     deeplinkScheme: "rainbow://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "rainbow://dapp?url=" + daimoPayUrl + payId;
+      return "rainbow://dapp?url=" + getDaimoPayUrl(payId);
     },
   },
   "io.rabby": {
@@ -287,7 +303,7 @@ export const walletConfigs: {
     showInMobileConnectors: false,
     deeplinkScheme: "trust://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "trust://open_url?coin_id=60&url=" + daimoPayUrl + payId;
+      return "trust://open_url?coin_id=60&url=" + getDaimoPayUrl(payId);
     },
   },
   infinityWallet: {
@@ -352,7 +368,7 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "okx://wallet/dapp/url?dappUrl=" + daimoPayUrl + payId;
+      return "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId);
     },
   },
   solflare: {
@@ -363,10 +379,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://solflare.com/ul/v1/browse/" +
-        encodedDaimoPayUrl +
-        payId +
-        "?ref=" +
-        encodeURIComponent(window.location.origin)
+        getEncodedDaimoPayUrl(payId, true)
       );
     },
   },
@@ -419,7 +432,7 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "zerion://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "zerion://browser?url=" + daimoPayUrl + payId;
+      return "zerion://browser?url=" + getDaimoPayUrl(payId);
     },
   },
   slope: {

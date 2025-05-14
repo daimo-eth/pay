@@ -238,7 +238,6 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
   const order = paymentState.daimoPayOrder;
-  const intentStatus = order?.intentStatus;
   const hydOrder = order?.mode === DaimoPayOrderMode.HYDRATED ? order : null;
 
   // Functions to show and hide the modal
@@ -252,10 +251,15 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
 
   // Emit event handlers when payment status changes
   const sentStart = useRef(false);
+  const sentComplete = useRef(false);
   useEffect(() => {
     if (hydOrder == null) return;
-    if (intentStatus === DaimoPayIntentStatus.UNPAID) return;
+    const intentStatus = hydOrder.intentStatus;
 
+    // Started? Send start.
+    if (intentStatus === DaimoPayIntentStatus.UNPAID) {
+      return;
+    }
     if (!sentStart.current && hydOrder.sourceTokenAmount) {
       sentStart.current = true;
       onPaymentStarted?.({
@@ -266,10 +270,16 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
         payment: getDaimoPayOrderView(hydOrder),
       });
     }
+
+    // Finished? Send end event.
     if (
-      intentStatus === DaimoPayIntentStatus.COMPLETED ||
-      intentStatus === DaimoPayIntentStatus.BOUNCED
+      intentStatus !== DaimoPayIntentStatus.COMPLETED &&
+      intentStatus !== DaimoPayIntentStatus.BOUNCED
     ) {
+      return;
+    }
+    if (!sentComplete.current) {
+      sentComplete.current = true;
       const eventType =
         intentStatus === DaimoPayIntentStatus.COMPLETED
           ? DaimoPayEventType.PaymentCompleted
@@ -291,13 +301,15 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
         onPaymentBounced?.(event as PaymentBouncedEvent);
       }
     }
-  }, [hydOrder?.id, intentStatus, hydOrder?.sourceTokenAmount?.token.chainId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydOrder]);
 
   // Open the modal by default if the defaultOpen prop is true
   useEffect(() => {
     if (props.defaultOpen && order != null) {
       show();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order != null, props.defaultOpen]);
 
   // Validation

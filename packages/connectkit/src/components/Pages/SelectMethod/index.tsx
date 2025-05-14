@@ -195,7 +195,7 @@ export default function SelectMethod() {
   if (showZkp2pPaymentMethod) {
     options.push({
       id: "ZKP2P",
-      title: "Pay with Payment Apps",
+      title: "Pay via payment app",
       icons: zkp2pOptions.slice(0, 3).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_ZKP2P);

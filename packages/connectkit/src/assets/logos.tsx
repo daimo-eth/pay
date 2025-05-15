@@ -223,6 +223,51 @@ export const Trust = ({ background = false, ...props }) => {
   );
 };
 
+export const Wallet = ({ inverted = false }) => (
+  <svg
+    width="58"
+    height="50"
+    viewBox="0 0 58 50"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M57.9332 20.3335V42.1113C57.9332 46.4069 54.451 49.8891 50.1555 49.8891H8.15546C3.85991 49.8891 0.377686 46.4069 0.377686 42.1113V25.0002V7.8891C0.377686 3.59355 3.85991 0.111328 8.15546 0.111328H47.0444C48.7626 0.111328 50.1555 1.50422 50.1555 3.22244C50.1555 4.94066 48.7626 6.33355 47.0443 6.33355H9.71102C7.9928 6.33355 6.59991 7.72644 6.59991 9.44466C6.59991 11.1629 7.9928 12.5558 9.71102 12.5558H50.1555C54.451 12.5558 57.9332 16.038 57.9332 20.3335ZM46.2667 34.3337C48.4145 34.3337 50.1556 32.5926 50.1556 30.4448C50.1556 28.297 48.4145 26.5559 46.2667 26.5559C44.1189 26.5559 42.3778 28.297 42.3778 30.4448C42.3778 32.5926 44.1189 34.3337 46.2667 34.3337Z"
+      fill={
+        inverted
+          ? "var(--ck-graphic-primary-color, var(--ck-body-background))"
+          : "var(--ck-graphic-primary-color, var(--ck-body-color))"
+      }
+    />
+    <defs>
+      <linearGradient
+        id="paint0_linear_2501_7732"
+        x1="29.1555"
+        y1="0.111328"
+        x2="29.1555"
+        y2="49.8891"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop
+          stopColor={
+            inverted
+              ? "var(--ck-body-color-muted)"
+              : "var(--ck-body-background-transparent, transparent)"
+          }
+        />
+        <stop
+          offset="1"
+          stopColor={
+            inverted ? "var(--ck-body-color)" : "var(--ck-body-background)"
+          }
+        />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 export const Argent = ({ ...props }) => (
   <svg
     {...props}
@@ -1328,6 +1373,7 @@ export default {
   Injected,
   OtherWallets,
   WalletConnect,
+  Wallet,
   MetaMask,
   Coinbase,
   Family,

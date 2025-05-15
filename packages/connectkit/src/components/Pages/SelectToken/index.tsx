@@ -1,4 +1,5 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import { useAccount } from "wagmi";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -17,6 +18,7 @@ export default function SelectToken() {
   const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
+  const { connector } = useAccount();
 
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
@@ -96,9 +98,15 @@ export default function SelectToken() {
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
         scrollHeight={isMobileFormat ? 225 : 300}
-        orDivider={optionsList.length != 0}
+        orDivider={
+          optionsList.length != 0 &&
+          !(isMobile && connector?.id?.includes("injected"))
+        }
       />
-      {optionsList.length != 0 && <SelectAnotherMethodButton />}
+      {optionsList.length != 0 &&
+        !(isMobile && connector?.id?.includes("injected")) && (
+          <SelectAnotherMethodButton />
+        )}
     </PageContent>
   );
 }

@@ -14,11 +14,11 @@ import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
 import {
   Coinbase,
-  MetaMask,
   Phantom,
   Rabby,
   Rainbow,
   Trust,
+  Wallet,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
@@ -87,8 +87,7 @@ export default function SelectMethod() {
           </div>
         );
       } else {
-        // TODO: remove this once we have a default icon for wagmi wallets
-        walletIcon = <MetaMask />;
+        walletIcon = <Wallet />;
       }
 
       const connectedEthWalletOption = {
@@ -270,11 +269,10 @@ function getBestUnconnectedWalletIcons(
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isRainbow, isTrust, isPhantom, isMetaMask, isCoinbase] = [
+  const [isRainbow, isTrust, isPhantom, isCoinbase] = [
     strippedId?.includes("rainbow.me"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),
-    strippedId?.includes("metamask"),
     strippedId?.includes("coinbase"),
     strippedId?.includes("rainbow"),
   ];
@@ -286,7 +284,7 @@ function getBestUnconnectedWalletIcons(
     if (icons.length < 3) icons.push(<Coinbase />);
   } else {
     if (!isRainbow) icons.push(<Rainbow />);
-    if (!isMetaMask) icons.push(<MetaMask />);
+    if (!isPhantom) icons.push(<Phantom />);
     if (!isCoinbase) icons.push(<Coinbase />);
     if (icons.length < 3) icons.push(<Rabby />);
   }

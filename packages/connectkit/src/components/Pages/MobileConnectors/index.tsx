@@ -79,7 +79,7 @@ const MobileConnectors: React.FC = () => {
       <Container>
         <ModalContent style={{ paddingBottom: 0 }}>
           <ScrollArea height={340}>
-            <WalletList $disabled={!wcUri}>
+            <WalletList>
               {walletsIdsToDisplay
                 .sort(
                   // sort by name
@@ -109,9 +109,7 @@ const MobileConnectors: React.FC = () => {
                         animationDelay: `${i * 50}ms`,
                       }}
                     >
-                      <WalletIcon $outline={true}>
-                        {iconConnector ?? icon}
-                      </WalletIcon>
+                      <WalletIcon>{iconConnector ?? icon}</WalletIcon>
                       <WalletLabel>{shortName ?? name}</WalletLabel>
                     </WalletItem>
                   );
@@ -158,7 +156,7 @@ const MobileConnectors: React.FC = () => {
             }}
           >
             <CopyToClipboard variant="button" string={wcUri}>
-              {locales.copyToClipboard}
+              Copy WC link
             </CopyToClipboard>
           </div>
         )}

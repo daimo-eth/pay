@@ -69,7 +69,7 @@ const WaitingWallet: React.FC = () => {
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
         <ModalH1>
-          Finish Your Payment in{" "}
+          Finish Your Payment in
           {selectedWallet.shortName ?? selectedWallet.name}
         </ModalH1>
         {paymentWaitingMessage && (

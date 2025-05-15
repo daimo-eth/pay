@@ -51,9 +51,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     }
 
     addIfNotPresent("com.trustwallet.app");
-    addIfNotPresent(
-      "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
-    );
+    addIfNotPresent("me.rainbow");
 
     // Add WalletConnect last
     const walletConnectConnector = connectors.find(

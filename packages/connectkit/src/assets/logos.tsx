@@ -167,9 +167,9 @@ export const Family = ({ ...props }) => {
   return (
     <svg
       {...props}
-      width="120"
-      height="120"
-      viewBox="0 0 120 120"
+      width="200"
+      height="200"
+      viewBox="0 0 200 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{
@@ -180,24 +180,46 @@ export const Family = ({ ...props }) => {
   );
 };
 
-export const Trust = ({ ...props }) => {
-  const img =
-    "data:image/webp;base64,UklGRmYEAABXRUJQVlA4IFoEAAAwHACdASp4AHgAPpFAmUgltKshLZaKmpASCWIA0UIxfx3Yye19L+QHSpkX/l8uf7zp0eKP/eutD5if1V/aP3pukA/w39m6yL0APK+/cr4TvJg1XNmEiV2XBjqveaJ493ynoqoV3IDSEPwRJpBCWiGf2XLGwFSk42M75Xgjft//8sMfSPe1cMnSIrBYeuJiuFkZ7KtuxNlPW6M5N1Xenro+WehHTlgjhSTwVb91Dgqi9nXDs+5FGK+zDmnLENxvJ/raZ2o389TlNZ/U3jDDSDiDrVmYQJmLl0ATLQrlbtrUFZ5GSs/4u75uKgAA/vv2JIpyoVMGxkGN4m/25Bmth71xFUOZu27U354avuq/dV98MU/cqNEwfnqhWMVODh3i7Zj00emyKFuKnNy6dXSuOX2DFhJXgaKkRipJnGS576mbyhYkPSCDXhmO2qPz3+DVGr/ctvdSd9Djd0zyFZEw5npLMnIwIxiU3jqfR0PDQQhhr9M/lwRyvCYtGQbVjpy6DHXpt6CaLC2Eoa7/M3O/EGIiEpvgV9noS1R5h1WiPeRs6Ft06fNXtF1ZwhTlvjMHxsQv+EhTDRiPBHD3RL/3VXp1aTyHH5EiO+bJYYmjzrUJ115fd2aNT1avJOjoGhCqDP4IlXYEVD1rkPWYJ0jALzx1nHz1ccRQY9qOcy8GyfCndgumSDtexFYtgj8uCOPHp7k+9NU/9xSBpybc03fehljgtganIr4rb+CL6hoPWmk5YmUmhwQNOYMA8tmzXkm7JB9MiYETBLDpTwTGJ8+lsVxV2nic0CZ7Reih0kDc4wknSi58FXnm1ItSqI+Gb7+wKuwUBMYVgJ/EMBXSstj1BIxhFMHmjbgHCuzN/zUn2mV6HVJ9P/aBjpy0MTMSUhWuqKr4n5xJNXwXiFOGY3QLJfGeR1LhuxiXEICGcDyJGb4E+wLhwem6XwHkRYuhk8xMOoHrdsyAvimJ9RvAJGXPO/DvQvSXsCYFv2PRvu5e8JMaQD3rJy+kdr+LNzfx4ELWwEXxdc/DAO5tKeFqOrmMa2OokDEfei1QtR5OLF1EPwn9UKOOa84f/BIR/RQmrziaxjB1C5GqddEeYSRSlE34iu7gIzm69WgsF8Q6/8SUwPHwEbkP2/cxxoiTeARyyRstUmZ2JmMaxDpOBXRpHZ9lgNPHwbeyBy1ReaYjkkdAa+C5DH0f4sUbUkICmCJS1QWhX0SzoKSPhuBnuYX47EI06RjiBWCj2RxwkfAUNkzeEK/ZlvP7H+wlAoxDKozYVKOzPkw4qPtgmY3lAo2MzxYA4Oz6HZdFIUiuwCykUHLxyORHfh3usZM/RX+BK7zGrkRA9FjehZ7cT9ZnLsWtEZ8r2xEZ5lrwofCVhcu58p6RCaMH+61KSMcC9AuiyIq0oDeFLs0oE8Vn+FOorVygUjOOn8HB+axuVzPppmm+KLbBVwBX83n/LGjVI1qP58Vz9WzV5JpxxpJjb3AYAAAA";
-
+export const Trust = ({ background = false, ...props }) => {
   return (
     <svg
       {...props}
-      width="120"
-      height="120"
-      viewBox="0 0 120 120"
-      fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      width="200"
+      height="200"
+      fill="none"
+      viewBox="0 0 200 200"
       style={{
-        backgroundSize: "100% 100%",
-        backgroundImage: `url("${img}")`,
+        background: background ? "#FFFFFF" : undefined,
         borderRadius: "22.5%",
       }}
-    />
+    >
+      <path
+        fill="#0500FF"
+        d="M12.5 33.914 97.233 6.25v191.513C36.709 172.226 12.5 123.284 12.5 95.624z"
+      ></path>
+      <path
+        fill="url(#paint0_linear_610_33)"
+        d="M181.969 33.914 97.236 6.25v191.513c60.524-25.537 84.733-74.479 84.733-102.139z"
+      ></path>
+      <defs>
+        <linearGradient
+          id="paint0_linear_610_33"
+          x1="159.639"
+          x2="95.109"
+          y1="-7.1"
+          y2="195.035"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0.02" stopColor="#00F"></stop>
+          <stop offset="0.08" stopColor="#0094FF"></stop>
+          <stop offset="0.16" stopColor="#48FF91"></stop>
+          <stop offset="0.42" stopColor="#0094FF"></stop>
+          <stop offset="0.68" stopColor="#0038FF"></stop>
+          <stop offset="0.9" stopColor="#0500FF"></stop>
+        </linearGradient>
+      </defs>
+    </svg>
   );
 };
 
@@ -1238,7 +1260,7 @@ export const OtherWallets = ({ ...props }) => {
   return (
     <div style={column} {...props}>
       <div style={row}>
-        <div style={cell}>{<Rainbow />}</div>
+        <div style={cell}>{<MetaMask />}</div>
         <div style={cell}>{<Phantom />}</div>
       </div>
       <div style={row}>

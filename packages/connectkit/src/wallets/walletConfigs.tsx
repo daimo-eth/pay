@@ -18,10 +18,10 @@ function getDaimoPayUrl(payId: string) {
   return daimoPayHost + "/pay?id=" + payId;
 }
 
-function getEncodedDaimoPayUrl(payId: string, includeRef?: boolean) {
+function getEncodedDaimoPayUrl(payId: string) {
   let url = getDaimoPayUrl(payId);
-  if (includeRef) url += "&ref=" + window.location.origin;
-  return encodeURIComponent(url);
+  let encodedUrl = encodeURIComponent(url);
+  return encodedUrl;
 }
 
 export type WalletConfigProps = {
@@ -142,10 +142,8 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     getDaimoPayDeeplink: (payId: string) => {
-      return (
-        "https://backpack.app/ul/v1/browse/" +
-        getEncodedDaimoPayUrl(payId, true)
-      );
+      const url = encodeURIComponent(getDaimoPayUrl(payId));
+      return `https://backpack.app/ul/v1/browse/${url}`;
     },
   },
   bitget: {
@@ -209,7 +207,7 @@ export const walletConfigs: {
         "https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
       edge: "https://microsoftedge.microsoft.com/addons/detail/metamask/ejbalbakoplchlghecdalmeeeajnimhm",
     },
-    showInMobileConnectors: false,
+    showInMobileConnectors: true,
     deeplinkScheme: "metamask://",
     getDaimoPayDeeplink: (payId: string) => {
       const daimoPayUrl = getDaimoPayUrl(payId);
@@ -225,9 +223,9 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
     getDaimoPayDeeplink: (payId: string) => {
-      return (
-        "https://phantom.app/ul/browse/" + getEncodedDaimoPayUrl(payId, true)
-      );
+      const url = encodeURIComponent(getDaimoPayUrl(payId));
+      const ref = encodeURIComponent(window.location.origin);
+      return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
   "me.rainbow": {
@@ -245,7 +243,7 @@ export const walletConfigs: {
       edge: "https://rainbow.me/extension?utm_source=daimopay",
       brave: "https://rainbow.me/extension?utm_source=daimopay",
     },
-    showInMobileConnectors: true,
+    showInMobileConnectors: false,
     isWcMobileConnector: false,
     deeplinkScheme: "rainbow://",
     getDaimoPayDeeplink: (payId: string) => {
@@ -293,7 +291,7 @@ export const walletConfigs: {
     name: "Trust Wallet",
     shortName: "Trust",
     icon: <Logos.Trust />,
-    iconShouldShrink: true,
+    iconConnector: <Logos.Trust background />,
     downloadUrls: {
       download: "https://connect.family.co/v0/download/trust",
       android:
@@ -377,10 +375,9 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     deeplinkScheme: "solflare://",
     getDaimoPayDeeplink: (payId: string) => {
-      return (
-        "https://solflare.com/ul/v1/browse/" +
-        getEncodedDaimoPayUrl(payId, true)
-      );
+      const url = encodeURIComponent(getDaimoPayUrl(payId));
+      const ref = encodeURIComponent(window.location.origin);
+      return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
     },
   },
   // steak: {

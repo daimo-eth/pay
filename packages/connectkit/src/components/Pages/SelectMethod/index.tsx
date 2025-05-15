@@ -15,6 +15,7 @@ import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
 import {
   Coinbase,
   MetaMask,
+  Phantom,
   Rabby,
   Rainbow,
   Trust,
@@ -269,23 +270,25 @@ function getBestUnconnectedWalletIcons(
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isMetaMask, isTrust, isCoinbase, isRainbow] = [
-    strippedId?.includes("metamask"),
+  const [isRainbow, isTrust, isPhantom, isMetaMask, isCoinbase] = [
+    strippedId?.includes("rainbow.me"),
     strippedId?.includes("trust"),
+    strippedId?.includes("phantom"),
+    strippedId?.includes("metamask"),
     strippedId?.includes("coinbase"),
     strippedId?.includes("rainbow"),
   ];
 
   if (isMobile) {
-    if (!isTrust) icons.push(<Trust key="trust" />);
-    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
-    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
-    if (icons.length < 3) icons.push(<Rainbow key="rainbow" />);
+    if (!isTrust) icons.push(<Trust background />);
+    if (!isRainbow) icons.push(<Rainbow />);
+    if (!isPhantom) icons.push(<Phantom />);
+    if (icons.length < 3) icons.push(<Coinbase />);
   } else {
-    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
-    if (!isRainbow) icons.push(<Rainbow key="rainbow" />);
-    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
-    if (icons.length < 3) icons.push(<Rabby key="rabby" />);
+    if (!isRainbow) icons.push(<Rainbow />);
+    if (!isMetaMask) icons.push(<MetaMask />);
+    if (!isCoinbase) icons.push(<Coinbase />);
+    if (icons.length < 3) icons.push(<Rabby />);
   }
 
   return icons;

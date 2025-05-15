@@ -146,13 +146,13 @@ export const OrderHeader = ({
 
 function CoinLogos({ $size = 24 }: { $size?: number }) {
   const logos = [
-    <Ethereum />,
-    <USDC />,
-    <Optimism />,
-    <Arbitrum />,
-    <Base />,
-    <Polygon />,
-    <Solana />,
+    <Ethereum key="eth" />,
+    <USDC key="usdc" />,
+    <Optimism key="optimism" />,
+    <Arbitrum key="arbitrum" />,
+    <Base key="base" />,
+    <Polygon key="polygon" />,
+    <Solana key="solana" />,
   ];
 
   const logoBlock = (element: React.ReactElement, index: number) => (

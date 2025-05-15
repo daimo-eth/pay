@@ -506,7 +506,8 @@ export function usePaymentState({
       });
 
       log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);
-      setDaimoPayOrder(orderPreview as DaimoPayOrderWithOrg);
+      // TODO: Properly type this and fix hacky type casting
+      setDaimoPayOrder(orderPreview as unknown as DaimoPayOrderWithOrg);
     },
     [trpc, log, setDaimoPayOrder],
   );

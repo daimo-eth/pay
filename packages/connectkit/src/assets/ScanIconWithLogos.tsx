@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import styled from './../styles/styled';
-import Logos from './logos';
+import { motion } from "framer-motion";
+import React from "react";
+import styled from "./../styles/styled";
+import Logos from "./logos";
 
 const IconContainer = styled(motion.div)`
   position: relative;
@@ -16,17 +16,17 @@ const IconContainer = styled(motion.div)`
     display: block;
     max-width: 100%;
     height: auto;
-  }
+}
 `;
 
 const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
   const logoList = [
-    <Logos.MetaMask background={true} />,
-    <Logos.Coinbase background={true} />,
-    <Logos.Crypto />,
-    <Logos.ImToken />,
-    <Logos.Argent />,
-    <Logos.Trust />,
+    <Logos.MetaMask key="metamask" background={true} />,
+    <Logos.Coinbase key="coinbase" background={true} />,
+    <Logos.Crypto key="crypto" />,
+    <Logos.ImToken key="imtoken" />,
+    <Logos.Argent key="argent" />,
+    <Logos.Trust key="trust" />,
   ];
   return (
     <IconContainer>
@@ -45,39 +45,39 @@ const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
           />
           {logo ? (
             <foreignObject x="13" y="21" width="18" height="18" rx="5">
-              <div style={{ overflow: 'hidden', borderRadius: 5 }}>{logo}</div>
+              <div style={{ overflow: "hidden", borderRadius: 5 }}>{logo}</div>
             </foreignObject>
           ) : (
             <>
               <foreignObject x="12" y="15" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                   {logoList[0]}
                 </div>
               </foreignObject>
               <foreignObject x="23" y="15" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                   {logoList[1]}
                 </div>
               </foreignObject>
               <foreignObject x="12" y="26" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
-                  <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
+                  <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                     {logoList[2]}
                   </div>
                 </div>
               </foreignObject>
               <foreignObject x="23" y="26" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                   {logoList[3]}
                 </div>
               </foreignObject>
               <foreignObject x="12" y="37" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                   {logoList[4]}
                 </div>
               </foreignObject>
               <foreignObject x="23" y="37" width="9" height="9" rx="2.5">
-                <div style={{ overflow: 'hidden', borderRadius: 2.5 }}>
+                <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
                   {logoList[5]}
                 </div>
               </foreignObject>

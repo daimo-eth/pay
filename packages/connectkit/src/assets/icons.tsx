@@ -234,7 +234,9 @@ export const CopyToClipboardIcon = ({ ...props }) => (
   </svg>
 );
 
-export const AuthIcon = ({ ...props }) => (
+export const AuthIcon = ({
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     {...props}
     style={{

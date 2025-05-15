@@ -179,12 +179,11 @@ const ConnectWithInjector: React.FC<{
     }
   };
 
-  let connectTimeout: any;
   useEffect(() => {
     if (status === states.UNAVAILABLE) return;
 
     // UX: Give user time to see the UI before opening the extension
-    connectTimeout = setTimeout(runConnect, 600);
+    const connectTimeout = setTimeout(runConnect, 600);
     return () => {
       clearTimeout(connectTimeout);
     };

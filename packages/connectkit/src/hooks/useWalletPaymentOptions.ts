@@ -65,7 +65,15 @@ export function useWalletPaymentOptions({
     if (address != null && usdRequired != null && destChainId != null) {
       refreshWalletPaymentOptions();
     }
-  }, [address, usdRequired, destChainId, isDepositFlow]);
+  }, [
+    address,
+    usdRequired,
+    destChainId,
+    isDepositFlow,
+    preferredChains,
+    preferredTokens,
+    evmChains,
+  ]);
 
   return {
     options,

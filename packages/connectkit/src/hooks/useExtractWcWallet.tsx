@@ -39,7 +39,7 @@ export function useExtractWcWallet({
         setWcWallet(undefined);
       }
     }
-  }, [connector]);
+  }, [connector, log]);
 
   return wcWallet;
 }

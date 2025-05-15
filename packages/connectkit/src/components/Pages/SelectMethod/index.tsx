@@ -9,10 +9,16 @@ import {
   ExternalPaymentOptions,
   getAddressContraction,
 } from "@daimo/pay-common";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
-import { Coinbase, MetaMask, Rabby, Trust } from "../../../assets/logos";
+import {
+  Coinbase,
+  MetaMask,
+  Rabby,
+  Rainbow,
+  Trust,
+} from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -31,6 +37,8 @@ export default function SelectMethod() {
   const {
     connected: isSolanaConnected,
     wallet: solanaWallet,
+    wallets: solanaWallets,
+    disconnect: disconnectSolana,
     publicKey,
   } = useWallet();
   const { setRoute, paymentState, wcWallet, log } = usePayContext();
@@ -116,6 +124,7 @@ export default function SelectMethod() {
         icons: solanaWallet?.adapter.icon
           ? [
               <WalletChainLogo
+                key="sol-wallet"
                 walletIcon={solanaWallet.adapter.icon}
                 walletName={solanaWallet.adapter.name}
                 chainLogo={showChainLogo && <Solana />}
@@ -123,6 +132,7 @@ export default function SelectMethod() {
             ]
           : [
               <WalletChainLogo
+                key="sol-wallet"
                 walletIcon={<Solana />}
                 walletName="Default wallet icon"
                 chainLogo={null}
@@ -157,7 +167,7 @@ export default function SelectMethod() {
       isEthConnected || isSolanaConnected
         ? `Pay with another wallet`
         : `Pay with wallet`,
-    icons: getBestUnconnectedWalletIcons(connector),
+    icons: getBestUnconnectedWalletIcons(connector, isMobile),
     onClick: async () => {
       await disconnectAsync();
       setRoute(ROUTES.CONNECTORS);
@@ -182,7 +192,13 @@ export default function SelectMethod() {
   );
 
   if (showSolanaPaymentMethod) {
-    const solanaOption = getSolanaOption(isIOS, isAndroid);
+    const solanaOption = getSolanaOption(
+      isIOS,
+      isAndroid,
+      solanaWallets,
+      disconnectSolana,
+      setRoute,
+    );
     if (solanaOption) {
       options.push(solanaOption);
     }
@@ -224,7 +240,11 @@ export default function SelectMethod() {
   );
 
   if (showDepositAddressMethod) {
-    const depositAddressOption = getDepositAddressOption(depositAddressOptions);
+    const depositAddressOption = getDepositAddressOption(
+      depositAddressOptions,
+      setRoute,
+      paymentState.isDepositFlow,
+    );
     options.push(depositAddressOption);
   }
 
@@ -243,35 +263,53 @@ export default function SelectMethod() {
 }
 
 // Get 3 icons, skipping the one that is already connected
-function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
+function getBestUnconnectedWalletIcons(
+  connector: Connector | undefined,
+  isMobile: boolean,
+) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isMetaMask, isTrust, isCoinbase] = [
+  const [isMetaMask, isTrust, isCoinbase, isRainbow] = [
     strippedId?.includes("metamask"),
     strippedId?.includes("trust"),
     strippedId?.includes("coinbase"),
+    strippedId?.includes("rainbow"),
   ];
 
-  if (!isTrust) icons.push(<Trust />);
-  if (!isMetaMask) icons.push(<MetaMask />);
-  if (!isCoinbase) icons.push(<Coinbase />);
-  if (icons.length < 3) icons.push(<Rabby />);
+  if (isMobile) {
+    if (!isTrust) icons.push(<Trust key="trust" />);
+    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
+    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
+    if (icons.length < 3) icons.push(<Rainbow key="rainbow" />);
+  } else {
+    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
+    if (!isRainbow) icons.push(<Rainbow key="rainbow" />);
+    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
+    if (icons.length < 3) icons.push(<Rabby key="rabby" />);
+  }
 
   return icons;
 }
 
-function getSolanaOption(isIOS: boolean, isAndroid: boolean) {
-  const { wallets, disconnect: disconnectSolana } = useWallet();
-  const { setRoute } = usePayContext();
+function getSolanaOption(
+  isIOS: boolean,
+  isAndroid: boolean,
+  solanaWallets: Wallet[],
+  disconnectSolana: () => Promise<void>,
+  setRoute: (route: ROUTES, data?: Record<string, any>) => void,
+) {
   // If we're on iOS and there are no wallets, we don't need to show the Solana option
   // If we're on Android and there are less than 2 wallets, we don't need to show the Solana option because there is always a default wallet called Mobile Wallet Adapter that is not useful
-  if ((isIOS && wallets.length === 0) || (isAndroid && wallets.length < 2))
+  if (
+    (isIOS && solanaWallets.length === 0) ||
+    (isAndroid && solanaWallets.length < 2)
+  )
     return null;
 
   return {
     id: "solana",
     title: "Pay on Solana",
-    icons: [<Solana />],
+    icons: [<Solana key="solana" />],
     onClick: async () => {
       await disconnectSolana();
       setRoute(ROUTES.SOLANA_CONNECT);
@@ -279,15 +317,17 @@ function getSolanaOption(isIOS: boolean, isAndroid: boolean) {
   };
 }
 
-function getDepositAddressOption(depositAddressOptions: {
-  loading: boolean;
-  options: DepositAddressPaymentOptionMetadata[];
-}) {
-  const { setRoute, paymentState } = usePayContext();
-
+function getDepositAddressOption(
+  depositAddressOptions: {
+    loading: boolean;
+    options: DepositAddressPaymentOptionMetadata[];
+  },
+  setRoute: (route: ROUTES, data?: Record<string, any>) => void,
+  isDepositFlow: boolean,
+) {
   // TODO: API should serve the subtitle and disabled
   const disabled =
-    !paymentState.isDepositFlow &&
+    !isDepositFlow &&
     !depositAddressOptions.loading &&
     depositAddressOptions.options.length === 0;
   const subtitle = disabled ? "Minimum $20.00" : "Bitcoin, Tron, Zcash...";
@@ -296,7 +336,11 @@ function getDepositAddressOption(depositAddressOptions: {
     id: "depositAddress",
     title: "Pay on another chain",
     subtitle,
-    icons: [<Bitcoin />, <Tron />, <Zcash />],
+    icons: [
+      <Bitcoin key="bitcoin" />,
+      <Tron key="tron" />,
+      <Zcash key="zcash" />,
+    ],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },

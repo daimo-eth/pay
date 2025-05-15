@@ -130,16 +130,19 @@ const About: React.FC = () => {
 
   const graphics: React.ReactNode[] = [
     <SlideOne
+      key="slideOne"
       layoutId={"graphicCircle"}
       duration={animationDuration}
       ease={animationEase}
     />,
     <SlideTwo
+      key="slideTwo"
       layoutId={"graphicCircle"}
       duration={animationDuration}
       ease={animationEase}
     />,
     <SlideThree
+      key="slideThree"
       layoutId={"graphicCircle"}
       duration={animationDuration}
       ease={animationEase}
@@ -147,9 +150,21 @@ const About: React.FC = () => {
   ];
 
   const mobileGraphics: React.ReactNode[] = [
-    <SlideOne duration={animationDuration} ease={animationEase} />,
-    <SlideTwo duration={animationDuration} ease={animationEase} />,
-    <SlideThree duration={animationDuration} ease={animationEase} />,
+    <SlideOne
+      key="slideOne"
+      duration={animationDuration}
+      ease={animationEase}
+    />,
+    <SlideTwo
+      key="slideTwo"
+      duration={animationDuration}
+      ease={animationEase}
+    />,
+    <SlideThree
+      key="slideThree"
+      duration={animationDuration}
+      ease={animationEase}
+    />,
   ];
 
   // Adjust height of ModalBody to fit content based on language

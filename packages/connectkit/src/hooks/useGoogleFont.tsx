@@ -4,7 +4,7 @@ import { Theme } from "../types";
 export function useGoogleFont(font: string) {
   useEffect(() => {
     if (!font) return;
-    font = font.replace(/ /g, "+");
+    const fontName = font.replace(/ /g, "+");
 
     const googleapis = document.createElement("link");
     googleapis.href = `https://fonts.googleapis.com`;
@@ -16,7 +16,7 @@ export function useGoogleFont(font: string) {
     gstatic.crossOrigin = "true";
 
     const link = document.createElement("link");
-    link.href = `https://fonts.googleapis.com/css2?family=${font}:wght@400;500;600&display=swap`;
+    link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;500;600&display=swap`;
     link.rel = "stylesheet";
 
     document.head.appendChild(googleapis);

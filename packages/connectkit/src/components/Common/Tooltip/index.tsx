@@ -21,8 +21,6 @@ const Tooltip: React.FC<TooltipProps> = ({
   const context = usePayContext();
   const themeContext = useThemeContext();
 
-  if (context.options?.hideTooltips) return <>{children}</>;
-
   const [isOpen, setIsOpen] = useState(false);
   const [outOfBounds, setOutOfBounds] = useState(false);
   const [size, setSize] = useState<TooltipSizeProps>("small");
@@ -80,6 +78,8 @@ const Tooltip: React.FC<TooltipProps> = ({
   useEffect(() => {
     setIsOpen(!!open);
   }, [open]);
+
+  if (context.options?.hideTooltips) return <>{children}</>;
 
   return (
     <>

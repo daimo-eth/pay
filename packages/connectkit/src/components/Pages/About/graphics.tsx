@@ -96,7 +96,7 @@ const Compass = (
   </svg>
 );
 
-const Wallet = ({ inverted = false }) => (
+const Wallet = ({ inverted = false }: { inverted?: boolean }) => (
   <svg
     width="58"
     height="50"
@@ -173,7 +173,7 @@ const Receive = (
   </svg>
 );
 
-const Key = ({ ...props }) => {
+const Key = ({ ...props }: any) => {
   const id = props?.id ?? "";
   return (
     <svg

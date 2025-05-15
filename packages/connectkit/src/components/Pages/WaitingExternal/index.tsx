@@ -28,6 +28,7 @@ const WaitingExternal: React.FC = () => {
     paymentWaitingMessage,
     daimoPayOrder,
   } = paymentState;
+  const orderId = daimoPayOrder?.id;
 
   let isPaymentApp = false;
   if (selectedExternalOption) {
@@ -43,10 +44,10 @@ const WaitingExternal: React.FC = () => {
 
   useEffect(() => {
     const checkForSourcePayment = async () => {
-      if (!daimoPayOrder) return;
+      if (orderId == null) return;
 
       const found = await trpc.findSourcePayment.query({
-        orderId: daimoPayOrder.id.toString(),
+        orderId: orderId.toString(),
       });
 
       if (found) {
@@ -56,7 +57,7 @@ const WaitingExternal: React.FC = () => {
 
     const interval = setInterval(checkForSourcePayment, 1000);
     return () => clearInterval(interval);
-  }, [daimoPayOrder?.id]);
+  }, [orderId]);
 
   useEffect(() => {
     if (!selectedExternalOption) return;

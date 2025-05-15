@@ -126,7 +126,7 @@ const SkeletonLabel = styled.div`
 const OptionItem = ({ option }: { option: Option }) => {
   const hydratedIcons = option.icons.map((icon) => {
     if (typeof icon === "string") {
-      return <img src={icon} alt="" />;
+      return <img key={option.id} src={icon} alt="" />;
     }
     return icon;
   });

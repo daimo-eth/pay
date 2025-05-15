@@ -36,7 +36,11 @@ const ConnectSolana: React.FC = () => {
     id: wallet.adapter.name,
     title: `${wallet.adapter.name}`,
     icons: [
-      <SquircleIcon icon={wallet.adapter.icon} alt={wallet.adapter.name} />,
+      <SquircleIcon
+        key={wallet.adapter.name}
+        icon={wallet.adapter.icon}
+        alt={wallet.adapter.name}
+      />,
     ],
     onClick: async () => {
       log("wallet.adapter.name ", wallet.adapter.name);
@@ -57,6 +61,7 @@ const ConnectSolana: React.FC = () => {
       title: "Open in Phantom",
       icons: [
         <SquircleIcon
+          key="phantom"
           icon={(props) => <Phantom {...props} background />}
           alt="Phantom"
         />,
@@ -71,6 +76,7 @@ const ConnectSolana: React.FC = () => {
       title: "Open in Solflare",
       icons: [
         <SquircleIcon
+          key="solflare"
           icon={(props) => <Solflare {...props} background />}
           alt="Solflare"
         />,
@@ -86,6 +92,7 @@ const ConnectSolana: React.FC = () => {
       title: "Open in Backpack",
       icons: [
         <SquircleIcon
+          key="backpack"
           icon={(props) => <Backpack {...props} background />}
           alt="Backpack"
         />,

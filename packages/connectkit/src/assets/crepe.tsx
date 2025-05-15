@@ -1,4 +1,4 @@
-export default ({ ...props }) => {
+export default function CrepeIcon({ ...props }) {
   return (
     <svg
       width="20"

@@ -24,7 +24,7 @@
     "start": "rollup --config rollup.config.js -w",
     "dev": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js",
-    "lint": "eslint --max-warnings=0"
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
   },
   "keywords": [
     "ens",

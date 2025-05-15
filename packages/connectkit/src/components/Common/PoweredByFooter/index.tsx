@@ -15,7 +15,7 @@ const PoweredByFooter = ({ supportUrl }: { supportUrl?: string } = {}) => {
       setSupportVisible(true);
     }, 2500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [supportUrl]);
 
   return (
     <Container>

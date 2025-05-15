@@ -57,14 +57,13 @@ const PayWithSolanaToken: React.FC = () => {
     }
   };
 
-  let transferTimeout: any; // Prevent double-triggering in React dev strict mode.
   useEffect(() => {
     if (!selectedSolanaTokenOption) return;
 
     // Give user time to see the UI before opening
-    transferTimeout = setTimeout(handleTransfer, 100);
+    const transferTimeout = setTimeout(handleTransfer, 100);
     return () => clearTimeout(transferTimeout);
-  }, []);
+  }, [selectedSolanaTokenOption]);
 
   useEffect(() => {
     triggerResize();

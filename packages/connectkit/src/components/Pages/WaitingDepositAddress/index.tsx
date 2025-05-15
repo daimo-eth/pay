@@ -68,8 +68,8 @@ const WaitingDepositAddress: React.FC = () => {
         <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
           <ModalH1>{selectedDepositAddressOption?.id} unavailable</ModalH1>
           <ModalBody>
-            We're unable to process {selectedDepositAddressOption?.id} payments
-            at this time. Please select another payment method.
+            We&apos;re unable to process {selectedDepositAddressOption?.id}{" "}
+            payments at this time. Please select another payment method.
           </ModalBody>
           <SelectAnotherMethodButton />
         </ModalContent>

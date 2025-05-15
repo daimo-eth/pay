@@ -95,10 +95,10 @@ const PayWithToken: React.FC = () => {
     }
   };
 
-  let transferTimeout: any; // Prevent double-triggering in React dev strict mode.
-
   useEffect(() => {
     if (!selectedTokenOption) return;
+
+    let transferTimeout: any;
 
     // Give user time to see the UI before opening on mobile
     if (wcWallet && isMobile) {

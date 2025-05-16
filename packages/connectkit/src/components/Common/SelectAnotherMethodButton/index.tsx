@@ -1,5 +1,5 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
-import { Connector, useAccount, useDisconnect } from "wagmi";
+import { Connector, useAccount } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
@@ -16,7 +16,6 @@ export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, daimoPayOrder } = paymentState;
   const { connector } = useAccount();
-  const { disconnectAsync } = useDisconnect();
   const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
@@ -44,9 +43,8 @@ export default function SelectAnotherMethodButton() {
     id: "select-wallet",
     title: "Pay with another wallet",
     icons: getBestUnconnectedWalletIcons(connector),
-    onClick: async () => {
-      await disconnectAsync();
-      setRoute(ROUTES.CONNECTORS);
+    onClick: () => {
+      setRoute(ROUTES.SELECT_METHOD);
     },
   };
 

@@ -112,7 +112,7 @@ const ConnectorItem = ({
           : () => {
               if (redirectToMoreWallets) {
                 context.setRoute(ROUTES.MOBILECONNECTORS);
-              } else if (context.paymentState.isDepositFlow) {
+              } else if (context.paymentState.isDepositFlow && isMobile) {
                 context.paymentState.setSelectedWallet(wallet);
                 context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
               } else {

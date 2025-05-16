@@ -29,11 +29,12 @@ export function useExternalPaymentOptions({
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
 }): {
-  options: Map<string, ExternalPaymentOptionMetadata[]>;
+  /// Exteral options, organized by optionType
+  options: Map<"external" | "zkp2p", ExternalPaymentOptionMetadata[]>;
   loading: boolean;
 } {
   const [options, setOptions] = useState<
-    Map<string, ExternalPaymentOptionMetadata[]>
+    Map<"external" | "zkp2p", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
 
@@ -58,8 +59,10 @@ export function useExternalPaymentOptions({
         const filteredOptions = newOptions.filter((option) =>
           enabledExtPaymentOptions.includes(option.id),
         );
-        const optionsByType: Map<string, ExternalPaymentOptionMetadata[]> =
-          new Map();
+        const optionsByType: Map<
+          "external" | "zkp2p",
+          ExternalPaymentOptionMetadata[]
+        > = new Map();
         filteredOptions.forEach((option) => {
           const { optionType } = option;
           if (!optionsByType.has(optionType)) {

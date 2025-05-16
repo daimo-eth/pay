@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Address, formatUnits, Hex, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
+import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
@@ -78,15 +79,26 @@ export interface PayParams {
 
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {
-  setPayId: (id: string | undefined) => void;
-  setPayParams: (payParams: PayParams | undefined) => void;
-  payParams: PayParams | undefined;
   generatePreviewOrder: (payParams: PayParams) => void;
   resetOrder: () => void;
 
+  /// DaimoPayButton props
+  buttonProps: PayButtonPaymentProps | undefined;
+  setButtonProps: (props: PayButtonPaymentProps | undefined) => void;
+
+  /// Pay ID for loading an existing order
+  setPayId: (id: string | undefined) => void;
+  /// Pay params for creating an order on the fly,
+  payParams: PayParams | undefined;
+  setPayParams: (payParams: PayParams | undefined) => void;
+
+  /// Hydrated order (loaded or created), or undefined (before).
   daimoPayOrder: DaimoPayOrderWithOrg | undefined;
+  /// True if the user is entering an amount (deposit) vs preset (checkout).
   isDepositFlow: boolean;
   paymentWaitingMessage: string | undefined;
+  /// External payment options, loaded from server and filtered by EITHER
+  /// 1. the DaimoPayButton paymentOptions, or 2. those of daimoPayOrder
   externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
   selectedWallet: WalletConfigProps | undefined;
   selectedWalletDeepLink: string | undefined;
@@ -177,15 +189,21 @@ export function usePaymentState({
   // lockPayParams is true
   const latestPayParamsRef = useRef<PayParams | undefined>();
   const latestPayIdRef = useRef<string | undefined>();
-  // Current pay params to do processing off of
+
+  // From DaimoPayButton props
+  const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
   const [payParams, setPayParamsState] = useState<PayParams>();
+
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
   const externalPaymentOptions = useExternalPaymentOptions({
     trpc,
-    filterIds: daimoPayOrder?.metadata.payer?.paymentOptions,
+    // allow <DaimoPayButton payId={...} paymentOptions={override} />
+    filterIds:
+      buttonProps?.paymentOptions ??
+      daimoPayOrder?.metadata.payer?.paymentOptions,
     platform,
     usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
     mode: daimoPayOrder?.mode,
@@ -535,9 +553,12 @@ export function usePaymentState({
   ]);
 
   return {
+    buttonProps,
+    setButtonProps,
     setPayId,
     payParams,
     setPayParams,
+
     generatePreviewOrder,
     daimoPayOrder,
     isDepositFlow,

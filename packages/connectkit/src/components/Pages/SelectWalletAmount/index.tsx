@@ -3,7 +3,6 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
-import { ExternalLinkIcon } from "../../../assets/icons";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
@@ -52,12 +51,8 @@ const SelectWalletAmount: React.FC = () => {
         <AmountInputContainer>
           <AmountInputField value={usdInput} onChange={handleAmountChange} />
         </AmountInputContainer>
-        <Button
-          icon={<ExternalLinkIcon />}
-          onClick={handleContinue}
-          disabled={continueDisabled}
-        >
-          Pay in {selectedWallet.name}
+        <Button onClick={handleContinue} disabled={continueDisabled}>
+          Continue
         </Button>
       </ModalContent>
     </PageContent>

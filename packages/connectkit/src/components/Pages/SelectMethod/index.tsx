@@ -14,10 +14,11 @@ import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
 import {
   Coinbase,
-  MetaMask,
+  Phantom,
   Rabby,
   Rainbow,
   Trust,
+  WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
@@ -52,7 +53,10 @@ export default function SelectMethod() {
     depositAddressOptions,
     senderEnsName,
   } = paymentState;
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+
+  // Decide whether to show the connected eth account, solana account, or both.
+  const showConnectedEth = isEthConnected;
+  const showConnectedSolana = isSolanaConnected && showSolanaPaymentMethod;
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
@@ -64,7 +68,7 @@ export default function SelectMethod() {
       onClick: () => void;
     }[] = [];
 
-    if (isEthConnected) {
+    if (showConnectedEth) {
       const ethWalletDisplayName =
         senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
 
@@ -86,8 +90,7 @@ export default function SelectMethod() {
           </div>
         );
       } else {
-        // TODO: remove this once we have a default icon for wagmi wallets
-        walletIcon = <MetaMask />;
+        walletIcon = <WalletIcon />;
       }
 
       const connectedEthWalletOption = {
@@ -113,7 +116,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (isSolanaConnected && showSolanaPaymentMethod) {
+    if (showConnectedSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
@@ -156,9 +159,9 @@ export default function SelectMethod() {
 
   // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
   // Include by default if paymentOptions not provided
-  const showDepositAddressMethod =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
+  const showDepositAddressMethod = externalPaymentOptions.options
+    .get("external")
+    ?.some((o) => o.id == ExternalPaymentOptions.ExternalChains);
 
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {
@@ -269,23 +272,24 @@ function getBestUnconnectedWalletIcons(
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isMetaMask, isTrust, isCoinbase, isRainbow] = [
-    strippedId?.includes("metamask"),
+  const [isRainbow, isTrust, isPhantom, isCoinbase] = [
+    strippedId?.includes("rainbow.me"),
     strippedId?.includes("trust"),
+    strippedId?.includes("phantom"),
     strippedId?.includes("coinbase"),
     strippedId?.includes("rainbow"),
   ];
 
   if (isMobile) {
-    if (!isTrust) icons.push(<Trust key="trust" />);
-    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
-    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
-    if (icons.length < 3) icons.push(<Rainbow key="rainbow" />);
+    if (!isTrust) icons.push(<Trust background />);
+    if (!isRainbow) icons.push(<Rainbow />);
+    if (!isPhantom) icons.push(<Phantom />);
+    if (icons.length < 3) icons.push(<Coinbase />);
   } else {
-    if (!isMetaMask) icons.push(<MetaMask key="metamask" />);
-    if (!isRainbow) icons.push(<Rainbow key="rainbow" />);
-    if (!isCoinbase) icons.push(<Coinbase key="coinbase" />);
-    if (icons.length < 3) icons.push(<Rabby key="rabby" />);
+    if (!isRainbow) icons.push(<Rainbow />);
+    if (!isPhantom) icons.push(<Phantom />);
+    if (!isCoinbase) icons.push(<Coinbase />);
+    if (icons.length < 3) icons.push(<Rabby />);
   }
 
   return icons;

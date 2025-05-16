@@ -1,6 +1,6 @@
 import { WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useState } from "react";
-import { useChainId, useSwitchChain } from "wagmi";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -19,6 +19,7 @@ enum PayState {
 
 const PayWithToken: React.FC = () => {
   const { isMobile, isIOS } = useIsMobile();
+  const { connector } = useAccount();
   const { triggerResize, paymentState, setRoute, log, wcWallet } =
     usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
@@ -138,24 +139,27 @@ const PayWithToken: React.FC = () => {
       <ModalContent style={{ paddingBottom: 0 }} $preserveDisplay={true}>
         <ModalH1>{payState}</ModalH1>
         <PaymentBreakdown paymentOption={selectedTokenOption} />
-        {payState === PayState.RequestingPayment && wcWallet && isMobile && (
-          <Button
-            icon={<ExternalLinkIcon />}
-            onClick={
-              wcWallet.isWcMobileConnector
-                ? () => handleTransfer(selectedTokenOption)
-                : undefined
-            }
-            href={
-              wcWallet.isWcMobileConnector
-                ? undefined
-                : wcWallet.deeplinkScheme ||
-                  wcWallet.getWalletConnectDeeplink?.("")
-            }
-          >
-            Tap Here to Pay
-          </Button>
-        )}
+        {payState === PayState.RequestingPayment &&
+          wcWallet &&
+          isMobile &&
+          !connector?.id?.includes("injected") && (
+            <Button
+              icon={<ExternalLinkIcon />}
+              onClick={
+                wcWallet.isWcMobileConnector
+                  ? () => handleTransfer(selectedTokenOption)
+                  : undefined
+              }
+              href={
+                wcWallet.isWcMobileConnector
+                  ? undefined
+                  : wcWallet.deeplinkScheme ||
+                    wcWallet.getWalletConnectDeeplink?.("")
+              }
+            >
+              Tap Here to Pay
+            </Button>
+          )}
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
             Retry Payment

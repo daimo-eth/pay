@@ -1,8 +1,11 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useAccount } from "wagmi";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { isWalletConnectConnector } from "../../../utils";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
@@ -13,11 +16,13 @@ import TokenChainLogo from "../../Common/TokenChainLogo";
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
   const isMobileFormat =
-    useIsMobile() || window?.innerWidth < defaultTheme.mobileWidth;
+    isMobile || window?.innerWidth < defaultTheme.mobileWidth;
   const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
-
+  const { connector } = useAccount();
+  const { connected: isSolanaConnected } = useWallet();
+  console.log("connector", connector);
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
       const chainName = getChainName(option.balance.token.chainId);
@@ -72,6 +77,12 @@ export default function SelectToken() {
       };
     }) ?? [];
 
+  // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
+  const isAnotherMethodButtonVisible =
+    (optionsList.length != 0 &&
+      (!isMobileFormat || isWalletConnectConnector(connector?.id))) ||
+    (optionsList.length == 0 && isSolanaConnected);
+
   return (
     <PageContent>
       <OrderHeader minified showEth={true} />
@@ -90,15 +101,17 @@ export default function SelectToken() {
           <SelectAnotherMethodButton />
         </ModalContent>
       )}
-
       <OptionsList
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
-        scrollHeight={isMobileFormat ? 225 : 300}
-        orDivider={optionsList.length != 0}
+        scrollHeight={
+          isAnotherMethodButtonVisible && isMobileFormat ? 225 : 300
+        }
+        orDivider={isAnotherMethodButtonVisible}
+        hideBottomLine={!isAnotherMethodButtonVisible}
       />
-      {optionsList.length != 0 && <SelectAnotherMethodButton />}
+      {isAnotherMethodButtonVisible && <SelectAnotherMethodButton />}
     </PageContent>
   );
 }

@@ -21,13 +21,12 @@ import {
 } from "../../Common/Modal/styles";
 
 import useLocales from "../../../hooks/useLocales";
-import Button from "../../Common/Button";
 import { usePayContext } from "../../../hooks/usePayContext";
+import Button from "../../Common/Button";
 
 const Introduction: React.FC = () => {
   const context = usePayContext();
   const locales = useLocales({});
-
   const ctaUrl =
     context.options?.walletOnboardingUrl ?? locales.onboardingScreen_ctaUrl;
   return (
@@ -53,7 +52,33 @@ const Introduction: React.FC = () => {
                 <FloatWrapper>
                   <RotateWrapper>
                     <LogoGraphic>
-                      <Logos.MetaMask background />
+                      <Logos.MetaMask />
+                    </LogoGraphic>
+                  </RotateWrapper>
+                </FloatWrapper>
+              </LogoInner>
+            </LogoPosition>
+          </Logo>
+          <Logo>
+            <LogoPosition>
+              <LogoInner>
+                <FloatWrapper>
+                  <RotateWrapper>
+                    <LogoGraphic>
+                      <Logos.Rainbow />
+                    </LogoGraphic>
+                  </RotateWrapper>
+                </FloatWrapper>
+              </LogoInner>
+            </LogoPosition>
+          </Logo>
+          <Logo>
+            <LogoPosition>
+              <LogoInner>
+                <FloatWrapper>
+                  <RotateWrapper>
+                    <LogoGraphic>
+                      <Logos.Phantom />
                     </LogoGraphic>
                   </RotateWrapper>
                 </FloatWrapper>
@@ -67,32 +92,6 @@ const Introduction: React.FC = () => {
                   <RotateWrapper>
                     <LogoGraphic>
                       <Logos.Trust />
-                    </LogoGraphic>
-                  </RotateWrapper>
-                </FloatWrapper>
-              </LogoInner>
-            </LogoPosition>
-          </Logo>
-          <Logo>
-            <LogoPosition>
-              <LogoInner>
-                <FloatWrapper>
-                  <RotateWrapper>
-                    <LogoGraphic>
-                      <Logos.Argent />
-                    </LogoGraphic>
-                  </RotateWrapper>
-                </FloatWrapper>
-              </LogoInner>
-            </LogoPosition>
-          </Logo>
-          <Logo>
-            <LogoPosition>
-              <LogoInner>
-                <FloatWrapper>
-                  <RotateWrapper>
-                    <LogoGraphic>
-                      <Logos.ImToken />
                     </LogoGraphic>
                   </RotateWrapper>
                 </FloatWrapper>

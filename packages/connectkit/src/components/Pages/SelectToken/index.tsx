@@ -14,7 +14,7 @@ import TokenChainLogo from "../../Common/TokenChainLogo";
 export default function SelectToken() {
   const { isMobile, isIOS } = useIsMobile();
   const isMobileFormat =
-    useIsMobile() || window?.innerWidth < defaultTheme.mobileWidth;
+    isMobile || window?.innerWidth < defaultTheme.mobileWidth;
   const { setRoute, paymentState, wcWallet } = usePayContext();
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
@@ -77,7 +77,7 @@ export default function SelectToken() {
   // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
   const isAnotherMethodButtonVisible =
     optionsList.length != 0 &&
-    (!isMobile || connector?.id?.includes("walletConnect"));
+    (!isMobileFormat || connector?.id?.includes("walletConnect"));
 
   return (
     <PageContent>

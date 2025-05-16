@@ -28,7 +28,7 @@ import ThemedButton, { ThemeContainer } from "../Common/ThemedButton";
 export type DaimoPayment = DaimoPayOrderView;
 
 /** Props for DaimoPayButton. */
-type PayButtonPaymentProps =
+export type PayButtonPaymentProps =
   | {
       /**
        * Your public app ID. Specify either (payId) or (appId + parameters).
@@ -92,6 +92,10 @@ type PayButtonPaymentProps =
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
       payId: string;
+      /**
+       * Payment options. By default, all are enabled.
+       */
+      paymentOptions?: ExternalPaymentOptionsString[];
     };
 
 type PayButtonCommonProps = PayButtonPaymentProps & {
@@ -203,6 +207,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
     } else if (payParams != null) {
       paymentState.setPayParams(payParams);
     }
+    paymentState.setButtonProps(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payId, JSON.stringify(payParams || {})]);
 

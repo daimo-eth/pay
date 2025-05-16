@@ -53,7 +53,20 @@ export default function SelectMethod() {
     depositAddressOptions,
     senderEnsName,
   } = paymentState;
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+
+  // Decide whether to show the connected eth account, solana account, or both.
+  const canPayEth = paymentState.walletPaymentOptions.options?.some(
+    (o) => o.disabledReason == null,
+  );
+  const canPaySolana = paymentState.solanaPaymentOptions.options?.some(
+    (o) => o.disabledReason == null,
+  );
+  // ...if we have both connected, only show the one with assets.
+  const showConnectedEth = isEthConnected && (canPayEth || !isSolanaConnected);
+  const showConnectedSolana =
+    isSolanaConnected &&
+    showSolanaPaymentMethod &&
+    (canPaySolana || !isEthConnected);
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
@@ -65,7 +78,7 @@ export default function SelectMethod() {
       onClick: () => void;
     }[] = [];
 
-    if (isEthConnected) {
+    if (showConnectedEth) {
       const ethWalletDisplayName =
         senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
 
@@ -113,7 +126,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (isSolanaConnected && showSolanaPaymentMethod) {
+    if (showConnectedSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
@@ -156,9 +169,9 @@ export default function SelectMethod() {
 
   // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
   // Include by default if paymentOptions not provided
-  const showDepositAddressMethod =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
+  const showDepositAddressMethod = externalPaymentOptions.options
+    .get("external")
+    ?.some((o) => o.id == ExternalPaymentOptions.ExternalChains);
 
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {

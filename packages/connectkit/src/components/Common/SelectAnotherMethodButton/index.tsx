@@ -46,7 +46,7 @@ export default function SelectAnotherMethodButton() {
     icons: getBestUnconnectedWalletIcons(connector),
     onClick: async () => {
       await disconnectAsync();
-      setRoute(ROUTES.CONNECTORS);
+      setRoute(ROUTES.SELECT_METHOD);
     },
   };
 

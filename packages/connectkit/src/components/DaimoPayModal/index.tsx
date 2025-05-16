@@ -13,7 +13,7 @@ import Onboarding from "../Pages/Onboarding";
 import SwitchNetworks from "../Pages/SwitchNetworks";
 import ConnectUsing from "./ConnectUsing";
 
-import { assert, ExternalPaymentOptions } from "@daimo/pay-common";
+import { assert } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
@@ -76,13 +76,6 @@ export const DaimoPayModal: React.FC<{
     address,
   } = useAccount();
   const { connected: isSolanaConnected } = useWallet();
-  const { daimoPayOrder } = paymentState;
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
-  // Solana payment option
-  // Include by default if paymentOptions not provided
-  const includeSolana =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.Solana);
   const chainIsSupported = useChainIsSupported(chain?.id);
 
   //if chain is unsupported we enforce a "switch chain" prompt
@@ -233,20 +226,24 @@ export const DaimoPayModal: React.FC<{
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
-    const ethMethodAvailable = context.wcWallet != null || isEthConnected;
-    const solanaMethodAvailable = isSolanaConnected && showSolanaPaymentMethod;
+    const canPayEth = paymentState.walletPaymentOptions.options?.some(
+      (o) => o.disabledReason == null,
+    );
+    const canPaySolana = paymentState.solanaPaymentOptions.options?.some(
+      (o) => o.disabledReason == null,
+    );
 
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
-    if (ethMethodAvailable && !solanaMethodAvailable) {
+    if (canPayEth && !canPaySolana) {
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
         walletId: connector?.id,
         chainId: chain?.id,
         address,
       });
-    } else if (solanaMethodAvailable && !ethMethodAvailable) {
+    } else if (canPaySolana && !canPayEth) {
       context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
         event: "solana_connected_on_open",
       });
@@ -257,8 +254,8 @@ export const DaimoPayModal: React.FC<{
   }, [
     context.open,
     context.wcWallet,
-    isEthConnected,
-    isSolanaConnected,
+    paymentState.walletPaymentOptions.options,
+    paymentState.solanaPaymentOptions.options,
     showSolanaPaymentMethod,
     address,
     chain?.id,

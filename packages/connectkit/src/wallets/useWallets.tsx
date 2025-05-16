@@ -91,7 +91,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         />
       ),
       connector,
-      iconShape: "squircle",
+      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
       isInstalled:
         connector.type === "mock" ||
         (connector.type === "injected" && connector.id !== "metaMask") ||

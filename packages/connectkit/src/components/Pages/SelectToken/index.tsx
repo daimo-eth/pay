@@ -75,9 +75,7 @@ export default function SelectToken() {
     }) ?? [];
 
   // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
-  const isAnotherMethodButtonVisible =
-    optionsList.length != 0 &&
-    (!isMobileFormat || connector?.id?.includes("walletConnect"));
+  const isAnotherMethodButtonVisible = optionsList.length != 0;
 
   return (
     <PageContent>

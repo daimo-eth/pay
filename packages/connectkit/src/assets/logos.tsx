@@ -180,7 +180,12 @@ export const Family = ({ ...props }) => {
   );
 };
 
-export const Trust = ({ background = false, ...props }) => {
+export const Trust = ({
+  background = false,
+  ...props
+}: {
+  background?: boolean;
+}) => {
   return (
     <svg
       {...props}
@@ -223,7 +228,7 @@ export const Trust = ({ background = false, ...props }) => {
   );
 };
 
-export const Wallet = ({ inverted = false }) => (
+export const WalletIcon = ({ inverted = false }: { inverted?: boolean }) => (
   <svg
     width="58"
     height="50"
@@ -1373,7 +1378,7 @@ export default {
   Injected,
   OtherWallets,
   WalletConnect,
-  Wallet,
+  WalletIcon,
   MetaMask,
   Coinbase,
   Family,

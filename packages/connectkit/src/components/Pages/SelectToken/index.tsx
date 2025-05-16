@@ -19,7 +19,7 @@ export default function SelectToken() {
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
   const { connector } = useAccount();
-
+  console.log("connector", connector);
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
       const chainName = getChainName(option.balance.token.chainId);
@@ -74,6 +74,11 @@ export default function SelectToken() {
       };
     }) ?? [];
 
+  // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
+  const isAnotherMethodButtonVisible =
+    optionsList.length != 0 &&
+    (!isMobile || connector?.id?.includes("walletConnect"));
+
   return (
     <PageContent>
       <OrderHeader minified showEth={true} />
@@ -92,21 +97,17 @@ export default function SelectToken() {
           <SelectAnotherMethodButton />
         </ModalContent>
       )}
-
       <OptionsList
         requiredSkeletons={4}
         isLoading={walletPaymentOptions.isLoading}
         options={optionsList}
-        scrollHeight={isMobileFormat ? 225 : 300}
-        orDivider={
-          optionsList.length != 0 &&
-          !(isMobile && connector?.id?.includes("injected"))
+        scrollHeight={
+          isAnotherMethodButtonVisible && isMobileFormat ? 225 : 300
         }
+        orDivider={isAnotherMethodButtonVisible}
+        hideBottomLine={!isAnotherMethodButtonVisible}
       />
-      {optionsList.length != 0 &&
-        !(isMobile && connector?.id?.includes("injected")) && (
-          <SelectAnotherMethodButton />
-        )}
+      {isAnotherMethodButtonVisible && <SelectAnotherMethodButton />}
     </PageContent>
   );
 }

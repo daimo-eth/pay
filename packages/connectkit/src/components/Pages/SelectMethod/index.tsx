@@ -18,7 +18,7 @@ import {
   Rabby,
   Rainbow,
   Trust,
-  Wallet,
+  WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
@@ -87,7 +87,7 @@ export default function SelectMethod() {
           </div>
         );
       } else {
-        walletIcon = <Wallet />;
+        walletIcon = <WalletIcon />;
       }
 
       const connectedEthWalletOption = {

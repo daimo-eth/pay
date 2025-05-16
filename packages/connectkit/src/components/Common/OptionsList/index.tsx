@@ -28,12 +28,14 @@ const OptionsList = ({
   requiredSkeletons,
   scrollHeight = 300,
   orDivider = false,
+  hideBottomLine = false,
 }: {
   options: Option[];
   isLoading?: boolean;
   requiredSkeletons?: number;
   scrollHeight?: number;
   orDivider?: boolean;
+  hideBottomLine?: boolean;
 }) => {
   const { triggerResize, log } = usePayContext();
   const optionsLength = options.length;
@@ -68,7 +70,7 @@ const OptionsList = ({
       <ScrollArea
         mobileDirection={"vertical"}
         height={scrollHeight}
-        hideBottomLine={orDivider}
+        hideBottomLine={orDivider || hideBottomLine}
         totalItems={options.length}
       >
         <OptionsContainer $totalResults={options.length}>

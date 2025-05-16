@@ -218,7 +218,7 @@ export const walletConfigs: {
   },
   "app.phantom": {
     name: "Phantom",
-    icon: <Logos.Phantom background={true} />,
+    icon: <Logos.Phantom />,
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
@@ -362,7 +362,7 @@ export const walletConfigs: {
   // },
   okx: {
     name: "OKX",
-    icon: <Logos.OKX background={true} />,
+    icon: <Logos.OKX />,
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
     getDaimoPayDeeplink: (payId: string) => {

@@ -81,7 +81,7 @@ export default function SelectToken() {
   const isAnotherMethodButtonVisible =
     (optionsList.length != 0 &&
       (!isMobileFormat || isWalletConnectConnector(connector?.id))) ||
-    isSolanaConnected;
+    (optionsList.length == 0 && isSolanaConnected);
 
   return (
     <PageContent>

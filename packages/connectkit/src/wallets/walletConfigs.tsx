@@ -8,7 +8,7 @@ export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
     daimoPayHost = "http://localhost:3001";
   } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
-    daimoPayHost = "https://pay.stage.daimo.xyz";
+    daimoPayHost = "https://daimo.ngrok.app";
   } else {
     daimoPayHost = "https://pay.daimo.com";
   }

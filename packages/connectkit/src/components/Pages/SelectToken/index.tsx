@@ -1,9 +1,11 @@
 import { DaimoPayToken, getChainName } from "@daimo/pay-common";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useAccount } from "wagmi";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { isWalletConnectConnector } from "../../../utils";
 import { formatUsd, roundTokenAmount } from "../../../utils/format";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import OptionsList from "../../Common/OptionsList";
@@ -19,6 +21,7 @@ export default function SelectToken() {
   const { isDepositFlow, walletPaymentOptions, setSelectedTokenOption } =
     paymentState;
   const { connector } = useAccount();
+  const { connected: isSolanaConnected } = useWallet();
   console.log("connector", connector);
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
@@ -75,7 +78,10 @@ export default function SelectToken() {
     }) ?? [];
 
   // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
-  const isAnotherMethodButtonVisible = optionsList.length != 0;
+  const isAnotherMethodButtonVisible =
+    (optionsList.length != 0 &&
+      (!isMobileFormat || isWalletConnectConnector(connector?.id))) ||
+    isSolanaConnected;
 
   return (
     <PageContent>

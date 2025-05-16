@@ -3,14 +3,12 @@ import {
   assertNotNull,
   DaimoPayOrder,
   DaimoPayOrderWithOrg,
-  DaimoPayUserMetadata,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
-  ExternalPaymentOptionsString,
   getOrderDestChainId,
   isCCTPV1Chain,
   PlatformType,
@@ -21,11 +19,12 @@ import {
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Address, formatUnits, Hex, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
+import { PayParams } from "../payment/paymentFsm";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -42,41 +41,6 @@ import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
 export type SourcePayment = Parameters<
   TrpcClient["processSourcePayment"]["mutate"]
 >[0];
-
-/** Payment parameters. The payment is created only after user taps pay. */
-export interface PayParams {
-  /** App ID, for authentication. */
-  appId: string;
-  /** Destination chain ID. */
-  toChain: number;
-  /** The destination token to send. */
-  toToken: Address;
-  /**
-   * The amount of the token to send.
-   * If not provided, the user will be prompted to enter an amount.
-   */
-  toUnits?: string;
-  /** The final address to transfer to or contract to call. */
-  toAddress: Address;
-  /** Calldata for final call, or empty data for transfer. */
-  toCallData?: Hex;
-  /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
-  intent?: string;
-  /** Payment options. By default, all are enabled. */
-  paymentOptions?: ExternalPaymentOptionsString[];
-  /** Preferred chain IDs. */
-  preferredChains?: number[];
-  /** Preferred tokens. These appear first in the token list. */
-  preferredTokens?: { chain: number; address: Address }[];
-  /** Only allow payments on these EVM chains. */
-  evmChains?: number[];
-  /** External ID. E.g. a correlation ID. */
-  externalId?: string;
-  /** Developer metadata. E.g. correlation ID. */
-  metadata?: DaimoPayUserMetadata;
-  /** The address to refund to if the payment bounces or a refund is requested. */
-  refundAddress?: Address;
-}
 
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {

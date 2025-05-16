@@ -19,7 +19,7 @@ import {
 } from "@daimo/pay-common";
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
-import { PayParams } from "../../hooks/usePaymentState";
+import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
 import ThemedButton, { ThemeContainer } from "../Common/ThemedButton";

@@ -55,18 +55,8 @@ export default function SelectMethod() {
   } = paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
-  const canPayEth = paymentState.walletPaymentOptions.options?.some(
-    (o) => o.disabledReason == null,
-  );
-  const canPaySolana = paymentState.solanaPaymentOptions.options?.some(
-    (o) => o.disabledReason == null,
-  );
-  // ...if we have both connected, only show the one with assets.
-  const showConnectedEth = isEthConnected && (canPayEth || !isSolanaConnected);
-  const showConnectedSolana =
-    isSolanaConnected &&
-    showSolanaPaymentMethod &&
-    (canPaySolana || !isEthConnected);
+  const showConnectedEth = isEthConnected;
+  const showConnectedSolana = isSolanaConnected && showSolanaPaymentMethod;
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;

@@ -17,7 +17,6 @@ import CircleTimer from "../../Common/CircleTimer";
 import CopyToClipboard from "../../Common/CopyToClipboard";
 import CustomQRCode from "../../Common/CustomQRCode";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
-import SquareTimer from "../../Common/SquareTimer";
 
 const WaitingDepositAddress: React.FC = () => {
   const context = usePayContext();
@@ -75,36 +74,28 @@ const WaitingDepositAddress: React.FC = () => {
           )}
 
           <div style={{ alignSelf: "center" }}>
-            <SquareTimer
-              total={TOTAL_TIME}
-              onTimeChange={setTimeLeft}
-              size={220}
-              stroke={6}
-              borderRadius={54}
-            >
-              <CustomQRCode
-                value={details?.uri}
-                size={180}
-                contentPadding={24}
-                image={
-                  <img
-                    src={selectedDepositAddressOption?.logoURI}
-                    width="100%"
-                    height="100%"
+            <CustomQRCode
+              value={details?.uri}
+              size={180}
+              contentPadding={24}
+              image={
+                <img
+                  src={selectedDepositAddressOption?.logoURI}
+                  width="100%"
+                  height="100%"
+                />
+              }
+              tooltipMessage={
+                <>
+                  <ScanIconWithLogos
+                    logo={<img src={selectedDepositAddressOption?.logoURI} />}
                   />
-                }
-                tooltipMessage={
-                  <>
-                    <ScanIconWithLogos
-                      logo={<img src={selectedDepositAddressOption?.logoURI} />}
-                    />
-                    <span>
-                      Use a {selectedDepositAddressOption?.id} wallet to scan
-                    </span>
-                  </>
-                }
-              />
-            </SquareTimer>
+                  <span>
+                    Use a {selectedDepositAddressOption?.id} wallet to scan
+                  </span>
+                </>
+              }
+            />
           </div>
 
           {details && (

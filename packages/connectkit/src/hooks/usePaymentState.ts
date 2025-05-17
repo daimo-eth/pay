@@ -331,6 +331,7 @@ export function usePaymentState({
     assert(!!platform, "[PAY EXTERNAL] platform cannot be null");
     const { hydratedOrder, externalPaymentOptionData } = await createOrHydrate({
       order: daimoPayOrder,
+      refundAddress: payParams?.refundAddress,
       externalPaymentOption: option,
     });
     assert(
@@ -356,6 +357,7 @@ export function usePaymentState({
     assert(!!daimoPayOrder, "[PAY DEPOSIT ADDRESS] missing daimoPayOrder");
     const { hydratedOrder } = await createOrHydrate({
       order: daimoPayOrder,
+      refundAddress: payParams?.refundAddress,
     });
     setDaimoPayOrder(hydratedOrder);
 
@@ -395,7 +397,10 @@ export function usePaymentState({
     log(
       `payWithWallet: hydrating order ${order.id}${amountUsd && ` for $${amountUsd}`}`,
     );
-    const { hydratedOrder } = await createOrHydrate({ order });
+    const { hydratedOrder } = await createOrHydrate({
+      order,
+      refundAddress: payParams?.refundAddress,
+    });
     setDaimoPayOrder(hydratedOrder);
 
     // If we already picked a wallet, open in that wallet.

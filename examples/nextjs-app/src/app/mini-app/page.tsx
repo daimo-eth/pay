@@ -6,8 +6,8 @@ import { sdk } from "@farcaster/frame-sdk";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
-import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import { APP_ID, Container, DAIMO_ADDRESS } from "../shared";
+import { Text, TextLink } from "../typography";
 
 export default function DemoFarcasterFrame() {
   const url = typeof window !== "undefined" ? window.location.href : "";

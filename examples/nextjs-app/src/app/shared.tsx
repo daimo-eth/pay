@@ -1,5 +1,5 @@
 import { DaimoPayEvent, getChainExplorerByChainId } from "@daimo/pay-common";
-import { useState, useCallback, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isAddress } from "viem";
 
 export const APP_ID = "daimopay-demo";

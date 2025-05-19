@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { type ReactNode } from "react";
 import { StyledComponentsRegistry } from "../styles/StyledComponentsRegistry";
-import "../styles/tailwind.css";
 import { LayoutWrapper } from "./layout-wrapper";
+
+import "../styles/main.css";
 
 export const metadata: Metadata = {
   title: "Daimo Pay Demo",

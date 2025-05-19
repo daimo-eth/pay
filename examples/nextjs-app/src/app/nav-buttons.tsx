@@ -3,8 +3,8 @@
 import { version } from "@daimo/pay";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "../shared/tailwind-catalyst/button";
-import { Heading } from "../shared/tailwind-catalyst/heading";
+import { Button } from "./button";
+import { Text } from "./typography";
 
 export default function NavButtons() {
   const pathname = usePathname();
@@ -28,7 +28,9 @@ export default function NavButtons() {
 
   return (
     <>
-      <Heading className="text-green-dark">DaimoPayButton Examples</Heading>
+      <Text className="text-green-dark text-xl font-bold">
+        DaimoPayButton Examples
+      </Text>
       <div className="mt-1 text-sm text-green-medium">
         @daimo/pay v{version}
       </div>

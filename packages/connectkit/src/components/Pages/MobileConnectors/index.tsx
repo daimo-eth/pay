@@ -59,7 +59,7 @@ const MobileConnectors: React.FC = () => {
       if (wallets.find((w) => w.connector?.id === walletId)) return false;
       if (!wallet.showInMobileConnectors) return false;
       // If the mobile wallet supports solana only, don't show it if we are not supporting solana has a payment method
-      if (wallet.isSolanaOnly === !context.paymentState.showSolanaPaymentMethod)
+      if (wallet.isSolanaOnly && !context.paymentState.showSolanaPaymentMethod)
         return false;
       return true;
     }) ?? [];

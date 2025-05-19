@@ -72,8 +72,7 @@ const SelectSolanaToken: React.FC = () => {
 
   // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector or if we are connected to solana and evm in mobile mode
   const isAnotherMethodButtonVisible =
-    (optionsList.length != 0 && !isMobileFormat) ||
-    (optionsList.length != 0 && isEvmConnected);
+    optionsList.length > 0 && (!isMobileFormat || isEvmConnected);
 
   return (
     <PageContent>

@@ -9,6 +9,7 @@ const Container = styled.button`
   gap: 4px;
   cursor: pointer;
   width: fit-content;
+  background: transparent;
 `;
 
 const IconWrapper = styled.div<{ $isFlipped: boolean }>`

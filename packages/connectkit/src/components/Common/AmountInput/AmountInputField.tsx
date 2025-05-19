@@ -7,6 +7,7 @@ const Container = styled.button`
   align-items: center;
   justify-content: center;
   gap: 4px;
+  background: transparent;
 `;
 
 const InputField = styled.input`

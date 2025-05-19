@@ -31,6 +31,7 @@ import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
+import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
 import { usePayWithSolanaToken } from "./usePayWithSolanaToken";
 import { usePayWithToken } from "./usePayWithToken";
@@ -376,6 +377,7 @@ export function usePaymentState({
     return depositAddressOption;
   };
 
+  const { isIOS } = useIsMobile();
   /// Hydrates an order to prepare for paying in an in-wallet browser via
   /// deeplink. Then, if wallet is specified, opens in that wallet.
   const payWithWallet = async (
@@ -406,7 +408,10 @@ export function usePaymentState({
     );
     const payId = writeDaimoPayOrderID(hydratedOrder.id);
     const deeplink = wallet.getDaimoPayDeeplink(payId);
-    window.open(deeplink, "_blank");
+    // if we are in IOS, we don't open the deeplink in a new window, because it will not work, the link will be opened in the page WAITING_WALLET
+    if (!isIOS) {
+      window.open(deeplink, "_blank");
+    }
     setSelectedWalletDeepLink(deeplink);
     setRoute(ROUTES.WAITING_WALLET, {
       amountUsd,

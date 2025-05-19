@@ -67,6 +67,8 @@ export type WalletConfigProps = {
   showInMobileConnectors?: boolean;
   // Used for mobile wallets we got from WC mobile connector that don't have WC deeplink
   isWcMobileConnector?: boolean;
+  // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
+  isSolanaOnly?: boolean;
 };
 
 // Organised in alphabetical order by key
@@ -379,6 +381,7 @@ export const walletConfigs: {
       const ref = encodeURIComponent(window.location.origin);
       return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
     },
+    isSolanaOnly: true,
   },
   // steak: {
   //   name: "Steak",

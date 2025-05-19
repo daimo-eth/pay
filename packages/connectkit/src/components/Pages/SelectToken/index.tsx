@@ -22,7 +22,6 @@ export default function SelectToken() {
     paymentState;
   const { connector } = useAccount();
   const { connected: isSolanaConnected } = useWallet();
-  console.log("connector", connector);
   const optionsList =
     walletPaymentOptions.options?.map((option) => {
       const chainName = getChainName(option.balance.token.chainId);
@@ -77,11 +76,12 @@ export default function SelectToken() {
       };
     }) ?? [];
 
-  // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector
+  // IsAnotherMethodButtonVisible is true when there are token options and we are in desktop mode or in mobile mode using a wallet connect connector or if we are connected to solana and evm in mobile mode
   const isAnotherMethodButtonVisible =
-    (optionsList.length != 0 &&
-      (!isMobileFormat || isWalletConnectConnector(connector?.id))) ||
-    (optionsList.length == 0 && isSolanaConnected);
+    optionsList.length > 0 &&
+    (!isMobileFormat ||
+      isWalletConnectConnector(connector?.id) ||
+      isSolanaConnected);
 
   return (
     <PageContent>

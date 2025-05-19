@@ -226,24 +226,17 @@ export const DaimoPayModal: React.FC<{
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
-    const canPayEth = paymentState.walletPaymentOptions.options?.some(
-      (o) => o.disabledReason == null,
-    );
-    const canPaySolana = paymentState.solanaPaymentOptions.options?.some(
-      (o) => o.disabledReason == null,
-    );
-
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
-    if (canPayEth && !canPaySolana) {
+    if (isEthConnected && !isSolanaConnected) {
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
         walletId: connector?.id,
         chainId: chain?.id,
         address,
       });
-    } else if (canPaySolana && !canPayEth) {
+    } else if (isSolanaConnected && !isEthConnected) {
       context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
         event: "solana_connected_on_open",
       });

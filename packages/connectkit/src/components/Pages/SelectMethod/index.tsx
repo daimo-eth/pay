@@ -46,7 +46,6 @@ export default function SelectMethod() {
   const { disconnectAsync } = useDisconnect();
 
   const {
-    daimoPayOrder,
     setSelectedExternalOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,

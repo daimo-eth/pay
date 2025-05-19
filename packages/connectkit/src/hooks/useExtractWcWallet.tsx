@@ -61,7 +61,6 @@ function extractWcWalletFromProvider(p: any, log: PayLogFn) {
     let deeplinkUrl: string | undefined;
     try {
       deeplinkUrl = JSON.parse(deeplinkJson).href;
-      console.log(`[WCWALLET] deeplinkUrl: ${deeplinkUrl}`);
     } catch {}
     wallet = {
       name: name,

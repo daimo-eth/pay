@@ -9,25 +9,24 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { ExternalPaymentOptions } from "@daimo/pay-common";
+import {
+  DaimoPayIntentStatus,
+  ExternalPaymentOptions,
+} from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
-import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
 const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
-  const trpc = context.trpc as TrpcClient;
+  const { order } = useDaimoPay();
   const { isMobile } = useIsMobile();
 
-  const {
-    selectedExternalOption,
-    payWithExternal,
-    paymentWaitingMessage,
-    daimoPayOrder,
-  } = paymentState;
+  const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
+    paymentState;
 
   let isPaymentApp = false;
   if (selectedExternalOption) {
@@ -41,22 +40,12 @@ const WaitingExternal: React.FC = () => {
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
 
+  // Watch when the order gets paid and navigate to confirmation
   useEffect(() => {
-    const checkForSourcePayment = async () => {
-      if (!daimoPayOrder) return;
-
-      const found = await trpc.findSourcePayment.query({
-        orderId: daimoPayOrder.id.toString(),
-      });
-
-      if (found) {
-        setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
-      }
-    };
-
-    const interval = setInterval(checkForSourcePayment, 1000);
-    return () => clearInterval(interval);
-  }, [daimoPayOrder?.id]);
+    if (order?.intentStatus === DaimoPayIntentStatus.STARTED) {
+      setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
+    }
+  }, [order, setRoute]);
 
   useEffect(() => {
     if (!selectedExternalOption) return;

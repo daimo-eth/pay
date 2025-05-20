@@ -3,6 +3,7 @@ import { Connector, useAccount } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import OptionsList from "../OptionsList";
@@ -14,9 +15,10 @@ const OptionsContainer = styled.div`
 
 export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
-  const { externalPaymentOptions, daimoPayOrder } = paymentState;
+  const { externalPaymentOptions } = paymentState;
   const { connector } = useAccount();
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  const { order } = useDaimoPay();
+  const paymentOptions = order?.metadata.payer?.paymentOptions;
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
   ).flat();

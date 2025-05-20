@@ -1,32 +1,35 @@
 // hooks/useDaimoPay.ts
 import {
+  DaimoPayOrder,
   DaimoPayOrderID,
-  DaimoPayOrderView,
-  getDaimoPayOrderView,
   SolanaPublicKey,
 } from "@daimo/pay-common";
 import { useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 import { Address, Hex } from "viem";
-import { PaymentEvent, PayParams } from "../payment/paymentFsm";
+import {
+  PaymentEvent,
+  PaymentState,
+  PaymentStateType,
+  PayParams,
+} from "../payment/paymentFsm";
+import { waitForPaymentState } from "../payment/paymentStore";
 import { PaymentContext } from "../provider/PaymentProvider";
 
 export interface UseDaimoPay {
   /** The current Daimo Pay order, or null if no order is active. */
-  payment: DaimoPayOrderView | null;
+  order: DaimoPayOrder | null;
+  /** The current state of the payment flow. */
+  paymentState: PaymentStateType;
 
   /**
-   * Create a new Daimo Pay order with the given parameters.
+   * Create a new Daimo Pay order preview with the given parameters.
    * Call this to start a new payment flow.
    *
    * @param params - Parameters describing the payment to be created.
    */
-  createOrder: (params: PayParams) => void;
-
-  /**
-   * Hydrate the current order, locking in the payment intent details and
-   * token swap prices.
-   */
-  hydrateOrder: () => void;
+  createPreviewOrder: (
+    params: PayParams,
+  ) => Promise<Extract<PaymentState, { type: "preview" }>>;
 
   /**
    * Set the order ID to fetch and manage an existing Daimo Pay order.
@@ -34,7 +37,27 @@ export interface UseDaimoPay {
    *
    * @param id - The Daimo Pay order ID to set.
    */
-  setPayId: (id: DaimoPayOrderID) => void;
+  setPayId: (id: DaimoPayOrderID) => Promise<
+    Extract<
+      PaymentState,
+      {
+        type:
+          | "unhydrated"
+          | "payment_unpaid"
+          | "payment_started"
+          | "payment_completed"
+          | "payment_bounced";
+      }
+    >
+  >;
+
+  /**
+   * Hydrate the current order, locking in the payment intent details and
+   * token swap prices.
+   */
+  hydrateOrder: (
+    refundAddress?: Address,
+  ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
 
   /**
    * Register an Ethereum payment source for the current order.
@@ -47,7 +70,7 @@ export interface UseDaimoPay {
     sourceChainId: number;
     payerAddress: Address;
     sourceToken: Address;
-    sourceAmount: Address;
+    sourceAmount: bigint;
   }) => void;
 
   /**
@@ -66,6 +89,13 @@ export interface UseDaimoPay {
    * Call this to start a new payment flow.
    */
   reset: () => void;
+
+  /**
+   * Update the user's chosen amount in USD. Applies only to deposit flow.
+   *
+   * @deprecated
+   */
+  setChosenUsd: (usd: number) => void;
 }
 
 /**
@@ -80,8 +110,13 @@ export interface UseDaimoPay {
  */
 export function useDaimoPay(): UseDaimoPay {
   const store = useContext(PaymentContext);
-  if (!store)
+  if (!store) {
     throw new Error("useDaimoPay must be used within <PaymentProvider>");
+  }
+
+  /* --------------------------------------------------
+     Order state
+  ---------------------------------------------------*/
 
   // Subscribe to the store and keep an up-to-date copy of the payment.
   const paymentFsmState = useSyncExternalStore(
@@ -89,29 +124,88 @@ export function useDaimoPay(): UseDaimoPay {
     store.getState,
     store.getState,
   );
-  const payment = useMemo(() => {
+
+  // Wrap `order` in `useMemo` for reference stability. This allows downstream
+  // components to use `order` as a dependency to avoid unnecessary re-renders.
+  const order = useMemo(() => {
     if (paymentFsmState.type === "idle") return null;
-    const order = paymentFsmState.order;
-    return order ? getDaimoPayOrderView(order) : null;
+    return paymentFsmState.order ?? null;
   }, [paymentFsmState]);
+
+  const paymentState = paymentFsmState.type;
+
+  /* --------------------------------------------------
+     Order event dispatch helpers
+  ---------------------------------------------------*/
 
   // Internal helper to dispatch events to the store.
   const dispatch = useCallback((e: PaymentEvent) => store.dispatch(e), [store]);
 
-  const createOrder = useCallback(
-    (params: PayParams) =>
-      dispatch({ type: "set_pay_params", payload: params }),
-    [dispatch],
-  );
+  const createPreviewOrder = useCallback(
+    async (payParams: PayParams) => {
+      dispatch({ type: "set_pay_params", payParams });
 
-  const hydrateOrder = useCallback(
-    () => dispatch({ type: "hydrate_order" }),
-    [dispatch],
+      // Wait for the order to enter the "preview" state, which means it
+      // has been successfully created.
+      const previewOrderState = await waitForPaymentState(
+        store,
+        (s): s is Extract<PaymentState, { type: "preview" }> =>
+          s.type === "preview",
+      );
+
+      return previewOrderState;
+    },
+    [dispatch, store],
   );
 
   const setPayId = useCallback(
-    (id: DaimoPayOrderID) => dispatch({ type: "set_pay_id", payload: id }),
-    [dispatch],
+    async (payId: DaimoPayOrderID) => {
+      dispatch({ type: "set_pay_id", payId });
+
+      // Wait for the order to be queried from the API. Using payId could
+      // result in the order being in any state.
+      const previewOrderState = await waitForPaymentState(
+        store,
+        (
+          s,
+        ): s is Extract<
+          PaymentState,
+          {
+            type:
+              | "unhydrated"
+              | "payment_unpaid"
+              | "payment_started"
+              | "payment_completed"
+              | "payment_bounced";
+          }
+        > =>
+          s.type === "unhydrated" ||
+          s.type === "payment_unpaid" ||
+          s.type === "payment_started" ||
+          s.type === "payment_completed" ||
+          s.type === "payment_bounced",
+      );
+
+      return previewOrderState;
+    },
+    [dispatch, store],
+  );
+
+  const hydrateOrder = useCallback(
+    async (refundAddress?: Address) => {
+      dispatch({ type: "hydrate_order", refundAddress });
+
+      // Wait for the order to enter the "payment_unpaid" state, which means it
+      // has been successfully hydrated.
+      const hydratedOrderState = await waitForPaymentState(
+        store,
+        (s): s is Extract<PaymentState, { type: "payment_unpaid" }> =>
+          s.type === "payment_unpaid",
+      );
+
+      return hydratedOrderState;
+    },
+    [dispatch, store],
   );
 
   const payEthSource = useCallback(
@@ -120,7 +214,7 @@ export function useDaimoPay(): UseDaimoPay {
       sourceChainId: number;
       payerAddress: Address;
       sourceToken: Address;
-      sourceAmount: Address;
+      sourceAmount: bigint;
     }) => dispatch({ type: "pay_ethereum_source", ...args }),
     [dispatch],
   );
@@ -133,13 +227,20 @@ export function useDaimoPay(): UseDaimoPay {
 
   const reset = useCallback(() => dispatch({ type: "reset" }), [dispatch]);
 
+  const setChosenUsd = useCallback(
+    (usd: number) => dispatch({ type: "set_chosen_usd", usd }),
+    [dispatch],
+  );
+
   return {
-    payment,
-    createOrder,
+    order,
+    paymentState,
+    createPreviewOrder,
     hydrateOrder,
     setPayId,
     payEthSource,
     paySolanaSource,
     reset,
+    setChosenUsd,
   };
 }

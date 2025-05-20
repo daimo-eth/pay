@@ -1,10 +1,7 @@
 import {
-  DaimoPayIntentStatus,
   DaimoPayOrderMode,
-  DaimoPayOrderStatusSource,
   DaimoPayOrderWithOrg,
   debugJson,
-  retryBackoff,
 } from "@daimo/pay-common";
 import { Buffer } from "buffer";
 import React, {
@@ -25,9 +22,11 @@ import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
+import { useDaimoPay } from "../hooks/useDaimoPay";
 import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
 import { PayContext, PayContextValue } from "../hooks/usePayContext";
 import { usePaymentState } from "../hooks/usePaymentState";
+import { PaymentContext, PaymentProvider } from "../provider/PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
 import {
   CustomTheme,
@@ -57,10 +56,11 @@ type DaimoPayProviderProps = {
    */
   solanaRpcUrl?: string;
   /** Custom Pay API, useful for test and staging. */
-  payApiUrl?: string;
+  payApiUrl: string;
+  log: (msg: string) => void;
 } & useConnectCallbackProps;
 
-const DaimoPayProviderWithoutSolana = ({
+const DaimoPayUIProviderWithoutSolana = ({
   children,
   theme = "auto",
   mode = "auto",
@@ -69,8 +69,13 @@ const DaimoPayProviderWithoutSolana = ({
   onConnect,
   onDisconnect,
   debugMode = false,
-  payApiUrl = "https://pay-api.daimo.xyz",
+  payApiUrl,
+  log,
 }: DaimoPayProviderProps) => {
+  if (!React.useContext(PaymentContext)) {
+    throw Error("DaimoPayProvider must be within a PaymentProvider");
+  }
+
   // DaimoPayProvider must be within a WagmiProvider
   if (!React.useContext(WagmiContext)) {
     throw Error("DaimoPayProvider must be within a WagmiProvider");
@@ -141,6 +146,8 @@ const DaimoPayProviderWithoutSolana = ({
      */
   }
 
+  const pay = useDaimoPay();
+
   const [ckTheme, setTheme] = useState<Theme>(theme);
   const [ckMode, setMode] = useState<Mode>(mode);
   const [ckCustomTheme, setCustomTheme] = useState<CustomTheme | undefined>(
@@ -163,8 +170,6 @@ const DaimoPayProviderWithoutSolana = ({
   const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
 
   // Daimo Pay context
-  const [daimoPayOrder, setDaimoPayOrderInner] =
-    useState<DaimoPayOrderWithOrg>();
   const [pendingConnectorId, setPendingConnectorId] = useState<
     string | undefined
   >(undefined);
@@ -184,13 +189,15 @@ const DaimoPayProviderWithoutSolana = ({
   const [redirectReturnUrl, setRedirectReturnUrl] = useState<
     string | undefined
   >(undefined);
-  const log = useMemo(() => (debugMode ? console.log : () => {}), [debugMode]);
   // Connect to the Daimo Pay TRPC API
   const trpc = useMemo(() => {
-    setInWalletPaymentUrlFromApiUrl(payApiUrl);
     return createTrpcClient(payApiUrl, sessionId);
   }, [payApiUrl, sessionId]);
   const [resize, onResize] = useState<number>(0);
+
+  useEffect(() => {
+    setInWalletPaymentUrlFromApiUrl(payApiUrl);
+  }, [payApiUrl]);
 
   const setOpen = useCallback(
     (open: boolean, meta?: Record<string, any>) => {
@@ -211,7 +218,7 @@ const DaimoPayProviderWithoutSolana = ({
       // Log the open/close event
       trpc.nav.mutate({
         action: open ? "navOpenPay" : "navClosePay",
-        orderId: daimoPayOrder?.id?.toString(),
+        orderId: pay.order?.id?.toString(),
         data: meta ?? {},
       });
 
@@ -221,7 +228,7 @@ const DaimoPayProviderWithoutSolana = ({
     },
     // We don't have good caching on paymentState, so don't include it as a dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trpc, daimoPayOrder?.id, modalOptions?.resetOnSuccess, paymentCompleted],
+    [trpc, pay.order?.id, modalOptions?.resetOnSuccess, paymentCompleted],
   );
 
   // Callback when a payment is successfully completed (regardless of whether
@@ -236,17 +243,15 @@ const DaimoPayProviderWithoutSolana = ({
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
       const action = route.replace("daimoPay", "");
-      log(
-        `[SET ROUTE] ${action} ${daimoPayOrder?.id} ${debugJson(data ?? {})}`,
-      );
+      log(`[SET ROUTE] ${action} ${pay.order?.id} ${debugJson(data ?? {})}`);
       trpc.nav.mutate({
         action,
-        orderId: daimoPayOrder?.id?.toString(),
+        orderId: pay.order?.id?.toString(),
         data: data ?? {},
       });
       setRouteState(route);
     },
-    [trpc, daimoPayOrder?.id, log],
+    [trpc, pay.order?.id, log],
   );
 
   // Other Configuration
@@ -261,65 +266,16 @@ const DaimoPayProviderWithoutSolana = ({
   // extract the current WalletConnect wallet, if any.
   const wcWallet = useExtractWcWallet({ connector, log });
 
-  // PaymentInfo is a second, inner context object containing a DaimoPayOrder
-  // plus all associated status and callbacks. In order for useContext() and
-  // downstream hooks like useDaimoPayStatus() to work correctly, we must set
-  // set refresh context when payment status changes; done via setDaimoPayOrder.
-  const setDaimoPayOrder = useCallback(
-    (order: DaimoPayOrderWithOrg | undefined) => {
-      setDaimoPayOrderInner(order);
-      if (order == null) {
-        log(`[PAY] setDaimoPayOrder: reset`);
-        return;
-      }
-      let extra = `> $${order.destFinalCallTokenAmount.usd.toFixed(2)} to ${order.destFinalCallTokenAmount.token.chainId} ${order.destFinalCall.to}`;
-      if (order.mode === DaimoPayOrderMode.HYDRATED) {
-        extra += ` via ${order.intentAddr} ${order.sourceStatus} ${order.intentStatus}`;
-      }
-      log(`[PAY] setDaimoPayOrder: ${order.id} ${extra}`);
-    },
-    [log],
-  );
-
   const paymentState = usePaymentState({
     trpc,
     lockPayParams,
-    daimoPayOrder,
-    setDaimoPayOrder,
     setRoute,
     log,
     redirectReturnUrl,
   });
 
-  // When a payment is in progress, poll for status updates. Do this regardless
-  // of whether the modal is still being displayed for useDaimoPayStatus().
-  useEffect(() => {
-    // Order just updated...
-    if (daimoPayOrder?.mode !== DaimoPayOrderMode.HYDRATED) return;
-
-    const { intentStatus } = daimoPayOrder;
-    let intervalMs = 0;
-    if (intentStatus === DaimoPayIntentStatus.UNPAID) {
-      intervalMs = 2000; // additional, faster polling in WaitingOther
-    } else if (intentStatus === DaimoPayIntentStatus.STARTED) {
-      intervalMs = 300; // poll fast from payment started to payment completed
-    } else {
-      return;
-    }
-
-    log(`[PAY] polling in ${intervalMs}ms`);
-    const timeout = setTimeout(
-      () => retryBackoff("refreshOrder", () => paymentState.refreshOrder()),
-      intervalMs,
-    );
-
-    return () => clearTimeout(timeout);
-    // We don't have good caching on paymentState, so don't include it as a dep
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daimoPayOrder, log]);
-
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
-    const id = daimoPayOrder?.id;
+    const id = pay.order?.id;
     log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
 
     setModalOptions(modalOptions);
@@ -327,12 +283,9 @@ const DaimoPayProviderWithoutSolana = ({
     setOpen(true);
 
     if (
-      daimoPayOrder &&
-      daimoPayOrder.mode === DaimoPayOrderMode.HYDRATED &&
-      (daimoPayOrder.sourceStatus !==
-        DaimoPayOrderStatusSource.WAITING_PAYMENT ||
-        daimoPayOrder.destFastFinishTxHash ||
-        daimoPayOrder.destClaimTxHash)
+      pay.paymentState === "payment_started" ||
+      pay.paymentState === "payment_completed" ||
+      pay.paymentState === "payment_bounced"
     ) {
       setRoute(ROUTES.CONFIRMATION);
     } else {
@@ -411,9 +364,21 @@ const DaimoPayProviderWithoutSolana = ({
  * Provides context for DaimoPayButton and hooks. Place in app root or layout.
  */
 export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
+  const payApiUrl = props.payApiUrl ?? "https://pay-api.daimo.xyz/";
+  const log = useMemo(
+    () => (props.debugMode ? console.log : () => {}),
+    [props.debugMode],
+  );
+
   return (
-    <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-      <DaimoPayProviderWithoutSolana {...props} />
-    </SolanaContextProvider>
+    <PaymentProvider payApiUrl={payApiUrl} log={log}>
+      <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
+        <DaimoPayUIProviderWithoutSolana
+          {...props}
+          payApiUrl={payApiUrl}
+          log={log}
+        />
+      </SolanaContextProvider>
+    </PaymentProvider>
   );
 };

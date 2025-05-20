@@ -10,7 +10,7 @@ import {
   ExternalPaymentOptionsString,
   SolanaPublicKey,
 } from "@daimo/pay-common";
-import { Address, Hex } from "viem";
+import { Address, Hex, parseUnits } from "viem";
 
 /** Payment parameters. The payment is created only after user taps pay. */
 export interface PayParams {
@@ -79,9 +79,11 @@ export const initialPaymentState: PaymentState = { type: "idle" };
 
 export type PaymentEvent =
   /* command events (kick off an effect) */
-  | { type: "set_pay_params"; payload: PayParams }
-  | { type: "set_pay_id"; payload: DaimoPayOrderID }
-  | { type: "hydrate_order" }
+  | { type: "set_pay_params"; payParams: PayParams }
+  | { type: "set_pay_id"; payId: DaimoPayOrderID }
+  // HACK: edit the order in-memory to change the amount in deposit flow
+  | { type: "set_chosen_usd"; usd: number }
+  | { type: "hydrate_order"; refundAddress?: Address }
   | {
       type: "pay_ethereum_source";
       paymentTxHash: Hex;
@@ -219,6 +221,25 @@ function reducePreview(
   switch (event.type) {
     case "hydrate_order_succeeded":
       return { type: "payment_unpaid", order: event.order };
+    case "set_chosen_usd": {
+      const token = state.order.destFinalCallTokenAmount.token;
+      const tokenUnits = (event.usd / token.priceFromUsd).toString();
+      const tokenAmount = parseUnits(tokenUnits, token.decimals);
+
+      // Stay in preview state, but update the order's destFinalCallTokenAmount
+      return {
+        type: "preview",
+        order: {
+          ...state.order,
+          destFinalCallTokenAmount: {
+            token,
+            amount: tokenAmount.toString() as `${bigint}`,
+            usd: event.usd,
+          },
+        },
+        payParamsData: state.payParamsData,
+      };
+    }
     case "error":
       return {
         type: "error",

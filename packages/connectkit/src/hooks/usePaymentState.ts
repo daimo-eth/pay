@@ -1,8 +1,6 @@
 import {
   assert,
-  assertNotNull,
-  DaimoPayOrder,
-  DaimoPayOrderWithOrg,
+  debugJson,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
@@ -19,7 +17,6 @@ import {
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatUnits, parseUnits } from "viem";
 import { useAccount, useEnsName } from "wagmi";
 
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
@@ -28,6 +25,7 @@ import { PayParams } from "../payment/paymentFsm";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
+import { useDaimoPay } from "./useDaimoPay";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
@@ -44,7 +42,7 @@ export type SourcePayment = Parameters<
 
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {
-  generatePreviewOrder: (payParams: PayParams) => void;
+  generatePreviewOrder: () => void;
   resetOrder: () => void;
 
   /// DaimoPayButton props
@@ -54,11 +52,8 @@ export interface PaymentState {
   /// Pay ID for loading an existing order
   setPayId: (id: string | undefined) => void;
   /// Pay params for creating an order on the fly,
-  payParams: PayParams | undefined;
   setPayParams: (payParams: PayParams | undefined) => void;
 
-  /// Hydrated order (loaded or created), or undefined (before).
-  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
   /// True if the user is entering an amount (deposit) vs preset (checkout).
   isDepositFlow: boolean;
   paymentWaitingMessage: string | undefined;
@@ -102,27 +97,24 @@ export interface PaymentState {
     wallet?: WalletConfigProps,
     amountUsd?: number,
   ) => Promise<void>;
-  refreshOrder: () => Promise<void>;
   senderEnsName: string | undefined;
 }
 
 export function usePaymentState({
   trpc,
   lockPayParams,
-  daimoPayOrder,
-  setDaimoPayOrder,
   setRoute,
   log,
   redirectReturnUrl,
 }: {
   trpc: TrpcClient;
   lockPayParams: boolean;
-  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
-  setDaimoPayOrder: (o: DaimoPayOrderWithOrg | undefined) => void;
   setRoute: (route: ROUTES, data?: Record<string, any>) => void;
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;
 }): PaymentState {
+  const pay = useDaimoPay();
+
   // Browser state.
   const [platform, setPlatform] = useState<PlatformType>();
   useEffect(() => {
@@ -130,10 +122,10 @@ export function usePaymentState({
   }, []);
 
   // Wallet state.
-  const { address: senderAddr } = useAccount();
+  const { address: ethWalletAddress } = useAccount();
   const { data: senderEnsName } = useEnsName({
     chainId: ethereum.chainId,
-    address: senderAddr,
+    address: ethWalletAddress,
   });
 
   // Solana wallet state.
@@ -141,14 +133,14 @@ export function usePaymentState({
   const solanaPubKey = solanaWallet.publicKey?.toBase58();
 
   // TODO: backend should determine whether to show solana payment method
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  const paymentOptions = pay.order?.metadata.payer?.paymentOptions;
   // Include by default if paymentOptions not provided. Solana bridging is only
   // supported on CCTP v1 chains.
   const showSolanaPaymentMethod =
     (paymentOptions == null ||
       paymentOptions.includes(ExternalPaymentOptions.Solana)) &&
-    daimoPayOrder != null &&
-    isCCTPV1Chain(getOrderDestChainId(daimoPayOrder));
+    pay.order != null &&
+    isCCTPV1Chain(getOrderDestChainId(pay.order));
 
   // Refs the survive re-renders and stores any updated param values while
   // lockPayParams is true
@@ -157,7 +149,7 @@ export function usePaymentState({
 
   // From DaimoPayButton props
   const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
-  const [payParams, setPayParamsState] = useState<PayParams>();
+  const [currPayParams, setCurrPayParams] = useState<PayParams>();
 
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
@@ -167,100 +159,51 @@ export function usePaymentState({
     trpc,
     // allow <DaimoPayButton payId={...} paymentOptions={override} />
     filterIds:
-      buttonProps?.paymentOptions ??
-      daimoPayOrder?.metadata.payer?.paymentOptions,
+      buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions,
     platform,
-    usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
-    mode: daimoPayOrder?.mode,
+    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
+    mode: pay.order?.mode,
   });
   const walletPaymentOptions = useWalletPaymentOptions({
     trpc,
-    address: senderAddr,
-    usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
-    destChainId: daimoPayOrder?.destFinalCallTokenAmount.token.chainId,
-    preferredChains: daimoPayOrder?.metadata.payer?.preferredChains,
-    preferredTokens: daimoPayOrder?.metadata.payer?.preferredTokens,
-    evmChains: daimoPayOrder?.metadata.payer?.evmChains,
+    address: ethWalletAddress,
+    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
+    destChainId: pay.order?.destFinalCallTokenAmount.token.chainId,
+    preferredChains: pay.order?.metadata.payer?.preferredChains,
+    preferredTokens: pay.order?.metadata.payer?.preferredTokens,
+    evmChains: pay.order?.metadata.payer?.evmChains,
     isDepositFlow,
     log,
   });
   const solanaPaymentOptions = useSolanaPaymentOptions({
     trpc,
     address: solanaPubKey,
-    usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
+    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
   });
   const depositAddressOptions = useDepositAddressOptions({
     trpc,
-    usdRequired: daimoPayOrder?.destFinalCallTokenAmount.usd,
-    mode: daimoPayOrder?.mode,
+    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
+    mode: pay.order?.mode,
   });
 
   const chainOrderUsdLimits = useOrderUsdLimits({ trpc });
 
-  /** Create a new order or hydrate an existing one. */
-  const createOrHydrate = async ({
-    order,
-    refundAddress,
-    externalPaymentOption,
-  }: {
-    order: DaimoPayOrder;
-    refundAddress?: string;
-    externalPaymentOption?: ExternalPaymentOptions;
-  }) => {
-    assert(!!platform, "[CREATE/HYDRATE] missing platform");
-
-    if (payParams == null) {
-      log(`[CREATE/HYDRATE] hydrating existing order ${order.id}`);
-      return await trpc.hydrateOrder.query({
-        id: order.id.toString(),
-        chosenFinalTokenAmount: order.destFinalCallTokenAmount.amount,
-        platform,
-        refundAddress,
-        externalPaymentOption,
-        redirectReturnUrl,
-      });
-    }
-
-    log(`[CREATE/HYDRATE] creating+hydrating new order ${order.id}`);
-    // Update units, if isDepositFlow then the user may have changed the amount.
-    const toUnits = formatUnits(
-      BigInt(order.destFinalCallTokenAmount.amount),
-      order.destFinalCallTokenAmount.token.decimals,
-    );
-    return await trpc.createOrder.mutate({
-      appId: payParams.appId,
-      paymentInput: {
-        ...payParams,
-        id: order.id.toString(),
-        toUnits,
-        metadata: order.metadata,
-        userMetadata: payParams.metadata,
-        isAmountEditable: isDepositFlow,
-      },
-      platform,
-      refundAddress,
-      externalPaymentOption,
-      redirectReturnUrl,
-    });
-  };
-
   const { payWithToken } = usePayWithToken({
-    trpc,
-    senderAddr,
-    refundAddress: payParams?.refundAddress,
-    daimoPayOrder,
-    setDaimoPayOrder,
-    createOrHydrate,
+    payerAddress: ethWalletAddress,
+    paymentState: pay.paymentState,
+    hydrateOrder: pay.hydrateOrder,
+    payEthSource: pay.payEthSource,
     log,
   });
 
   const { payWithSolanaToken } = usePayWithSolanaToken({
+    payerPublicKey: solanaWallet.publicKey,
+    paymentState: pay.paymentState,
+    orderId: pay.order?.id,
+    hydrateOrder: pay.hydrateOrder,
+    paySolanaSource: pay.paySolanaSource,
     trpc,
-    refundAddress: payParams?.refundAddress,
-    daimoPayOrder,
-    setDaimoPayOrder,
-    createOrHydrate,
     log,
   });
 
@@ -282,36 +225,39 @@ export function usePaymentState({
 
   const getOrderUsdLimit = () => {
     const DEFAULT_USD_LIMIT = 20000;
-    if (daimoPayOrder == null || chainOrderUsdLimits.loading) {
+    if (pay.order == null || chainOrderUsdLimits.loading) {
       return DEFAULT_USD_LIMIT;
     }
-    const destChainId = daimoPayOrder.destFinalCallTokenAmount.token.chainId;
+    const destChainId = pay.order.destFinalCallTokenAmount.token.chainId;
     return destChainId in chainOrderUsdLimits.limits
       ? chainOrderUsdLimits.limits[destChainId]
       : DEFAULT_USD_LIMIT;
   };
 
   const payWithExternal = async (option: ExternalPaymentOptions) => {
-    assert(!!daimoPayOrder, "[PAY EXTERNAL] daimoPayOrder cannot be null");
-    assert(!!platform, "[PAY EXTERNAL] platform cannot be null");
-    const { hydratedOrder, externalPaymentOptionData } = await createOrHydrate({
-      order: daimoPayOrder,
-      refundAddress: payParams?.refundAddress,
-      externalPaymentOption: option,
-    });
+    assert(pay.order != null, "[PAY EXTERNAL] order cannot be null");
+    assert(platform != null, "[PAY EXTERNAL] platform cannot be null");
+
+    const { order } = await pay.hydrateOrder();
+    const externalPaymentOptionData =
+      await trpc.getExternalPaymentOptionData.query({
+        id: order.id.toString(),
+        externalPaymentOption: option,
+        platform,
+        redirectReturnUrl,
+      });
     assert(
-      !!externalPaymentOptionData,
+      externalPaymentOptionData != null,
       "[PAY EXTERNAL] missing externalPaymentOptionData",
     );
 
     log(
-      `[PAY EXTERNAL] hydrated order: ${JSON.stringify(
-        hydratedOrder,
+      `[PAY EXTERNAL] hydrated order: ${debugJson(
+        order,
       )}, checking out with external payment: ${option}`,
     );
 
     setPaymentWaitingMessage(externalPaymentOptionData.waitingMessage);
-    setDaimoPayOrder(hydratedOrder);
 
     return externalPaymentOptionData.url;
   };
@@ -319,12 +265,11 @@ export function usePaymentState({
   const payWithDepositAddress = async (
     option: DepositAddressPaymentOptions,
   ) => {
-    assert(!!daimoPayOrder, "[PAY DEPOSIT ADDRESS] missing daimoPayOrder");
-    const { hydratedOrder } = await createOrHydrate({
-      order: daimoPayOrder,
-      refundAddress: payParams?.refundAddress,
-    });
-    setDaimoPayOrder(hydratedOrder);
+    assert(
+      pay.paymentState == "payment_unpaid",
+      `[PAY DEPOSIT ADDRESS] paymentState is ${pay.paymentState}, must be payment_unpaid`,
+    );
+    const { order: hydratedOrder } = await pay.hydrateOrder();
 
     log(
       `[PAY DEPOSIT ADDRESS] hydrated order: ${JSON.stringify(
@@ -334,11 +279,8 @@ export function usePaymentState({
 
     const depositAddressOption = await trpc.getDepositAddressOptionData.query({
       input: option,
-      usdRequired: daimoPayOrder.destFinalCallTokenAmount.usd,
-      toAddress: assertNotNull(
-        hydratedOrder.intentAddr,
-        `[PAY DEPOSIT ADDRESS] missing intentAddr on order ${hydratedOrder.id}`,
-      ),
+      usdRequired: hydratedOrder.destFinalCallTokenAmount.usd,
+      toAddress: hydratedOrder.intentAddr,
     });
     return depositAddressOption;
   };
@@ -350,24 +292,20 @@ export function usePaymentState({
     wallet?: WalletConfigProps,
     amountUsd?: number,
   ) => {
-    if (daimoPayOrder == null) return;
+    const paymentState = pay.paymentState;
+    assert(
+      paymentState === "preview" || paymentState === "unhydrated",
+      `[PAY SOLANA] paymentState is ${paymentState}, must be preview or unhydrated`,
+    );
 
     // In deposit mode, set the amount
-    let order = daimoPayOrder;
     if (amountUsd != null) {
       assert(amountUsd > 0, "amount must be positive");
-      order = setChosenUsd(amountUsd);
+      setChosenUsd(amountUsd);
     }
 
-    // Hydrate the order
-    log(
-      `payWithWallet: hydrating order ${order.id}${amountUsd && ` for $${amountUsd}`}`,
-    );
-    const { hydratedOrder } = await createOrHydrate({
-      order,
-      refundAddress: payParams?.refundAddress,
-    });
-    setDaimoPayOrder(hydratedOrder);
+    // TODO: pass user's connected wallet as fallback refundAddress
+    const { order: hydratedOrder } = await pay.hydrateOrder();
 
     // If we already picked a wallet, open in that wallet.
     if (wallet == null) return;
@@ -389,69 +327,34 @@ export function usePaymentState({
     });
   };
 
-  const refreshOrder = useCallback(async () => {
-    const id = daimoPayOrder?.id?.toString();
-    if (!id) return;
-
-    const { order } = await trpc.getOrder.query({
-      id,
-    });
-
-    // Don't overwrite the order if a new order was generated.
-    if (daimoPayOrder == null || order.id === daimoPayOrder.id) {
-      log(`[CHECKOUT] refreshed order: ${order.id}`);
-      setDaimoPayOrder(order);
-    } else {
-      log(
-        `[CHECKOUT] IGNORING refreshOrder, wrong ID: ${order.id} vs ${daimoPayOrder.id}`,
-      );
-    }
-  }, [daimoPayOrder, trpc, setDaimoPayOrder, log]);
-
   /** User picked a different deposit amount. */
   const setChosenUsd = (usd: number) => {
-    assert(!!daimoPayOrder, "[SET CHOSEN USD] daimoPayOrder cannot be null");
-    const token = daimoPayOrder.destFinalCallTokenAmount.token;
-    const tokenUnits = (usd / token.priceFromUsd).toString();
-    const tokenAmount = parseUnits(tokenUnits, token.decimals);
+    assert(
+      pay.paymentState === "preview",
+      "[SET CHOSEN USD] paymentState is not preview",
+    );
 
-    // TODO: remove amount from destFinalCall, it is redundant with
-    // destFinalCallTokenAmount. Here, we only modify one and not the other.
-    log(`[CHECKOUT] chose USD amount $${usd} = ${tokenUnits} ${token.symbol}`);
-    const ret = {
-      ...daimoPayOrder,
-      destFinalCallTokenAmount: {
-        token,
-        amount: tokenAmount.toString() as `${bigint}`,
-        usd: usd,
-      },
-    };
-    setDaimoPayOrder(ret);
-    return ret;
+    // Too expensive to make an API call to regenerate preview order each time
+    // the user changes the amount. Instead, we modify the order in memory.
+    pay.setChosenUsd(usd);
   };
 
   const setPayId = useCallback(
     async (payId: string | undefined) => {
       latestPayIdRef.current = payId;
 
-      if (lockPayParams || !payId) return;
+      if (lockPayParams || payId == null) return;
       const id = readDaimoPayOrderID(payId).toString();
 
-      if (daimoPayOrder && BigInt(id) == daimoPayOrder.id) {
+      if (pay.order?.id && BigInt(id) == pay.order.id) {
         // Already loaded, ignore.
         return;
       }
 
-      const { order } = await trpc.getOrder.query({ id });
-      if (!order) {
-        console.error(`[CHECKOUT] setPayId: no order found for ${payId}`);
-        return;
-      }
-      log(`[CHECKOUT] setPayId: fetched order: ${JSON.stringify(order)}`);
-
-      setDaimoPayOrder(order);
+      pay.reset();
+      pay.setPayId(payId);
     },
-    [daimoPayOrder, lockPayParams, trpc, log, setDaimoPayOrder],
+    [lockPayParams, pay],
   );
 
   /** Called whenever params change. */
@@ -462,79 +365,40 @@ export function usePaymentState({
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
 
     console.log("[SET PAY PARAMS] setting payParams");
-    setPayParamsState(payParams);
+    pay.reset();
+    await pay.createPreviewOrder(payParams);
+    setCurrPayParams(payParams);
     setIsDepositFlow(payParams.toUnits == null);
-
-    generatePreviewOrder(payParams);
   };
 
-  const generatePreviewOrder = useCallback(
-    async (payParams: PayParams) => {
-      // toUnits is undefined if and only if we're in deposit flow.
-      // Set dummy value for deposit flow, since user can edit the amount.
-      const toUnits = payParams.toUnits == null ? "0" : payParams.toUnits;
-
-      const orderPreview = await trpc.previewOrder.query({
-        appId: payParams.appId,
-        toChain: payParams.toChain,
-        toToken: payParams.toToken,
-        toUnits,
-        toAddress: payParams.toAddress,
-        toCallData: payParams.toCallData,
-        isAmountEditable: payParams.toUnits == null,
-        metadata: {
-          intent: payParams.intent ?? "Pay",
-          items: [],
-          payer: {
-            paymentOptions: payParams.paymentOptions,
-            preferredChains: payParams.preferredChains,
-            preferredTokens: payParams.preferredTokens,
-            evmChains: payParams.evmChains,
-          },
-        },
-        externalId: payParams.externalId,
-        userMetadata: payParams.metadata,
-        refundAddress: payParams.refundAddress,
-      });
-
-      log(`[CHECKOUT] generated preview: ${JSON.stringify(orderPreview)}`);
-      // TODO: Properly type this and fix hacky type casting
-      setDaimoPayOrder(orderPreview as unknown as DaimoPayOrderWithOrg);
-    },
-    [trpc, log, setDaimoPayOrder],
-  );
+  const generatePreviewOrder = async () => {
+    if (currPayParams == null) return;
+    pay.reset();
+    await pay.createPreviewOrder(currPayParams);
+  };
 
   const resetOrder = useCallback(() => {
     // Clear the old order & UI
-    setDaimoPayOrder(undefined);
+    pay.reset();
     setRoute(ROUTES.SELECT_METHOD);
 
     // Prefer an explicit payId, otherwise use the queued payParams
     if (latestPayIdRef.current) {
-      setPayId(latestPayIdRef.current);
+      pay.setPayId(latestPayIdRef.current);
       latestPayIdRef.current = undefined;
     } else if (latestPayParamsRef.current) {
-      const p = latestPayParamsRef.current;
-      setPayParamsState(p);
-      generatePreviewOrder(p);
+      pay.createPreviewOrder(latestPayParamsRef.current);
+      latestPayParamsRef.current = undefined;
     }
-  }, [
-    setDaimoPayOrder,
-    setRoute,
-    setPayId,
-    setPayParamsState,
-    generatePreviewOrder,
-  ]);
+  }, [setRoute, pay]);
 
   return {
     buttonProps,
     setButtonProps,
     setPayId,
-    payParams,
     setPayParams,
 
     generatePreviewOrder,
-    daimoPayOrder,
     isDepositFlow,
     paymentWaitingMessage,
     selectedExternalOption,
@@ -563,7 +427,6 @@ export function usePaymentState({
     payWithDepositAddress,
     payWithSolanaToken,
     payWithWallet,
-    refreshOrder,
     senderEnsName: senderEnsName ?? undefined,
   };
 }

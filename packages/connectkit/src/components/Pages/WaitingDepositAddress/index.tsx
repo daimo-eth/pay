@@ -10,11 +10,12 @@ import {
 } from "../../Common/Modal/styles";
 
 import {
+  DaimoPayIntentStatus,
   DepositAddressPaymentOptionData,
   getAddressContraction,
 } from "@daimo/pay-common";
 import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
-import type { TrpcClient } from "../../../utils/trpc";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import CopyToClipboard from "../../Common/CopyToClipboard";
 import CustomQRCode from "../../Common/CustomQRCode";
 import { OrDivider } from "../../Common/Modal";
@@ -23,28 +24,16 @@ import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 const WaitingDepositAddress: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
-  const trpc = context.trpc as TrpcClient;
+  const { order } = useDaimoPay();
 
-  const { daimoPayOrder, payWithDepositAddress, selectedDepositAddressOption } =
-    paymentState;
+  const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
 
+  // Watch when the order gets paid and navigate to confirmation
   useEffect(() => {
-    const checkForSourcePayment = async () => {
-      if (!daimoPayOrder || !selectedDepositAddressOption) return;
-
-      const found = await trpc.findSourcePayment.query({
-        orderId: daimoPayOrder.id.toString(),
-      });
-
-      if (found) {
-        setRoute(ROUTES.CONFIRMATION);
-      }
-    };
-
-    // Check every 10 seconds, bitcoin takes a while
-    const interval = setInterval(checkForSourcePayment, 10000);
-    return () => clearInterval(interval);
-  }, [daimoPayOrder?.id]);
+    if (order?.intentStatus === DaimoPayIntentStatus.STARTED) {
+      setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
+    }
+  }, [order, setRoute]);
 
   const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
   const [failed, setFailed] = useState(false);

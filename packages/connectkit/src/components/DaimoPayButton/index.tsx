@@ -19,6 +19,7 @@ import {
 } from "@daimo/pay-common";
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
+import { useDaimoPay } from "../../hooks/useDaimoPay";
 import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
@@ -199,6 +200,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   let payId = "payId" in props ? props.payId : null;
 
   const { paymentState } = context;
+  const { order } = useDaimoPay();
 
   // Set the payId or payParams
   useEffect(() => {
@@ -242,16 +244,15 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
-  const order = paymentState.daimoPayOrder;
   const hydOrder = order?.mode === DaimoPayOrderMode.HYDRATED ? order : null;
 
   // Functions to show and hide the modal
   const { children, closeOnSuccess, resetOnSuccess } = props;
   const show = useCallback(() => {
-    if (paymentState.daimoPayOrder == null) return;
+    if (order == null) return;
     const modalOptions = { closeOnSuccess, resetOnSuccess };
     context.showPayment(modalOptions);
-  }, [context, paymentState.daimoPayOrder, closeOnSuccess, resetOnSuccess]);
+  }, [context, order, closeOnSuccess, resetOnSuccess]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
   // Emit event handlers when payment status changes
@@ -357,8 +358,8 @@ const contentVariants: Variants = {
 };
 
 function DaimoPayButtonInner({ disabled }: { disabled?: boolean }) {
-  const { paymentState } = usePayContext();
-  const label = paymentState?.daimoPayOrder?.metadata?.intent ?? "Pay";
+  const { order } = useDaimoPay();
+  const label = order?.metadata?.intent ?? "Pay";
 
   return (
     <AnimatePresence initial={false}>

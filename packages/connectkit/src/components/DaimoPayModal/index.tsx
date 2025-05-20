@@ -13,7 +13,6 @@ import Onboarding from "../Pages/Onboarding";
 import SwitchNetworks from "../Pages/SwitchNetworks";
 import ConnectUsing from "./ConnectUsing";
 
-import { assert } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
@@ -57,7 +56,6 @@ export const DaimoPayModal: React.FC<{
   const { setMode, setTheme, setCustomTheme, setLang } = context;
   const paymentState = context.paymentState;
   const {
-    payParams,
     generatePreviewOrder,
     isDepositFlow,
     showSolanaPaymentMethod,
@@ -112,11 +110,7 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);
@@ -124,11 +118,7 @@ export const DaimoPayModal: React.FC<{
       }
     } else if (context.route === ROUTES.PAY_WITH_TOKEN) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_AMOUNT, meta);
       } else {
         setSelectedTokenOption(undefined);
@@ -138,11 +128,7 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
       } else {
         setSelectedDepositAddressOption(undefined);
@@ -150,11 +136,7 @@ export const DaimoPayModal: React.FC<{
       }
     } else if (context.route === ROUTES.WAITING_WALLET) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
         setSelectedWallet(undefined);
@@ -165,11 +147,7 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta);
     } else if (context.route === ROUTES.SOLANA_PAY_WITH_TOKEN) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SOLANA_SELECT_AMOUNT, meta);
       } else {
         setSelectedSolanaTokenOption(undefined);
@@ -211,11 +189,7 @@ export const DaimoPayModal: React.FC<{
 
   function hide() {
     if (isDepositFlow) {
-      assert(
-        payParams != null,
-        "[PAY MODAL] payParams cannot be null in deposit flow",
-      );
-      generatePreviewOrder(payParams);
+      generatePreviewOrder();
     }
     context.setOpen(false, { event: "click-close" });
   }

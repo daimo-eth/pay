@@ -176,6 +176,7 @@ export type DaimoPayDehydratedOrder = {
   metadata: DaimoPayOrderMetadata;
   externalId: string | null;
   userMetadata: DaimoPayUserMetadata | null;
+  refundAddr: Address | null;
 };
 
 export type DaimoPayHydratedOrder = {

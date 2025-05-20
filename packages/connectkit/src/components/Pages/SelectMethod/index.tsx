@@ -46,12 +46,14 @@ export default function SelectMethod() {
   const { disconnectAsync } = useDisconnect();
 
   const {
+    daimoPayOrder,
     setSelectedExternalOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,
     depositAddressOptions,
     senderEnsName,
   } = paymentState;
+  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
 
   // Decide whether to show the connected eth account, solana account, or both.
   const showConnectedEth = isEthConnected;
@@ -158,9 +160,9 @@ export default function SelectMethod() {
 
   // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
   // Include by default if paymentOptions not provided
-  const showDepositAddressMethod = externalPaymentOptions.options
-    .get("external")
-    ?.some((o) => o.id == ExternalPaymentOptions.ExternalChains);
+  const showDepositAddressMethod =
+    paymentOptions == null ||
+    paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
 
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {

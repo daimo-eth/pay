@@ -10,7 +10,6 @@ import {
 } from "../../Common/Modal/styles";
 
 import {
-  DaimoPayIntentStatus,
   DepositAddressPaymentOptionData,
   getAddressContraction,
 } from "@daimo/pay-common";
@@ -24,16 +23,20 @@ import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 const WaitingDepositAddress: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
-  const { order } = useDaimoPay();
+  const { paymentState: payState } = useDaimoPay();
 
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
 
   // Watch when the order gets paid and navigate to confirmation
   useEffect(() => {
-    if (order?.intentStatus === DaimoPayIntentStatus.STARTED) {
+    if (
+      payState === "payment_started" ||
+      payState === "payment_completed" ||
+      payState === "payment_bounced"
+    ) {
       setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
     }
-  }, [order, setRoute]);
+  }, [payState, setRoute]);
 
   const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
   const [failed, setFailed] = useState(false);

@@ -130,7 +130,6 @@ async function runSetPayParamsEffects(
       order: orderPreview as unknown as DaimoPayOrderWithOrg,
       payParamsData: {
         appId: payParams.appId,
-        refundAddress: payParams.refundAddress,
       },
     });
   } catch (e: any) {
@@ -181,7 +180,7 @@ async function runHydratePayParamsEffects(
         metadata: order.metadata,
         userMetadata: order.userMetadata,
       },
-      refundAddress: prev.payParamsData.refundAddress ?? event.refundAddress,
+      refundAddress: event.refundAddress,
     });
 
     store.dispatch({
@@ -244,6 +243,7 @@ async function runPayEthereumSourceEffects(
       sourceAmount: event.sourceAmount.toString(),
     });
 
+    // TODO: Update order state with updated txHash
     store.dispatch({ type: "payment_started", order: prev.order });
     // Start polling API to watch when the order gets processed
     store.dispatch({
@@ -270,6 +270,7 @@ async function runPaySolanaSourceEffects(
       token: event.sourceToken,
     });
 
+    // TODO: Update order state with updated txHash
     store.dispatch({ type: "payment_started", order: prev.order });
     // Start polling API to watch when the order gets processed
     store.dispatch({
@@ -296,19 +297,22 @@ async function runPollRefreshOrderEffects(
   try {
     const { order } = await trpc.getOrder.query({ id: orderId.toString() });
 
+    log(
+      `[EFFECT] polled refresh order: ${prev.order.intentStatus} -> ${order.intentStatus}`,
+    );
+    store.dispatch({ type: "refresh_order_succeeded", order });
+
     if (
       order.intentStatus === "payment_completed" ||
       order.intentStatus === "payment_bounced"
     ) {
       assert(
         order.mode === DaimoPayOrderMode.HYDRATED,
-        `[EFFECT] order ${orderId} is ${order.intentStatus} but not hydrated`,
+        `[PAYMENT_EFFECTS] order ${order.id} is ${order.intentStatus} but not hydrated`,
       );
       store.dispatch({ type: "dest_processed", order });
     } else {
-      log(
-        `[EFFECT] poll refresh order: ${prev.order.intentStatus} -> ${order.intentStatus}`,
-      );
+      // Keep polling until the order destination is processed
       store.dispatch({
         type: "poll_refresh_order",
         pollIntervalMs: event.pollIntervalMs,
@@ -338,6 +342,11 @@ async function runPollSourcePaymentEffects(
     if (found) {
       // TODO: update order state with updated txHash
       store.dispatch({ type: "payment_started", order: prev.order });
+      // Start polling to watch when the order gets processed
+      store.dispatch({
+        type: "poll_refresh_order",
+        pollIntervalMs: 300,
+      });
     } else {
       // Keep polling to check if the source payment has been made
       store.dispatch({

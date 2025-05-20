@@ -9,10 +9,7 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import {
-  DaimoPayIntentStatus,
-  ExternalPaymentOptions,
-} from "@daimo/pay-common";
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -22,7 +19,7 @@ import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState, setRoute } = context;
-  const { order } = useDaimoPay();
+  const { paymentState: payState } = useDaimoPay();
   const { isMobile } = useIsMobile();
 
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
@@ -42,10 +39,14 @@ const WaitingExternal: React.FC = () => {
 
   // Watch when the order gets paid and navigate to confirmation
   useEffect(() => {
-    if (order?.intentStatus === DaimoPayIntentStatus.STARTED) {
+    if (
+      payState === "payment_started" ||
+      payState === "payment_completed" ||
+      payState === "payment_bounced"
+    ) {
       setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
     }
-  }, [order, setRoute]);
+  }, [payState, setRoute]);
 
   useEffect(() => {
     if (!selectedExternalOption) return;

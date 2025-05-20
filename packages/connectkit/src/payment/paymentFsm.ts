@@ -113,6 +113,7 @@ export type PaymentEvent =
     }
   | { type: "set_pay_id_succeeded"; order: DaimoPayOrderWithOrg }
   | { type: "hydrate_order_succeeded"; order: DaimoPayHydratedOrder }
+  | { type: "refresh_order_succeeded"; order: DaimoPayOrderWithOrg }
   | { type: "payment_started"; order: DaimoPayHydratedOrder }
   | { type: "dest_processed"; order: DaimoPayHydratedOrder }
   /* failure / util */
@@ -125,7 +126,6 @@ export type PaymentEvent =
 
 type PayParamsData = {
   appId: string;
-  refundAddress: Address | undefined;
 };
 
 /**
@@ -298,6 +298,13 @@ function reducePaymentStarted(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
+    case "refresh_order_succeeded": {
+      assert(
+        event.order.mode === DaimoPayOrderMode.HYDRATED,
+        `[PAYMENT_REDUCER] order ${event.order.id} is ${event.order.intentStatus} but not hydrated`,
+      );
+      return { type: "payment_started", order: event.order };
+    }
     case "dest_processed":
       return event.order.intentStatus === DaimoPayIntentStatus.COMPLETED
         ? { type: "payment_completed", order: event.order }

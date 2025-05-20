@@ -20,6 +20,7 @@ import {
   Trust,
   WalletIcon,
 } from "../../../assets/logos";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import OptionsList from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -46,14 +47,14 @@ export default function SelectMethod() {
   const { disconnectAsync } = useDisconnect();
 
   const {
-    daimoPayOrder,
     setSelectedExternalOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,
     depositAddressOptions,
     senderEnsName,
   } = paymentState;
-  const paymentOptions = daimoPayOrder?.metadata.payer?.paymentOptions;
+  const { order } = useDaimoPay();
+  const paymentOptions = order?.metadata.payer?.paymentOptions;
 
   // Decide whether to show the connected eth account, solana account, or both.
   const showConnectedEth = isEthConnected;

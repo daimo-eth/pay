@@ -1,13 +1,7 @@
-import { DaimoPayOrder, writeDaimoPayOrderID } from "@daimo/pay-common";
+import { DaimoPayOrderID } from "@daimo/pay-common";
 import { daimoPayVersion } from "./exports";
 
-export function getSupportUrl(
-  daimoPayOrder: DaimoPayOrder | undefined,
-  screen: string,
-) {
-  const payId =
-    daimoPayOrder == null ? null : writeDaimoPayOrderID(daimoPayOrder.id);
-
+export function getSupportUrl(payId: DaimoPayOrderID, screen: string): string {
   const email = "support@daimo.com";
   const subject = `Support${payId ? ` #${payId}` : ""}`;
   let body = [

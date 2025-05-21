@@ -60,8 +60,8 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
-    "react": "17.x || 18.x || 19.x",
-    "react-dom": "17.x || 18.x || 19.x",
+    "react": "18.x || 19.x",
+    "react-dom": "18.x || 19.x",
     "viem": ">=2.22.0",
     "wagmi": "2.x"
   },

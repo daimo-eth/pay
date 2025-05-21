@@ -1,50 +1,55 @@
-import {
-  assert,
-  assertNotNull,
-  DaimoPayOrderWithOrg,
-  SolanaPublicKey,
-} from "@daimo/pay-common";
+import { assert, assertNotNull, SolanaPublicKey } from "@daimo/pay-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { VersionedTransaction } from "@solana/web3.js";
+import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { Address, hexToBytes } from "viem";
+import { PaymentState, PaymentStateType } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
-import { CreateOrHydrateFn } from "./hookTypes";
 
 export function usePayWithSolanaToken({
+  payerPublicKey,
+  paymentState,
+  orderId,
+  hydrateOrder,
+  paySolanaSource,
   trpc,
-  refundAddress,
-  daimoPayOrder,
-  setDaimoPayOrder,
-  createOrHydrate,
   log,
 }: {
+  payerPublicKey: PublicKey | null;
+  paymentState: PaymentStateType;
+  orderId: bigint | undefined;
+  hydrateOrder: (
+    refundAddress?: Address,
+  ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
+  paySolanaSource: (args: {
+    paymentTxHash: string;
+    sourceToken: SolanaPublicKey;
+  }) => void;
   trpc: TrpcClient;
-  refundAddress: Address | undefined;
-  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
-  setDaimoPayOrder: (order: DaimoPayOrderWithOrg) => void;
-  createOrHydrate: CreateOrHydrateFn;
   log: (message: string) => void;
 }) {
   const { connection } = useConnection();
   const wallet = useWallet();
 
   const payWithSolanaToken = async (inputToken: SolanaPublicKey) => {
-    assert(!!wallet.publicKey, "[PAY SOLANA] No wallet connected");
-    assert(!!daimoPayOrder, "[PAY SOLANA] daimoPayOrder cannot be null");
+    assert(
+      payerPublicKey != null,
+      "[PAY SOLANA] null payerPublicKey when paying on solana",
+    );
+    assert(orderId != null, "[PAY SOLANA] null orderId when paying on solana");
+    assert(
+      paymentState === "preview" || paymentState === "unhydrated",
+      `[PAY SOLANA] paymentState is ${paymentState}, must be preview or unhydrated`,
+    );
 
-    const orderId = daimoPayOrder.id;
-    const { hydratedOrder } = await createOrHydrate({
-      order: daimoPayOrder,
-      refundAddress,
-    });
+    const { order: hydratedOrder } = await hydrateOrder();
 
     log(
-      `[CHECKOUT] Hydrated order: ${JSON.stringify(
+      `[PAY SOLANA] Hydrated order: ${JSON.stringify(
         hydratedOrder,
       )}, checking out with Solana ${inputToken}`,
     );
 
-    const txHash = await (async () => {
+    const paymentTxHash = await (async () => {
       try {
         const serializedTx = await trpc.getSolanaSwapAndBurnTx.query({
           orderId: orderId.toString(),
@@ -59,22 +64,16 @@ export function usePayWithSolanaToken({
         return txHash;
       } catch (e) {
         console.error(e);
-        setDaimoPayOrder(hydratedOrder);
         throw e;
-      } finally {
-        setDaimoPayOrder(hydratedOrder);
       }
     })();
 
-    // TOOD: get the actual amount sent from the tx logs.
-    // We are currently using a fake amount = 0.
-    trpc.processSolanaSourcePayment.mutate({
-      orderId: orderId.toString(),
-      startIntentTxHash: txHash,
-      token: inputToken,
+    paySolanaSource({
+      paymentTxHash: paymentTxHash,
+      sourceToken: inputToken,
     });
 
-    return txHash;
+    return paymentTxHash;
   };
 
   return { payWithSolanaToken };

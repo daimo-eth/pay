@@ -1,6 +1,7 @@
 import { DaimoPayOrderMode, writeDaimoPayOrderID } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -78,7 +79,7 @@ const ConnectorItem = ({
 
   const { connect } = useConnect();
 
-  const order = context.paymentState.daimoPayOrder;
+  const { order } = useDaimoPay();
 
   // Deeplink directly to wallet if we have a already-hydrated order.
   const deeplink =

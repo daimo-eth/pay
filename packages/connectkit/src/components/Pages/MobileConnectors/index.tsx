@@ -13,6 +13,7 @@ import { ROUTES } from "../../../constants/routes";
 import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { useWalletConnectModal } from "../../../hooks/useWalletConnectModal";
+import { useWeb3 } from "../../../provider/Web3ContextProvider";
 import { useWallets } from "../../../wallets/useWallets";
 import {
   WalletConfigProps,
@@ -21,7 +22,6 @@ import {
 import CopyToClipboard from "../../Common/CopyToClipboard";
 import { ScrollArea } from "../../Common/ScrollArea";
 import { Spinner } from "../../Common/Spinner";
-import { useWeb3 } from "../../contexts/web3";
 
 const MoreIcon = (
   <svg

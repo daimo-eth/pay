@@ -38,6 +38,7 @@ import { useTransition } from "react-transition-state";
 import { useAccount, useSwitchChain } from "wagmi";
 import { AuthIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
@@ -205,12 +206,12 @@ const Modal: React.FC<ModalProps> = ({
   const themeContext = useThemeContext();
   const mobile = isMobile();
   const {
-    daimoPayOrder,
     selectedExternalOption,
     selectedTokenOption,
     selectedSolanaTokenOption,
     selectedDepositAddressOption,
   } = context.paymentState;
+  const { order } = useDaimoPay();
 
   const { connector } = useAccount();
   const wallet = useWallet(connector?.id ?? "");
@@ -362,7 +363,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_METHOD:
       case ROUTES.SELECT_TOKEN:
       case ROUTES.SOLANA_SELECT_TOKEN:
-        return daimoPayOrder?.metadata.intent;
+        return order?.metadata.intent;
       case ROUTES.SOLANA_PAY_WITH_TOKEN:
         if (!selectedSolanaTokenOption) return undefined;
         return `Pay with ${selectedSolanaTokenOption.required.token.symbol}`;

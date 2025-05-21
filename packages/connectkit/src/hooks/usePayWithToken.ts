@@ -1,30 +1,27 @@
-import {
-  assert,
-  assertNotNull,
-  DaimoPayOrderWithOrg,
-  debugJson,
-  WalletPaymentOption,
-} from "@daimo/pay-common";
-import { Address, erc20Abi, getAddress, zeroAddress } from "viem";
+import { assert, debugJson, WalletPaymentOption } from "@daimo/pay-common";
+import { Address, erc20Abi, getAddress, Hex, zeroAddress } from "viem";
 import { useSendTransaction, useWriteContract } from "wagmi";
-import { TrpcClient } from "../utils/trpc";
-import { CreateOrHydrateFn } from "./hookTypes";
+import { PaymentState, PaymentStateType } from "../payment/paymentFsm";
 
 export function usePayWithToken({
-  trpc,
-  senderAddr,
-  refundAddress,
-  daimoPayOrder,
-  setDaimoPayOrder,
-  createOrHydrate,
+  payerAddress,
+  paymentState,
+  hydrateOrder,
+  payEthSource,
   log,
 }: {
-  trpc: TrpcClient;
-  createOrHydrate: CreateOrHydrateFn;
-  senderAddr: Address | undefined;
-  refundAddress: Address | undefined;
-  daimoPayOrder: DaimoPayOrderWithOrg | undefined;
-  setDaimoPayOrder: (order: DaimoPayOrderWithOrg) => void;
+  payerAddress: Address | undefined;
+  paymentState: PaymentStateType;
+  hydrateOrder: (
+    refundAddress?: Address,
+  ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
+  payEthSource: (args: {
+    paymentTxHash: Hex;
+    sourceChainId: number;
+    payerAddress: Address;
+    sourceToken: Address;
+    sourceAmount: bigint;
+  }) => void;
   log: (message: string) => void;
 }) {
   const { writeContractAsync } = useWriteContract();
@@ -32,7 +29,14 @@ export function usePayWithToken({
 
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (walletOption: WalletPaymentOption) => {
-    assert(!!daimoPayOrder, "[PAY TOKEN] daimoPayOrder cannot be null");
+    assert(
+      payerAddress != null,
+      `[PAY TOKEN] null payerAddress when paying on ethereum`,
+    );
+    assert(
+      paymentState === "preview" || paymentState === "unhydrated",
+      `[PAY TOKEN] paymentState is ${paymentState}, must be preview or unhydrated`,
+    );
 
     const { required, fees } = walletOption;
     assert(
@@ -41,20 +45,16 @@ export function usePayWithToken({
     );
     const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
 
-    const { hydratedOrder } = await createOrHydrate({
-      order: daimoPayOrder,
-      // Use the developer-provided refund address. Default to the sender.
-      refundAddress: refundAddress ?? senderAddr,
-    });
+    // Will use the payerAddress if refundAddress was not set in payParams
+    const { order: hydratedOrder } = await hydrateOrder(payerAddress);
 
     log(
-      `[PAY TOKEN] hydrated order: ${JSON.stringify(
+      `[PAY TOKEN] hydrated order: ${debugJson(
         hydratedOrder,
       )}, paying ${paymentAmount} of token ${required.token.token}`,
     );
-    setDaimoPayOrder(hydratedOrder);
 
-    const txHash = await (async () => {
+    const paymentTxHash = await (async () => {
       try {
         if (required.token.token === zeroAddress) {
           return await sendTransactionAsync({
@@ -75,19 +75,16 @@ export function usePayWithToken({
       }
     })();
 
-    if (txHash) {
-      await trpc.processSourcePayment.mutate({
-        orderId: daimoPayOrder.id.toString(),
-        sourceInitiateTxHash: txHash,
+    if (paymentTxHash) {
+      payEthSource({
+        paymentTxHash,
         sourceChainId: required.token.chainId,
-        sourceFulfillerAddr: assertNotNull(
-          senderAddr,
-          `[PAY TOKEN] senderAddr cannot be null on order ${daimoPayOrder.id}`,
-        ),
-        sourceToken: required.token.token,
-        sourceAmount: paymentAmount.toString(),
+        payerAddress,
+        sourceToken: getAddress(required.token.token),
+        sourceAmount: paymentAmount,
       });
-      // TODO: update order immediately, do not wait for polling.
+    } else {
+      console.error(`[PAY TOKEN] no txHash for payment`);
     }
   };
 

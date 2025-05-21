@@ -6,12 +6,12 @@ import { TextContainer } from "./styles";
 import {
   assertNotNull,
   DaimoPayEventType,
-  DaimoPayIntentStatus,
-  DaimoPayOrderMode,
   DaimoPayOrderView,
   DaimoPayUserMetadata,
   ExternalPaymentOptionsString,
   getDaimoPayOrderView,
+  getOrderDestChainId,
+  getOrderSourceChainId,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
@@ -19,7 +19,8 @@ import {
 } from "@daimo/pay-common";
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
-import { PayParams } from "../../hooks/usePaymentState";
+import { useDaimoPay } from "../../hooks/useDaimoPay";
+import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
 import ThemedButton, { ThemeContainer } from "../Common/ThemedButton";
@@ -199,6 +200,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   let payId = "payId" in props ? props.payId : null;
 
   const { paymentState } = context;
+  const { order, paymentState: payState } = useDaimoPay();
 
   // Set the payId or payParams
   useEffect(() => {
@@ -242,72 +244,69 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
-  const order = paymentState.daimoPayOrder;
-  const hydOrder = order?.mode === DaimoPayOrderMode.HYDRATED ? order : null;
-
   // Functions to show and hide the modal
   const { children, closeOnSuccess, resetOnSuccess } = props;
   const show = useCallback(() => {
-    if (paymentState.daimoPayOrder == null) return;
+    if (order == null) return;
     const modalOptions = { closeOnSuccess, resetOnSuccess };
     context.showPayment(modalOptions);
-  }, [context, paymentState.daimoPayOrder, closeOnSuccess, resetOnSuccess]);
+  }, [context, order, closeOnSuccess, resetOnSuccess]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
-  // Emit event handlers when payment status changes
+  // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
+  useEffect(() => {
+    if (sentStart.current) return;
+    if (payState !== "payment_started") return;
+
+    // TODO: Populate source payment details immediately when the user pays.
+    // Use this hack because source chain id is not immediately populated when
+    // payment_started
+    const sourceChainId = getOrderSourceChainId(order);
+    if (sourceChainId == null) return;
+
+    sentStart.current = true;
+    onPaymentStarted?.({
+      type: DaimoPayEventType.PaymentStarted,
+      paymentId: writeDaimoPayOrderID(order.id),
+      chainId: sourceChainId,
+      txHash: order.sourceInitiateTxHash,
+      payment: getDaimoPayOrderView(order),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, payState]);
+
+  // Emit onPaymentComplete or onPaymentBounced handler when payment state
+  // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
-    if (hydOrder == null) return;
-    const intentStatus = hydOrder.intentStatus;
-
-    // Started? Send start.
-    if (intentStatus === DaimoPayIntentStatus.UNPAID) {
+    if (sentComplete.current) return;
+    if (payState !== "payment_completed" && payState !== "payment_bounced")
       return;
-    }
-    if (!sentStart.current && hydOrder.sourceTokenAmount) {
-      sentStart.current = true;
-      onPaymentStarted?.({
-        type: DaimoPayEventType.PaymentStarted,
-        paymentId: writeDaimoPayOrderID(hydOrder.id),
-        chainId: hydOrder.sourceTokenAmount?.token.chainId,
-        txHash: hydOrder.sourceInitiateTxHash ?? null,
-        payment: getDaimoPayOrderView(hydOrder),
-      });
-    }
 
-    // Finished? Send end event.
-    if (
-      intentStatus !== DaimoPayIntentStatus.COMPLETED &&
-      intentStatus !== DaimoPayIntentStatus.BOUNCED
-    ) {
-      return;
-    }
-    if (!sentComplete.current) {
-      sentComplete.current = true;
-      const eventType =
-        intentStatus === DaimoPayIntentStatus.COMPLETED
-          ? DaimoPayEventType.PaymentCompleted
-          : DaimoPayEventType.PaymentBounced;
-      const event = {
-        type: eventType,
-        paymentId: writeDaimoPayOrderID(hydOrder.id),
-        chainId: hydOrder.destFinalCallTokenAmount.token.chainId,
-        txHash: assertNotNull(
-          hydOrder.destFastFinishTxHash ?? hydOrder.destClaimTxHash,
-          `[PAY BUTTON] dest tx hash null on order ${hydOrder.id} when intent status is ${intentStatus}`,
-        ),
-        payment: getDaimoPayOrderView(hydOrder),
-      };
+    sentComplete.current = true;
+    const eventType =
+      payState === "payment_completed"
+        ? DaimoPayEventType.PaymentCompleted
+        : DaimoPayEventType.PaymentBounced;
+    const event = {
+      type: eventType,
+      paymentId: writeDaimoPayOrderID(order.id),
+      chainId: getOrderDestChainId(order),
+      txHash: assertNotNull(
+        order.destFastFinishTxHash ?? order.destClaimTxHash,
+        `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`,
+      ),
+      payment: getDaimoPayOrderView(order),
+    };
 
-      if (intentStatus === DaimoPayIntentStatus.COMPLETED) {
-        onPaymentCompleted?.(event as PaymentCompletedEvent);
-      } else if (intentStatus === DaimoPayIntentStatus.BOUNCED) {
-        onPaymentBounced?.(event as PaymentBouncedEvent);
-      }
+    if (payState === "payment_completed") {
+      onPaymentCompleted?.(event as PaymentCompletedEvent);
+    } else if (payState === "payment_bounced") {
+      onPaymentBounced?.(event as PaymentBouncedEvent);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydOrder]);
+  }, [order, payState]);
 
   // Open the modal by default if the defaultOpen prop is true
   useEffect(() => {
@@ -326,8 +325,6 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
 }
 
 DaimoPayButtonCustom.displayName = "DaimoPayButton.Custom";
-
-DaimoPayButton.Custom = DaimoPayButtonCustom;
 
 const contentVariants: Variants = {
   initial: {
@@ -357,8 +354,8 @@ const contentVariants: Variants = {
 };
 
 function DaimoPayButtonInner({ disabled }: { disabled?: boolean }) {
-  const { paymentState } = usePayContext();
-  const label = paymentState?.daimoPayOrder?.metadata?.intent ?? "Pay";
+  const { order } = useDaimoPay();
+  const label = order?.metadata?.intent ?? "Pay";
 
   return (
     <AnimatePresence initial={false}>

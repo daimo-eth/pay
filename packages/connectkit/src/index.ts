@@ -15,6 +15,7 @@ export {
 } from "./components/DaimoPayButton";
 
 // Hooks to track payment status + UI status.
+export { useDaimoPay } from "./hooks/useDaimoPay";
 export { useDaimoPayStatus } from "./hooks/useDaimoPayStatus";
 
 // TODO: replace with useDaimoPay() more comprehensive status.

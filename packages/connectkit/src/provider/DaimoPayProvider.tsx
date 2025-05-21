@@ -41,25 +41,19 @@ import {
 } from "./SolanaContextProvider";
 import { Web3ContextProvider } from "./Web3ContextProvider";
 
-type DaimoPayProviderProps = {
+type DaimoPayUIProviderProps = {
   children?: React.ReactNode;
   theme?: Theme;
   mode?: Mode;
   customTheme?: CustomTheme;
   options?: DaimoPayContextOptions;
   debugMode?: boolean;
-  /**
-   * Be careful with this endpoint, some endpoints (incl. Alchemy) don't support
-   * `signatureSubscribe` which leads to txes behaving erratically
-   * (ex. successful txes take minutes to confirm instead of seconds)
-   */
-  solanaRpcUrl?: string;
   /** Custom Pay API, useful for test and staging. */
   payApiUrl: string;
   log: (msg: string) => void;
 } & useConnectCallbackProps;
 
-const DaimoPayUIProviderWithoutSolana = ({
+const DaimoPayUIProvider = ({
   children,
   theme = "auto",
   mode = "auto",
@@ -70,7 +64,7 @@ const DaimoPayUIProviderWithoutSolana = ({
   debugMode = false,
   payApiUrl,
   log,
-}: DaimoPayProviderProps) => {
+}: DaimoPayUIProviderProps) => {
   if (!React.useContext(PaymentContext)) {
     throw Error("DaimoPayProvider must be within a PaymentProvider");
   }
@@ -370,6 +364,23 @@ const DaimoPayUIProviderWithoutSolana = ({
   );
 };
 
+type DaimoPayProviderProps = {
+  children?: React.ReactNode;
+  theme?: Theme;
+  mode?: Mode;
+  customTheme?: CustomTheme;
+  options?: DaimoPayContextOptions;
+  debugMode?: boolean;
+  /**
+   * Be careful with this endpoint, some endpoints (incl. Alchemy) don't support
+   * `signatureSubscribe` which leads to txes behaving erratically
+   * (ex. successful txes take minutes to confirm instead of seconds)
+   */
+  solanaRpcUrl?: string;
+  /** Custom Pay API, useful for test and staging. */
+  payApiUrl: string;
+} & useConnectCallbackProps;
+
 /**
  * Provides context for DaimoPayButton and hooks. Place in app root or layout.
  */
@@ -383,11 +394,7 @@ export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
   return (
     <PaymentProvider payApiUrl={payApiUrl} log={log}>
       <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-        <DaimoPayUIProviderWithoutSolana
-          {...props}
-          payApiUrl={payApiUrl}
-          log={log}
-        />
+        <DaimoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
       </SolanaContextProvider>
     </PaymentProvider>
   );

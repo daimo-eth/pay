@@ -326,6 +326,8 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
 
 DaimoPayButtonCustom.displayName = "DaimoPayButton.Custom";
 
+DaimoPayButton.Custom = DaimoPayButtonCustom;
+
 const contentVariants: Variants = {
   initial: {
     zIndex: 2,

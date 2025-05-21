@@ -68,8 +68,6 @@ export function usePayWithSolanaToken({
       }
     })();
 
-    // TOOD: get the actual amount sent from the tx logs.
-    // We are currently using a fake amount = 0.
     paySolanaSource({
       paymentTxHash: paymentTxHash,
       sourceToken: inputToken,

@@ -22,21 +22,9 @@ import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const WaitingDepositAddress: React.FC = () => {
   const context = usePayContext();
-  const { triggerResize, paymentState, setRoute } = context;
-  const { paymentState: payState } = useDaimoPay();
+  const { triggerResize, paymentState } = context;
 
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
-
-  // Watch when the order gets paid and navigate to confirmation
-  useEffect(() => {
-    if (
-      payState === "payment_started" ||
-      payState === "payment_completed" ||
-      payState === "payment_bounced"
-    ) {
-      setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
-    }
-  }, [payState, setRoute]);
 
   const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
   const [failed, setFailed] = useState(false);

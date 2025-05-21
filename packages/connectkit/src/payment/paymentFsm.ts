@@ -1,6 +1,6 @@
 import {
   assert,
-  DaimoPayHydratedOrder,
+  DaimoPayHydratedOrderWithOrg,
   DaimoPayIntentStatus,
   DaimoPayOrder,
   DaimoPayOrderID,
@@ -52,8 +52,6 @@ export type PaymentState =
   | { type: "idle" }
   // payParams are set, payId is not set. A preview order has been created
   // but not saved to the db
-  // TODO: can remove either order or payParamsData from this state. Order
-  // previews seem to be an artifact of the old state management system.
   | {
       type: "preview";
       order: DaimoPayOrderWithOrg;
@@ -63,13 +61,13 @@ export type PaymentState =
   // and saved to the db
   | { type: "unhydrated"; order: DaimoPayOrderWithOrg }
   // Order was hydrated and is waiting to be paid
-  | { type: "payment_unpaid"; order: DaimoPayHydratedOrder }
+  | { type: "payment_unpaid"; order: DaimoPayHydratedOrderWithOrg }
   // Order was paid, destination was not processed
-  | { type: "payment_started"; order: DaimoPayHydratedOrder }
+  | { type: "payment_started"; order: DaimoPayHydratedOrderWithOrg }
   // Order was paid and processed successfully
-  | { type: "payment_completed"; order: DaimoPayHydratedOrder }
+  | { type: "payment_completed"; order: DaimoPayHydratedOrderWithOrg }
   // Order was paid but the destination failed to process
-  | { type: "payment_bounced"; order: DaimoPayHydratedOrder }
+  | { type: "payment_bounced"; order: DaimoPayHydratedOrderWithOrg }
   // An error occurred
   | { type: "error"; order: DaimoPayOrder | undefined; message: string };
 
@@ -97,25 +95,20 @@ export type PaymentEvent =
       paymentTxHash: string;
       sourceToken: SolanaPublicKey;
     }
-  | {
-      type: "poll_source_payment";
-      pollIntervalMs: number;
-    }
-  | {
-      type: "poll_refresh_order";
-      pollIntervalMs: number;
-    }
   /* result events (effect finished) */
   | {
-      type: "set_pay_params_succeeded";
+      type: "preview_generated";
       order: DaimoPayOrderWithOrg;
       payParamsData: PayParamsData;
     }
-  | { type: "set_pay_id_succeeded"; order: DaimoPayOrderWithOrg }
-  | { type: "hydrate_order_succeeded"; order: DaimoPayHydratedOrder }
-  | { type: "refresh_order_succeeded"; order: DaimoPayOrderWithOrg }
-  | { type: "payment_started"; order: DaimoPayHydratedOrder }
-  | { type: "dest_processed"; order: DaimoPayHydratedOrder }
+  | { type: "order_loaded"; order: DaimoPayOrderWithOrg }
+  | { type: "order_hydrated"; order: DaimoPayHydratedOrderWithOrg }
+  | {
+      type: "order_refreshed";
+      order: DaimoPayOrderWithOrg | DaimoPayHydratedOrderWithOrg;
+    }
+  | { type: "payment_started"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "dest_processed"; order: DaimoPayHydratedOrderWithOrg }
   /* failure / util */
   | {
       type: "error";
@@ -168,14 +161,14 @@ function reduceIdle(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "set_pay_params_succeeded":
+    case "preview_generated":
       return {
         type: "preview",
         order: event.order,
         payParamsData: event.payParamsData,
       };
     // Handle cases where the order id is already partially processed
-    case "set_pay_id_succeeded": {
+    case "order_loaded": {
       const order = event.order;
       if (order.intentStatus === DaimoPayIntentStatus.COMPLETED) {
         assert(
@@ -219,7 +212,7 @@ function reducePreview(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "hydrate_order_succeeded":
+    case "order_hydrated":
       return { type: "payment_unpaid", order: event.order };
     case "set_chosen_usd": {
       const token = state.order.destFinalCallTokenAmount.token;
@@ -258,7 +251,7 @@ function reduceUnhydrated(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "hydrate_order_succeeded":
+    case "order_hydrated":
       return { type: "payment_unpaid", order: event.order };
     case "error":
       return {
@@ -298,7 +291,7 @@ function reducePaymentStarted(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "refresh_order_succeeded": {
+    case "order_refreshed": {
       assert(
         event.order.mode === DaimoPayOrderMode.HYDRATED,
         `[PAYMENT_REDUCER] order ${event.order.id} is ${event.order.intentStatus} but not hydrated`,

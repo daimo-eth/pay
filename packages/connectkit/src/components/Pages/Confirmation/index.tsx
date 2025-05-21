@@ -10,7 +10,6 @@ import {
 
 import {
   assert,
-  DaimoPayOrderMode,
   getChainExplorerTxUrl,
   getOrderDestChainId,
 } from "@daimo/pay-common";
@@ -30,26 +29,13 @@ const Confirmation: React.FC = () => {
       paymentState === "payment_completed" ||
       paymentState === "payment_bounced"
     ) {
-      assert(
-        order != null,
-        `[CONFIRMATION] paymentState: ${paymentState}, but missing order`,
-      );
-      assert(
-        order.mode === DaimoPayOrderMode.HYDRATED,
-        `[CONFIRMATION] paymentState: ${paymentState}, but order is not hydrated`,
-      );
-
       const txHash = order.destFastFinishTxHash ?? order.destClaimTxHash;
       const destChainId = getOrderDestChainId(order);
       assert(
         txHash != null,
         `[CONFIRMATION] paymentState: ${paymentState}, but missing txHash`,
       );
-      assert(
-        destChainId != null,
-        `[CONFIRMATION] paymentState: ${paymentState}, but missing destChainId`,
-      );
-      const txURL = getChainExplorerTxUrl(Number(destChainId), txHash);
+      const txURL = getChainExplorerTxUrl(destChainId, txHash);
 
       return { done: true, txURL };
     }

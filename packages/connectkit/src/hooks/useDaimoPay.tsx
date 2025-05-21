@@ -1,26 +1,12 @@
 // hooks/useDaimoPay.ts
-import {
-  DaimoPayOrder,
-  DaimoPayOrderID,
-  SolanaPublicKey,
-} from "@daimo/pay-common";
+import { DaimoPayOrderID, SolanaPublicKey } from "@daimo/pay-common";
 import { useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 import { Address, Hex } from "viem";
-import {
-  PaymentEvent,
-  PaymentState,
-  PaymentStateType,
-  PayParams,
-} from "../payment/paymentFsm";
+import { PaymentEvent, PaymentState, PayParams } from "../payment/paymentFsm";
 import { waitForPaymentState } from "../payment/paymentStore";
 import { PaymentContext } from "../provider/PaymentProvider";
 
-export interface UseDaimoPay {
-  /** The current Daimo Pay order, or null if no order is active. */
-  order: DaimoPayOrder | null;
-  /** The current state of the payment flow. */
-  paymentState: PaymentStateType;
-
+type DaimoPayFunctions = {
   /**
    * Create a new Daimo Pay order preview with the given parameters.
    * Call this to start a new payment flow.
@@ -96,7 +82,18 @@ export interface UseDaimoPay {
    * @deprecated
    */
   setChosenUsd: (usd: number) => void;
-}
+};
+
+// Enforce that order is typed correctly based on paymentState.
+// E.g. if paymentState is "payment_completed", then order must be hydrated.
+type DaimoPayState = {
+  [S in PaymentState as S["type"]]: {
+    paymentState: S["type"];
+    order: S extends { order: infer O } ? O : null;
+  };
+}[PaymentState["type"]];
+
+export type UseDaimoPay = DaimoPayFunctions & DaimoPayState;
 
 /**
  * React hook for interacting with Daimo Pay orders and payments. Use this hook
@@ -242,5 +239,5 @@ export function useDaimoPay(): UseDaimoPay {
     paySolanaSource,
     reset,
     setChosenUsd,
-  };
+  } as UseDaimoPay;
 }

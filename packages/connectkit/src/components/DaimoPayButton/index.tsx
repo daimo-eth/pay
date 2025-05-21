@@ -6,7 +6,6 @@ import { TextContainer } from "./styles";
 import {
   assertNotNull,
   DaimoPayEventType,
-  DaimoPayOrderMode,
   DaimoPayOrderView,
   DaimoPayUserMetadata,
   ExternalPaymentOptionsString,
@@ -257,7 +256,6 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
   useEffect(() => {
-    if (order == null || order.mode !== DaimoPayOrderMode.HYDRATED) return;
     if (sentStart.current) return;
     if (payState !== "payment_started") return;
 
@@ -272,7 +270,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
       type: DaimoPayEventType.PaymentStarted,
       paymentId: writeDaimoPayOrderID(order.id),
       chainId: sourceChainId,
-      txHash: order.sourceInitiateTxHash ?? null,
+      txHash: order.sourceInitiateTxHash,
       payment: getDaimoPayOrderView(order),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -282,7 +280,6 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
-    if (order == null || order.mode !== DaimoPayOrderMode.HYDRATED) return;
     if (sentComplete.current) return;
     if (payState !== "payment_completed" && payState !== "payment_bounced")
       return;

@@ -5,9 +5,24 @@ import {
   getOrderDestChainId,
 } from "@daimo/pay-common";
 import { formatUnits, getAddress } from "viem";
+import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
 import { PaymentEvent, PaymentState } from "./paymentFsm";
 import { PaymentStore } from "./paymentStore";
+
+// Maps poller identifier to poll handle which terminates the poller
+// key = `${type}:${orderId}`
+const pollers = new Map<string, PollHandle>();
+
+enum PollerType {
+  FIND_SOURCE_PAYMENT = "find_source_payment",
+  REFRESH_ORDER = "refresh_order",
+}
+
+function stopPoller(key: string) {
+  pollers.get(key)?.();
+  pollers.delete(key);
+}
 
 /**
  * Add a subscriber to the payment store that runs side effects in response to
@@ -27,6 +42,36 @@ export function attachPaymentEffectHandlers(
     log(
       `[EFFECT] processing effects for event ${event.type} on state transition ${prev.type} -> ${next.type}`,
     );
+    /* --------------------------------------------------
+     * State-driven effects
+     * -------------------------------------------------- */
+    if (prev.type !== next.type) {
+      // Start watching for source payment
+      if (next.type === "payment_unpaid") {
+        pollFindSourcePayment(store, trpc, next.order.id);
+      }
+
+      // Refresh the order to watch for destination processing
+      if (next.type === "payment_started") {
+        pollRefreshOrder(store, trpc, next.order.id);
+      }
+
+      // Stop all pollers when the payment flow is completed or reset
+      if (
+        ["payment_completed", "payment_bounced", "error", "idle"].includes(
+          next.type,
+        )
+      ) {
+        if ("order" in prev && prev.order) {
+          stopPoller(`${PollerType.FIND_SOURCE_PAYMENT}:${prev.order.id}`);
+          stopPoller(`${PollerType.REFRESH_ORDER}:${prev.order.id}`);
+        }
+      }
+    }
+
+    /* --------------------------------------------------
+     * Event-driven effects
+     * -------------------------------------------------- */
     switch (event.type) {
       case "set_pay_params":
         runSetPayParamsEffects(store, trpc, event);
@@ -59,26 +104,6 @@ export function attachPaymentEffectHandlers(
         log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
         break;
       }
-      case "poll_source_payment": {
-        if (prev.type === "payment_unpaid") {
-          runPollSourcePaymentEffects(store, trpc, prev, event);
-        } else {
-          log(
-            `[EFFECT] Stopping poll_source_payment. State: ${prev.type}, Event: ${event.type}`,
-          );
-        }
-        break;
-      }
-      case "poll_refresh_order": {
-        if (prev.type === "payment_started") {
-          runPollRefreshOrderEffects(store, trpc, prev, event, log);
-        } else {
-          log(
-            `[EFFECT] Stopping poll_refresh_order. State: ${prev.type}, Event: ${event.type}`,
-          );
-        }
-        break;
-      }
       default:
         log(
           `[EFFECT] No effects to run for event ${event.type} on state ${prev.type}`,
@@ -87,7 +112,76 @@ export function attachPaymentEffectHandlers(
     }
   });
 
-  return unsubscribe;
+  const cleanup = () => {
+    unsubscribe();
+    pollers.forEach((_, key) => stopPoller(key));
+    log("[EFFECT] unsubscribed from payment store and stopped all pollers");
+  };
+
+  return cleanup;
+}
+
+async function pollFindSourcePayment(
+  store: PaymentStore,
+  trpc: TrpcClient,
+  orderId: bigint,
+) {
+  const key = `${PollerType.FIND_SOURCE_PAYMENT}:${orderId}`;
+
+  const stopPolling = startPolling({
+    key,
+    intervalMs: 1_000,
+    pollFn: () => trpc.findSourcePayment.query({ orderId: orderId.toString() }),
+    onResult: (found) => {
+      const state = store.getState();
+      // Check that we're still in the payment_unpaid state
+      if (state.type !== "payment_unpaid") return;
+      if (found) {
+        store.dispatch({ type: "payment_started", order: state.order });
+        stopPolling();
+      }
+    },
+    onError: () => {},
+  });
+
+  pollers.set(key, stopPolling);
+}
+
+async function pollRefreshOrder(
+  store: PaymentStore,
+  trpc: TrpcClient,
+  orderId: bigint,
+) {
+  const key = `${PollerType.REFRESH_ORDER}:${orderId}`;
+
+  const stopPolling = startPolling({
+    key,
+    intervalMs: 300,
+    pollFn: () => trpc.getOrder.query({ id: orderId.toString() }),
+    onResult: (res) => {
+      const state = store.getState();
+      // Check that we're still in the payment_started state
+      if (state.type !== "payment_started") return;
+
+      const order = res.order;
+      store.dispatch({ type: "order_refreshed", order });
+
+      if (
+        order.intentStatus === "payment_completed" ||
+        order.intentStatus === "payment_bounced"
+      ) {
+        assert(
+          order.mode === DaimoPayOrderMode.HYDRATED,
+          `[PAYMENT_EFFECTS] order ${order.id} is ${order.intentStatus} but not hydrated`,
+        );
+        store.dispatch({ type: "dest_processed", order });
+        stopPolling();
+      }
+    },
+    onError: () => {},
+  });
+
+  pollers.set(key, stopPolling);
 }
 
 async function runSetPayParamsEffects(
@@ -125,7 +219,7 @@ async function runSetPayParamsEffects(
     });
 
     store.dispatch({
-      type: "set_pay_params_succeeded",
+      type: "preview_generated",
       // TODO: Properly type this and fix hacky type casting
       order: orderPreview as unknown as DaimoPayOrderWithOrg,
       payParamsData: {
@@ -146,7 +240,7 @@ async function runSetPayIdEffects(
     const { order } = await trpc.getOrder.query({ id: event.payId });
 
     store.dispatch({
-      type: "set_pay_id_succeeded",
+      type: "order_loaded",
       order,
     });
   } catch (e: any) {
@@ -184,13 +278,8 @@ async function runHydratePayParamsEffects(
     });
 
     store.dispatch({
-      type: "hydrate_order_succeeded",
+      type: "order_hydrated",
       order: hydratedOrder,
-    });
-    // Start polling API to watch when the order gets paid
-    store.dispatch({
-      type: "poll_source_payment",
-      pollIntervalMs: 1000,
     });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
@@ -212,13 +301,8 @@ async function runHydratePayIdEffects(
     });
 
     store.dispatch({
-      type: "hydrate_order_succeeded",
+      type: "order_hydrated",
       order: hydratedOrder,
-    });
-    // Start polling API to watch when the order gets paid
-    store.dispatch({
-      type: "poll_source_payment",
-      pollIntervalMs: 1000,
     });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
@@ -245,11 +329,6 @@ async function runPayEthereumSourceEffects(
 
     // TODO: Update order state with updated txHash
     store.dispatch({ type: "payment_started", order: prev.order });
-    // Start polling API to watch when the order gets processed
-    store.dispatch({
-      type: "poll_refresh_order",
-      pollIntervalMs: 300,
-    });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }
@@ -272,88 +351,6 @@ async function runPaySolanaSourceEffects(
 
     // TODO: Update order state with updated txHash
     store.dispatch({ type: "payment_started", order: prev.order });
-    // Start polling API to watch when the order gets processed
-    store.dispatch({
-      type: "poll_refresh_order",
-      pollIntervalMs: 300,
-    });
-  } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
-  }
-}
-
-async function runPollRefreshOrderEffects(
-  store: PaymentStore,
-  trpc: TrpcClient,
-  prev: Extract<PaymentState, { type: "payment_started" }>,
-  event: Extract<PaymentEvent, { type: "poll_refresh_order" }>,
-  log: (msg: string) => void,
-) {
-  const orderId = prev.order.id;
-
-  // Sleep for the specified interval before polling
-  await new Promise((resolve) => setTimeout(resolve, event.pollIntervalMs));
-
-  try {
-    const { order } = await trpc.getOrder.query({ id: orderId.toString() });
-
-    log(
-      `[EFFECT] polled refresh order: ${prev.order.intentStatus} -> ${order.intentStatus}`,
-    );
-    store.dispatch({ type: "refresh_order_succeeded", order });
-
-    if (
-      order.intentStatus === "payment_completed" ||
-      order.intentStatus === "payment_bounced"
-    ) {
-      assert(
-        order.mode === DaimoPayOrderMode.HYDRATED,
-        `[PAYMENT_EFFECTS] order ${order.id} is ${order.intentStatus} but not hydrated`,
-      );
-      store.dispatch({ type: "dest_processed", order });
-    } else {
-      // Keep polling until the order destination is processed
-      store.dispatch({
-        type: "poll_refresh_order",
-        pollIntervalMs: event.pollIntervalMs,
-      });
-    }
-  } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
-  }
-}
-
-async function runPollSourcePaymentEffects(
-  store: PaymentStore,
-  trpc: TrpcClient,
-  prev: Extract<PaymentState, { type: "payment_unpaid" }>,
-  event: Extract<PaymentEvent, { type: "poll_source_payment" }>,
-) {
-  const orderId = prev.order.id;
-
-  // Sleep for the specified interval before polling
-  await new Promise((resolve) => setTimeout(resolve, event.pollIntervalMs));
-
-  try {
-    const found = await trpc.findSourcePayment.query({
-      orderId: orderId.toString(),
-    });
-
-    if (found) {
-      // TODO: update order state with updated txHash
-      store.dispatch({ type: "payment_started", order: prev.order });
-      // Start polling to watch when the order gets processed
-      store.dispatch({
-        type: "poll_refresh_order",
-        pollIntervalMs: 300,
-      });
-    } else {
-      // Keep polling to check if the source payment has been made
-      store.dispatch({
-        type: "poll_source_payment",
-        pollIntervalMs: event.pollIntervalMs,
-      });
-    }
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }

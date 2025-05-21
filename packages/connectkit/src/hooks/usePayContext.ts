@@ -1,5 +1,5 @@
 import React, { createContext } from "react";
-import { SolanaWalletName } from "../components/contexts/solana";
+import { SolanaWalletName } from "../provider/SolanaContextProvider";
 import { ROUTES } from "../constants/routes";
 import { Languages } from "../localizations";
 import {

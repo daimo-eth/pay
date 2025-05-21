@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
@@ -11,15 +10,13 @@ import {
 
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
 const WaitingExternal: React.FC = () => {
   const context = usePayContext();
-  const { triggerResize, paymentState, setRoute } = context;
-  const { paymentState: payState } = useDaimoPay();
+  const { triggerResize, paymentState } = context;
   const { isMobile } = useIsMobile();
 
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
@@ -36,17 +33,6 @@ const WaitingExternal: React.FC = () => {
   }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
-
-  // Watch when the order gets paid and navigate to confirmation
-  useEffect(() => {
-    if (
-      payState === "payment_started" ||
-      payState === "payment_completed" ||
-      payState === "payment_bounced"
-    ) {
-      setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
-    }
-  }, [payState, setRoute]);
 
   useEffect(() => {
     if (!selectedExternalOption) return;

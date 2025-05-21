@@ -1,8 +1,4 @@
-import {
-  DaimoPayOrderMode,
-  DaimoPayOrderWithOrg,
-  debugJson,
-} from "@daimo/pay-common";
+import { debugJson } from "@daimo/pay-common";
 import { Buffer } from "buffer";
 import React, {
   createElement,
@@ -15,6 +11,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { useAccount, WagmiContext } from "wagmi";
 
+import { DaimoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
 import { useChains } from "../hooks/useChains";
@@ -38,9 +35,11 @@ import {
 } from "../types";
 import { createTrpcClient } from "../utils/trpc";
 import { setInWalletPaymentUrlFromApiUrl } from "../wallets/walletConfigs";
-import { DaimoPayModal } from "./DaimoPayModal";
-import { SolanaContextProvider, SolanaWalletName } from "./contexts/solana";
-import { Web3ContextProvider } from "./contexts/web3";
+import {
+  SolanaContextProvider,
+  SolanaWalletName,
+} from "./SolanaContextProvider";
+import { Web3ContextProvider } from "./Web3ContextProvider";
 
 type DaimoPayProviderProps = {
   children?: React.ReactNode;
@@ -292,6 +291,17 @@ const DaimoPayUIProviderWithoutSolana = ({
       setRoute(ROUTES.SELECT_METHOD);
     }
   };
+
+  // Watch when the order gets paid and navigate to confirmation
+  useEffect(() => {
+    if (
+      pay.paymentState === "payment_started" ||
+      pay.paymentState === "payment_completed" ||
+      pay.paymentState === "payment_bounced"
+    ) {
+      setRoute(ROUTES.CONFIRMATION, { event: "payment-started" });
+    }
+  }, [pay.paymentState, setRoute]);
 
   const value: PayContextValue = {
     theme: ckTheme,

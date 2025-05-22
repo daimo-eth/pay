@@ -1,6 +1,7 @@
+import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
-import { assertNotNull } from "@daimo/pay-common";
+import Logos from "../assets/logos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
@@ -53,17 +54,16 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     addIfNotPresent("com.trustwallet.app");
     addIfNotPresent("me.rainbow");
 
-    // Add WalletConnect last
-    const walletConnectConnector = connectors.find(
-      (c) => c.id === "walletConnect",
-    );
-    if (walletConnectConnector) {
-      mobileWallets.push({
-        id: walletConnectConnector.id,
-        connector: walletConnectConnector,
-        ...walletConfigs[walletConnectConnector.id],
-      });
-    }
+    // Add other wallet
+    mobileWallets.push({
+      id: "other",
+      name: "Other Wallets",
+      shortName: "Other",
+      iconConnector: <Logos.OtherWallets />,
+      iconShape: "square",
+      getWalletConnectDeeplink: (uri: string) => uri,
+      showInMobileConnectors: false,
+    });
 
     return mobileWallets;
   }

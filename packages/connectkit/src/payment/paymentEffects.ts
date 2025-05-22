@@ -3,6 +3,7 @@ import {
   DaimoPayOrderMode,
   DaimoPayOrderWithOrg,
   getOrderDestChainId,
+  readDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { formatUnits, getAddress } from "viem";
 import { PollHandle, startPolling } from "../utils/polling";
@@ -237,7 +238,9 @@ async function runSetPayIdEffects(
   event: Extract<PaymentEvent, { type: "set_pay_id" }>,
 ) {
   try {
-    const { order } = await trpc.getOrder.query({ id: event.payId });
+    const { order } = await trpc.getOrder.query({
+      id: readDaimoPayOrderID(event.payId).toString(),
+    });
 
     store.dispatch({
       type: "order_loaded",

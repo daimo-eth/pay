@@ -93,10 +93,7 @@ export interface PaymentState {
   payWithSolanaToken: (
     inputToken: SolanaPublicKey,
   ) => Promise<string | undefined>;
-  payWithWallet: (
-    wallet?: WalletConfigProps,
-    amountUsd?: number,
-  ) => Promise<void>;
+  openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
   senderEnsName: string | undefined;
 }
 
@@ -286,39 +283,29 @@ export function usePaymentState({
   };
 
   const { isIOS } = useIsMobile();
-  /// Hydrates an order to prepare for paying in an in-wallet browser via
-  /// deeplink. Then, if wallet is specified, opens in that wallet.
-  const payWithWallet = async (
-    wallet?: WalletConfigProps,
+
+  const openInWalletBrowser = (
+    wallet: WalletConfigProps,
     amountUsd?: number,
   ) => {
     const paymentState = pay.paymentState;
     assert(
-      paymentState === "preview" || paymentState === "unhydrated",
-      `[PAY SOLANA] paymentState is ${paymentState}, must be preview or unhydrated`,
+      paymentState === "payment_unpaid",
+      `[OPEN IN WALLET BROWSER] paymentState is ${paymentState}, must be payment_unpaid`,
     );
-
-    // In deposit mode, set the amount
-    if (amountUsd != null) {
-      assert(amountUsd > 0, "amount must be positive");
-      setChosenUsd(amountUsd);
-    }
-
-    // TODO: pass user's connected wallet as fallback refundAddress
-    const { order: hydratedOrder } = await pay.hydrateOrder();
-
-    // If we already picked a wallet, open in that wallet.
-    if (wallet == null) return;
     assert(
       wallet.getDaimoPayDeeplink != null,
-      "payWithWallet: missing deeplink",
+      `openInWalletBrowser: missing deeplink for ${wallet.name}`,
     );
-    const payId = writeDaimoPayOrderID(hydratedOrder.id);
+
+    const payId = writeDaimoPayOrderID(pay.order.id);
     const deeplink = wallet.getDaimoPayDeeplink(payId);
-    // if we are in IOS, we don't open the deeplink in a new window, because it will not work, the link will be opened in the page WAITING_WALLET
+    // If we are in IOS, we don't open the deeplink in a new window, because it
+    // will not work, the link will be opened in the page WAITING_WALLET
     if (!isIOS) {
       window.open(deeplink, "_blank");
     }
+    setSelectedWallet(wallet);
     setSelectedWalletDeepLink(deeplink);
     setRoute(ROUTES.WAITING_WALLET, {
       amountUsd,
@@ -426,7 +413,7 @@ export function usePaymentState({
     payWithExternal,
     payWithDepositAddress,
     payWithSolanaToken,
-    payWithWallet,
+    openInWalletBrowser,
     senderEnsName: senderEnsName ?? undefined,
   };
 }

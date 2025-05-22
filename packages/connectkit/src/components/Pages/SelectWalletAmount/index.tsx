@@ -3,6 +3,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
@@ -12,7 +13,8 @@ import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
 const SelectWalletAmount: React.FC = () => {
   const { paymentState } = usePayContext();
-  const { selectedWallet, payWithWallet } = paymentState;
+  const { selectedWallet, openInWalletBrowser } = paymentState;
+  const { setChosenUsd, hydrateOrder } = useDaimoPay();
 
   const maxUsdLimit = paymentState.getOrderUsdLimit();
 
@@ -34,7 +36,10 @@ const SelectWalletAmount: React.FC = () => {
 
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
-    await payWithWallet(selectedWallet, amountUsd);
+    setChosenUsd(amountUsd);
+    await hydrateOrder();
+
+    openInWalletBrowser(selectedWallet, amountUsd);
   };
 
   return (

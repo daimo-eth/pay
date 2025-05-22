@@ -1,4 +1,14 @@
 import React from "react";
+
+import { ROUTES } from "../../../constants/routes";
+import { usePayContext } from "../../../hooks/usePayContext";
+import { useWallets } from "../../../wallets/useWallets";
+import {
+  WalletConfigProps,
+  walletConfigs,
+} from "../../../wallets/walletConfigs";
+import { ModalContent, PageContent } from "../../Common/Modal/styles";
+import { ScrollArea } from "../../Common/ScrollArea";
 import {
   Container,
   WalletIcon,
@@ -7,49 +17,10 @@ import {
   WalletList,
 } from "./styles";
 
-import { ModalContent, PageContent } from "../../Common/Modal/styles";
-
-import { ROUTES } from "../../../constants/routes";
-import useLocales from "../../../hooks/useLocales";
-import { usePayContext } from "../../../hooks/usePayContext";
-import { useWalletConnectModal } from "../../../hooks/useWalletConnectModal";
-import { useWeb3 } from "../../../provider/Web3ContextProvider";
-import { useWallets } from "../../../wallets/useWallets";
-import {
-  WalletConfigProps,
-  walletConfigs,
-} from "../../../wallets/walletConfigs";
-import CopyToClipboard from "../../Common/CopyToClipboard";
-import { ScrollArea } from "../../Common/ScrollArea";
-import { Spinner } from "../../Common/Spinner";
-
-const MoreIcon = (
-  <svg
-    width="60"
-    height="60"
-    viewBox="0 0 60 60"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M30 42V19M19 30.5H42"
-      stroke="var(--ck-body-color-muted)"
-      strokeWidth="3"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 const MobileConnectors: React.FC = () => {
-  const locales = useLocales();
   const context = usePayContext();
   const { paymentState, setRoute } = context;
-  const {
-    connect: { getUri },
-  } = useWeb3();
-  const wcUri = getUri();
 
-  const { open: openW3M, isOpen: isOpenW3M } = useWalletConnectModal();
   const wallets = useWallets();
 
   // filter out installed wallets
@@ -69,11 +40,11 @@ const MobileConnectors: React.FC = () => {
       console.error(`wallet ${wallet.name} has no deeplink`);
       return;
     }
-    context.paymentState.setSelectedWallet(wallet);
     if (paymentState.isDepositFlow) {
+      context.paymentState.setSelectedWallet(wallet);
       setRoute(ROUTES.SELECT_WALLET_AMOUNT);
     } else {
-      paymentState.payWithWallet(wallet);
+      paymentState.openInWalletBrowser(wallet);
     }
   };
 
@@ -117,52 +88,9 @@ const MobileConnectors: React.FC = () => {
                     </WalletItem>
                   );
                 })}
-              <WalletItem onClick={openW3M} $waiting={isOpenW3M}>
-                <WalletIcon
-                  style={{ background: "var(--ck-body-background-secondary)" }}
-                >
-                  {isOpenW3M ? (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50%",
-                        }}
-                      >
-                        <Spinner />
-                      </div>
-                    </div>
-                  ) : (
-                    MoreIcon
-                  )}
-                </WalletIcon>
-                <WalletLabel>{locales.more}</WalletLabel>
-              </WalletItem>
             </WalletList>
           </ScrollArea>
         </ModalContent>
-        {context.options?.walletConnectCTA !== "modal" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 14,
-              paddingTop: 8,
-            }}
-          >
-            <CopyToClipboard variant="button" string={wcUri}>
-              Copy WC link
-            </CopyToClipboard>
-          </div>
-        )}
       </Container>
     </PageContent>
   );

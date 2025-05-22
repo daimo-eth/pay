@@ -8,12 +8,55 @@ const Shimmer = keyframes`
   100%{ transform: translate(100%) rotate(-80deg); }
 `;
 
+export const Pulse = keyframes`
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1;   }
+  100% { opacity: 0.6; }
+`;
+
 export const ConnectorButton = styled(motion.button)`
   display: block;
   text-decoration: none;
 `;
 export const ConnectorLabel = styled(motion.span)``;
 export const ConnectorIcon = styled(motion.div)``;
+
+export const SkeletonIcon = styled.div<{ $mobile?: boolean }>`
+  ${(p: { $mobile?: boolean }) =>
+    p.$mobile
+      ? css`
+          position: relative;
+          margin: 0 auto;
+          width: 60px;
+          height: 60px;
+        `
+      : css`
+          position: absolute;
+          right: 20px;
+          width: 32px;
+          height: 32px;
+        `}
+  border-radius: 22.5%;
+  background-color: rgba(0, 0, 0, 0.1);
+  animation: ${Pulse} 1.5s ease-in-out infinite;
+`;
+
+export const SkeletonLabel = styled.div<{ $mobile?: boolean }>`
+  ${(p: { $mobile?: boolean }) =>
+    p.$mobile
+      ? css`
+          width: 60px;
+          height: 12px;
+          margin: 10px auto 0;
+        `
+      : css`
+          width: 100px;
+          height: 16px;
+        `}
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  animation: ${Pulse} 1.5s ease-in-out infinite;
+`;
 
 // This is a bit of a hack to not share styles between mobile and desktop
 const styles = {

@@ -17,6 +17,7 @@ import {
   LearnMoreContainer,
 } from "./styles";
 
+import { DaimoPayOrderMode } from "@daimo/pay-common";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
@@ -29,14 +30,19 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
-  const { hydrateOrder } = useDaimoPay();
+  const { hydrateOrder, order } = useDaimoPay();
 
   // If we're on mobile & not in deposit mode, hydrate immediately.
   useEffect(() => {
-    if (isMobile && !context.paymentState.isDepositFlow) {
+    if (
+      isMobile &&
+      !context.paymentState.isDepositFlow &&
+      order != null &&
+      order.mode !== DaimoPayOrderMode.HYDRATED
+    ) {
       hydrateOrder();
     }
-  }, [isMobile, context.paymentState.isDepositFlow, hydrateOrder]);
+  }, [isMobile, context.paymentState.isDepositFlow, hydrateOrder, order]);
 
   return (
     <PageContent>

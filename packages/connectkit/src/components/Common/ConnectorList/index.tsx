@@ -101,13 +101,13 @@ const ConnectorItem = ({
     isCoinbaseWalletConnector(wallet.connector?.id);
 
   const onClick = () => {
-    if (wallet.getDaimoPayDeeplink != null) {
-      context.paymentState.openInWalletBrowser(wallet);
-    } else if (redirectToMoreWallets) {
+    if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
     } else if (context.paymentState.isDepositFlow && isMobile) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+    } else if (isMobile && wallet.getDaimoPayDeeplink != null) {
+      context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {
         connect({ connector: wallet.connector! });

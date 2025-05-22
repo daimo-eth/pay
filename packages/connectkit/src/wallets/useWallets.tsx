@@ -61,7 +61,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       shortName: "Other",
       iconConnector: <Logos.OtherWallets />,
       iconShape: "square",
-      getWalletConnectDeeplink: (uri: string) => uri,
       showInMobileConnectors: false,
     });
 

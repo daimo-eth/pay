@@ -378,7 +378,7 @@ type DaimoPayProviderProps = {
    */
   solanaRpcUrl?: string;
   /** Custom Pay API, useful for test and staging. */
-  payApiUrl: string;
+  payApiUrl?: string;
 } & useConnectCallbackProps;
 
 /**

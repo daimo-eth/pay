@@ -309,12 +309,14 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   }, [order, payState]);
 
   // Open the modal by default if the defaultOpen prop is true
+  const hasAutoOpened = useRef(false);
   useEffect(() => {
-    if (props.defaultOpen && order != null) {
+    if (!hasAutoOpened.current && props.defaultOpen && order != null) {
       show();
+      hasAutoOpened.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order != null, props.defaultOpen]);
+  }, [order, props.defaultOpen, hasAutoOpened.current]);
 
   // Validation
   if ((payId == null) == (payParams == null)) {

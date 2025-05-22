@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useState } from "react";
+import { createContext, useLayoutEffect, useMemo, useState } from "react";
 import { attachPaymentEffectHandlers } from "../payment/paymentEffects";
 import { createPaymentStore, PaymentStore } from "../payment/paymentStore";
 import { createTrpcClient } from "../utils/trpc";
@@ -26,9 +26,11 @@ export function PaymentProvider({
     return createPaymentStore();
   }, []);
 
-  // Attach subscriber to run side effects in response to events
-  useEffect(() => {
+  // Attach subscriber to run side effects in response to events. Use a
+  // layout effect that runs before the first render.
+  useLayoutEffect(() => {
     const unsubscribe = attachPaymentEffectHandlers(store, trpc, log);
+    log("[EFFECT] subscribed to payment effects");
     return unsubscribe;
   }, [store, trpc, log]);
 

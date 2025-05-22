@@ -1,5 +1,7 @@
 import {
   assert,
+  assertNotNull,
+  DaimoPayHydratedOrderWithOrg,
   debugJson,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
@@ -15,10 +17,17 @@ import {
   WalletPaymentOption,
   writeDaimoPayOrderID,
 } from "@daimo/pay-common";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAccount, useEnsName } from "wagmi";
+import {
+  useAccount,
+  useEnsName,
+  useSendTransaction,
+  useWriteContract,
+} from "wagmi";
 
+import { VersionedTransaction } from "@solana/web3.js";
+import { erc20Abi, getAddress, hexToBytes, zeroAddress } from "viem";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
@@ -30,8 +39,6 @@ import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
-import { usePayWithSolanaToken } from "./usePayWithSolanaToken";
-import { usePayWithToken } from "./usePayWithToken";
 import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
 import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
 
@@ -124,9 +131,12 @@ export function usePaymentState({
     chainId: ethereum.chainId,
     address: ethWalletAddress,
   });
+  const { sendTransactionAsync } = useSendTransaction();
+  const { writeContractAsync } = useWriteContract();
 
   // Solana wallet state.
   const solanaWallet = useWallet();
+  const { connection } = useConnection();
   const solanaPubKey = solanaWallet.publicKey?.toBase58();
 
   // TODO: backend should determine whether to show solana payment method
@@ -186,24 +196,6 @@ export function usePaymentState({
 
   const chainOrderUsdLimits = useOrderUsdLimits({ trpc });
 
-  const { payWithToken } = usePayWithToken({
-    payerAddress: ethWalletAddress,
-    paymentState: pay.paymentState,
-    hydrateOrder: pay.hydrateOrder,
-    payEthSource: pay.payEthSource,
-    log,
-  });
-
-  const { payWithSolanaToken } = usePayWithSolanaToken({
-    payerPublicKey: solanaWallet.publicKey,
-    paymentState: pay.paymentState,
-    orderId: pay.order?.id,
-    hydrateOrder: pay.hydrateOrder,
-    paySolanaSource: pay.paySolanaSource,
-    trpc,
-    log,
-  });
-
   const [selectedExternalOption, setSelectedExternalOption] =
     useState<ExternalPaymentOptionMetadata>();
 
@@ -229,6 +221,133 @@ export function usePaymentState({
     return destChainId in chainOrderUsdLimits.limits
       ? chainOrderUsdLimits.limits[destChainId]
       : DEFAULT_USD_LIMIT;
+  };
+
+  /** Commit to a token + amount = initiate payment. */
+  const payWithToken = async (walletOption: WalletPaymentOption) => {
+    assert(
+      ethWalletAddress != null,
+      `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
+    );
+    assert(
+      pay.paymentState === "preview" ||
+        pay.paymentState === "unhydrated" ||
+        pay.paymentState === "payment_unpaid",
+      `[PAY TOKEN] paymentState is ${pay.paymentState}, must be preview or unhydrated or payment_unpaid`,
+    );
+
+    let hydratedOrder: DaimoPayHydratedOrderWithOrg;
+    const { required, fees } = walletOption;
+    const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
+    if (pay.paymentState !== "payment_unpaid") {
+      assert(
+        required.token.token === fees.token.token,
+        `[PAY TOKEN] required token ${debugJson(required)} does not match fees token ${debugJson(fees)}`,
+      );
+
+      // Will refund to ethWalletAddress if refundAddress was not set in payParams
+      const res = await pay.hydrateOrder(ethWalletAddress);
+      hydratedOrder = res.order;
+
+      log(
+        `[PAY TOKEN] hydrated order: ${debugJson(
+          hydratedOrder,
+        )}, paying ${paymentAmount} of token ${required.token.token}`,
+      );
+    } else {
+      hydratedOrder = pay.order;
+    }
+
+    const paymentTxHash = await (async () => {
+      try {
+        if (required.token.token === zeroAddress) {
+          return await sendTransactionAsync({
+            to: hydratedOrder.intentAddr,
+            value: paymentAmount,
+          });
+        } else {
+          return await writeContractAsync({
+            abi: erc20Abi,
+            address: getAddress(required.token.token),
+            functionName: "transfer",
+            args: [hydratedOrder.intentAddr, paymentAmount],
+          });
+        }
+      } catch (e) {
+        console.error(`[PAY TOKEN] error sending token: ${e}`);
+        throw e;
+      }
+    })();
+
+    if (paymentTxHash) {
+      pay.payEthSource({
+        paymentTxHash,
+        sourceChainId: required.token.chainId,
+        payerAddress: ethWalletAddress,
+        sourceToken: getAddress(required.token.token),
+        sourceAmount: paymentAmount,
+      });
+    } else {
+      console.error(`[PAY TOKEN] no txHash for payment`);
+    }
+  };
+
+  const payWithSolanaToken = async (inputToken: SolanaPublicKey) => {
+    const payerPublicKey = solanaWallet.publicKey;
+    assert(
+      payerPublicKey != null,
+      "[PAY SOLANA] null payerPublicKey when paying on solana",
+    );
+    assert(
+      pay.order?.id != null,
+      "[PAY SOLANA] null orderId when paying on solana",
+    );
+    assert(
+      pay.paymentState === "preview" ||
+        pay.paymentState === "unhydrated" ||
+        pay.paymentState === "payment_unpaid",
+      `[PAY SOLANA] paymentState is ${pay.paymentState}, must be preview or unhydrated or payment_unpaid`,
+    );
+
+    let hydratedOrder: DaimoPayHydratedOrderWithOrg;
+    if (pay.paymentState !== "payment_unpaid") {
+      const res = await pay.hydrateOrder();
+      hydratedOrder = res.order;
+
+      log(
+        `[PAY SOLANA] Hydrated order: ${JSON.stringify(
+          hydratedOrder,
+        )}, checking out with Solana ${inputToken}`,
+      );
+    } else {
+      hydratedOrder = pay.order;
+    }
+
+    const paymentTxHash = await (async () => {
+      try {
+        const serializedTx = await trpc.getSolanaSwapAndBurnTx.query({
+          orderId: pay.order.id.toString(),
+          userPublicKey: assertNotNull(
+            payerPublicKey,
+            "[PAY SOLANA] wallet.publicKey cannot be null",
+          ).toString(),
+          inputTokenMint: inputToken,
+        });
+        const tx = VersionedTransaction.deserialize(hexToBytes(serializedTx));
+        const txHash = await solanaWallet.sendTransaction(tx, connection);
+        return txHash;
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
+    })();
+
+    pay.paySolanaSource({
+      paymentTxHash: paymentTxHash,
+      sourceToken: inputToken,
+    });
+
+    return paymentTxHash;
   };
 
   const payWithExternal = async (option: ExternalPaymentOptions) => {

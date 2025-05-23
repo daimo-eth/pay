@@ -9,16 +9,17 @@ import {
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { AnimatePresence, motion } from "framer-motion";
-import styled from "../../../../styles/styled";
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
+import styled from "../../../../styles/styled";
 import SquircleSpinner from "../../../Spinners/SquircleSpinner";
 
 const ConnectSolana: React.FC = () => {
   const solanaWallets = useWallet();
   const isConnected = solanaWallets.connected;
 
-  const { solanaConnector, setRoute } = usePayContext();
+  const { solanaConnector, setRoute, paymentState } = usePayContext();
+  const { setTokenMode } = paymentState;
 
   const selectedWallet = solanaWallets.wallets.find(
     (wallet) => wallet.adapter.name === solanaConnector,
@@ -27,17 +28,21 @@ const ConnectSolana: React.FC = () => {
   useEffect(() => {
     if (!solanaConnector) return;
     solanaWallets.select(solanaConnector);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solanaConnector]);
 
   useEffect(() => {
-    if (isConnected) {
-      // Wait so user can see it's connected
-      const meta = {
-        event: "wait-solana-connected",
-        walletName: solanaWallets.wallet?.adapter.name,
-      };
-      setTimeout(() => setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta), 500);
-    }
+    if (!isConnected) return;
+    // Wait so user can see it's connected
+    const meta = {
+      event: "wait-solana-connected",
+      walletName: solanaWallets.wallet?.adapter.name,
+    };
+    setTimeout(() => {
+      setTokenMode("solana");
+      setRoute(ROUTES.SELECT_TOKEN, meta);
+    }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected]);
 
   if (!solanaConnector) return null;

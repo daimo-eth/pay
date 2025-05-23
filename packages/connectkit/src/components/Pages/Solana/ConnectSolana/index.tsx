@@ -16,7 +16,7 @@ import {
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
 import { isMobile } from "../../../../utils";
-import OptionsList from "../../../Common/OptionsList";
+import { OptionsList } from "../../../Common/OptionsList";
 import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 
 interface Option {

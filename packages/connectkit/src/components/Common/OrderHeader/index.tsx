@@ -50,8 +50,7 @@ export const OrderHeader = ({
 
   const titleAmountContent = (() => {
     if (paymentState.isDepositFlow) {
-      return route === ROUTES.SELECT_TOKEN ||
-        route === ROUTES.SOLANA_SELECT_TOKEN ? (
+      return route === ROUTES.SELECT_TOKEN ? (
         // TODO: make this match `ModalH1` font size for mobile
         <span style={{ fontSize: "19px", lineHeight: "22px" }}>
           Your balances

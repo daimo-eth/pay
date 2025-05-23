@@ -15,7 +15,6 @@ import {
 import { assert } from "@daimo/pay-common";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
-import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
 enum PayState {
   RequestingPayment = "Waiting For Payment",
@@ -82,7 +81,6 @@ const PayWithSolanaToken: React.FC = () => {
         {payState === PayState.RequestCancelled && (
           <Button onClick={handleTransfer}>Retry Payment</Button>
         )}
-        {payState === PayState.RequestFailed && <SelectAnotherMethodButton />}
       </ModalContent>
     </PageContent>
   );

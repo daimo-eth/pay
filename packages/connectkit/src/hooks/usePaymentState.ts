@@ -79,6 +79,8 @@ export interface PaymentState {
   selectedDepositAddressOption: DepositAddressPaymentOptionMetadata | undefined;
   getOrderUsdLimit: () => number;
   setPaymentWaitingMessage: (message: string | undefined) => void;
+  tokenMode: "evm" | "solana" | "all";
+  setTokenMode: (mode: "evm" | "solana" | "all") => void;
   setSelectedWallet: (wallet: WalletConfigProps | undefined) => void;
   setSelectedWalletDeepLink: (deepLink: string | undefined) => void;
   setSelectedExternalOption: (
@@ -498,12 +500,15 @@ export function usePaymentState({
     }
   }, [setRoute, pay]);
 
+  const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
+
   return {
     buttonProps,
     setButtonProps,
     setPayId,
     setPayParams,
-
+    tokenMode,
+    setTokenMode,
     generatePreviewOrder,
     isDepositFlow,
     paymentWaitingMessage,

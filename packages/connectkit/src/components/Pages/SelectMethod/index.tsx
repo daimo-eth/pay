@@ -22,7 +22,7 @@ import {
 } from "../../../assets/logos";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
-import OptionsList from "../../Common/OptionsList";
+import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
@@ -63,12 +63,7 @@ export default function SelectMethod() {
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
 
-    const connectedOptions: {
-      id: string;
-      title: string;
-      icons: JSX.Element[];
-      onClick: () => void;
-    }[] = [];
+    const connectedOptions: Option[] = [];
 
     if (showConnectedEth) {
       const ethWalletDisplayName =
@@ -107,6 +102,7 @@ export default function SelectMethod() {
           />,
         ],
         onClick: () => {
+          paymentState.setTokenMode("evm");
           setRoute(ROUTES.SELECT_TOKEN, {
             event: "click-wallet",
             walletId: connector?.id,
@@ -144,7 +140,8 @@ export default function SelectMethod() {
               />,
             ],
         onClick: () => {
-          setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
+          paymentState.setTokenMode("solana");
+          setRoute(ROUTES.SELECT_TOKEN, {
             event: "click-wallet",
             walletId: solanaWallet?.adapter.name,
             chainId: "solana",

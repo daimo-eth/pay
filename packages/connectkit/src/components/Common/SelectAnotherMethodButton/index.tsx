@@ -6,7 +6,7 @@ import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
-import OptionsList from "../OptionsList";
+import { OptionsList } from "../OptionsList";
 
 const OptionsContainer = styled.div`
   width: 100%;

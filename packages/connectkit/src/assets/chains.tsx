@@ -8,6 +8,7 @@ import {
   mantle,
   optimism,
   polygon,
+  solana,
   worldchain,
 } from "@daimo/pay-common";
 
@@ -1147,4 +1148,5 @@ export const chainToLogo = {
   [optimism.chainId]: <Optimism />,
   [polygon.chainId]: <Polygon />,
   [worldchain.chainId]: <Worldchain />,
+  [solana.chainId]: <Solana />,
 };

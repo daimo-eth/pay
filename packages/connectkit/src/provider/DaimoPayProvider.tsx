@@ -272,8 +272,10 @@ const DaimoPayUIProvider = ({
     log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
 
     setModalOptions(modalOptions);
-
     setOpen(true);
+    if (modalOptions.connectedWalletOnly) {
+      paymentState.setTokenMode("all");
+    }
 
     if (
       pay.paymentState === "payment_started" ||
@@ -281,6 +283,8 @@ const DaimoPayUIProvider = ({
       pay.paymentState === "payment_bounced"
     ) {
       setRoute(ROUTES.CONFIRMATION);
+    } else if (modalOptions.connectedWalletOnly) {
+      setRoute(ROUTES.SELECT_TOKEN);
     } else {
       setRoute(ROUTES.SELECT_METHOD);
     }

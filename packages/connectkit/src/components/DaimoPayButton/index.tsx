@@ -93,9 +93,7 @@ export type PayButtonPaymentProps =
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
       payId: string;
-      /**
-       * Payment options. By default, all are enabled.
-       */
+      /** Payment options. By default, all are enabled. */
       paymentOptions?: ExternalPaymentOptionsString[];
     };
 
@@ -110,12 +108,15 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   onOpen?: () => void;
   /** Called when the modal is closed. */
   onClose?: () => void;
-  /** Automatically close the modal after a successful payment. */
-  closeOnSuccess?: boolean;
   /** Open the modal by default. */
   defaultOpen?: boolean;
+  /** Automatically close the modal after a successful payment. */
+  closeOnSuccess?: boolean;
   /** Reset the payment after a successful payment. */
   resetOnSuccess?: boolean;
+  /** Go directly to tokens in already-connected Ethereum and Solana wallet(s).
+   * Don't let the user pick any other payment method. Used in embedded flows.*/
+  connectedWalletOnly?: boolean;
   /** Custom message to display on confirmation page. */
   confirmationMessage?: string;
   /** Redirect URL to return to the app. E.g. after Coinbase, Binance, RampNetwork. */
@@ -199,7 +200,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
       : null;
   let payId = "payId" in props ? props.payId : null;
 
-  const { paymentState } = context;
+  const { paymentState, log } = context;
   const { order, paymentState: payState } = useDaimoPay();
 
   // Set the payId or payParams
@@ -245,12 +246,17 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
   // Functions to show and hide the modal
-  const { children, closeOnSuccess, resetOnSuccess } = props;
+  const { children, closeOnSuccess, resetOnSuccess, connectedWalletOnly } =
+    props;
   const show = useCallback(() => {
     if (order == null) return;
-    const modalOptions = { closeOnSuccess, resetOnSuccess };
+    const modalOptions = {
+      closeOnSuccess,
+      resetOnSuccess,
+      connectedWalletOnly,
+    };
     context.showPayment(modalOptions);
-  }, [context, order, closeOnSuccess, resetOnSuccess]);
+  }, [order, connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
@@ -311,10 +317,10 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   // Open the modal by default if the defaultOpen prop is true
   const hasAutoOpened = useRef(false);
   useEffect(() => {
-    if (!hasAutoOpened.current && props.defaultOpen && order != null) {
-      show();
-      hasAutoOpened.current = true;
-    }
+    if (!props.defaultOpen || hasAutoOpened.current) return;
+    if (order == null) return;
+    show();
+    hasAutoOpened.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, props.defaultOpen, hasAutoOpened.current]);
 

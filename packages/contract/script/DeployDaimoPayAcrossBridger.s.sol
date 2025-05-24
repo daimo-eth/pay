@@ -8,6 +8,8 @@ import "../src/DaimoPayAcrossBridger.sol";
 import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
+bytes32 constant DEPLOY_SALT_ACROSS_BRIDGER = keccak256("DaimoPayAcrossBridger-deploy3");
+
 contract DeployDaimoPayAcrossBridger is Script {
     function run() public {
         address spokePool = _getSpokePoolAddress(block.chainid);
@@ -33,7 +35,7 @@ contract DeployDaimoPayAcrossBridger is Script {
         vm.startBroadcast();
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayAcrossBridger-deploy2"),
+            DEPLOY_SALT_ACROSS_BRIDGER,
             abi.encodePacked(
                 type(DaimoPayAcrossBridger).creationCode,
                 abi.encode(

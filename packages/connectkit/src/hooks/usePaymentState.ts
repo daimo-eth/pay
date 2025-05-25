@@ -18,7 +18,7 @@ import {
   writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   useAccount,
   useEnsName,
@@ -50,7 +50,7 @@ export type SourcePayment = Parameters<
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {
   generatePreviewOrder: () => void;
-  resetOrder: () => void;
+  resetOrder: (payParams?: Partial<PayParams>) => Promise<void>;
 
   /// DaimoPayButton props
   buttonProps: PayButtonPaymentProps | undefined;
@@ -59,7 +59,7 @@ export interface PaymentState {
   /// Pay ID for loading an existing order
   setPayId: (id: string | undefined) => void;
   /// Pay params for creating an order on the fly,
-  setPayParams: (payParams: PayParams | undefined) => void;
+  setPayParams: (payParams: PayParams | undefined) => Promise<void>;
 
   /// True if the user is entering an amount (deposit) vs preset (checkout).
   isDepositFlow: boolean;
@@ -150,11 +150,6 @@ export function usePaymentState({
       paymentOptions.includes(ExternalPaymentOptions.Solana)) &&
     pay.order != null &&
     isCCTPV1Chain(getOrderDestChainId(pay.order));
-
-  // Refs the survive re-renders and stores any updated param values while
-  // lockPayParams is true
-  const latestPayParamsRef = useRef<PayParams | undefined>();
-  const latestPayIdRef = useRef<string | undefined>();
 
   // From DaimoPayButton props
   const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
@@ -449,8 +444,6 @@ export function usePaymentState({
 
   const setPayId = useCallback(
     async (payId: string | undefined) => {
-      latestPayIdRef.current = payId;
-
       if (lockPayParams || payId == null) return;
       const id = readDaimoPayOrderID(payId).toString();
 
@@ -467,8 +460,6 @@ export function usePaymentState({
 
   /** Called whenever params change. */
   const setPayParams = async (payParams: PayParams | undefined) => {
-    latestPayParamsRef.current = payParams;
-
     if (lockPayParams) return;
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
 
@@ -485,20 +476,34 @@ export function usePaymentState({
     await pay.createPreviewOrder(currPayParams);
   };
 
-  const resetOrder = useCallback(() => {
-    // Clear the old order & UI
-    pay.reset();
-    setRoute(ROUTES.SELECT_METHOD);
+  const resetOrder = useCallback(
+    async (payParams?: Partial<PayParams>) => {
+      const mergedPayParams: PayParams | undefined =
+        payParams != null && currPayParams != null
+          ? { ...currPayParams, ...payParams }
+          : currPayParams;
 
-    // Prefer an explicit payId, otherwise use the queued payParams
-    if (latestPayIdRef.current) {
-      pay.setPayId(latestPayIdRef.current);
-      latestPayIdRef.current = undefined;
-    } else if (latestPayParamsRef.current) {
-      pay.createPreviewOrder(latestPayParamsRef.current);
-      latestPayParamsRef.current = undefined;
-    }
-  }, [setRoute, pay]);
+      // Clear the old order & state
+      pay.reset();
+      setSelectedExternalOption(undefined);
+      setSelectedTokenOption(undefined);
+      setSelectedSolanaTokenOption(undefined);
+      setSelectedDepositAddressOption(undefined);
+      setSelectedWallet(undefined);
+      setSelectedWalletDeepLink(undefined);
+      setPaymentWaitingMessage(undefined);
+
+      // Set the new payParams
+      if (mergedPayParams) {
+        await pay.createPreviewOrder(mergedPayParams);
+        setCurrPayParams(mergedPayParams);
+        setIsDepositFlow(mergedPayParams.toUnits == null);
+      }
+
+      setRoute(ROUTES.SELECT_METHOD);
+    },
+    [setRoute, pay, currPayParams],
+  );
 
   const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
 

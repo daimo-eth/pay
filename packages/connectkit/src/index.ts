@@ -17,6 +17,7 @@ export {
 // Hooks to track payment status + UI status.
 export { useDaimoPay } from "./hooks/useDaimoPay";
 export { useDaimoPayStatus } from "./hooks/useDaimoPayStatus";
+export { useDaimoPayUI } from "./hooks/useDaimoPayUI";
 
 // TODO: replace with useDaimoPay() more comprehensive status.
 // export { useModal as useDaimoPayModal } from "./hooks/useModal";
@@ -33,7 +34,5 @@ export * from "./utils/exports";
 export * from "./types";
 
 // TODO: expose this more selectively.
-export {
-  PayContext as DaimoPayContext,
-  usePayContext,
-} from "./hooks/usePayContext";
+export { usePayContext } from "./hooks/usePayContext";
+export { PayContext as DaimoPayContext } from "./provider/PayContext";

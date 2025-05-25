@@ -21,7 +21,6 @@ import {
 } from "../hooks/useConnectCallback";
 import { useDaimoPay } from "../hooks/useDaimoPay";
 import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
-import { PayContext, PayContextValue } from "../hooks/usePayContext";
 import { usePaymentState } from "../hooks/usePaymentState";
 import { PaymentContext, PaymentProvider } from "../provider/PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
@@ -35,6 +34,7 @@ import {
 } from "../types";
 import { createTrpcClient } from "../utils/trpc";
 import { setInWalletPaymentUrlFromApiUrl } from "../wallets/walletConfigs";
+import { PayContext, PayContextValue } from "./PayContext";
 import {
   SolanaContextProvider,
   SolanaWalletName,

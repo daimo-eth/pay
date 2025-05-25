@@ -1,5 +1,5 @@
 "use client";
-import { DaimoPayButton } from "@daimo/pay";
+import { DaimoPayButton, useDaimoPayUI } from "@daimo/pay";
 import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
@@ -13,6 +13,13 @@ import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 
+type Config = {
+  recipientAddress: string;
+  chainId: number;
+  tokenAddress: string;
+  amount: string;
+};
+
 export default function DemoBasic() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [config, setConfig] = usePersistedConfig("daimo-basic-config", {
@@ -20,8 +27,19 @@ export default function DemoBasic() {
     chainId: 0,
     tokenAddress: "",
     amount: "",
-  });
+  } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
+  const { resetPayment } = useDaimoPayUI();
+
+  const handleSetConfig = (config: Config) => {
+    setConfig(config);
+    resetPayment({
+      toChain: config.chainId,
+      toAddress: getAddress(config.recipientAddress),
+      toUnits: config.amount,
+      toToken: getAddress(config.tokenAddress),
+    });
+  };
 
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
@@ -141,7 +159,7 @@ export default function DemoBasic() {
           configType="payment"
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
-          onConfirm={setConfig}
+          onConfirm={handleSetConfig}
           defaultRecipientAddress={config.recipientAddress}
         />
       </div>

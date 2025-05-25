@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayButton } from "@daimo/pay";
+import { DaimoPayButton, useDaimoPayUI } from "@daimo/pay";
 import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
@@ -14,6 +14,12 @@ import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 
+type Config = {
+  recipientAddress: string;
+  chainId: number;
+  tokenAddress: string;
+};
+
 export default function DemoDeposit() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -21,8 +27,18 @@ export default function DemoDeposit() {
     recipientAddress: "",
     chainId: 0,
     tokenAddress: "",
-  });
+  } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
+  const { resetPayment } = useDaimoPayUI();
+
+  const handleSetConfig = (config: Config) => {
+    setConfig(config);
+    resetPayment({
+      toChain: config.chainId,
+      toAddress: getAddress(config.recipientAddress),
+      toToken: getAddress(config.tokenAddress),
+    });
+  };
 
   // Only render the DaimoPayButton when we have valid config
   const hasValidConfig =
@@ -153,7 +169,7 @@ export default function DemoDeposit() {
           configType="deposit"
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
-          onConfirm={setConfig}
+          onConfirm={handleSetConfig}
           defaultRecipientAddress={config.recipientAddress}
         />
       </div>

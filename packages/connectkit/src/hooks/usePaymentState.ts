@@ -378,14 +378,10 @@ export function usePaymentState({
   const payWithDepositAddress = async (
     option: DepositAddressPaymentOptions,
   ) => {
-    assert(
-      pay.paymentState == "payment_unpaid",
-      `[PAY DEPOSIT ADDRESS] paymentState is ${pay.paymentState}, must be payment_unpaid`,
-    );
     const { order: hydratedOrder } = await pay.hydrateOrder();
 
     log(
-      `[PAY DEPOSIT ADDRESS] hydrated order: ${JSON.stringify(
+      `[PAY DEPOSIT ADDRESS] hydrated order: ${debugJson(
         hydratedOrder,
       )}, checking out with deposit address: ${option}`,
     );

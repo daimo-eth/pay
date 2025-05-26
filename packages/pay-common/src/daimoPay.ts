@@ -405,6 +405,7 @@ export type DepositAddressPaymentOptionData = {
   uri: string;
   amount: string;
   suffix: string;
+  expirationS: number;
 };
 
 export interface DaimoPayToken extends Token {

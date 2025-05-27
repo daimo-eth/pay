@@ -4,9 +4,11 @@ import {
   getAddressContraction,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
+import { keyframes } from "styled-components";
 import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
 import { usePayContext } from "../../../hooks/usePayContext";
-import CopyToClipboard from "../../Common/CopyToClipboard";
+import styled from "../../../styles/styled";
+import CopyToClipboardIcon from "../../Common/CopyToClipboard/CopyToClipboardIcon";
 import CustomQRCode from "../../Common/CustomQRCode";
 import {
   ModalBody,
@@ -34,23 +36,21 @@ export default function WaitingDepositAddress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDepositAddressOption]);
 
+  useEffect(() => {
+    triggerResize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [details]);
+
   return (
     <PageContent>
-      {failed ? (
-        <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-          <ModalH1>{selectedDepositAddressOption?.id} unavailable</ModalH1>
-          <ModalBody>
-            We&apos;re unable to process {selectedDepositAddressOption?.id}{" "}
-            payments at this time. Please select another payment method.
-          </ModalBody>
-          <SelectAnotherMethodButton />
-        </ModalContent>
-      ) : selectedDepositAddressOption != null ? (
+      {selectedDepositAddressOption == null ? null : failed ? (
+        <DepositFailed meta={selectedDepositAddressOption} />
+      ) : (
         <DepositAddressInfo
           meta={selectedDepositAddressOption}
           details={details}
         />
-      ) : null}
+      )}
     </PageContent>
   );
 }
@@ -78,90 +78,55 @@ function DepositAddressInfo({
           }
         />
       </div>
-
-      {details && <CopyableInfo details={details} />}
+      <CopyableInfo meta={meta} details={details} />
     </ModalContent>
   );
 }
 
 function CopyableInfo({
+  meta,
   details,
 }: {
-  details: DepositAddressPaymentOptionData;
+  meta: DepositAddressPaymentOptionMetadata;
+  details?: DepositAddressPaymentOptionData;
 }) {
+  // TODO: add this to DepositAddressPaymentOptionData
+  const currencies = meta.id;
+
   return (
-    <>
-      {/* Receiving address label/value row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 24,
-        }}
-      >
-        <ModalBody style={{ margin: 0, textAlign: "left" }}>
-          Receiving address
-        </ModalBody>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid var(--ck-border-color, #e7e8ec)",
-          borderRadius: 12,
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <ModalBody
-          style={{
-            flex: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            margin: 0,
-            textAlign: "left",
-          }}
-        >
-          {getAddressContraction(details.address, 10)}
-        </ModalBody>
-        <CopyToClipboard string={details.address} />
-      </div>
-
-      {/* USDT amount label/value row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 16,
-        }}
-      >
-        <ModalBody style={{ margin: 0, textAlign: "left" }}>
-          USDT amount
-        </ModalBody>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontWeight: 600, marginRight: 8 }}>
-            {details.amount}
-          </span>
-          <CopyToClipboard string={details.amount} />
-        </div>
-      </div>
-
-      {/* Time remaining label/timer row */}
-      <CountdownTimerIfNeeded expirationS={details.expirationS} />
-    </>
+    <CopyableInfoWrapper>
+      <CopyRowOrThrobber
+        title="Send Exactly"
+        value={details?.amount}
+        smallText={currencies}
+      />
+      <CopyRowOrThrobber
+        title="Receiving Address"
+        value={details?.address}
+        valueText={details && getAddressContraction(details.address)}
+      />
+      <CountdownTimerIfNeeded expirationS={details?.expirationS} />
+    </CopyableInfoWrapper>
   );
 }
 
-function CountdownTimerIfNeeded({ expirationS }: { expirationS: number }) {
+const CopyableInfoWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  gap: 16px;
+  margin-top: 16px;
+`;
+
+function CountdownTimerIfNeeded({ expirationS }: { expirationS?: number }) {
+  return (
+    <TimerContainer>
+      <CountdownTimerInner expirationS={expirationS} />
+    </TimerContainer>
+  );
+}
+
+function CountdownTimerInner({ expirationS }: { expirationS?: number }) {
   const [ms, setMs] = useState(Date.now());
 
   useEffect(() => {
@@ -169,16 +134,15 @@ function CountdownTimerIfNeeded({ expirationS }: { expirationS: number }) {
     return () => clearInterval(interval);
   }, []);
 
-  const remainingS = Math.max(0, (expirationS - ms / 1000) | 0);
+  if (expirationS == null) return null;
 
+  const remainingS = Math.max(0, (expirationS - ms / 1000) | 0);
   if (remainingS > 3600) return null;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontWeight: 600, marginRight: 8 }}>
-        {formatTime(remainingS)}
-      </span>
-    </div>
+    <ModalBody>
+      <strong>{formatTime(remainingS)}</strong>
+    </ModalBody>
   );
 }
 
@@ -187,3 +151,162 @@ const formatTime = (sec: number) => {
   const s = `${sec % 60}`.padStart(2, "0");
   return `${m}:${s}`;
 };
+
+function DepositFailed({
+  meta,
+}: {
+  meta: DepositAddressPaymentOptionMetadata;
+}) {
+  return (
+    <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
+      <ModalH1>{meta.id} unavailable</ModalH1>
+      <ModalBody>
+        We&apos;re unable to process {meta.id} payments at this time. Please
+        select another payment method.
+      </ModalBody>
+      <SelectAnotherMethodButton />
+    </ModalContent>
+  );
+}
+
+const CopyRow = styled.button`
+  display: block;
+  height: 64px;
+  border-radius: 8px;
+  padding: 8px 16px;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  transition: all 100ms ease;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:active {
+    transform: scale(0.98);
+    background-color: var(--ck-body-background-secondary);
+  }
+`;
+
+const LabelRow = styled.div`
+  margin-bottom: 4px;
+`;
+
+const MainRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const ValueContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SmallText = styled.span`
+  font-size: 12px;
+  color: var(--ck-body-color-muted);
+`;
+
+const pulse = keyframes`
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+`;
+
+const Skeleton = styled.div`
+  width: 80px;
+  height: 16px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  animation: ${pulse} 1.5s ease-in-out infinite;
+`;
+
+const TimerContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+function CopyRowOrThrobber({
+  title,
+  value,
+  valueText,
+  smallText,
+}: {
+  title: string;
+  value?: string;
+  valueText?: string;
+  smallText?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!value) return;
+    const str = value.trim();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(str);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1000);
+  };
+
+  if (!value) {
+    return (
+      <CopyRow>
+        <LabelRow>
+          <ModalBody style={{ margin: 0, textAlign: "left" }}>
+            {title}
+          </ModalBody>
+        </LabelRow>
+        <MainRow>
+          <Skeleton />
+        </MainRow>
+      </CopyRow>
+    );
+  }
+
+  const displayValue = valueText || value;
+
+  return (
+    <CopyRow as="button" onClick={handleCopy}>
+      <div>
+        <LabelRow>
+          <ModalBody style={{ margin: 0, textAlign: "left" }}>
+            {title}
+          </ModalBody>
+        </LabelRow>
+        <MainRow>
+          <ValueContainer>
+            <span style={{ fontWeight: 600 }}>{displayValue}</span>
+            {smallText && <SmallText>{smallText}</SmallText>}
+          </ValueContainer>
+        </MainRow>
+      </div>
+      <CopyIconWrap>
+        <CopyToClipboardIcon copied={copied} dark />
+      </CopyIconWrap>
+    </CopyRow>
+  );
+}
+
+const CopyIconWrap = styled.div`
+  --color: var(--ck-copytoclipboard-stroke);
+  --bg: var(--ck-body-background);
+`;

@@ -325,6 +325,67 @@ contract RelayerTest is Test {
         relayerContract.swapAndTip(params);
     }
 
+    function testSwapAndTipEmptyCall() public {
+        // Setup: send tokens to relayerContract for tipping
+        _token1.transfer(address(relayerContract), 200);
+
+        // Setup: send tokens to bob for providing swap input
+        _token1.transfer(_bob, 800);
+
+        // Setup: bob approves relayer contract to spend tokens for swap
+        vm.startPrank(_bob);
+        _token1.approve(address(relayerContract), 800);
+        vm.stopPrank();
+
+        // bob wants to swap 1000 token1 but only supplies 800
+        TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
+        uint256 suppliedAmountIn = 800;
+        TokenAmount memory requiredTokenOut = TokenAmount(_token1, 1000);
+        uint256 maxPreTip = 200;
+        uint256 maxPostTip = 0;
+
+        // Prepare the swapAndTip hash
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: Call(address(0), 0, ""), // empty call
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        // Execute swap
+        vm.startPrank(_bob);
+        vm.expectEmit(address(relayerContract));
+        emit DaimoPayRelayer.SwapAndTip({
+            caller: _bob,
+            requiredTokenIn: address(requiredTokenIn.token),
+            suppliedAmountIn: suppliedAmountIn,
+            requiredTokenOut: address(requiredTokenOut.token),
+            swapAmountOut: 1000,
+            maxPreTip: 200,
+            maxPostTip: 0,
+            preTip: 200, // preTip = 1000 required - 800 supplied
+            postTip: 0
+        });
+        relayerContract.swapAndTip(params);
+        vm.stopPrank();
+
+        // Verify results
+        // 1. msg.sender should receive exactly the required output amount
+        assertEq(_token1.balanceOf(_bob), requiredTokenOut.amount);
+
+        // 2. Contract should have tipped 200 tokenIn (1000 required - 800 supplied)
+        assertEq(
+            _token1.balanceOf(address(relayerContract)),
+            0 // Initial balance - tip amount
+        );
+    }
+
     // Test case where relayer tips before the swap to ensure the swap goes
     // through
     function testSwapAndTipPreSwap() public {

@@ -111,7 +111,7 @@ contract DaimoPayRelayer is AccessControl {
         // PRE-SWAP
         //////////////////////////////////////////////////////////////
 
-        uint256 amountPreSwap = TokenUtils.getBalanceOf({
+        uint256 preSwapBalance = TokenUtils.getBalanceOf({
             token: p.requiredTokenOut.token,
             addr: address(this)
         });
@@ -123,7 +123,12 @@ contract DaimoPayRelayer is AccessControl {
         //////////////////////////////////////////////////////////////
 
         uint256 postSwapBalance = _executeSwap(p);
-        uint256 swapAmountOut = postSwapBalance - amountPreSwap;
+        uint256 swapAmountOut = postSwapBalance - preSwapBalance;
+        // If the tokens are the same, then the pre-tip amount counts towards
+        // the swap output
+        if (p.requiredTokenIn.token == p.requiredTokenOut.token) {
+            swapAmountOut += preTipAmount;
+        }
 
         //////////////////////////////////////////////////////////////
         // POST-SWAP
@@ -271,12 +276,12 @@ contract DaimoPayRelayer is AccessControl {
         SwapAndTipParams calldata p
     ) private returns (uint256 postSwapBalance) {
         // Zero address indicates no inner swap
-        if (p.innerSwap.to == address(0)) return 0;
-
-        (bool success, ) = p.innerSwap.to.call{value: p.innerSwap.value}(
-            p.innerSwap.data
-        );
-        require(success, "DPR: inner swap failed");
+        if (p.innerSwap.to != address(0)) {
+            (bool success, ) = p.innerSwap.to.call{value: p.innerSwap.value}(
+                p.innerSwap.data
+            );
+            require(success, "DPR: inner swap failed");
+        }
 
         postSwapBalance = TokenUtils.getBalanceOf({
             token: p.requiredTokenOut.token,

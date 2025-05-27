@@ -11,7 +11,7 @@ import {
 } from "@daimo/pay-common";
 import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
+import { Ethereum, Solana } from "../../../assets/chains";
 import {
   Coinbase,
   Phantom,
@@ -328,25 +328,12 @@ function getDepositAddressOption(
   setRoute: (route: ROUTES, data?: Record<string, any>) => void,
   isDepositFlow: boolean,
 ) {
-  // TODO: API should serve the subtitle and disabled
-  const disabled =
-    !isDepositFlow &&
-    !depositAddressOptions.loading &&
-    depositAddressOptions.options.length === 0;
-  const subtitle = disabled ? "Minimum $20.00" : "Bitcoin, Tron, Zcash...";
-
   return {
     id: "depositAddress",
-    title: "Pay on another chain",
-    subtitle,
-    icons: [
-      <Bitcoin key="bitcoin" />,
-      <Tron key="tron" />,
-      <Zcash key="zcash" />,
-    ],
+    title: "Pay Manually",
+    icons: [],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },
-    disabled,
   };
 }

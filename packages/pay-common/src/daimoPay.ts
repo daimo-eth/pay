@@ -385,13 +385,26 @@ export type ExternalPaymentOptionData = {
 };
 
 export enum DepositAddressPaymentOptions {
-  BITCOIN = "Bitcoin",
   TRON_USDT = "USDT on Tron",
+  BASE = "Base",
+  ARBITRUM = "Arbitrum",
+  OP_MAINNET = "Optimism",
+  POLYGON = "Polygon",
+  ETH_L1 = "Ethereum",
+
+  /** @deprecated */
+  BITCOIN = "Bitcoin",
+  /** @deprecated */
   TON = "TON",
+  /** @deprecated */
   MONERO = "Monero",
+  /** @deprecated */
   DOGE = "Doge",
+  /** @deprecated */
   LITECOIN = "Litecoin",
+  /** @deprecated */
   ZCASH = "Zcash",
+  /** @deprecated */
   DASH = "Dash",
 }
 

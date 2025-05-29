@@ -388,7 +388,7 @@ export function usePaymentState({
 
     // Special-case: USDT on Tron uses the Untron service rather than ChangeNow
     const payParams = currPayParams;
-    if (option === DepositAddressPaymentOptions.TRON) {
+    if (option === DepositAddressPaymentOptions.TRON_USDT) {
       // Ensure we have an appId for auth to backend
       assert(
         payParams?.appId != null,

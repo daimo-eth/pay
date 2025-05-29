@@ -5,9 +5,11 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
-import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
+import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
+import Button from "../../Common/Button";
+import CircleTimer from "../../Common/CircleTimer";
 import CopyToClipboardIcon from "../../Common/CopyToClipboard/CopyToClipboardIcon";
 import CustomQRCode from "../../Common/CustomQRCode";
 import {
@@ -27,19 +29,19 @@ export default function WaitingDepositAddress() {
   const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
+  const generateDepositAddress = () => {
     if (!selectedDepositAddressOption) return;
     payWithDepositAddress(selectedDepositAddressOption.id).then((details) => {
       if (!details) setFailed(true);
       else setDetails(details);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDepositAddressOption]);
+  };
 
-  useEffect(() => {
-    triggerResize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [details]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(generateDepositAddress, [selectedDepositAddressOption]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(triggerResize, [details]);
 
   return (
     <PageContent>
@@ -49,6 +51,7 @@ export default function WaitingDepositAddress() {
         <DepositAddressInfo
           meta={selectedDepositAddressOption}
           details={details}
+          refresh={generateDepositAddress}
         />
       )}
     </PageContent>
@@ -58,40 +61,74 @@ export default function WaitingDepositAddress() {
 function DepositAddressInfo({
   meta,
   details,
+  refresh,
 }: {
   meta: DepositAddressPaymentOptionMetadata;
   details?: DepositAddressPaymentOptionData;
+  refresh: () => void;
 }) {
+  const { isMobile } = useIsMobile();
+
+  const [remainingS, totalS] = useCountdown(details?.expirationS);
+  const isExpired = details?.expirationS != null && remainingS === 0;
+
   return (
     <ModalContent>
-      <div style={{ alignSelf: "center" }}>
-        <CustomQRCode
-          value={details?.uri}
-          size={180}
-          contentPadding={24}
-          image={<img src={meta.logoURI} width="100%" height="100%" />}
-          tooltipMessage={
-            <>
-              <ScanIconWithLogos logo={<img src={meta.logoURI} />} />
-              <span>Use a {meta.id} wallet to scan</span>
-            </>
-          }
-        />
-      </div>
-      <CopyableInfo meta={meta} details={details} />
+      {isMobile ? (
+        <LogoWrap>
+          {!isExpired && <img src={meta.logoURI} width="64px" height="64px" />}
+          {isExpired && (
+            <Button onClick={refresh} style={{ width: 128 }}>
+              Refresh
+            </Button>
+          )}
+        </LogoWrap>
+      ) : (
+        <QRWrap>
+          <CustomQRCode
+            value={details?.uri}
+            contentPadding={24}
+            image={<img src={meta.logoURI} width="100%" height="100%" />}
+          />
+        </QRWrap>
+      )}
+      <CopyableInfo
+        meta={meta}
+        details={details}
+        remainingS={remainingS}
+        totalS={totalS}
+      />
     </ModalContent>
   );
 }
 
+const LogoWrap = styled.div`
+  padding: 32px 0;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const QRWrap = styled.div`
+  margin: 0 auto;
+  width: 280px;
+`;
+
 function CopyableInfo({
   meta,
   details,
+  remainingS,
+  totalS,
 }: {
   meta: DepositAddressPaymentOptionMetadata;
   details?: DepositAddressPaymentOptionData;
+  remainingS: number;
+  totalS: number;
 }) {
-  // TODO: add this to DepositAddressPaymentOptionData
   const currencies = meta.id;
+
+  const isExpired = details?.expirationS != null && remainingS === 0;
 
   return (
     <CopyableInfoWrapper>
@@ -99,13 +136,17 @@ function CopyableInfo({
         title="Send Exactly"
         value={details?.amount}
         smallText={currencies}
+        disabled={isExpired}
       />
       <CopyRowOrThrobber
         title="Receiving Address"
         value={details?.address}
         valueText={details && getAddressContraction(details.address)}
+        disabled={isExpired}
       />
-      <CountdownTimerIfNeeded expirationS={details?.expirationS} />
+      <CountdownWrap>
+        <CountdownTimer remainingS={remainingS} totalS={totalS} />
+      </CountdownWrap>
     </CopyableInfoWrapper>
   );
 }
@@ -114,37 +155,64 @@ const CopyableInfoWrapper = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: stretch;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 0;
+  margin-top: 8px;
 `;
 
-function CountdownTimerIfNeeded({ expirationS }: { expirationS?: number }) {
-  return (
-    <TimerContainer>
-      <CountdownTimerInner expirationS={expirationS} />
-    </TimerContainer>
-  );
-}
+const CountdownWrap = styled.div`
+  margin-top: 24px;
+  height: 16px;
+`;
 
-function CountdownTimerInner({ expirationS }: { expirationS?: number }) {
-  const [ms, setMs] = useState(Date.now());
+function useCountdown(expirationS?: number) {
+  const [initMs] = useState(Date.now());
+  const [ms, setMs] = useState(initMs);
 
   useEffect(() => {
     const interval = setInterval(() => setMs(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  if (expirationS == null) return null;
+  if (expirationS == null) return [0, 0];
 
   const remainingS = Math.max(0, (expirationS - ms / 1000) | 0);
+  const totalS = Math.max(0, (expirationS - initMs / 1000) | 0);
+  return [remainingS, totalS];
+}
+
+function CountdownTimer({
+  remainingS,
+  totalS,
+}: {
+  remainingS: number;
+  totalS: number;
+}) {
+  if (totalS == 0) return null;
   if (remainingS > 3600) return null;
+  const isExpired = remainingS === 0;
 
   return (
     <ModalBody>
-      <strong>{formatTime(remainingS)}</strong>
+      <CountdownRow>
+        <CircleTimer
+          total={totalS}
+          currentTime={remainingS}
+          size={18}
+          stroke={3}
+        />
+        <strong>{isExpired ? "Expired" : formatTime(remainingS)}</strong>
+      </CountdownRow>
     </ModalBody>
   );
 }
+
+const CountdownRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+`;
 
 const formatTime = (sec: number) => {
   const m = `${Math.floor(sec / 60)}`.padStart(2, "0");
@@ -183,15 +251,18 @@ const CopyRow = styled.button`
 
   transition: all 100ms ease;
 
-  &:disabled {
-    cursor: default;
-  }
-
   &:hover {
     opacity: 0.8;
   }
 
   &:active {
+    transform: scale(0.98);
+    background-color: var(--ck-body-background-secondary);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
     transform: scale(0.98);
     background-color: var(--ck-body-background-secondary);
   }
@@ -214,7 +285,7 @@ const ValueContainer = styled.div`
 `;
 
 const SmallText = styled.span`
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ck-body-color-muted);
 `;
 
@@ -238,26 +309,23 @@ const Skeleton = styled.div`
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
-const TimerContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
 function CopyRowOrThrobber({
   title,
   value,
   valueText,
   smallText,
+  disabled,
 }: {
   title: string;
   value?: string;
   valueText?: string;
   smallText?: string;
+  disabled?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    if (disabled) return;
     if (!value) return;
     const str = value.trim();
     if (navigator.clipboard) {
@@ -285,7 +353,7 @@ function CopyRowOrThrobber({
   const displayValue = valueText || value;
 
   return (
-    <CopyRow as="button" onClick={handleCopy}>
+    <CopyRow as="button" onClick={handleCopy} disabled={disabled}>
       <div>
         <LabelRow>
           <ModalBody style={{ margin: 0, textAlign: "left" }}>

@@ -401,7 +401,8 @@ export function usePaymentState({
         "[PAY DEPOSIT ADDRESS] missing appId required for Tron USDT payments",
       );
       // Round up to the nearest integer number of USDT to avoid fractional tokens.
-      const amountTronUSDT = parseUnits(hydratedOrder.usdValue.toFixed(2), 6);
+      const usd = hydratedOrder.usdValue.toFixed(2);
+      const amountTronUSDT = parseUnits(usd, 6);
 
       const untronResp = await trpc.untronTryCreateOrder.mutate({
         appId: payParams.appId,
@@ -423,7 +424,7 @@ export function usePaymentState({
       // Map Untron response to the generic deposit-address shape expected by the UI
       return {
         address: untronOrder.receiver,
-        amount: amountTronUSDT.toString(),
+        amount: usd,
         suffix: "USDT on Tron",
         uri: `tron:${untronOrder.receiver}`,
       } as DepositAddressPaymentOptionData;

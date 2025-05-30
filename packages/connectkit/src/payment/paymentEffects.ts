@@ -136,10 +136,11 @@ async function pollFindSourcePayment(
     onResult: (found) => {
       const state = store.getState();
       // Check that we're still in the payment_unpaid state
-      if (state.type !== "payment_unpaid") return;
-      if (found) {
-        store.dispatch({ type: "payment_started", order: state.order });
+      if (state.type !== "payment_unpaid") {
         stopPolling();
+      } else if (found) {
+        stopPolling();
+        store.dispatch({ type: "payment_started", order: state.order });
       }
     },
     onError: () => {},

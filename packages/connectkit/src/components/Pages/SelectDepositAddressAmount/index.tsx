@@ -15,23 +15,20 @@ import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
-// TODO: min amount for deposit address should come from the backend
-const MIN_USD_VALUE = 20;
-
 const SelectDepositAddressAmount: React.FC = () => {
   const { paymentState, setRoute, triggerResize } = usePayContext();
   const { selectedDepositAddressOption } = paymentState;
 
   const maxUsdLimit = paymentState.getOrderUsdLimit();
-  const minimumMessage = `Minimum ${formatUsd(MIN_USD_VALUE, "up")}`;
+  // const minimumMessage = `Minimum ${formatUsd(MIN_USD_VALUE, "up")}`;
 
   const [usdInput, setUsdInput] = useState<string>("");
-  const [message, setMessage] = useState<string | null>(minimumMessage);
+  const [message, setMessage] = useState<string | null>("");
   const [continueDisabled, setContinueDisabled] = useState(true);
 
   useEffect(() => {
     triggerResize();
-  }, [message]);
+  }, [message]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (selectedDepositAddressOption == null) {
     return <PageContent></PageContent>;
@@ -46,11 +43,11 @@ const SelectDepositAddressAmount: React.FC = () => {
     if (Number(value) > maxUsdLimit) {
       setMessage(`Maximum ${formatUsd(maxUsdLimit)}`);
     } else {
-      setMessage(minimumMessage);
+      setMessage("");
     }
 
     const usd = Number(sanitizeNumber(value));
-    setContinueDisabled(usd <= 0 || usd < MIN_USD_VALUE || usd > maxUsdLimit);
+    setContinueDisabled(usd <= 0 || usd > maxUsdLimit);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

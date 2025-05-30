@@ -15,7 +15,6 @@ import {
   Trust,
   WalletIcon,
 } from "../../../assets/logos";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -45,11 +44,8 @@ export default function SelectMethod() {
     setSelectedExternalOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,
-    depositAddressOptions,
     senderEnsName,
   } = paymentState;
-  const { order } = useDaimoPay();
-  const paymentOptions = order?.metadata.payer?.paymentOptions;
 
   // Decide whether to show the connected eth account, solana account, or both.
   const showConnectedEth = isEthConnected;
@@ -305,7 +301,7 @@ function getDepositAddressOption(
 ) {
   return {
     id: "depositAddress",
-    title: "Pay manually",
+    title: "Pay to address",
     icons: [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);

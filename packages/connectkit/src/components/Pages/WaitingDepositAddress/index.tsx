@@ -37,6 +37,8 @@ export default function WaitingDepositAddress() {
     });
   };
 
+  // TODO: load payment status, show underpayment
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(generateDepositAddress, [selectedDepositAddressOption]);
 

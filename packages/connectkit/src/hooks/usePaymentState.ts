@@ -27,7 +27,13 @@ import {
 } from "wagmi";
 
 import { VersionedTransaction } from "@solana/web3.js";
-import { erc20Abi, getAddress, hexToBytes, zeroAddress } from "viem";
+import {
+  erc20Abi,
+  getAddress,
+  hexToBytes,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
@@ -395,9 +401,7 @@ export function usePaymentState({
         "[PAY DEPOSIT ADDRESS] missing appId required for Tron USDT payments",
       );
       // Round up to the nearest integer number of USDT to avoid fractional tokens.
-      const amountTronUSDT = Math.ceil(
-        Number(hydratedOrder.destFinalCallTokenAmount.usd),
-      );
+      const amountTronUSDT = parseUnits(hydratedOrder.usdValue.toFixed(2), 6);
 
       const untronResp = await trpc.untronTryCreateOrder.mutate({
         appId: payParams.appId,
@@ -405,7 +409,7 @@ export function usePaymentState({
           hydratedOrder.intentAddr,
           `[PAY DEPOSIT ADDRESS] missing intentAddr on order ${hydratedOrder.id}`,
         ),
-        amountTronUSDT,
+        amountTronUSDT: Number(amountTronUSDT),
       });
 
       if ("error" in untronResp) {

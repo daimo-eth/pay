@@ -8,7 +8,6 @@ export const QRCodeContainer = styled(motion.div)`
   overflow: hidden;
   height: 0;
   padding-bottom: 100% !important;
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,7 +25,7 @@ export const QRCodeContainer = styled(motion.div)`
 `;
 export const QRCodeContent = styled(motion.div)`
   position: absolute;
-  inset: 0;
+  inset: 13px;
   svg {
     width: 100% !important;
     height: auto !important;

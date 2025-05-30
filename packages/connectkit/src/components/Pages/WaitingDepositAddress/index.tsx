@@ -88,6 +88,7 @@ function DepositAddressInfo({
           <CustomQRCode
             value={details?.uri}
             contentPadding={24}
+            size={200}
             image={<img src={meta.logoURI} width="100%" height="100%" />}
           />
         </QRWrap>
@@ -126,8 +127,7 @@ function CopyableInfo({
   remainingS: number;
   totalS: number;
 }) {
-  const currencies = meta.id;
-
+  const currencies = details?.suffix;
   const isExpired = details?.expirationS != null && remainingS === 0;
 
   return (

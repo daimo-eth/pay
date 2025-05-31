@@ -52,7 +52,7 @@ const MultiCurrencySelectAmount: React.FC<{
 
   useEffect(() => {
     triggerResize();
-  }, [message]);
+  }, [message]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Update the editable value and secondary value, taking into account whether

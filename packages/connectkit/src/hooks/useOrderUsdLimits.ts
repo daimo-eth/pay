@@ -19,7 +19,7 @@ export function useOrderUsdLimits({ trpc }: { trpc: TrpcClient }) {
     };
 
     refreshOrderUsdLimits();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { limits, loading };
 }

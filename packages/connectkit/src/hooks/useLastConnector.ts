@@ -11,7 +11,7 @@ export const useLastConnector = () => {
       setLastConnectorId(id ?? "");
     };
     init();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (id: string) => {
     storage?.setItem("recentConnectorId", id);

@@ -59,7 +59,7 @@ export default function useLockBodyScroll(initialLocked: boolean) {
 
   useEffect(() => {
     if (locked !== initialLocked) setLocked(initialLocked);
-  }, [initialLocked]);
+  }, [initialLocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return [locked, setLocked];
 }

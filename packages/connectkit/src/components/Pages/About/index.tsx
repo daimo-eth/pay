@@ -12,6 +12,7 @@ import {
 
 import { AnimatePresence, MotionConfig } from "framer-motion";
 import useLocales from "../../../hooks/useLocales";
+import { usePayContext } from "../../../hooks/usePayContext";
 import Button from "../../Common/Button";
 import FitText from "../../Common/FitText";
 import { OrDivider } from "../../Common/Modal";
@@ -21,7 +22,6 @@ import {
   ModalH1,
   PageContent,
 } from "../../Common/Modal/styles";
-import { usePayContext } from "../../../hooks/usePayContext";
 import { Easing, SlideOne, SlideThree, SlideTwo } from "./graphics";
 
 const About: React.FC = () => {
@@ -44,10 +44,8 @@ const About: React.FC = () => {
 
   let interval: ReturnType<typeof setTimeout>;
   useEffect(() => {
-    //interval = setTimeout(nextSlide, autoplayDelay);
-
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSwipe = () => {
     if (sliderRef.current) {
@@ -116,17 +114,17 @@ const About: React.FC = () => {
 
   const sliderRef = useRef<any>(null);
   useEffect(() => {
-    if (!sliderRef.current) return;
-    sliderRef.current.addEventListener("scroll", onScroll);
-    sliderRef.current.addEventListener("touchmove", onTouchMove);
-    sliderRef.current.addEventListener("touchend", onTouchEnd);
+    const slider = sliderRef.current;
+    if (slider == null) return;
+    slider.addEventListener("scroll", onScroll);
+    slider.addEventListener("touchmove", onTouchMove);
+    slider.addEventListener("touchend", onTouchEnd);
     return () => {
-      if (!sliderRef.current) return;
-      sliderRef.current.removeEventListener("scroll", onScroll);
-      sliderRef.current.removeEventListener("touchmove", onTouchMove);
-      sliderRef.current.removeEventListener("touchend", onTouchEnd);
+      slider.removeEventListener("scroll", onScroll);
+      slider.removeEventListener("touchmove", onTouchMove);
+      slider.removeEventListener("touchend", onTouchEnd);
     };
-  }, [sliderRef]);
+  }, [sliderRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const graphics: React.ReactNode[] = [
     <SlideOne

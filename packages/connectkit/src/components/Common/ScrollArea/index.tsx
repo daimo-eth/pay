@@ -93,7 +93,7 @@ export const ScrollArea = ({
     return () => {
       el.removeEventListener("scroll", handleScroll);
     };
-  }, [ref.current]);
+  }, [ref.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ScrollContainer>

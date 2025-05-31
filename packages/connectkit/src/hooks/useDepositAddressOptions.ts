@@ -41,7 +41,7 @@ export function useDepositAddressOptions({
     if (usdRequired != null && mode != null) {
       refreshDepositAddressOptions(usdRequired, mode);
     }
-  }, [usdRequired, mode]);
+  }, [usdRequired, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { options, loading };
 }

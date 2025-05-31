@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { Connector, useAccount } from "wagmi";
-import { usePayContext } from "../usePayContext";
 import { useConnect } from "../useConnect";
+import { usePayContext } from "../usePayContext";
 import { useWalletConnectConnector } from "./../useConnectors";
 
 type Props = {
@@ -91,7 +91,7 @@ export function useWalletConnectUri(
         };
       }
     }
-  }, [enabled, connector, isConnected]);
+  }, [enabled, connector, isConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     uri,

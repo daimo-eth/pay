@@ -31,7 +31,7 @@ const SelectExternalAmount: React.FC = () => {
 
   useEffect(() => {
     triggerResize();
-  }, [message]);
+  }, [message]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (selectedExternalOption == null) {
     return <PageContent></PageContent>;

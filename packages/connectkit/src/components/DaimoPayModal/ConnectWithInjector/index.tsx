@@ -187,7 +187,7 @@ const ConnectWithInjector: React.FC<{
     return () => {
       clearTimeout(connectTimeout);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Timeout functionality if necessary
   let expiryTimeout: any;

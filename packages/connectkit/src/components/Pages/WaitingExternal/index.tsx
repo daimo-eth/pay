@@ -40,7 +40,7 @@ const WaitingExternal: React.FC = () => {
       setExternalURL(url);
       openExternalWindow(url);
     });
-  }, [selectedExternalOption]);
+  }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openExternalWindow = (url: string) => {
     if (isMobile || isPaymentApp) {
@@ -76,7 +76,7 @@ const WaitingExternal: React.FC = () => {
 
   useEffect(() => {
     triggerResize();
-  }, [waitingMessageLength, externalURL]);
+  }, [waitingMessageLength, externalURL]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!selectedExternalOption) {
     return <PageContent></PageContent>;

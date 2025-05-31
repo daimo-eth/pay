@@ -40,7 +40,7 @@ export function useSolanaPaymentOptions({
     if (address != null && usdRequired != null) {
       refreshWalletPaymentOptions();
     }
-  }, [address, usdRequired, isDepositFlow]);
+  }, [address, usdRequired, isDepositFlow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     options,

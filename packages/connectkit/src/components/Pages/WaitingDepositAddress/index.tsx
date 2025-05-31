@@ -76,14 +76,15 @@ function DepositAddressInfo({
 
   return (
     <ModalContent>
-      {isMobile ? (
+      {isExpired ? (
         <LogoWrap>
-          {!isExpired && <img src={meta.logoURI} width="64px" height="64px" />}
-          {isExpired && (
-            <Button onClick={refresh} style={{ width: 128 }}>
-              Refresh
-            </Button>
-          )}
+          <Button onClick={refresh} style={{ width: 128 }}>
+            Refresh
+          </Button>
+        </LogoWrap>
+      ) : isMobile ? (
+        <LogoWrap>
+          <img src={meta.logoURI} width="64px" height="64px" />
         </LogoWrap>
       ) : (
         <QRWrap>

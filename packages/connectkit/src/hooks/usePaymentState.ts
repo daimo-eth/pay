@@ -26,6 +26,7 @@ import {
   useWriteContract,
 } from "wagmi";
 
+import { UntronCreateOrderResponse } from "@daimo/pay-api";
 import { VersionedTransaction } from "@solana/web3.js";
 import {
   erc20Abi,
@@ -420,13 +421,14 @@ export function usePaymentState({
         return null;
       }
 
-      const untronOrder = untronResp.untronOrder;
+      const untronOrder = untronResp.untronOrder as UntronCreateOrderResponse;
       // Map Untron response to the generic deposit-address shape expected by the UI
       return {
         address: untronOrder.receiver,
         amount: usd,
         suffix: "USDT on Tron",
         uri: `tron:${untronOrder.receiver}`,
+        expirationS: untronOrder.expiresAtS - 60,
       } as DepositAddressPaymentOptionData;
     }
 

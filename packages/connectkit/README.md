@@ -1,5 +1,5 @@
 <a href="https://paydocs.daimo.com">
-  <img src="https://raw.githubusercontent.com/daimo-eth/pay/refs/heads/main/packages/connectkit/header.png">
+  <img src="https://pbs.twimg.com/profile_banners/1666972322828541954/1733698695/1500x500">
 </a>
 
 # Daimo Pay
@@ -10,7 +10,8 @@ Onboard users from any chain, any coin into your app with one click and maximize
 
 ## Features
 
-- 🌱 Instant cross-chain payments — Accept payment from 1000+ tokens on multiple chains. Payments complete in less than 5 seconds. We handle the swapping and bridging so that your customers don't have to.
+- 🌱 Instant cross-chain payments — Accept payment from 1000+ tokens on multiple chains. Payments complete in less than 5 seconds. We handle the swapping 
+and bridging so that your customers don't have to.
 - 💡 Pay with a single transaction - No more wallet round-trips to make approval, swap, or bridging transactions. Your customers pay with a single transfer transaction.
 - ⚡️ Fully permissionless - Daimo never custodies funds and funds can never be stuck in a contract. Payments can be permissionlessly completed by anyone.
 - 💱 Support for all major wallets and exchanges - Daimo Pay supports payments from browser wallets like MetaMask and Rabby, WalletConnect, as well as exchanges like Coinbase and Binance.
@@ -50,6 +51,13 @@ npm run dev
 ```
 
 Any changes will be reflected on the Pay button in the example app.
+
+## Contracts
+
+Daimo Pay is noncustodial and runs on open-source, audited contracts. See `/packages/contract`.
+
+Audits:
+- [Nethermind, 2025 Apr](https://github.com/user-attachments/files/20544714/NM-0500-Daimo-Pay-final-report.pdf)
 
 ## Support
 

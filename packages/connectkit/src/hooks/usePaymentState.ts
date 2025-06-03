@@ -506,7 +506,7 @@ export function usePaymentState({
     if (lockPayParams) return;
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
 
-    console.log("[SET PAY PARAMS] setting payParams");
+    log("[SET PAY PARAMS] setting payParams", payParams);
     pay.reset();
     await pay.createPreviewOrder(payParams);
     setCurrPayParams(payParams);

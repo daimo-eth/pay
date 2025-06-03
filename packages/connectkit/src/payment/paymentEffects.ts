@@ -277,6 +277,7 @@ async function runHydratePayParamsEffects(
         isAmountEditable: order.mode === DaimoPayOrderMode.CHOOSE_AMOUNT,
         metadata: order.metadata,
         userMetadata: order.userMetadata,
+        externalId: order.externalId ?? undefined,
       },
       refundAddress: event.refundAddress,
     });

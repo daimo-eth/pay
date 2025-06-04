@@ -229,6 +229,9 @@ export default function SelectMethod() {
     });
   }
 
+  // Order disabled to bottom
+  options.sort((a, b) => (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0));
+
   return (
     <PageContent>
       <OrderHeader />

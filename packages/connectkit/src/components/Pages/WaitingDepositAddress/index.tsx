@@ -1,7 +1,13 @@
 import {
+  arbitrumUSDC,
+  baseUSDC,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
+  DepositAddressPaymentOptions,
+  ethereumUSDC,
   getAddressContraction,
+  optimismUSDC,
+  polygonUSDC,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
@@ -19,11 +25,11 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
+import TokenChainLogo from "../../Common/TokenChainLogo";
 
 export default function WaitingDepositAddress() {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
-
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
 
   const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
@@ -43,7 +49,7 @@ export default function WaitingDepositAddress() {
   useEffect(generateDepositAddress, [selectedDepositAddressOption]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(triggerResize, [details]);
+  useEffect(triggerResize, [details, failed]);
 
   return (
     <PageContent>
@@ -54,6 +60,7 @@ export default function WaitingDepositAddress() {
           meta={selectedDepositAddressOption}
           details={details}
           refresh={generateDepositAddress}
+          triggerResize={triggerResize}
         />
       )}
     </PageContent>
@@ -64,53 +71,83 @@ function DepositAddressInfo({
   meta,
   details,
   refresh,
+  triggerResize,
 }: {
   meta: DepositAddressPaymentOptionMetadata;
   details?: DepositAddressPaymentOptionData;
   refresh: () => void;
+  triggerResize: () => void;
 }) {
   const { isMobile } = useIsMobile();
 
   const [remainingS, totalS] = useCountdown(details?.expirationS);
   const isExpired = details?.expirationS != null && remainingS === 0;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(triggerResize, [isExpired]);
+
+  const displayToken = (() => {
+    switch (meta.id) {
+      case DepositAddressPaymentOptions.OP_MAINNET:
+        return optimismUSDC;
+      case DepositAddressPaymentOptions.ARBITRUM:
+        return arbitrumUSDC;
+      case DepositAddressPaymentOptions.BASE:
+        return baseUSDC;
+      case DepositAddressPaymentOptions.POLYGON:
+        return polygonUSDC;
+      case DepositAddressPaymentOptions.ETH_L1:
+        return ethereumUSDC;
+      default:
+        return null;
+    }
+  })();
+
+  const logoElement = displayToken ? (
+    <TokenChainLogo token={displayToken} size={64} offset={-4} />
+  ) : (
+    <img src={meta.logoURI} width="64px" height="64px" />
+  );
+
   return (
     <ModalContent>
       {isExpired ? (
-        <LogoWrap>
+        <LogoRow>
           <Button onClick={refresh} style={{ width: 128 }}>
             Refresh
           </Button>
-        </LogoWrap>
+        </LogoRow>
       ) : isMobile ? (
-        <LogoWrap>
-          <img src={meta.logoURI} width="64px" height="64px" />
-        </LogoWrap>
+        <LogoRow>
+          <LogoWrap>{logoElement}</LogoWrap>
+        </LogoRow>
       ) : (
         <QRWrap>
           <CustomQRCode
             value={details?.uri}
             contentPadding={24}
             size={200}
-            image={<img src={meta.logoURI} width="100%" height="100%" />}
+            image={logoElement}
           />
         </QRWrap>
       )}
-      <CopyableInfo
-        meta={meta}
-        details={details}
-        remainingS={remainingS}
-        totalS={totalS}
-      />
+      <CopyableInfo details={details} remainingS={remainingS} totalS={totalS} />
     </ModalContent>
   );
 }
 
 const LogoWrap = styled.div`
+  position: relative;
+  width: 64px;
+  height: 64px;
+`;
+
+const LogoRow = styled.div`
   padding: 32px 0;
   height: 128px;
   display: flex;
   align-items: center;
+  gap: 8px;
   justify-content: center;
 `;
 
@@ -120,12 +157,10 @@ const QRWrap = styled.div`
 `;
 
 function CopyableInfo({
-  meta,
   details,
   remainingS,
   totalS,
 }: {
-  meta: DepositAddressPaymentOptionMetadata;
   details?: DepositAddressPaymentOptionData;
   remainingS: number;
   totalS: number;
@@ -138,7 +173,7 @@ function CopyableInfo({
       <CopyRowOrThrobber
         title="Send Exactly"
         value={details?.amount}
-        smallText={currencies}
+        smallText={currencies + " only"}
         disabled={isExpired}
       />
       <CopyRowOrThrobber
@@ -190,8 +225,9 @@ function CountdownTimer({
   remainingS: number;
   totalS: number;
 }) {
-  if (totalS == 0) return null;
-  if (remainingS > 3600) return null;
+  if (totalS == 0 || remainingS > 3600) {
+    return <SmallText>Send only once</SmallText>;
+  }
   const isExpired = remainingS === 0;
 
   return (
@@ -289,7 +325,6 @@ const ValueContainer = styled.div`
 
 const SmallText = styled.span`
   font-size: 14px;
-  color: var(--ck-body-color-muted);
 `;
 
 const pulse = keyframes`

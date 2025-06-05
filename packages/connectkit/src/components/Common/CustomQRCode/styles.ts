@@ -140,15 +140,5 @@ export const LogoIcon = styled(motion.div)<{ $wcLogo?: boolean }>`
       : css`
           width: 28%;
           height: 28%;
-          border-radius: 17px;
-          &:before {
-            pointer-events: none;
-            z-index: 2;
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
-          }
         `}
 `;

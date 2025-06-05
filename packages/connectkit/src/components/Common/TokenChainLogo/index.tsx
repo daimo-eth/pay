@@ -10,7 +10,7 @@ const TokenChainLogo = ({
   offset,
 }: {
   token: Token;
-  size: number;
+  size?: number;
   offset?: number;
 }) => {
   const s1 = useMemo(() => ({ width: size, height: size }), [size]);

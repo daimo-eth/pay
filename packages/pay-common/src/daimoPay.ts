@@ -187,9 +187,7 @@ export type DaimoPayHydratedOrder = {
   escrowContractAddress: Address | null;
   /** Nullable because old intents don't record bridger address. */
   bridgerContractAddress: Address | null;
-  /**
-   * @deprecated included for backcompat with old versions. Remove soon.
-   */
+  /** @deprecated included for backcompat with old versions. Remove soon. */
   handoffAddr: Address;
   bridgeTokenOutOptions: DaimoPayTokenAmount[];
   selectedBridgeTokenOutAddr: Address | null;
@@ -239,6 +237,12 @@ export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<
 >;
 
 export type DaimoPayOrder = DaimoPayDehydratedOrder | DaimoPayHydratedOrder;
+
+export function isHydrated(
+  order: DaimoPayOrder,
+): order is DaimoPayHydratedOrder {
+  return order.mode === DaimoPayOrderMode.HYDRATED;
+}
 
 export type DaimoPayOrderView = {
   id: DaimoPayOrderID;
@@ -411,6 +415,7 @@ export enum DepositAddressPaymentOptions {
 export type DepositAddressPaymentOptionMetadata = {
   id: DepositAddressPaymentOptions;
   logoURI: string;
+  minimumUsd: number;
 };
 
 export type DepositAddressPaymentOptionData = {

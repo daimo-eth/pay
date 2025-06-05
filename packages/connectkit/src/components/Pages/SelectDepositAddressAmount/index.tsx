@@ -20,10 +20,11 @@ const SelectDepositAddressAmount: React.FC = () => {
   const { selectedDepositAddressOption } = paymentState;
 
   const maxUsdLimit = paymentState.getOrderUsdLimit();
-  // const minimumMessage = `Minimum ${formatUsd(MIN_USD_VALUE, "up")}`;
+  const minUsd = selectedDepositAddressOption?.minimumUsd ?? 0;
+  const minimumMessage = `Minimum ${formatUsd(minUsd, "up")}`;
 
   const [usdInput, setUsdInput] = useState<string>("");
-  const [message, setMessage] = useState<string | null>("");
+  const [message, setMessage] = useState<string | null>(minimumMessage);
   const [continueDisabled, setContinueDisabled] = useState(true);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ const SelectDepositAddressAmount: React.FC = () => {
     if (Number(value) > maxUsdLimit) {
       setMessage(`Maximum ${formatUsd(maxUsdLimit)}`);
     } else {
-      setMessage("");
+      setMessage(minimumMessage);
     }
 
     const usd = Number(sanitizeNumber(value));

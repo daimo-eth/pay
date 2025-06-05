@@ -1,16 +1,20 @@
 import {
   arbitrumUSDC,
   baseUSDC,
-  DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
   ethereumUSDC,
   getAddressContraction,
+  getChainName,
+  isHydrated,
   optimismUSDC,
   polygonUSDC,
+  type Token,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
+import { WarningIcon } from "../../../assets/icons";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
@@ -27,38 +31,100 @@ import {
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
 
+type DepositAddr = {
+  displayToken: Token | null;
+  logoURI: string;
+  expirationS?: number;
+  uri?: string;
+  coins?: string;
+  amount?: string;
+  address?: string;
+  underpayment?: Underpayment;
+};
+
+type Underpayment = {
+  unitsPaid: string;
+  coin: string;
+};
+
 export default function WaitingDepositAddress() {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
+  const { order } = useDaimoPay();
 
-  const [details, setDetails] = useState<DepositAddressPaymentOptionData>();
+  const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);
 
+  // If we selected a deposit address option, generate the address...
   const generateDepositAddress = () => {
-    if (!selectedDepositAddressOption) return;
-    payWithDepositAddress(selectedDepositAddressOption.id).then((details) => {
-      if (!details) setFailed(true);
-      else setDetails(details);
-    });
+    if (selectedDepositAddressOption == null) {
+      if (order == null || !isHydrated(order)) return;
+      if (order.sourceTokenAmount == null) return;
+
+      // Pay underpaid order
+      const taPaid = order.sourceTokenAmount;
+      const usdPaid = taPaid.usd; // TODO: get usdPaid directly from the order
+      const usdToPay = Math.max(order.usdValue - usdPaid, 0.01);
+      const dispDecimals = taPaid.token.displayDecimals;
+      const unitsToPay = (usdToPay / taPaid.token.usd).toFixed(dispDecimals);
+      const unitsPaid = (
+        Number(taPaid.amount) /
+        10 ** taPaid.token.decimals
+      ).toFixed(dispDecimals);
+
+      // Hack to always show a <= 60 minute countdown
+      let expirationS = (order.createdAt ?? 0) + 59.5 * 60;
+      if (
+        order.expirationTs != null &&
+        Number(order.expirationTs) < expirationS
+      ) {
+        expirationS = Number(order.expirationTs);
+      }
+
+      setDepAddr({
+        address: order.intentAddr,
+        amount: unitsToPay,
+        underpayment: { unitsPaid, coin: taPaid.token.symbol },
+        coins: `${taPaid.token.symbol} on ${getChainName(taPaid.token.chainId)}`,
+        expirationS: expirationS,
+        uri: order.intentAddr,
+        displayToken: taPaid.token,
+        logoURI: "", // Not needed for underpaid orders
+      });
+    } else {
+      payWithDepositAddress(selectedDepositAddressOption.id).then((details) => {
+        if (details) {
+          setDepAddr({
+            address: details.address,
+            amount: details.amount,
+            coins: details.suffix,
+            expirationS: details.expirationS,
+            uri: details.uri,
+            displayToken: getDisplayToken(selectedDepositAddressOption),
+            logoURI: selectedDepositAddressOption.logoURI,
+          });
+        } else {
+          setFailed(true);
+        }
+      });
+    }
   };
-
-  // TODO: load payment status, show underpayment
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(generateDepositAddress, [selectedDepositAddressOption]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(triggerResize, [details, failed]);
+  useEffect(triggerResize, [depAddr, failed]);
 
   return (
     <PageContent>
-      {selectedDepositAddressOption == null ? null : failed ? (
-        <DepositFailed meta={selectedDepositAddressOption} />
+      {failed ? (
+        selectedDepositAddressOption && (
+          <DepositFailed name={selectedDepositAddressOption.id} />
+        )
       ) : (
         <DepositAddressInfo
-          meta={selectedDepositAddressOption}
-          details={details}
+          depAddr={depAddr}
           refresh={generateDepositAddress}
           triggerResize={triggerResize}
         />
@@ -68,45 +134,26 @@ export default function WaitingDepositAddress() {
 }
 
 function DepositAddressInfo({
-  meta,
-  details,
+  depAddr,
   refresh,
   triggerResize,
 }: {
-  meta: DepositAddressPaymentOptionMetadata;
-  details?: DepositAddressPaymentOptionData;
+  depAddr?: DepositAddr;
   refresh: () => void;
   triggerResize: () => void;
 }) {
   const { isMobile } = useIsMobile();
 
-  const [remainingS, totalS] = useCountdown(details?.expirationS);
-  const isExpired = details?.expirationS != null && remainingS === 0;
+  const [remainingS, totalS] = useCountdown(depAddr?.expirationS);
+  const isExpired = depAddr?.expirationS != null && remainingS === 0;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(triggerResize, [isExpired]);
 
-  const displayToken = (() => {
-    switch (meta.id) {
-      case DepositAddressPaymentOptions.OP_MAINNET:
-        return optimismUSDC;
-      case DepositAddressPaymentOptions.ARBITRUM:
-        return arbitrumUSDC;
-      case DepositAddressPaymentOptions.BASE:
-        return baseUSDC;
-      case DepositAddressPaymentOptions.POLYGON:
-        return polygonUSDC;
-      case DepositAddressPaymentOptions.ETH_L1:
-        return ethereumUSDC;
-      default:
-        return null;
-    }
-  })();
-
-  const logoElement = displayToken ? (
-    <TokenChainLogo token={displayToken} size={64} offset={-4} />
+  const logoElement = depAddr?.displayToken ? (
+    <TokenChainLogo token={depAddr.displayToken} size={64} />
   ) : (
-    <img src={meta.logoURI} width="64px" height="64px" />
+    <img src={depAddr?.logoURI} width="64px" height="64px" />
   );
 
   return (
@@ -124,16 +171,33 @@ function DepositAddressInfo({
       ) : (
         <QRWrap>
           <CustomQRCode
-            value={details?.uri}
+            value={depAddr?.uri}
             contentPadding={24}
             size={200}
             image={logoElement}
           />
         </QRWrap>
       )}
-      <CopyableInfo details={details} remainingS={remainingS} totalS={totalS} />
+      <CopyableInfo depAddr={depAddr} remainingS={remainingS} totalS={totalS} />
     </ModalContent>
   );
+}
+
+function getDisplayToken(meta: DepositAddressPaymentOptionMetadata) {
+  switch (meta.id) {
+    case DepositAddressPaymentOptions.OP_MAINNET:
+      return optimismUSDC;
+    case DepositAddressPaymentOptions.ARBITRUM:
+      return arbitrumUSDC;
+    case DepositAddressPaymentOptions.BASE:
+      return baseUSDC;
+    case DepositAddressPaymentOptions.POLYGON:
+      return polygonUSDC;
+    case DepositAddressPaymentOptions.ETH_L1:
+      return ethereumUSDC;
+    default:
+      return null;
+  }
 }
 
 const LogoWrap = styled.div`
@@ -157,29 +221,30 @@ const QRWrap = styled.div`
 `;
 
 function CopyableInfo({
-  details,
+  depAddr,
   remainingS,
   totalS,
 }: {
-  details?: DepositAddressPaymentOptionData;
+  depAddr?: DepositAddr;
   remainingS: number;
   totalS: number;
 }) {
-  const currencies = details?.suffix;
-  const isExpired = details?.expirationS != null && remainingS === 0;
+  const underpayment = depAddr?.underpayment;
+  const isExpired = depAddr?.expirationS != null && remainingS === 0;
 
   return (
     <CopyableInfoWrapper>
+      {underpayment && <UnderpaymentInfo underpayment={underpayment} />}
       <CopyRowOrThrobber
         title="Send Exactly"
-        value={details?.amount}
-        smallText={currencies + " only"}
+        value={depAddr?.amount}
+        smallText={depAddr?.coins}
         disabled={isExpired}
       />
       <CopyRowOrThrobber
         title="Receiving Address"
-        value={details?.address}
-        valueText={details && getAddressContraction(details.address)}
+        value={depAddr?.address}
+        valueText={depAddr?.address && getAddressContraction(depAddr.address)}
         disabled={isExpired}
       />
       <CountdownWrap>
@@ -188,6 +253,37 @@ function CopyableInfo({
     </CopyableInfoWrapper>
   );
 }
+
+function UnderpaymentInfo({ underpayment }: { underpayment: Underpayment }) {
+  return (
+    <UnderpaymentWrapper>
+      <UnderpaymentHeader>
+        <WarningIcon />
+        <span>
+          Received {underpayment.unitsPaid} {underpayment.coin}
+        </span>
+      </UnderpaymentHeader>
+      <SmallText>Finish by sending the extra amount below.</SmallText>
+    </UnderpaymentWrapper>
+  );
+}
+
+const UnderpaymentWrapper = styled.div`
+  background: var(--ck-body-background-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0 4px 16px 4px;
+  margin-bottom: 16px;
+`;
+
+const UnderpaymentHeader = styled.div`
+  font-weight: 500;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
 
 const CopyableInfoWrapper = styled.div`
   display: flex;
@@ -259,17 +355,13 @@ const formatTime = (sec: number) => {
   return `${m}:${s}`;
 };
 
-function DepositFailed({
-  meta,
-}: {
-  meta: DepositAddressPaymentOptionMetadata;
-}) {
+function DepositFailed({ name }: { name: string }) {
   return (
     <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-      <ModalH1>{meta.id} unavailable</ModalH1>
+      <ModalH1>{name} unavailable</ModalH1>
       <ModalBody>
-        We&apos;re unable to process {meta.id} payments at this time. Please
-        select another payment method.
+        We&apos;re unable to process {name} payments at this time. Please select
+        another payment method.
       </ModalBody>
       <SelectAnotherMethodButton />
     </ModalContent>

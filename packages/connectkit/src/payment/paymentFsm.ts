@@ -8,6 +8,7 @@ import {
   DaimoPayOrderWithOrg,
   DaimoPayUserMetadata,
   ExternalPaymentOptionsString,
+  isHydrated,
   SolanaPublicKey,
 } from "@daimo/pay-common";
 import { Address, Hex, parseUnits } from "viem";
@@ -107,7 +108,6 @@ export type PaymentEvent =
       type: "order_refreshed";
       order: DaimoPayOrderWithOrg | DaimoPayHydratedOrderWithOrg;
     }
-  | { type: "payment_started"; order: DaimoPayHydratedOrderWithOrg }
   | { type: "dest_processed"; order: DaimoPayHydratedOrderWithOrg }
   /* failure / util */
   | {
@@ -271,8 +271,8 @@ function reducePaymentUnpaid(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "payment_started":
-      return { type: "payment_started", order: state.order };
+    case "order_refreshed":
+      return reduceOrderRefreshed(state, event.order);
     case "error":
       return {
         type: "error",
@@ -291,17 +291,8 @@ function reducePaymentStarted(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "order_refreshed": {
-      assert(
-        event.order.mode === DaimoPayOrderMode.HYDRATED,
-        `[PAYMENT_REDUCER] order ${event.order.id} is ${event.order.intentStatus} but not hydrated`,
-      );
-      return { type: "payment_started", order: event.order };
-    }
-    case "dest_processed":
-      return event.order.intentStatus === DaimoPayIntentStatus.COMPLETED
-        ? { type: "payment_completed", order: event.order }
-        : { type: "payment_bounced", order: event.order };
+    case "order_refreshed":
+      return reduceOrderRefreshed(state, event.order);
     case "error":
       return {
         type: "error",
@@ -310,6 +301,25 @@ function reducePaymentStarted(
       };
     case "reset":
       return initialPaymentState;
+    default:
+      return state;
+  }
+}
+
+function reduceOrderRefreshed(
+  state: Extract<PaymentState, { type: "payment_started" | "payment_unpaid" }>,
+  order: DaimoPayOrderWithOrg,
+): PaymentState {
+  assert(isHydrated(order), `[PAYMENT_REDUCER] unhydrated`);
+  switch (order.intentStatus) {
+    case DaimoPayIntentStatus.UNPAID:
+      return { type: "payment_unpaid", order };
+    case DaimoPayIntentStatus.STARTED:
+      return { type: "payment_started", order };
+    case DaimoPayIntentStatus.COMPLETED:
+      return { type: "payment_completed", order };
+    case DaimoPayIntentStatus.BOUNCED:
+      return { type: "payment_bounced", order };
     default:
       return state;
   }

@@ -1,5 +1,4 @@
 import {
-  assert,
   DaimoPayOrderMode,
   DaimoPayOrderWithOrg,
   getOrderDestChainId,
@@ -49,7 +48,7 @@ export function attachPaymentEffectHandlers(
     if (prev.type !== next.type) {
       // Start watching for source payment
       if (next.type === "payment_unpaid") {
-        pollFindSourcePayment(store, trpc, next.order.id);
+        pollFindPayments(store, trpc, next.order.id);
       }
 
       // Refresh the order to watch for destination processing
@@ -122,7 +121,7 @@ export function attachPaymentEffectHandlers(
   return cleanup;
 }
 
-async function pollFindSourcePayment(
+async function pollFindPayments(
   store: PaymentStore,
   trpc: TrpcClient,
   orderId: bigint,
@@ -132,16 +131,12 @@ async function pollFindSourcePayment(
   const stopPolling = startPolling({
     key,
     intervalMs: 1_000,
-    pollFn: () => trpc.findSourcePayment.query({ orderId: orderId.toString() }),
-    onResult: (found) => {
+    pollFn: () => trpc.findOrderPayments.query({ orderId: orderId.toString() }),
+    onResult: (order) => {
       const state = store.getState();
-      // Check that we're still in the payment_unpaid state
-      if (state.type !== "payment_unpaid") {
-        stopPolling();
-      } else if (found) {
-        stopPolling();
-        store.dispatch({ type: "payment_started", order: state.order });
-      }
+      if (state.type !== "payment_unpaid") return;
+      stopPolling();
+      store.dispatch({ type: "order_refreshed", order });
     },
     onError: () => {},
   });
@@ -163,22 +158,13 @@ async function pollRefreshOrder(
     onResult: (res) => {
       const state = store.getState();
       // Check that we're still in the payment_started state
-      if (state.type !== "payment_started") return;
+      if (state.type !== "payment_started") {
+        stopPolling();
+        return;
+      }
 
       const order = res.order;
       store.dispatch({ type: "order_refreshed", order });
-
-      if (
-        order.intentStatus === "payment_completed" ||
-        order.intentStatus === "payment_bounced"
-      ) {
-        assert(
-          order.mode === DaimoPayOrderMode.HYDRATED,
-          `[PAYMENT_EFFECTS] order ${order.id} is ${order.intentStatus} but not hydrated`,
-        );
-        store.dispatch({ type: "dest_processed", order });
-        stopPolling();
-      }
     },
     onError: () => {},
   });
@@ -323,7 +309,7 @@ async function runPayEthereumSourceEffects(
   const orderId = prev.order.id;
 
   try {
-    await trpc.processSourcePayment.mutate({
+    const order = await trpc.processSourcePayment.mutate({
       orderId: orderId.toString(),
       sourceInitiateTxHash: event.paymentTxHash,
       sourceChainId: event.sourceChainId,
@@ -331,9 +317,7 @@ async function runPayEthereumSourceEffects(
       sourceToken: event.sourceToken,
       sourceAmount: event.sourceAmount.toString(),
     });
-
-    // TODO: Update order state with updated txHash
-    store.dispatch({ type: "payment_started", order: prev.order });
+    store.dispatch({ type: "order_refreshed", order });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }
@@ -348,14 +332,12 @@ async function runPaySolanaSourceEffects(
   const orderId = prev.order.id;
 
   try {
-    await trpc.processSolanaSourcePayment.mutate({
+    const order = await trpc.processSolanaSourcePayment.mutate({
       orderId: orderId.toString(),
       startIntentTxHash: event.paymentTxHash,
       token: event.sourceToken,
     });
-
-    // TODO: Update order state with updated txHash
-    store.dispatch({ type: "payment_started", order: prev.order });
+    store.dispatch({ type: "order_refreshed", order });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }

@@ -7,25 +7,21 @@ import styled from "../../../styles/styled";
 const TokenChainLogo = ({
   token,
   size = 32,
-  offset,
 }: {
   token: Token;
   size?: number;
-  offset?: number;
 }) => {
-  const s1 = useMemo(() => ({ width: size, height: size }), [size]);
-  const s2 = useMemo(
-    () => ({ width: size / 2, height: size / 2, right: offset }),
-    [size, offset],
-  );
+  const s1 = size; // coin logo size
+  const s2 = Math.round((size * 30) / 64); // chain logo size
+  const styleCoin = useMemo(() => ({ width: s1, height: s1 }), [s1]);
+  const styleCoinImg = useMemo(() => ({ borderRadius: 999 }), []);
+  const styleChain = useMemo(() => ({ width: s2, height: s2 }), [s2]);
   return (
-    <TokenChainContainer style={s1}>
-      <img
-        src={token.logoURI}
-        alt={token.symbol}
-        style={{ borderRadius: 9999 }}
-      />
-      <ChainContainer style={s2}>{chainToLogo[token.chainId]}</ChainContainer>
+    <TokenChainContainer style={styleCoin}>
+      <img src={token.logoURI} alt={token.symbol} style={styleCoinImg} />
+      <ChainContainer style={styleChain}>
+        {chainToLogo[token.chainId]}
+      </ChainContainer>
     </TokenChainContainer>
   );
 };

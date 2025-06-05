@@ -1,6 +1,7 @@
 import {
   arbitrumUSDC,
   baseUSDC,
+  baseUSDT,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
@@ -104,7 +105,12 @@ function DepositAddressInfo({
   })();
 
   const logoElement = displayToken ? (
-    <TokenChainLogo token={displayToken} size={64} offset={-4} />
+    <TokenChainLogo
+      token={displayToken}
+      token2={baseUSDT}
+      size={64}
+      offset={-4}
+    />
   ) : (
     <img src={meta.logoURI} width="64px" height="64px" />
   );

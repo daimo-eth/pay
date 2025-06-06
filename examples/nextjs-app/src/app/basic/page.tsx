@@ -8,10 +8,10 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
-import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
+import { Text } from "../typography";
 
 type Config = {
   recipientAddress: string;

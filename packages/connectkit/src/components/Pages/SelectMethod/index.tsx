@@ -4,24 +4,19 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import {
-  DepositAddressPaymentOptionMetadata,
-  ExternalPaymentOptions,
-  getAddressContraction,
-} from "@daimo/pay-common";
+import { getAddressContraction } from "@daimo/pay-common";
 import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Bitcoin, Ethereum, Solana, Tron, Zcash } from "../../../assets/chains";
+import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
 import {
   Coinbase,
   Phantom,
-  Rabby,
   Rainbow,
   Trust,
   WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
-import OptionsList from "../../Common/OptionsList";
+import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
@@ -49,7 +44,6 @@ export default function SelectMethod() {
     setSelectedExternalOption,
     externalPaymentOptions,
     showSolanaPaymentMethod,
-    depositAddressOptions,
     senderEnsName,
   } = paymentState;
 
@@ -60,12 +54,7 @@ export default function SelectMethod() {
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
 
-    const connectedOptions: {
-      id: string;
-      title: string;
-      icons: JSX.Element[];
-      onClick: () => void;
-    }[] = [];
+    const connectedOptions: Option[] = [];
 
     if (showConnectedEth) {
       const ethWalletDisplayName =
@@ -104,6 +93,7 @@ export default function SelectMethod() {
           />,
         ],
         onClick: () => {
+          paymentState.setTokenMode("evm");
           setRoute(ROUTES.SELECT_TOKEN, {
             event: "click-wallet",
             walletId: connector?.id,
@@ -141,7 +131,8 @@ export default function SelectMethod() {
               />,
             ],
         onClick: () => {
-          setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
+          paymentState.setTokenMode("solana");
+          setRoute(ROUTES.SELECT_TOKEN, {
             event: "click-wallet",
             walletId: solanaWallet?.adapter.name,
             chainId: "solana",
@@ -155,12 +146,6 @@ export default function SelectMethod() {
 
     return connectedOptions;
   };
-
-  // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
-  // Include by default if paymentOptions not provided
-  const showDepositAddressMethod = externalPaymentOptions.options
-    .get("external")
-    ?.some((o) => o.id == ExternalPaymentOptions.ExternalChains);
 
   const connectedWalletOptions = getConnectedWalletOptions();
   const unconnectedWalletOption = {
@@ -206,21 +191,6 @@ export default function SelectMethod() {
     }
   }
 
-  // ZKP2P is currently only available on desktop. Check if the user is on
-  // desktop and if any ZKP2P options are available.
-  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
-  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
-  if (showZkp2pPaymentMethod) {
-    options.push({
-      id: "ZKP2P",
-      title: "Pay via payment app",
-      icons: zkp2pOptions.slice(0, 3).map((option) => option.logoURI),
-      onClick: () => {
-        setRoute(ROUTES.SELECT_ZKP2P);
-      },
-    });
-  }
-
   // External payment options, e.g. Binance, Coinbase, etc.
   options.push(
     ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
@@ -241,14 +211,26 @@ export default function SelectMethod() {
     })),
   );
 
-  if (showDepositAddressMethod) {
-    const depositAddressOption = getDepositAddressOption(
-      depositAddressOptions,
-      setRoute,
-      paymentState.isDepositFlow,
-    );
-    options.push(depositAddressOption);
+  const depositAddressOption = getDepositAddressOption(setRoute);
+  options.push(depositAddressOption);
+
+  // ZKP2P is currently only available on desktop. Check if the user is on
+  // desktop and if any ZKP2P options are available.
+  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
+  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
+  if (showZkp2pPaymentMethod) {
+    options.push({
+      id: "ZKP2P",
+      title: "Pay via payment app",
+      icons: zkp2pOptions.slice(0, 2).map((option) => option.logoURI),
+      onClick: () => {
+        setRoute(ROUTES.SELECT_ZKP2P);
+      },
+    });
   }
+
+  // Order disabled to bottom
+  options.sort((a, b) => (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0));
 
   return (
     <PageContent>
@@ -272,23 +254,20 @@ function getBestUnconnectedWalletIcons(
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
   const [isRainbow, isTrust, isPhantom, isCoinbase] = [
-    strippedId?.includes("rainbow.me"),
+    strippedId?.includes("rainbow"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),
     strippedId?.includes("coinbase"),
-    strippedId?.includes("rainbow"),
   ];
 
   if (isMobile) {
     if (!isTrust) icons.push(<Trust background />);
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
-    if (icons.length < 3) icons.push(<Coinbase />);
+    if (!isCoinbase && icons.length < 3) icons.push(<Coinbase />);
   } else {
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
-    if (!isCoinbase) icons.push(<Coinbase />);
-    if (icons.length < 3) icons.push(<Rabby />);
   }
 
   return icons;
@@ -321,32 +300,14 @@ function getSolanaOption(
 }
 
 function getDepositAddressOption(
-  depositAddressOptions: {
-    loading: boolean;
-    options: DepositAddressPaymentOptionMetadata[];
-  },
   setRoute: (route: ROUTES, data?: Record<string, any>) => void,
-  isDepositFlow: boolean,
 ) {
-  // TODO: API should serve the subtitle and disabled
-  const disabled =
-    !isDepositFlow &&
-    !depositAddressOptions.loading &&
-    depositAddressOptions.options.length === 0;
-  const subtitle = disabled ? "Minimum $20.00" : "Bitcoin, Tron, Zcash...";
-
   return {
     id: "depositAddress",
-    title: "Pay on another chain",
-    subtitle,
-    icons: [
-      <Bitcoin key="bitcoin" />,
-      <Tron key="tron" />,
-      <Zcash key="zcash" />,
-    ],
+    title: "Pay to address",
+    icons: [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },
-    disabled,
   };
 }

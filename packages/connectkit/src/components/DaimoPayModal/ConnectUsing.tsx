@@ -38,7 +38,7 @@ const ConnectUsing = () => {
       }
     };
     if (status === states.INJECTOR) checkProvider();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!wallet) return <Alert>Connector not found</Alert>;
 

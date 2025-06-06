@@ -4,7 +4,7 @@ import { ModalH1, PageContent } from "../../Common/Modal/styles";
 
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
-import OptionsList from "../../Common/OptionsList";
+import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 
 const SelectZKP: React.FC = () => {

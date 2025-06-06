@@ -3,7 +3,6 @@ import { assertNotNull } from "./assert";
 import {
   arbitrum,
   base,
-  blast,
   bsc,
   ethereum,
   linea,
@@ -213,33 +212,6 @@ const baseTokens: Token[] = [
   baseUSDT,
   baseAxlUSDC,
 ];
-
-//
-// Blast
-//
-
-export const blastETH = nativeETH(blast.chainId);
-
-export const blastWETH: Token = token({
-  chainId: blast.chainId,
-  token: getAddress("0x4300000000000000000000000000000000000004"),
-  decimals: 18,
-  name: "Wrapped Ether",
-  symbol: "WETH",
-  logoURI: TokenLogo.WETH,
-});
-
-export const blastUSDB: Token = token({
-  chainId: blast.chainId,
-  token: getAddress("0x4300000000000000000000000000000000000003"),
-  decimals: 18,
-  fiatISO: "USD",
-  name: "USDB",
-  symbol: "USDB",
-  logoURI: TokenLogo.USDB,
-});
-
-const blastTokens: Token[] = [blastETH, blastWETH, blastUSDB];
 
 //
 // BNB Smart Chain
@@ -721,7 +693,6 @@ const worldchainTokens: Token[] = [
 const knownTokensByChain = new Map<number, Token[]>([
   [arbitrum.chainId, arbitrumTokens],
   [base.chainId, baseTokens],
-  [blast.chainId, blastTokens],
   [bsc.chainId, bscTokens],
   [ethereum.chainId, ethereumTokens],
   [linea.chainId, lineaTokens],
@@ -790,13 +761,6 @@ const tokensByChainAndType: Map<
       [TokenType.BRIDGED_USDC]: baseUSDbC,
       [TokenType.AXL_USDC]: baseAxlUSDC,
       [TokenType.DAI]: baseDAI,
-    },
-  ],
-  [
-    blast.chainId,
-    {
-      [TokenType.NATIVE]: blastETH,
-      [TokenType.WRAPPED_NATIVE]: blastWETH,
     },
   ],
   [

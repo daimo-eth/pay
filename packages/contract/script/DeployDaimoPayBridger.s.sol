@@ -10,6 +10,9 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
+import "./DeployDaimoPayAcrossBridger.s.sol";
+
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy3");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -27,7 +30,7 @@ contract DeployDaimoPayBridger is Script {
         console.log("--------------------------------");
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayBridger-deploy2"),
+            DEPLOY_SALT_BRIDGER,
             abi.encodePacked(
                 type(DaimoPayBridger).creationCode,
                 abi.encode(chainIds, bridgers)
@@ -61,7 +64,7 @@ contract DeployDaimoPayBridger is Script {
         );
         address acrossBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAcrossBridger-deploy2")
+            DEPLOY_SALT_ACROSS_BRIDGER
         );
         address axelarBridger = CREATE3.getDeployed(
             msg.sender,

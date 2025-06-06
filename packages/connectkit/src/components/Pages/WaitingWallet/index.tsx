@@ -1,5 +1,4 @@
-import React, { useEffect } from "react";
-import { ROUTES } from "../../../constants/routes";
+import React from "react";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
@@ -9,45 +8,16 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { DaimoPayOrderMode } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
-import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
 const WaitingWallet: React.FC = () => {
   const context = usePayContext();
-  const { triggerResize, paymentState, setRoute } = context;
-  const trpc = context.trpc as TrpcClient;
+  const { paymentState } = context;
 
-  const {
-    selectedWallet,
-    paymentWaitingMessage,
-    daimoPayOrder,
-    selectedWalletDeepLink,
-    refreshOrder,
-  } = paymentState;
-
-  useEffect(() => {
-    if (daimoPayOrder?.id == null) return;
-
-    const checkForSourcePayment = async () => {
-      const found = await trpc.findSourcePayment.query({
-        orderId: daimoPayOrder.id.toString(),
-      });
-      if (found) {
-        setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
-      }
-    };
-
-    const pollFn =
-      daimoPayOrder?.mode === DaimoPayOrderMode.HYDRATED
-        ? checkForSourcePayment
-        : refreshOrder;
-    const interval = setInterval(pollFn, 1000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daimoPayOrder?.id, daimoPayOrder?.mode]);
+  const { selectedWallet, paymentWaitingMessage, selectedWalletDeepLink } =
+    paymentState;
 
   const openWalletWindow = (url: string) => {
     window.open(url, "_blank");

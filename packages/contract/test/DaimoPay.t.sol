@@ -10,17 +10,17 @@ import "../src/DaimoPayCCTPBridger.sol";
 import "../src/DaimoPayCCTPV2Bridger.sol";
 import "../src/DaimoPayAcrossBridger.sol";
 import "../src/DaimoPayAxelarBridger.sol";
-import "./dummy/DummyFinalCallContract.sol";
-import "./dummy/DummyUSDC.sol";
-import "./dummy/across.sol";
-import "./dummy/axelar.sol";
-import "./dummy/cctp.sol";
-import "./dummy/cctpv2.sol";
+import "./utils/DummyFinalCallContract.sol";
+import "./utils/DummyUSDC.sol";
+import "./utils/across.sol";
+import "./utils/axelar.sol";
+import "./utils/cctp.sol";
+import "./utils/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0xF7510782DdB1C1f6235604bBA935cf78fd2a1707;
-address constant CCTP_V2_INTENT_ADDR = 0x52ffD0B634B3987550a8E7113503e1b821D80F97;
-address constant ACROSS_INTENT_ADDR = 0x73F37b43995B7848546790E6307aEd015D94d276;
-address constant AXELAR_INTENT_ADDR = 0xA25C85b7F073692992F8f3e2912632C0CBC965f3;
+address constant CCTP_INTENT_ADDR = 0xFF776aB220806b6Df8Df29fFBa69E50caA83E196;
+address constant CCTP_V2_INTENT_ADDR = 0x9A31a0164Acb7Ad3573A1fA990Cc8178C32e5f5e;
+address constant ACROSS_INTENT_ADDR = 0x72D70dbFaBeddb16Ab0FBB9bE8a3f8D6472A0B1c;
+address constant AXELAR_INTENT_ADDR = 0x607f98A7e68Ae2Fa70F7201B66c9Df7E4D698dCF;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts

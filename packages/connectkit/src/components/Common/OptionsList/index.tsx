@@ -13,8 +13,9 @@ import {
   OptionsContainer,
 } from "./styles";
 
-interface Option {
+export interface Option {
   id: string;
+  sortValue?: number;
   title: string;
   subtitle?: string;
   icons: (React.ReactNode | string)[];
@@ -22,7 +23,7 @@ interface Option {
   disabled?: boolean;
 }
 
-const OptionsList = ({
+export const OptionsList = ({
   options,
   isLoading,
   requiredSkeletons,
@@ -42,9 +43,8 @@ const OptionsList = ({
 
   useEffect(() => {
     log(`[OPTIONS RESIZE]: ${optionsLength}, triggering resize`);
-    if (optionsLength > 0) {
-      triggerResize();
-    }
+    if (optionsLength > 0) triggerResize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optionsLength]);
 
   if (isLoading) {
@@ -83,8 +83,6 @@ const OptionsList = ({
     </>
   );
 };
-
-export default OptionsList;
 
 const SkeletonOptionItem = () => {
   return (

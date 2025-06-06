@@ -15,20 +15,45 @@ contract DaimoPayRelayer is AccessControl {
 
     bytes32 public constant RELAYER_EOA_ROLE = keccak256("RELAYER_EOA_ROLE");
 
-    event SwapAndTip(
-        address indexed requiredTokenIn,
-        uint256 suppliedAmountIn,
-        address indexed requiredTokenOut,
-        uint256 swapAmountOut,
-        uint256 maxPreTip,
-        uint256 maxPostTip
-    );
-
     // Enabled only within transactions. Otherwise zero.
     bytes32 private approvedSwapAndTipHash;
 
     // For gas efficiency, set to 1 to disable swapAndTip.
     bytes32 private constant NO_APPROVED_HASH = bytes32(uint256(1));
+
+    /// @param requiredTokenIn (token, amount) the swap must receive as input
+    /// @param suppliedAmountIn amount the user actually sent
+    /// @param requiredTokenOut (token, amount) the swap is expected to output
+    /// @param maxPreTip ceiling on input-side tip
+    /// @param maxPostTip ceiling on output-side tip
+    /// @param innerSwap the swap that will be executed
+    struct SwapAndTipParams {
+        TokenAmount requiredTokenIn;
+        uint256 suppliedAmountIn;
+        TokenAmount requiredTokenOut;
+        uint256 maxPreTip;
+        uint256 maxPostTip;
+        Call innerSwap;
+        address payable refundAddress;
+    }
+
+    event SwapAndTip(
+        address indexed caller,
+        address indexed requiredTokenIn,
+        address indexed requiredTokenOut,
+        uint256 suppliedAmountIn,
+        uint256 swapAmountOut,
+        uint256 maxPreTip,
+        uint256 maxPostTip,
+        uint256 preTip,
+        uint256 postTip
+    );
+
+    event OverPaymentRefunded(
+        address indexed refundAddress,
+        address indexed token,
+        uint256 amount
+    );
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -59,130 +84,225 @@ contract DaimoPayRelayer is AccessControl {
         return TokenUtils.transferBalance(token, payable(msg.sender));
     }
 
-    /// Makes a swap from requiredTokenIn.token to requiredTokenOut.token. The
-    /// relayer supplies a "tip" either on the input or output side so that
-    /// we get sufficient token output.
+    /// Perform a user-funded token swap, optionally topped-up (“tipped”)
+    /// by the relayer, and deliver a guaranteed output amount to the caller.
+    /// ─────────────────────────────────────────────────────────────────
+    /// - If the caller sent *less* than the swap’s required input
+    ///   (`requiredTokenIn.amount`), the relayer contributes up to
+    ///   `maxPreTip` of the same token so the swap can still succeed.
     ///
-    /// Pre-tip: The relayer tips up to maxPreTip of requiredTokenIn.token so
-    /// that there is sufficient input to guarantee the swap outputs enough of
-    /// the output token.
+    /// - If the caller sent *more* than the swap’s required input
+    ///   (`requiredTokenIn.amount`), the relayer refunds the surplus to
+    ///   `refundAddress` if set and emits the `OverPaymentRefunded` event.
     ///
-    /// Post-tip: Swap with however much input token the user has provided. The
-    /// relayer tips up to maxPostTip of requiredTokenOut.token so that the
-    /// output amount reaches the required amount.
-    function swapAndTip(
-        TokenAmount calldata requiredTokenIn,
-        uint256 suppliedTokenInAmount,
-        TokenAmount calldata requiredTokenOut,
-        uint256 maxPreTip,
-        uint256 maxPostTip,
-        Call calldata innerSwap
-    ) external payable {
-        // Check that this exact swapAndTip call was approved.
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
-        require(approvedSwapAndTipHash == swapAndTipHash, "DPR: wrong hash");
-        // Single-use
-        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    /// - The inner swap (arbitrary calldata in `innerSwap`) executes with
+    ///   **exactly** `requiredTokenIn.amount` input.
+    ///
+    /// - After the swap, if the output is still short of
+    ///   `requiredTokenOut.amount`, the relayer tops-up (“post-tip”) up to
+    ///   `maxPostTip` of the output token.
+    ///
+    /// - The function finally transfers `requiredTokenOut.amount`
+    ///   to `msg.sender`, and emits the `SwapAndTip` event.
+    function swapAndTip(SwapAndTipParams calldata p) external payable {
+        _checkSwapAndTipHash(p);
 
         //////////////////////////////////////////////////////////////
         // PRE-SWAP
         //////////////////////////////////////////////////////////////
 
-        uint256 amountPreSwap = TokenUtils.getBalanceOf(
-            requiredTokenOut.token,
-            address(this)
-        );
-
-        // Check that the amount supplied by the user is exactly suppliedTokenIn.
-        // In the case of native token input, the value should've been supplied
-        // in msg.value. In the case of ERC20 input, move the tokens using
-        // transferFrom.
-        if (address(requiredTokenIn.token) == address(0)) {
-            // Caller should have supplied the exact amount in msg.value
-            require(
-                requiredTokenIn.amount == msg.value,
-                "DPR: wrong msg.value"
-            );
-            // Inner swap should not require more than the required input amount
-            require(
-                innerSwap.value <= requiredTokenIn.amount,
-                "DPR: wrong inner swap value"
-            );
-        } else {
-            // Transfer the supplied tokens to the contract
-            TokenUtils.transferFrom({
-                token: requiredTokenIn.token,
-                from: msg.sender,
-                to: address(this),
-                amount: suppliedTokenInAmount
-            });
-
-            // Check that the tip doesn't exceed maxPreTip
-            if (suppliedTokenInAmount < requiredTokenIn.amount) {
-                uint256 inShortfall = requiredTokenIn.amount -
-                    suppliedTokenInAmount;
-                require(inShortfall <= maxPreTip, "DPR: excessive pre tip");
-
-                uint256 balance = TokenUtils.getBalanceOf({
-                    token: requiredTokenIn.token,
-                    addr: address(this)
-                });
-                require(
-                    balance >= requiredTokenIn.amount,
-                    "DPR: balance less than required input"
-                );
-            }
-
-            // Approve requiredTokenIn.amount even if it's greater than
-            // suppliedTokenInAmount. The difference is tipped by the contract. We
-            // already checked that the tip is within maxPreTip and the contract
-            // has enough balance.
-            if (innerSwap.to != address(0)) {
-                requiredTokenIn.token.forceApprove({
-                    spender: innerSwap.to,
-                    value: requiredTokenIn.amount
-                });
-            }
-        }
+        uint256 preSwapBalance = TokenUtils.getBalanceOf({
+            token: p.requiredTokenOut.token,
+            addr: address(this)
+        });
+        uint256 preTipAmount = _collectSwapInput(p);
+        _refundOverPayment(p);
 
         //////////////////////////////////////////////////////////////
         // SWAP
         //////////////////////////////////////////////////////////////
 
-        // Execute inner swap
-        if (innerSwap.to != address(0)) {
-            (bool success, ) = innerSwap.to.call{value: innerSwap.value}(
-                innerSwap.data
-            );
-            require(success, "DPR: inner swap failed");
+        uint256 postSwapBalance = _executeSwap(p);
+        uint256 swapAmountOut = postSwapBalance - preSwapBalance;
+        // If the tokens are the same, then the pre-tip amount counts towards
+        // the swap output
+        if (p.requiredTokenIn.token == p.requiredTokenOut.token) {
+            swapAmountOut += preTipAmount;
         }
-
-        uint256 postSwapBalance = TokenUtils.getBalanceOf(
-            requiredTokenOut.token,
-            address(this)
-        );
-        uint256 swapAmountOut = postSwapBalance - amountPreSwap;
 
         //////////////////////////////////////////////////////////////
         // POST-SWAP
         //////////////////////////////////////////////////////////////
 
-        // If we received less than required, check that the amount we need to
-        // tip is within maxPostTip.
-        if (swapAmountOut < requiredTokenOut.amount) {
-            uint256 outShortfall = requiredTokenOut.amount - swapAmountOut;
-            require(outShortfall <= maxPostTip, "DPR: excessive post tip");
+        uint256 postTipAmount = _tipAndTransferOutput(
+            p,
+            postSwapBalance,
+            swapAmountOut
+        );
+
+        emit SwapAndTip({
+            caller: msg.sender,
+            requiredTokenIn: address(p.requiredTokenIn.token),
+            requiredTokenOut: address(p.requiredTokenOut.token),
+            suppliedAmountIn: p.suppliedAmountIn,
+            swapAmountOut: swapAmountOut,
+            maxPreTip: p.maxPreTip,
+            maxPostTip: p.maxPostTip,
+            preTip: preTipAmount,
+            postTip: postTipAmount
+        });
+    }
+
+    /// Check that this exact swapAndTip call was approved and then nullify the
+    /// hash. The hash is single-use.
+    function _checkSwapAndTipHash(SwapAndTipParams calldata p) private {
+        require(
+            keccak256(abi.encode(p)) == approvedSwapAndTipHash,
+            "DPR: wrong hash"
+        );
+        // Nullify the hash. The hash is single-use.
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Collect the swap input tokens from the caller and approve the swapper
+    function _collectSwapInput(
+        SwapAndTipParams calldata p
+    ) private returns (uint256 preTipAmount) {
+        if (address(p.requiredTokenIn.token) == address(0)) {
+            preTipAmount = _collectNativeSwapInput(p);
+        } else {
+            preTipAmount = _collectERC20SwapInput(p);
+        }
+    }
+
+    function _collectNativeSwapInput(
+        SwapAndTipParams calldata p
+    ) private returns (uint256 preTipAmount) {
+        require(
+            address(p.requiredTokenIn.token) == address(0),
+            "DPR: not native token"
+        );
+
+        // The caller should've supplied the exact amount in msg.value
+        require(p.suppliedAmountIn == msg.value, "DPR: wrong msg.value");
+
+        // Check that the tip doesn't exceed maxPreTip
+        if (p.suppliedAmountIn < p.requiredTokenIn.amount) {
+            preTipAmount = p.requiredTokenIn.amount - p.suppliedAmountIn;
+            require(preTipAmount <= p.maxPreTip, "DPR: excessive pre tip");
+
+            // Ensure the relayer has enough balance to cover the tip
+            uint256 balance = TokenUtils.getBalanceOf({
+                token: p.requiredTokenIn.token,
+                addr: address(this)
+            });
             require(
-                postSwapBalance >= requiredTokenOut.amount,
+                balance >= p.requiredTokenIn.amount,
+                "DPR: balance less than required input"
+            );
+        }
+
+        // Inner swap should not require more than the required input amount
+        require(
+            p.innerSwap.value <= p.requiredTokenIn.amount,
+            "DPR: wrong inner swap value"
+        );
+    }
+
+    function _collectERC20SwapInput(
+        SwapAndTipParams calldata p
+    ) private returns (uint256 preTipAmount) {
+        require(
+            address(p.requiredTokenIn.token) != address(0),
+            "DPR: not ERC20 token"
+        );
+
+        // Pull the tokens the user supplied
+        TokenUtils.transferFrom({
+            token: p.requiredTokenIn.token,
+            from: msg.sender,
+            to: address(this),
+            amount: p.suppliedAmountIn
+        });
+
+        // Check that the tip doesn't exceed maxPreTip
+        if (p.suppliedAmountIn < p.requiredTokenIn.amount) {
+            preTipAmount = p.requiredTokenIn.amount - p.suppliedAmountIn;
+            require(preTipAmount <= p.maxPreTip, "DPR: excessive pre tip");
+
+            // Ensure the relayer has enough balance to cover the tip
+            uint256 balance = TokenUtils.getBalanceOf({
+                token: p.requiredTokenIn.token,
+                addr: address(this)
+            });
+            require(
+                balance >= p.requiredTokenIn.amount,
+                "DPR: balance less than required input"
+            );
+        }
+
+        // Approve the swapper for the full required amount. The difference
+        // is tipped by the contract.
+        if (p.innerSwap.to != address(0)) {
+            p.requiredTokenIn.token.forceApprove({
+                spender: p.innerSwap.to,
+                value: p.requiredTokenIn.amount
+            });
+        }
+    }
+
+    function _refundOverPayment(SwapAndTipParams calldata p) private {
+        // No refund address
+        if (p.refundAddress == address(0)) return;
+        // No overpayment happened
+        if (p.suppliedAmountIn <= p.requiredTokenIn.amount) return;
+
+        uint256 overpay = p.suppliedAmountIn - p.requiredTokenIn.amount;
+        TokenUtils.transfer({
+            token: p.requiredTokenIn.token,
+            recipient: p.refundAddress,
+            amount: overpay
+        });
+
+        emit OverPaymentRefunded({
+            refundAddress: p.refundAddress,
+            token: address(p.requiredTokenIn.token),
+            amount: overpay
+        });
+    }
+
+    // Execute the swapAndTip inner swap
+    function _executeSwap(
+        SwapAndTipParams calldata p
+    ) private returns (uint256 postSwapBalance) {
+        // Zero address indicates no inner swap
+        if (p.innerSwap.to != address(0)) {
+            (bool success, ) = p.innerSwap.to.call{value: p.innerSwap.value}(
+                p.innerSwap.data
+            );
+            require(success, "DPR: inner swap failed");
+        }
+
+        postSwapBalance = TokenUtils.getBalanceOf({
+            token: p.requiredTokenOut.token,
+            addr: address(this)
+        });
+    }
+
+    function _tipAndTransferOutput(
+        SwapAndTipParams calldata p,
+        uint256 postSwapBalance,
+        uint256 swapAmountOut
+    ) private returns (uint256 postTipAmount) {
+        // If the swap output is less than required, check that the tip doesn't
+        // exceed maxPostTip
+        if (swapAmountOut < p.requiredTokenOut.amount) {
+            postTipAmount = p.requiredTokenOut.amount - swapAmountOut;
+            require(postTipAmount <= p.maxPostTip, "DPR: excessive post tip");
+
+            // Ensure the relayer has enough balance to cover the tip
+            require(
+                postSwapBalance >= p.requiredTokenOut.amount,
                 "DPR: balance less than required output"
             );
         }
@@ -190,19 +310,10 @@ contract DaimoPayRelayer is AccessControl {
         // Transfer the required output tokens to the caller, tipping the
         // shortfall if needed. If there are surplus tokens from the swap, keep
         // them.
-        TokenUtils.transfer(
-            requiredTokenOut.token,
-            payable(msg.sender),
-            requiredTokenOut.amount
-        );
-
-        emit SwapAndTip({
-            requiredTokenIn: address(requiredTokenIn.token),
-            suppliedAmountIn: suppliedTokenInAmount,
-            requiredTokenOut: address(requiredTokenOut.token),
-            swapAmountOut: swapAmountOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip
+        TokenUtils.transfer({
+            token: p.requiredTokenOut.token,
+            recipient: payable(msg.sender),
+            amount: p.requiredTokenOut.amount
         });
     }
 

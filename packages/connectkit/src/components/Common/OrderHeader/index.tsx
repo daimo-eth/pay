@@ -14,6 +14,7 @@ import {
 import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
@@ -38,18 +39,18 @@ export const OrderHeader = ({
     wallet: solanaWallet,
   } = useWallet();
   const { senderEnsName } = paymentState;
+  const { order } = useDaimoPay();
 
   const ethWalletDisplayName =
     senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
   const solWalletDisplayName = getAddressContraction(
     publicKey?.toBase58() ?? "",
   );
-  const orderUsd = paymentState.daimoPayOrder?.destFinalCallTokenAmount.usd;
+  const orderUsd = order?.destFinalCallTokenAmount.usd;
 
   const titleAmountContent = (() => {
     if (paymentState.isDepositFlow) {
-      return route === ROUTES.SELECT_TOKEN ||
-        route === ROUTES.SOLANA_SELECT_TOKEN ? (
+      return route === ROUTES.SELECT_TOKEN ? (
         // TODO: make this match `ModalH1` font size for mobile
         <span style={{ fontSize: "19px", lineHeight: "22px" }}>
           Your balances

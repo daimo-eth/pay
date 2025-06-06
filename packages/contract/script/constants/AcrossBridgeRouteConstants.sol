@@ -24,10 +24,10 @@ function getAcrossBridgeRoutes(
         // 1 -> 480
         chainIds[0] = 480;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
-            bridgeTokenOut: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            pctFee: 120000000000000,
-            flatFee: 43000
+            bridgeTokenIn: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 600000000000000,
+            flatFee: 120000000000000
         });
         // 1 -> 81457
         chainIds[1] = 81457;
@@ -49,10 +49,10 @@ function getAcrossBridgeRoutes(
         // 10 -> 480
         chainIds[0] = 480;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
-            bridgeTokenOut: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            pctFee: 300000000000000,
-            flatFee: 120000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 800000000000000,
+            flatFee: 150000000000000
         });
         // 10 -> 59144
         chainIds[1] = 59144;
@@ -82,10 +82,10 @@ function getAcrossBridgeRoutes(
         // 137 -> 480
         chainIds[0] = 480;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
-            bridgeTokenOut: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            pctFee: 300000000000000,
-            flatFee: 120000
+            bridgeTokenIn: 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 800000000000000,
+            flatFee: 150000000000000
         });
         // 137 -> 59144
         chainIds[1] = 59144;
@@ -115,42 +115,42 @@ function getAcrossBridgeRoutes(
         // 480 -> 1
         chainIds[0] = 1;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            bridgeTokenOut: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
-            pctFee: 14600000000000000,
-            flatFee: 3000000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+            pctFee: 3000000000000000,
+            flatFee: 500000000000000
         });
         // 480 -> 10
         chainIds[1] = 10;
         bridgeRoutes[1] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            bridgeTokenOut: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
-            pctFee: 390000000000000,
-            flatFee: 160000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 2000000000000000,
+            flatFee: 300000000000000
         });
         // 480 -> 137
         chainIds[2] = 137;
         bridgeRoutes[2] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            bridgeTokenOut: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
-            pctFee: 440000000000000,
-            flatFee: 170000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619,
+            pctFee: 2000000000000000,
+            flatFee: 300000000000000
         });
         // 480 -> 8453
         chainIds[3] = 8453;
         bridgeRoutes[3] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            bridgeTokenOut: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
-            pctFee: 440000000000000,
-            flatFee: 170000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 2000000000000000,
+            flatFee: 300000000000000
         });
         // 480 -> 42161
         chainIds[4] = 42161;
         bridgeRoutes[4] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            bridgeTokenOut: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
-            pctFee: 440000000000000,
-            flatFee: 170000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
+            pctFee: 2000000000000000,
+            flatFee: 300000000000000
         });
 
         return (chainIds, bridgeRoutes);
@@ -164,10 +164,10 @@ function getAcrossBridgeRoutes(
         // 8453 -> 480
         chainIds[0] = 480;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
-            bridgeTokenOut: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            pctFee: 300000000000000,
-            flatFee: 120000
+            bridgeTokenIn: 0x4200000000000000000000000000000000000006,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 800000000000000,
+            flatFee: 150000000000000
         });
         // 8453 -> 81457
         chainIds[1] = 81457;
@@ -189,10 +189,10 @@ function getAcrossBridgeRoutes(
         // 42161 -> 480
         chainIds[0] = 480;
         bridgeRoutes[0] = DaimoPayAcrossBridger.AcrossBridgeRoute({
-            bridgeTokenIn: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
-            bridgeTokenOut: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
-            pctFee: 300000000000000,
-            flatFee: 120000
+            bridgeTokenIn: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,
+            bridgeTokenOut: 0x4200000000000000000000000000000000000006,
+            pctFee: 800000000000000,
+            flatFee: 150000000000000
         });
         // 42161 -> 59144
         chainIds[1] = 59144;

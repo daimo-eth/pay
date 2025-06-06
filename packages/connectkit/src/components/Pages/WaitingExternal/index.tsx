@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
@@ -12,22 +11,16 @@ import {
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
-import type { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
 const WaitingExternal: React.FC = () => {
   const context = usePayContext();
-  const { triggerResize, paymentState, setRoute } = context;
-  const trpc = context.trpc as TrpcClient;
+  const { triggerResize, paymentState } = context;
   const { isMobile } = useIsMobile();
 
-  const {
-    selectedExternalOption,
-    payWithExternal,
-    paymentWaitingMessage,
-    daimoPayOrder,
-  } = paymentState;
+  const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
+    paymentState;
 
   let isPaymentApp = false;
   if (selectedExternalOption) {
@@ -42,29 +35,12 @@ const WaitingExternal: React.FC = () => {
   const [externalURL, setExternalURL] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkForSourcePayment = async () => {
-      if (!daimoPayOrder) return;
-
-      const found = await trpc.findSourcePayment.query({
-        orderId: daimoPayOrder.id.toString(),
-      });
-
-      if (found) {
-        setRoute(ROUTES.CONFIRMATION, { event: "found-source-payment" });
-      }
-    };
-
-    const interval = setInterval(checkForSourcePayment, 1000);
-    return () => clearInterval(interval);
-  }, [daimoPayOrder?.id]);
-
-  useEffect(() => {
     if (!selectedExternalOption) return;
     payWithExternal(selectedExternalOption.id).then((url) => {
       setExternalURL(url);
       openExternalWindow(url);
     });
-  }, [selectedExternalOption]);
+  }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openExternalWindow = (url: string) => {
     if (isMobile || isPaymentApp) {
@@ -100,7 +76,7 @@ const WaitingExternal: React.FC = () => {
 
   useEffect(() => {
     triggerResize();
-  }, [waitingMessageLength, externalURL]);
+  }, [waitingMessageLength, externalURL]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!selectedExternalOption) {
     return <PageContent></PageContent>;

@@ -1,7 +1,6 @@
 import { WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useState } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
-import { ExternalLinkIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -99,34 +98,18 @@ const PayWithToken: React.FC = () => {
   useEffect(() => {
     if (!selectedTokenOption) return;
 
-    let transferTimeout: any;
-
-    // Give user time to see the UI before opening on mobile
-    if (wcWallet && isMobile) {
-      if (!isIOS) {
-        transferTimeout = setTimeout(() => {
-          window.open(wcWallet?.getWalletConnectDeeplink?.(""));
-          handleTransfer(selectedTokenOption);
-        }, 800);
-      } else {
-        // On iOS, we open the wallet connect modal immediately
-        handleTransfer(selectedTokenOption);
-      }
-    }
-
-    // On desktop, open the wallet connect modal immediately
-    else {
-      transferTimeout = setTimeout(() => {
-        handleTransfer(selectedTokenOption);
-      }, 100);
-    }
+    const transferTimeout = setTimeout(() => {
+      handleTransfer(selectedTokenOption);
+    }, 100);
     return () => {
       clearTimeout(transferTimeout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTokenOption]);
 
   useEffect(() => {
     triggerResize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payState]);
 
   if (selectedTokenOption == null) {
@@ -139,27 +122,6 @@ const PayWithToken: React.FC = () => {
       <ModalContent style={{ paddingBottom: 0 }} $preserveDisplay={true}>
         <ModalH1>{payState}</ModalH1>
         <PaymentBreakdown paymentOption={selectedTokenOption} />
-        {payState === PayState.RequestingPayment &&
-          wcWallet &&
-          isMobile &&
-          !connector?.id?.includes("injected") && (
-            <Button
-              icon={<ExternalLinkIcon />}
-              onClick={
-                wcWallet.isWcMobileConnector
-                  ? () => handleTransfer(selectedTokenOption)
-                  : undefined
-              }
-              href={
-                wcWallet.isWcMobileConnector
-                  ? undefined
-                  : wcWallet.deeplinkScheme ||
-                    wcWallet.getWalletConnectDeeplink?.("")
-              }
-            >
-              Tap Here to Pay
-            </Button>
-          )}
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
             Retry Payment

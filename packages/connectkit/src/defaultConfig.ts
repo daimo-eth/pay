@@ -4,7 +4,6 @@ import {
   arbitrum,
   base,
   baseSepolia,
-  blast,
   bsc,
   Chain,
   linea,
@@ -55,7 +54,6 @@ export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
   sepolia,
   baseSepolia,
   worldchain,
-  blast,
   mantle,
 ];
 

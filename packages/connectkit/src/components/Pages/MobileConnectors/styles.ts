@@ -1,7 +1,7 @@
 import { css, keyframes } from "styled-components";
 import styled from "./../../../styles/styled";
 
-export const WalletItem = styled.div<{ $waiting?: boolean }>`
+export const WalletItem = styled.button<{ $waiting?: boolean }>`
   text-align: center;
   transition: opacity 100ms ease;
   opacity: ${(props) => (props.$waiting ? 0.4 : 1)};

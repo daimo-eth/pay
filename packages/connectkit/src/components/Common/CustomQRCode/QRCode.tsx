@@ -141,7 +141,7 @@ export function QRCode({
     });
 
     return dots;
-  }, [ecl, size, uri]);
+  }, [ecl, size, uri]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <svg

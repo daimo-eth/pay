@@ -13,7 +13,6 @@ import Onboarding from "../Pages/Onboarding";
 import SwitchNetworks from "../Pages/SwitchNetworks";
 import ConnectUsing from "./ConnectUsing";
 
-import { assert } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
@@ -32,7 +31,6 @@ import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
-import SelectSolanaToken from "../Pages/Solana/SelectSolanaToken";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
@@ -57,7 +55,6 @@ export const DaimoPayModal: React.FC<{
   const { setMode, setTheme, setCustomTheme, setLang } = context;
   const paymentState = context.paymentState;
   const {
-    payParams,
     generatePreviewOrder,
     isDepositFlow,
     showSolanaPaymentMethod,
@@ -89,8 +86,7 @@ export const DaimoPayModal: React.FC<{
     closeable &&
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
-    context.route !== ROUTES.SELECT_TOKEN &&
-    context.route !== ROUTES.SOLANA_SELECT_TOKEN;
+    context.route !== ROUTES.SELECT_TOKEN;
 
   const onBack = () => {
     const meta = { event: "click-back" };
@@ -112,11 +108,7 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);
@@ -124,11 +116,7 @@ export const DaimoPayModal: React.FC<{
       }
     } else if (context.route === ROUTES.PAY_WITH_TOKEN) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_AMOUNT, meta);
       } else {
         setSelectedTokenOption(undefined);
@@ -138,11 +126,7 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
       } else {
         setSelectedDepositAddressOption(undefined);
@@ -150,11 +134,7 @@ export const DaimoPayModal: React.FC<{
       }
     } else if (context.route === ROUTES.WAITING_WALLET) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
         setSelectedWallet(undefined);
@@ -162,18 +142,14 @@ export const DaimoPayModal: React.FC<{
       }
     } else if (context.route === ROUTES.SOLANA_SELECT_AMOUNT) {
       setSelectedSolanaTokenOption(undefined);
-      context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta);
+      context.setRoute(ROUTES.SELECT_TOKEN, meta);
     } else if (context.route === ROUTES.SOLANA_PAY_WITH_TOKEN) {
       if (isDepositFlow) {
-        assert(
-          payParams != null,
-          "[PAY MODAL] payParams cannot be null in deposit flow",
-        );
-        generatePreviewOrder(payParams);
+        generatePreviewOrder();
         context.setRoute(ROUTES.SOLANA_SELECT_AMOUNT, meta);
       } else {
         setSelectedSolanaTokenOption(undefined);
-        context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, meta);
+        context.setRoute(ROUTES.SELECT_TOKEN, meta);
       }
     } else {
       context.setRoute(ROUTES.SELECT_METHOD, meta);
@@ -196,7 +172,6 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
     [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,
     [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,
-    [ROUTES.SOLANA_SELECT_TOKEN]: <SelectSolanaToken />,
     [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
     [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,
     // Unused routes. Kept to minimize connectkit merge conflicts.
@@ -211,11 +186,7 @@ export const DaimoPayModal: React.FC<{
 
   function hide() {
     if (isDepositFlow) {
-      assert(
-        payParams != null,
-        "[PAY MODAL] payParams cannot be null in deposit flow",
-      );
-      generatePreviewOrder(payParams);
+      generatePreviewOrder();
     }
     context.setOpen(false, { event: "click-close" });
   }
@@ -230,6 +201,7 @@ export const DaimoPayModal: React.FC<{
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
     if (isEthConnected && !isSolanaConnected) {
+      paymentState.setTokenMode("evm");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
         walletId: connector?.id,
@@ -237,7 +209,8 @@ export const DaimoPayModal: React.FC<{
         address,
       });
     } else if (isSolanaConnected && !isEthConnected) {
-      context.setRoute(ROUTES.SOLANA_SELECT_TOKEN, {
+      paymentState.setTokenMode("solana");
+      context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "solana_connected_on_open",
       });
     }
@@ -264,6 +237,7 @@ export const DaimoPayModal: React.FC<{
       context.route === ROUTES.MOBILECONNECTORS
     ) {
       if (isEthConnected) {
+        paymentState.setTokenMode("evm");
         context.setRoute(ROUTES.SELECT_TOKEN, {
           event: "connected",
           walletId: connector?.id,

@@ -17,7 +17,7 @@ import CopyToClipboard from "../Common/CopyToClipboard";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { useWallet } from "../../wallets/useWallets";
-import { useWeb3 } from "../contexts/web3";
+import { useWeb3 } from "../../provider/Web3ContextProvider";
 
 const ConnectWithQRCode: React.FC<{
   switchConnectMethod: (id?: string) => void;

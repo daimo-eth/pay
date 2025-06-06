@@ -10,48 +10,37 @@ import {
 
 import {
   assert,
-  DaimoPayOrderMode,
-  DaimoPayOrderStatusDest,
   getChainExplorerTxUrl,
   getOrderDestChainId,
 } from "@daimo/pay-common";
 import { motion } from "framer-motion";
 import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
 const Confirmation: React.FC = () => {
-  const { paymentState, confirmationMessage, onSuccess } = usePayContext();
-  const { daimoPayOrder } = paymentState;
+  const { confirmationMessage, onSuccess } = usePayContext();
+  const { order, paymentState } = useDaimoPay();
 
   const { done, txURL } = useMemo(() => {
-    if (daimoPayOrder && daimoPayOrder.mode === DaimoPayOrderMode.HYDRATED) {
-      const { destStatus } = daimoPayOrder;
-      if (
-        destStatus === DaimoPayOrderStatusDest.FAST_FINISHED ||
-        destStatus === DaimoPayOrderStatusDest.CLAIM_SUCCESSFUL
-      ) {
-        const txHash =
-          daimoPayOrder.destFastFinishTxHash ?? daimoPayOrder.destClaimTxHash;
-        const destChainId = getOrderDestChainId(daimoPayOrder);
-        assert(
-          txHash != null,
-          `[CONFIRMATION] dest status: ${destStatus}, but missing txHash`,
-        );
-        const txURL = getChainExplorerTxUrl(destChainId, txHash);
+    if (
+      paymentState === "payment_completed" ||
+      paymentState === "payment_bounced"
+    ) {
+      const txHash = order.destFastFinishTxHash ?? order.destClaimTxHash;
+      const destChainId = getOrderDestChainId(order);
+      assert(
+        txHash != null,
+        `[CONFIRMATION] paymentState: ${paymentState}, but missing txHash`,
+      );
+      const txURL = getChainExplorerTxUrl(destChainId, txHash);
 
-        return {
-          done: true,
-          txURL,
-        };
-      }
+      return { done: true, txURL };
     }
-    return {
-      done: false,
-      txURL: undefined,
-    };
-  }, [daimoPayOrder]);
+    return { done: false, txURL: undefined };
+  }, [paymentState, order]);
 
   useEffect(() => {
     if (done) {
@@ -99,7 +88,7 @@ const Confirmation: React.FC = () => {
 
         <PoweredByFooter
           supportUrl={getSupportUrl(
-            daimoPayOrder,
+            order?.id?.toString() ?? "",
             done ? "Confirmed" : "Confirming",
           )}
         />

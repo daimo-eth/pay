@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
-import "./dummy/DummyUSDC.sol";
+import "./utils/DummyUSDC.sol";
 
 contract RelayerTest is Test {
     DaimoPayRelayer public relayerContract;
@@ -285,40 +285,105 @@ contract RelayerTest is Test {
         assertEq(withdrawnAmount, 1000);
     }
 
+    function getSimpleSwapAndTipParams()
+        public
+        view
+        returns (DaimoPayRelayer.SwapAndTipParams memory)
+    {
+        return
+            DaimoPayRelayer.SwapAndTipParams({
+                requiredTokenIn: TokenAmount(_token1, 0),
+                suppliedAmountIn: 0,
+                requiredTokenOut: TokenAmount(_token1, 0),
+                maxPreTip: 0,
+                maxPostTip: 0,
+                innerSwap: Call(address(0), 0, ""),
+                refundAddress: payable(address(0))
+            });
+    }
+
+    function testCheckSwapAndTipHash() public view {
+        DaimoPayRelayer.SwapAndTipParams
+            memory params = getSimpleSwapAndTipParams();
+        bytes32 EXPECTED_SWAP_AND_TIP_HASH = 0xaffbe61b726412fdd454deff26aedd565d35fc4b9a7005218acbbf3c910e9cfa;
+        assertEq(EXPECTED_SWAP_AND_TIP_HASH, keccak256(abi.encode(params)));
+    }
+
     function testSwapAndTipAuth() public {
+        DaimoPayRelayer.SwapAndTipParams
+            memory params = getSimpleSwapAndTipParams();
+
         // swapAndTip is accepts only a single, preauthorized call
         vm.expectRevert("DPR: wrong hash");
-        relayerContract.swapAndTip({
-            requiredTokenIn: TokenAmount(_token1, 0),
-            suppliedTokenInAmount: 0,
-            requiredTokenOut: TokenAmount(_token1, 0),
-            maxPreTip: 0,
-            maxPostTip: 0,
-            innerSwap: Call(address(0), 0, "")
-        });
+        relayerContract.swapAndTip(params);
 
         // Pre-approve the call
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                TokenAmount(_token1, 0),
-                0,
-                TokenAmount(_token1, 0),
-                0,
-                0,
-                Call(address(0), 0, "")
-            )
-        );
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
         // Execute the call
-        relayerContract.swapAndTip({
-            requiredTokenIn: TokenAmount(_token1, 0),
-            suppliedTokenInAmount: 0,
-            requiredTokenOut: TokenAmount(_token1, 0),
-            maxPreTip: 0,
+        relayerContract.swapAndTip(params);
+    }
+
+    function testSwapAndTipEmptyCall() public {
+        // Setup: send tokens to relayerContract for tipping
+        _token1.transfer(address(relayerContract), 200);
+
+        // Setup: send tokens to bob for providing swap input
+        _token1.transfer(_bob, 800);
+
+        // Setup: bob approves relayer contract to spend tokens for swap
+        vm.startPrank(_bob);
+        _token1.approve(address(relayerContract), 800);
+        vm.stopPrank();
+
+        // bob wants to swap 1000 token1 but only supplies 800
+        TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
+        uint256 suppliedAmountIn = 800;
+        TokenAmount memory requiredTokenOut = TokenAmount(_token1, 1000);
+        uint256 maxPreTip = 200;
+        uint256 maxPostTip = 0;
+
+        // Prepare the swapAndTip hash
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: Call(address(0), 0, ""), // empty call
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        // Execute swap
+        vm.startPrank(_bob);
+        vm.expectEmit(address(relayerContract));
+        emit DaimoPayRelayer.SwapAndTip({
+            caller: _bob,
+            requiredTokenIn: address(requiredTokenIn.token),
+            suppliedAmountIn: suppliedAmountIn,
+            requiredTokenOut: address(requiredTokenOut.token),
+            swapAmountOut: 1000,
+            maxPreTip: 200,
             maxPostTip: 0,
-            innerSwap: Call(address(0), 0, "")
+            preTip: 200, // preTip = 1000 required - 800 supplied
+            postTip: 0
         });
+        relayerContract.swapAndTip(params);
+        vm.stopPrank();
+
+        // Verify results
+        // 1. msg.sender should receive exactly the required output amount
+        assertEq(_token1.balanceOf(_bob), requiredTokenOut.amount);
+
+        // 2. Contract should have tipped 200 tokenIn (1000 required - 800 supplied)
+        assertEq(
+            _token1.balanceOf(address(relayerContract)),
+            0 // Initial balance - tip amount
+        );
     }
 
     // Test case where relayer tips before the swap to ensure the swap goes
@@ -337,9 +402,9 @@ contract RelayerTest is Test {
 
         // bob wants to swap 1000 token1 but only supplies 800
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedTokenInAmount = 800;
+        uint256 suppliedAmountIn = 800;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
-        uint256 maxPreTip = 200;
+        uint256 maxPreTip = 300;
         uint256 maxPostTip = 0;
 
         // Prepare the inner swap call
@@ -349,37 +414,35 @@ contract RelayerTest is Test {
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
-        // Execute swap
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
+        // Prepare the swapAndTip hash
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
+        // Execute swap
         vm.startPrank(_bob);
         vm.expectEmit(address(relayerContract));
         emit DaimoPayRelayer.SwapAndTip({
+            caller: _bob,
             requiredTokenIn: address(requiredTokenIn.token),
-            suppliedAmountIn: suppliedTokenInAmount,
+            suppliedAmountIn: suppliedAmountIn,
             requiredTokenOut: address(requiredTokenOut.token),
             swapAmountOut: 1000, // we know mockSwap returns 1000 tokens
-            maxPreTip: 200, // preTip = 1000 required - 800 supplied
-            maxPostTip: 0
+            maxPreTip: 300,
+            maxPostTip: 0,
+            preTip: 200, // preTip = 1000 required - 800 supplied
+            postTip: 0
         });
-        relayerContract.swapAndTip({
-            requiredTokenIn: requiredTokenIn,
-            suppliedTokenInAmount: suppliedTokenInAmount,
-            requiredTokenOut: requiredTokenOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip,
-            innerSwap: innerSwap
-        });
+        relayerContract.swapAndTip(params);
         vm.stopPrank();
 
         // Verify results
@@ -409,10 +472,10 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input and wants to receive 1000 token2
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedTokenInAmount = 1000;
+        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
         uint256 maxPreTip = 0;
-        uint256 maxPostTip = 200;
+        uint256 maxPostTip = 300;
 
         // Prepare the inner swap call
         bytes memory swapData = abi.encodeCall(
@@ -421,37 +484,35 @@ contract RelayerTest is Test {
         );
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
-        // Execute swap
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
+        // Prepare the swapAndTip hash
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
+        // Execute swap
         vm.startPrank(_bob);
         vm.expectEmit(address(relayerContract));
         emit DaimoPayRelayer.SwapAndTip({
+            caller: _bob,
             requiredTokenIn: address(requiredTokenIn.token),
-            suppliedAmountIn: suppliedTokenInAmount,
+            suppliedAmountIn: suppliedAmountIn,
             requiredTokenOut: address(requiredTokenOut.token),
             swapAmountOut: 800, // we know mockSwap returns 800 tokens
             maxPreTip: 0,
-            maxPostTip: 200 // postTip = 1000 required - 800 swap output
+            maxPostTip: 300, // postTip = 1000 required - 800 swap output
+            preTip: 0,
+            postTip: 200
         });
-        relayerContract.swapAndTip({
-            requiredTokenIn: requiredTokenIn,
-            suppliedTokenInAmount: suppliedTokenInAmount,
-            requiredTokenOut: requiredTokenOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip,
-            innerSwap: innerSwap
-        });
+        relayerContract.swapAndTip(params);
         vm.stopPrank();
 
         // Verify results
@@ -482,7 +543,7 @@ contract RelayerTest is Test {
         // The owner is willing to tip 200, but a 1000 - 700 = 300 tip is
         // required to make the swap succeed
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedTokenInAmount = 700;
+        uint256 suppliedAmountIn = 700;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
         uint256 maxPreTip = 200;
         uint256 maxPostTip = 0;
@@ -495,29 +556,23 @@ contract RelayerTest is Test {
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
         // Prepare the swapAndTip hash
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
         // Execute swap where tx.origin is relayer and msg.sender is bob
         vm.startPrank(_bob, _relayer);
         vm.expectRevert("DPR: excessive pre tip");
-        relayerContract.swapAndTip({
-            requiredTokenIn: requiredTokenIn,
-            suppliedTokenInAmount: suppliedTokenInAmount,
-            requiredTokenOut: requiredTokenOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip,
-            innerSwap: innerSwap
-        });
+        relayerContract.swapAndTip(params);
         vm.stopPrank();
     }
 
@@ -536,7 +591,7 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input and wants to receive 1000 token2
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedTokenInAmount = 1000;
+        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
         uint256 maxPreTip = 0;
         uint256 maxPostTip = 200;
@@ -550,28 +605,22 @@ contract RelayerTest is Test {
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
         // Execute swap where tx.origin is relayer and msg.sender is bob
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
         vm.startPrank(_bob);
         vm.expectRevert("DPR: excessive post tip");
-        relayerContract.swapAndTip({
-            requiredTokenIn: requiredTokenIn,
-            suppliedTokenInAmount: suppliedTokenInAmount,
-            requiredTokenOut: requiredTokenOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip,
-            innerSwap: innerSwap
-        });
+        relayerContract.swapAndTip(params);
         vm.stopPrank();
     }
 
@@ -586,7 +635,7 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input and wants to receive 900 token2
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedTokenInAmount = 1000;
+        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 900);
         uint256 maxPreTip = 0;
         uint256 maxPostTip = 0;
@@ -599,28 +648,22 @@ contract RelayerTest is Test {
         Call memory innerSwap = Call(address(mockSwap), 0, swapData);
 
         // Prepare the swapAndTip hash
-        bytes32 swapAndTipHash = keccak256(
-            abi.encode(
-                requiredTokenIn,
-                suppliedTokenInAmount,
-                requiredTokenOut,
-                maxPreTip,
-                maxPostTip,
-                innerSwap
-            )
-        );
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(address(0))
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
         vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
 
         // Execute swap where tx.origin is relayer and msg.sender is bob
         vm.startPrank(_bob, _relayer);
-        relayerContract.swapAndTip({
-            requiredTokenIn: requiredTokenIn,
-            suppliedTokenInAmount: suppliedTokenInAmount,
-            requiredTokenOut: requiredTokenOut,
-            maxPreTip: maxPreTip,
-            maxPostTip: maxPostTip,
-            innerSwap: innerSwap
-        });
+        relayerContract.swapAndTip(params);
         vm.stopPrank();
 
         // Verify results
@@ -629,6 +672,67 @@ contract RelayerTest is Test {
 
         // 2. Contract should receive the excess output 1000 - 900 = 100
         assertEq(_token2.balanceOf(address(relayerContract)), 100);
+    }
+
+    // Test case where the user provides more tokens than required. They should
+    // receive the excess tokens back.
+    function testOverPaymentRefunded() public {
+        // Setup: send some tokens to bob
+        _token1.transfer(_bob, 1000);
+
+        // Setup: bob approves relayer contract to spend tokens for swap
+        vm.startPrank(_bob);
+        _token1.approve(address(relayerContract), 1000);
+        vm.stopPrank();
+
+        // bob sends 1000 token1 as input but only 500 of token1 is required
+        TokenAmount memory requiredTokenIn = TokenAmount(_token1, 500);
+        uint256 suppliedAmountIn = 1000;
+        TokenAmount memory requiredTokenOut = TokenAmount(_token2, 500);
+        uint256 maxPreTip = 0;
+        uint256 maxPostTip = 0;
+
+        // Prepare the inner swap call
+        bytes memory swapData = abi.encodeCall(
+            MockSwap.swap,
+            (500, 500) // Swap 500 token1 for 500 token2
+        );
+        Call memory innerSwap = Call(address(mockSwap), 0, swapData);
+
+        // Prepare the swapAndTip hash
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                suppliedAmountIn: suppliedAmountIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: maxPreTip,
+                maxPostTip: maxPostTip,
+                innerSwap: innerSwap,
+                refundAddress: payable(_bob)
+            });
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        // bob should get refunded 500 of token1
+        // 1000 supplied - 500 required = 500 refunded
+        vm.expectEmit(true, true, true, true);
+        emit DaimoPayRelayer.OverPaymentRefunded({
+            refundAddress: _bob,
+            token: address(_token1),
+            amount: 500
+        });
+
+        // Execute swap where tx.origin is relayer and msg.sender is bob
+        vm.startPrank(_bob, _relayer);
+        relayerContract.swapAndTip(params);
+        vm.stopPrank();
+
+        // Verify results
+        // 1. Bob should receive exactly the required output amount
+        assertEq(_token2.balanceOf(_bob), requiredTokenOut.amount);
+
+        // 2. Bob should receive the excess input amount
+        assertEq(_token1.balanceOf(_bob), 500);
     }
 }
 

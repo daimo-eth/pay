@@ -1,5 +1,5 @@
 import { DaimoPayIntentStatus, writeDaimoPayOrderID } from "@daimo/pay-common";
-import { usePayContext } from "./usePayContext";
+import { useDaimoPay } from "./useDaimoPay";
 
 /** Returns the current payment, or undefined if there is none.
  *
@@ -14,10 +14,9 @@ import { usePayContext } from "./usePayContext";
 export function useDaimoPayStatus():
   | { paymentId: string; status: DaimoPayIntentStatus }
   | undefined {
-  const { paymentState } = usePayContext();
-  if (!paymentState || !paymentState.daimoPayOrder) return undefined;
+  const { order } = useDaimoPay();
+  if (order == null) return undefined;
 
-  const order = paymentState.daimoPayOrder;
   const paymentId = writeDaimoPayOrderID(order.id);
 
   return { paymentId, status: order.intentStatus };

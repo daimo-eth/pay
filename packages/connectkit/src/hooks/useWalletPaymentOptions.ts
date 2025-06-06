@@ -65,6 +65,7 @@ export function useWalletPaymentOptions({
     if (address != null && usdRequired != null && destChainId != null) {
       refreshWalletPaymentOptions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     address,
     usdRequired,

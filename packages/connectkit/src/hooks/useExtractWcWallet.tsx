@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Connector } from "wagmi";
+import { PayLogFn } from "../provider/PayContext";
 import { WalletConfigProps, walletConfigs } from "../wallets/walletConfigs";
-import { PayLogFn } from "./usePayContext";
 
 /** Extracts wcWallet from the current WalletConnect connector. */
 export function useExtractWcWallet({

@@ -41,15 +41,11 @@ function useFocusTrap() {
   }
 
   useEffect(() => {
-    if (elRef.current) {
-      elRef.current.addEventListener("keydown", handleFocus);
-      elRef.current.focus({ preventScroll: true });
-    }
-    return () => {
-      if (elRef.current) {
-        elRef.current.removeEventListener("keydown", handleFocus);
-      }
-    };
+    const el = elRef.current;
+    if (el == null) return;
+    el.addEventListener("keydown", handleFocus);
+    el.focus({ preventScroll: true });
+    return () => el.removeEventListener("keydown", handleFocus);
   }, []);
 
   return elRef;
@@ -61,7 +57,7 @@ export default function FocusTrap(props: any) {
   useEffect(() => {
     if (!elRef.current) return;
     elRef.current.focus({ preventScroll: true });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div ref={elRef} tabIndex={0}>

@@ -7,9 +7,9 @@ import React from "react";
 import { Address, Chain } from "viem";
 import { useAccount } from "wagmi";
 
-import { useWalletConnectUri } from "../../../hooks/connectors/useWalletConnectUri";
-import { useChainIsSupported } from "../../../hooks/useChainIsSupported";
-import { useChains } from "../../../hooks/useChains";
+import { useWalletConnectUri } from "../hooks/connectors/useWalletConnectUri";
+import { useChainIsSupported } from "../hooks/useChainIsSupported";
+import { useChains } from "../hooks/useChains";
 
 type Web3Context = {
   connect: {

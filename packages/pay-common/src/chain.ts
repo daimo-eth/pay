@@ -19,13 +19,6 @@ export const base: Chain = {
   cctpDomain: 6,
 };
 
-export const blast: Chain = {
-  type: "evm",
-  chainId: 81457,
-  name: "Blast",
-  cctpDomain: null,
-};
-
 export const bsc: Chain = {
   type: "evm",
   chainId: 56,
@@ -85,7 +78,6 @@ export const worldchain: Chain = {
 export const supportedChains: Chain[] = [
   arbitrum,
   base,
-  blast,
   bsc,
   ethereum,
   linea,
@@ -136,8 +128,6 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://arbiscan.io";
     case base.chainId:
       return "https://basescan.org";
-    case blast.chainId:
-      return "https://blastscan.io";
     case bsc.chainId:
       return "https://bscscan.com";
     case ethereum.chainId:

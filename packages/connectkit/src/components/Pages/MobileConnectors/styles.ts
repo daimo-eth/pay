@@ -5,6 +5,7 @@ export const WalletItem = styled.button<{ $waiting?: boolean }>`
   text-align: center;
   transition: opacity 100ms ease;
   opacity: ${(props) => (props.$waiting ? 0.4 : 1)};
+  background: transparent;
 `;
 export const WalletIcon = styled.div<{ $outline?: boolean }>`
   z-index: 9;

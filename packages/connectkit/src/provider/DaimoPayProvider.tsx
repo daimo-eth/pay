@@ -1,4 +1,8 @@
-import { debugJson } from "@daimo/pay-common";
+import {
+  DaimoPayOrderMode,
+  DaimoPayOrderStatusSource,
+  debugJson,
+} from "@daimo/pay-common";
 import { Buffer } from "buffer";
 import React, {
   createElement,
@@ -291,6 +295,11 @@ const DaimoPayUIProvider = ({
   };
 
   // Watch when the order gets paid and navigate to confirmation
+  // ...if underpaid, go to the deposit addr screen, let the user finish paying.
+  const isUnderpaid =
+    pay.order?.mode === DaimoPayOrderMode.HYDRATED &&
+    pay.order.sourceStatus === DaimoPayOrderStatusSource.WAITING_PAYMENT &&
+    pay.order.sourceTokenAmount != null;
   useEffect(() => {
     if (
       pay.paymentState === "payment_started" ||
@@ -298,8 +307,12 @@ const DaimoPayUIProvider = ({
       pay.paymentState === "payment_bounced"
     ) {
       setRoute(ROUTES.CONFIRMATION, { event: "payment-started" });
+    } else if (isUnderpaid) {
+      paymentState.setSelectedDepositAddressOption(undefined);
+      setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS);
     }
-  }, [pay.paymentState, setRoute]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay.paymentState, setRoute, isUnderpaid]);
 
   const value: PayContextValue = {
     theme: ckTheme,

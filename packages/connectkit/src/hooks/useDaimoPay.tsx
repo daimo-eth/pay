@@ -45,6 +45,9 @@ type DaimoPayFunctions = {
     refundAddress?: Address,
   ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
 
+  /** Trigger search for payment on the current order. */
+  paySource: () => void;
+
   /**
    * Register an Ethereum payment source for the current order.
    * Call this after the user has submitted an Ethereum payment transaction.
@@ -205,6 +208,11 @@ export function useDaimoPay(): UseDaimoPay {
     [dispatch, store],
   );
 
+  const paySource = useCallback(
+    () => dispatch({ type: "pay_source" }),
+    [dispatch],
+  );
+
   const payEthSource = useCallback(
     (args: {
       paymentTxHash: Hex;
@@ -235,6 +243,7 @@ export function useDaimoPay(): UseDaimoPay {
     createPreviewOrder,
     hydrateOrder,
     setPayId,
+    paySource,
     payEthSource,
     paySolanaSource,
     reset,

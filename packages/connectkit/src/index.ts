@@ -36,3 +36,10 @@ export * from "./types";
 // TODO: expose this more selectively.
 export { usePayContext } from "./hooks/usePayContext";
 export { PayContext as DaimoPayContext } from "./provider/PayContext";
+
+// World Mini App
+export {
+  WorldPayButton,
+  WorldPayButtonCustomProps,
+  WorldPayButtonProps,
+} from "./world-mini-app/WorldPayButton";

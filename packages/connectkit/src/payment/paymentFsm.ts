@@ -84,6 +84,9 @@ export type PaymentEvent =
   | { type: "set_chosen_usd"; usd: number }
   | { type: "hydrate_order"; refundAddress?: Address }
   | {
+      type: "pay_source";
+    }
+  | {
       type: "pay_ethereum_source";
       paymentTxHash: Hex;
       sourceChainId: number;

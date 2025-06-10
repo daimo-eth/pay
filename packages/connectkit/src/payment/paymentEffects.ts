@@ -89,6 +89,14 @@ export function attachPaymentEffectHandlers(
         }
         break;
       }
+      case "pay_source": {
+        if (prev.type === "payment_unpaid") {
+          runPaySourceEffects(store, trpc, prev);
+        } else {
+          log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
+        }
+        break;
+      }
       case "pay_ethereum_source": {
         if (prev.type === "payment_unpaid") {
           runPayEthereumSourceEffects(store, trpc, prev, event);
@@ -297,6 +305,23 @@ async function runHydratePayIdEffects(
       type: "order_hydrated",
       order: hydratedOrder,
     });
+  } catch (e: any) {
+    store.dispatch({ type: "error", order: prev.order, message: e.message });
+  }
+}
+
+async function runPaySourceEffects(
+  store: PaymentStore,
+  trpc: TrpcClient,
+  prev: Extract<PaymentState, { type: "payment_unpaid" }>,
+) {
+  const orderId = prev.order.id;
+
+  try {
+    const order = await trpc.findOrderPayments.query({
+      orderId: orderId.toString(),
+    });
+    store.dispatch({ type: "order_refreshed", order });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }

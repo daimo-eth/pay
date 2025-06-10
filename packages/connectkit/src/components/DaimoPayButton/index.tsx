@@ -86,7 +86,7 @@ export type PayButtonPaymentProps =
        * */
       metadata?: DaimoPayUserMetadata;
       /**
-       * The address to refund to if the payment bounces or a refund is requested.
+       * The address to refund to if the payment bounces.
        */
       refundAddress?: Address;
     }

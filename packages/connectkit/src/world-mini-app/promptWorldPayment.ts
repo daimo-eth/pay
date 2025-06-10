@@ -22,7 +22,9 @@ export async function promptWorldcoinPayment(
     // Dynamically import @worldcoin/minikit-js to avoid bundling it for
     // developers who don't use World Mini App features, as it's an optional
     // peer dependency.
-    const { MiniKit, Tokens } = await import("@worldcoin/minikit-js");
+    const { MiniKit, Tokens } = await import(
+      /* webpackIgnore: true */ "@worldcoin/minikit-js"
+    );
     if (!MiniKit.isInstalled()) {
       console.error(
         "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",

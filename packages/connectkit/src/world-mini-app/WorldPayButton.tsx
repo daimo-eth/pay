@@ -110,7 +110,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // Dynamically import @worldcoin/minikit-js to avoid bundling it for
     // developers who don't use World Mini App features, as it's an optional
     // peer dependency.
-    import("@worldcoin/minikit-js")
+    import(/* webpackIgnore: true */ "@worldcoin/minikit-js")
       .then(({ MiniKit }) => {
         if (MiniKit.isInstalled()) {
           setIsMiniKitReady(true);

@@ -381,6 +381,7 @@ const CopyRow = styled.button`
 
   cursor: pointer;
   background-color: var(--ck-body-background);
+  background-color: var(--ck-body-background);
 
   display: flex;
   align-items: center;
@@ -423,6 +424,18 @@ const ValueContainer = styled.div`
 
 const SmallText = styled.span`
   font-size: 14px;
+  color: var(--ck-primary-button-color);
+`;
+
+const ValueText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ck-primary-button-color);
+`;
+
+const LabelText = styled(ModalBody)`
+  margin: 0;
+  text-align: left;
   color: var(--ck-primary-button-color);
 `;
 
@@ -488,6 +501,7 @@ function CopyRowOrThrobber({
       <CopyRow>
         <LabelRow>
           <LabelText>{title}</LabelText>
+          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <Skeleton />
@@ -503,9 +517,11 @@ function CopyRowOrThrobber({
       <div>
         <LabelRow>
           <LabelText>{title}</LabelText>
+          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <ValueContainer>
+            <ValueText>{displayValue}</ValueText>
             <ValueText>{displayValue}</ValueText>
             {smallText && <SmallText>{smallText}</SmallText>}
           </ValueContainer>

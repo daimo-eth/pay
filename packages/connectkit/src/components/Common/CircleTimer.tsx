@@ -55,7 +55,8 @@ const CircleTimer: React.FC<CircleTimerProps> = ({
 
   const ratio = Math.round((left * 100) / total); // 0-100
 
-  const radius = Math.round((size - stroke) / 2); // integer radius
+  // Ensure stroke stays within viewBox: use floor to be conservative
+  const radius = Math.floor((size - stroke) / 2);
   const circumference = Math.round((2 * 314 * radius) / 100); // 2πr, π≈3.14
   const dashoffset = Math.round((circumference * (100 - ratio)) / 100);
 

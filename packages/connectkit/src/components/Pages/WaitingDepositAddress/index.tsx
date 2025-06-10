@@ -150,8 +150,13 @@ function DepositAddressInfo({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(triggerResize, [isExpired]);
 
+  const logoOffset = isMobile ? 4 : 0;
   const logoElement = depAddr?.displayToken ? (
-    <TokenChainLogo token={depAddr.displayToken} size={64} />
+    <TokenChainLogo
+      token={depAddr.displayToken}
+      size={64}
+      offset={logoOffset}
+    />
   ) : (
     <img src={depAddr?.logoURI} width="64px" height="64px" />
   );
@@ -375,6 +380,7 @@ const CopyRow = styled.button`
   padding: 8px 16px;
 
   cursor: pointer;
+  background-color: var(--ck-body-background);
 
   display: flex;
   align-items: center;
@@ -417,6 +423,18 @@ const ValueContainer = styled.div`
 
 const SmallText = styled.span`
   font-size: 14px;
+  color: var(--ck-primary-button-color);
+`;
+
+const ValueText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ck-primary-button-color);
+`;
+
+const LabelText = styled(ModalBody)`
+  margin: 0;
+  text-align: left;
 `;
 
 const pulse = keyframes`
@@ -469,9 +487,7 @@ function CopyRowOrThrobber({
     return (
       <CopyRow>
         <LabelRow>
-          <ModalBody style={{ margin: 0, textAlign: "left" }}>
-            {title}
-          </ModalBody>
+          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <Skeleton />
@@ -486,13 +502,11 @@ function CopyRowOrThrobber({
     <CopyRow as="button" onClick={handleCopy} disabled={disabled}>
       <div>
         <LabelRow>
-          <ModalBody style={{ margin: 0, textAlign: "left" }}>
-            {title}
-          </ModalBody>
+          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <ValueContainer>
-            <span style={{ fontWeight: 600 }}>{displayValue}</span>
+            <ValueText>{displayValue}</ValueText>
             {smallText && <SmallText>{smallText}</SmallText>}
           </ValueContainer>
         </MainRow>

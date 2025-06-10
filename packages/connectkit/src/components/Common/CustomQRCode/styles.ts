@@ -95,7 +95,7 @@ export const QRPlaceholder = styled(motion.div)`
     content: "";
     position: absolute;
     inset: 0;
-    transform: scale(1.5) rotate(45deg);
+    transform: scale(1.7) rotate(45deg);
     background-image: linear-gradient(
       90deg,
       rgba(255, 255, 255, 0) 50%,

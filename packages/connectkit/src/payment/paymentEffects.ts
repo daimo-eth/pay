@@ -134,8 +134,10 @@ async function pollFindPayments(
     pollFn: () => trpc.findOrderPayments.query({ orderId: orderId.toString() }),
     onResult: (order) => {
       const state = store.getState();
-      if (state.type !== "payment_unpaid") return;
-      stopPolling();
+      if (state.type !== "payment_unpaid") {
+        stopPolling();
+        return;
+      }
       store.dispatch({ type: "order_refreshed", order });
     },
     onError: () => {},

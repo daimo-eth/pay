@@ -2,11 +2,15 @@
   <img src="https://pbs.twimg.com/profile_banners/1666972322828541954/1733698695/1500x500">
 </a>
 
-# Daimo Pay
+# Intent Pay
 
-Daimo Pay enables seamless crypto payments for your app.
+Rozo Intent Pay
+
+Rozo Intent Pay is built on top of Daimo Pay, which enables seamless crypto payments for your app.
 
 Onboard users from any chain, any coin into your app with one click and maximize your conversion.
+
+
 
 ## Features
 
@@ -69,5 +73,6 @@ Audits:
 See [LICENSE](https://github.com/daimo-eth/pay/blob/master/packages/connectkit/LICENSE) for more information.
 
 ## Credits
+Rozo Intent Pay SDK is a fork of [Daimo](https://github.com/daimo-eth/pay) developed by [Daimo](https://daimo.com). We're grateful to them for making cross chain payment fast, simple and open-source.
 
 Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beatiful and open-source.

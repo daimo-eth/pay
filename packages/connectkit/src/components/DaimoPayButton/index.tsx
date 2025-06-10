@@ -164,7 +164,7 @@ export function DaimoPayButton(props: DaimoPayButtonProps): JSX.Element {
               mode={mode ?? context.mode}
               customTheme={customTheme ?? context.customTheme}
             >
-              <DaimoPayButtonInner disabled={props.disabled} />
+              <DaimoPayButtonInner />
             </ThemedButton>
           </ThemeContainer>
         </ResetContainer>
@@ -363,7 +363,7 @@ const contentVariants: Variants = {
   },
 };
 
-function DaimoPayButtonInner({ disabled }: { disabled?: boolean }) {
+export function DaimoPayButtonInner() {
   const { order } = useDaimoPay();
   const label = order?.metadata?.intent ?? "Pay";
 

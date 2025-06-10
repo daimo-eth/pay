@@ -63,7 +63,13 @@
     "react": "18.x || 19.x",
     "react-dom": "18.x || 19.x",
     "viem": ">=2.22.0",
-    "wagmi": "2.x"
+    "wagmi": "2.x",
+    "@worldcoin/minikit-js": ">=1.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@worldcoin/minikit-js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@rollup/plugin-json": "^6.1.0",

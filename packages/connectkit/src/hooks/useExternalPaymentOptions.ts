@@ -83,7 +83,12 @@ export function useExternalPaymentOptions({
     if (usdRequired != null && mode != null) {
       refreshExternalPaymentOptions(usdRequired, mode);
     }
-  }, [usdRequired, filterIds, platform, mode, trpc]);
+    // TODO: this is an ugly way to handle polling/refresh
+    // Notice the load-bearing JSON.stringify() to prevent a visible infinite
+    // refresh glitch on the SelectMethod screen. Replace this useEffect().
+    //
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
 
   return { options, loading };
 }

@@ -18,16 +18,8 @@ import {
   writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useCallback, useEffect, useState } from "react";
-import {
-  useAccount,
-  useEnsName,
-  useSendTransaction,
-  useWriteContract,
-} from "wagmi";
-
-import { UntronCreateOrderResponse } from "@daimo/pay-api";
 import { VersionedTransaction } from "@solana/web3.js";
+import { useCallback, useEffect, useState } from "react";
 import {
   erc20Abi,
   getAddress,
@@ -35,6 +27,13 @@ import {
   parseUnits,
   zeroAddress,
 } from "viem";
+import {
+  useAccount,
+  useEnsName,
+  useSendTransaction,
+  useWriteContract,
+} from "wagmi";
+
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
@@ -421,7 +420,7 @@ export function usePaymentState({
         return null;
       }
 
-      const untronOrder = untronResp.untronOrder as UntronCreateOrderResponse;
+      const untronOrder = untronResp.untronOrder;
       // Map Untron response to the generic deposit-address shape expected by the UI
       return {
         address: untronOrder.receiver,

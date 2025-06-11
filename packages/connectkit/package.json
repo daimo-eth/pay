@@ -1,7 +1,7 @@
 {
   "name": "@rozoai/intent-pay",
   "private": false,
-  "version": "0.0.1",
+  "version": "0.0.3",
   "author": "Daimo",
   "homepage": "https://pay.daimo.com",
   "license": "BSD-2-Clause license",
@@ -30,7 +30,8 @@
     "start": "rollup --config rollup.config.js -w",
     "dev": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js",
-    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0",
+    "release": "bumpp"
   },
   "keywords": [
     "ens",

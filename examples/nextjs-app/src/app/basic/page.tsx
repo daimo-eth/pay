@@ -5,7 +5,7 @@ import {
   getChainName,
   getChainNativeToken,
   knownTokens,
-} from "@rozoai/intent-pay-common";
+} from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";

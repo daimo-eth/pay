@@ -11,7 +11,8 @@ import { APP_ID, Container, DAIMO_ADDRESS } from "../shared";
 
 export default function DemoFarcasterFrame() {
   const url = typeof window !== "undefined" ? window.location.href : "";
-
+  (globalThis as any).__POWEREDBY__ = "JUST_TEST";
+  (globalThis as any).__SUPPORTURL__ = "https://www.google.com";
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
 
   useEffect(() => {

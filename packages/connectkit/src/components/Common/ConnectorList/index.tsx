@@ -1,4 +1,3 @@
-import { type Connector } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
@@ -101,10 +100,14 @@ const ConnectorItem = ({
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
     isCoinbaseWalletConnector(wallet.connector?.id);
 
-  const onClick = (connector?: Connector) => {
+  const onClick = () => {
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
-    } else if (context.paymentState.isDepositFlow && isMobile && !connector) {
+    } else if (
+      context.paymentState.isDepositFlow &&
+      isMobile &&
+      !wallet.connector
+    ) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
     } else if (
@@ -123,7 +126,7 @@ const ConnectorItem = ({
   };
 
   return (
-    <ConnectorButton type="button" onClick={() => onClick(wallet?.connector)}>
+    <ConnectorButton type="button" onClick={onClick}>
       <ConnectorIcon
         data-small={wallet.iconShouldShrink}
         data-shape={wallet.iconShape}

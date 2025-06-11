@@ -436,18 +436,6 @@ const ValueText = styled.span`
 const LabelText = styled(ModalBody)`
   margin: 0;
   text-align: left;
-  color: var(--ck-primary-button-color);
-`;
-
-const ValueText = styled.span`
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ck-primary-button-color);
-`;
-
-const LabelText = styled(ModalBody)`
-  margin: 0;
-  text-align: left;
 `;
 
 const pulse = keyframes`

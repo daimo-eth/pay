@@ -18,15 +18,13 @@ contract DeployDaimoPay is Script {
             msg.sender,
             DEPLOY_SALT_PAY_INTENT_FACTORY
         );
-        address bridger = CREATE3.getDeployed(msg.sender, DEPLOY_SALT_BRIDGER);
         console.log("using intent factory at", intentFactory);
-        console.log("using bridger at", bridger);
 
         address daimoPay = CREATE3.deploy(
             DEPLOY_SALT_DAIMO_PAY,
             abi.encodePacked(
                 type(DaimoPay).creationCode,
-                abi.encode(intentFactory, bridger)
+                abi.encode(intentFactory)
             )
         );
 

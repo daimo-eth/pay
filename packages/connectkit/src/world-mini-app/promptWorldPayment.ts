@@ -2,7 +2,7 @@ import {
   assert,
   DaimoPayHydratedOrderWithOrg,
   DaimoPayTokenAmount,
-  worldchainUSDCe,
+  worldchainUSDC,
   worldchainWLD,
 } from "@daimo/pay-common";
 import type {
@@ -40,8 +40,8 @@ export async function promptWorldcoinPayment(
           token: worldchainWLD.token,
         },
         {
-          chainId: worldchainUSDCe.chainId,
-          token: worldchainUSDCe.token,
+          chainId: worldchainUSDC.chainId,
+          token: worldchainUSDC.token,
         },
       ],
     })) as DaimoPayTokenAmount[];
@@ -50,8 +50,7 @@ export async function promptWorldcoinPayment(
       (opt) => getAddress(opt.token.token) === getAddress(worldchainWLD.token),
     );
     const usdc = paymentOptions.find(
-      (opt) =>
-        getAddress(opt.token.token) === getAddress(worldchainUSDCe.token),
+      (opt) => getAddress(opt.token.token) === getAddress(worldchainUSDC.token),
     );
 
     assert(wld != null, "WLD DP token not found");

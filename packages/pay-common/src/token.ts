@@ -663,13 +663,13 @@ export const worldchainWBTC: Token = token({
   logoURI: TokenLogo.WBTC,
 });
 
-export const worldchainUSDCe: Token = token({
+export const worldchainUSDC: Token = token({
   chainId: worldchain.chainId,
   token: getAddress("0x79A02482A880bCE3F13e09Da970dC34db4CD24d1"),
   decimals: 6,
   fiatISO: "USD",
-  name: "Bridged USD Coin",
-  symbol: "USDCe",
+  name: "USD Coin",
+  symbol: "USDC",
   logoURI: TokenLogo.USDC,
 });
 
@@ -686,7 +686,7 @@ const worldchainTokens: Token[] = [
   worldchainETH,
   worldchainWETH,
   worldchainWBTC,
-  worldchainUSDCe,
+  worldchainUSDC,
   worldchainWLD,
 ];
 
@@ -835,7 +835,7 @@ const tokensByChainAndType: Map<
     {
       [TokenType.NATIVE]: worldchainETH,
       [TokenType.WRAPPED_NATIVE]: worldchainWETH,
-      [TokenType.BRIDGED_USDC]: worldchainUSDCe,
+      [TokenType.NATIVE_USDC]: worldchainUSDC,
     },
   ],
 ]);

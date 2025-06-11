@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayButton } from "@daimo/pay";
+import { DaimoPayButton } from "@rozoai/intent-pay";
 import {
   arbitrum,
   getChainExplorerByChainId,

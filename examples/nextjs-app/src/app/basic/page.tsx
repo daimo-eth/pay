@@ -1,11 +1,11 @@
 "use client";
-import { DaimoPayButton, useDaimoPayUI } from "@daimo/pay";
+import { DaimoPayButton, useDaimoPayUI } from "@rozoai/intent-pay";
 import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
   getChainNativeToken,
   knownTokens,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";

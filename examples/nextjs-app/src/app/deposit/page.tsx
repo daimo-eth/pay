@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayButton, useDaimoPayUI } from "@daimo/pay";
+import { DaimoPayButton, useDaimoPayUI } from "@rozoai/intent-pay";
 import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,

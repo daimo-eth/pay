@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayProvider, getDefaultConfig } from "@daimo/pay";
+import { DaimoPayProvider, getDefaultConfig } from "@rozoai/intent-pay";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { createConfig, WagmiProvider } from "wagmi";

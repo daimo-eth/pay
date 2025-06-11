@@ -1,6 +1,6 @@
 "use client";
 
-import { version } from "@daimo/pay";
+import { version } from "@rozoai/intent-pay";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "../shared/tailwind-catalyst/button";
@@ -30,7 +30,7 @@ export default function NavButtons() {
     <>
       <Heading className="text-green-dark">DaimoPayButton Examples</Heading>
       <div className="mt-1 text-sm text-green-medium">
-        @daimo/pay v{version}
+        @rozoai/intent-pay v{version}
       </div>
 
       <div className="flex flex-wrap gap-4 mt-10">

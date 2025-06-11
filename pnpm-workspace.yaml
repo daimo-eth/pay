@@ -1,2 +1,3 @@
 packages:
   - 'packages/connectkit'
+  - 'examples/nextjs-app'

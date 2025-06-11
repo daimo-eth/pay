@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayButton } from "@daimo/pay";
+import { DaimoPayButton } from "@rozoai/intent-pay";
 import { baseUSDC } from "@daimo/pay-common";
 import { sdk } from "@farcaster/frame-sdk";
 import Link from "next/link";

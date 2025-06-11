@@ -1,29 +1,3 @@
-# How to release `connectkit` package
-
-## Setup
-
-Make sure `pnpm` is installed.
-
-```sh
-pnpm -v
-```
-
-If not, install it.
-
-```sh
-npm install -g pnpm
-```
-
-## Release
-
-```sh
-pnpm run release
-```
-
-Choose the version.
-
-
-
 <a href="https://paydocs.daimo.com">
   <img src="https://pbs.twimg.com/profile_banners/1666972322828541954/1733698695/1500x500">
 </a>
@@ -102,3 +76,27 @@ See [LICENSE](https://github.com/daimo-eth/pay/blob/master/packages/connectkit/L
 Rozo Intent Pay SDK is a fork of [Daimo](https://github.com/daimo-eth/pay) developed by [Daimo](https://daimo.com). We're grateful to them for making cross chain payment fast, simple and open-source.
 
 Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beatiful and open-source.
+
+# How to release `connectkit` package
+
+## Setup
+
+Make sure `pnpm` is installed.
+
+```sh
+pnpm -v
+```
+
+If not, install it.
+
+```sh
+npm install -g pnpm
+```
+
+## Release
+
+```sh
+pnpm run release
+```
+
+Choose the version on the prompt.

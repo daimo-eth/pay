@@ -3,7 +3,7 @@
   "private": false,
   "version": "0.0.7",
   "author": "Daimo",
-  "homepage": "https://pay.daimo.com",
+  "homepage": "https://github.com/RozoAI/intent-pay",
   "license": "BSD-2-Clause license",
   "description": "Seamless crypto payments. Onboard users from any chain, any coin into your app with one click.",
   "main": "./src/index.ts",

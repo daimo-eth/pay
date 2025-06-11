@@ -11,7 +11,7 @@ import {
   polygonUSDC,
   type Token,
 } from "@daimo/pay-common";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
 import { WarningIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
@@ -304,7 +304,8 @@ const CountdownWrap = styled.div`
 `;
 
 function useCountdown(expirationS?: number) {
-  const [initMs] = useState(Date.now());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initMs = useMemo(() => Date.now(), [expirationS]);
   const [ms, setMs] = useState(initMs);
 
   useEffect(() => {
@@ -489,7 +490,6 @@ function CopyRowOrThrobber({
       <CopyRow>
         <LabelRow>
           <LabelText>{title}</LabelText>
-          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <Skeleton />
@@ -505,11 +505,9 @@ function CopyRowOrThrobber({
       <div>
         <LabelRow>
           <LabelText>{title}</LabelText>
-          <LabelText>{title}</LabelText>
         </LabelRow>
         <MainRow>
           <ValueContainer>
-            <ValueText>{displayValue}</ValueText>
             <ValueText>{displayValue}</ValueText>
             {smallText && <SmallText>{smallText}</SmallText>}
           </ValueContainer>

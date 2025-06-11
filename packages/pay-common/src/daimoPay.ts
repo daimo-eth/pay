@@ -374,6 +374,8 @@ export enum ExternalPaymentOptions {
   // ChangeNow chains. Bitcoin, Litecoin, Doge, Tron, etc.
   ExternalChains = "ExternalChains",
   Lemon = "Lemon",
+  // All available payment apps
+  AllPaymentApps = "AllPaymentApps",
   Venmo = "Venmo",
   CashApp = "CashApp",
   MercadoPago = "MercadoPago",

@@ -57,8 +57,13 @@ export function useExternalPaymentOptions({
         // Filter out options not in options JSON
         const enabledExtPaymentOptions =
           filterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
-        const filteredOptions = newOptions.filter((option) =>
-          enabledExtPaymentOptions.includes(option.id),
+        const hasAllPaymentApps = enabledExtPaymentOptions.includes(
+          ExternalPaymentOptions.AllPaymentApps,
+        );
+        const filteredOptions = newOptions.filter(
+          (option: ExternalPaymentOptionMetadata) =>
+            enabledExtPaymentOptions.includes(option.id) ||
+            (hasAllPaymentApps && option.optionType === "zkp2p"),
         );
         const optionsByType: Map<
           "external" | "zkp2p",

@@ -673,6 +673,7 @@ contract DaimoPayTest is Test {
         // Create the ExtraData struct for Across bridging
         DaimoPayAcrossBridger.ExtraData memory extraData = DaimoPayAcrossBridger
             .ExtraData({
+                depositor: _alice,
                 exclusiveRelayer: address(0),
                 quoteTimestamp: uint32(block.timestamp),
                 fillDeadline: uint32(block.timestamp + 1 hours),

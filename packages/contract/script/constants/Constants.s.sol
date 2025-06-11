@@ -482,30 +482,30 @@ function _getTokenMinterAddress(uint256 chainId) pure returns (address) {
 
 // ----------------- CCTP V2 ----------------- //
 
-address constant ETH_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
-address constant AVAX_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
-address constant BASE_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
-address constant LINEA_MAINNET_TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
+// Token messenger V2 is the same on all chains.
+address constant TOKEN_MESSENGER_V2 = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d;
 
 function _getTokenMessengerV2Address(uint256 chainId) pure returns (address) {
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_TOKEN_MESSENGER_V2;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_TOKEN_MESSENGER_V2;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_TOKEN_MESSENGER_V2;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_TOKEN_MESSENGER_V2;
+    if (chainId == ETH_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == AVAX_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == ARBITRUM_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == BASE_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == LINEA_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == WORLDCHAIN_MAINNET) return TOKEN_MESSENGER_V2;
 
     revert("Unsupported chainId for CCTP token messenger V2");
 }
 
-address constant ETH_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
-address constant AVAX_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
-address constant BASE_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
-address constant LINEA_MAINNET_TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
+// Token minter V2 is the same on all chains.
+address constant TOKEN_MINTER_V2 = 0xfd78EE919681417d192449715b2594ab58f5D002;
 
 function _getTokenMinterV2Address(uint256 chainId) pure returns (address) {
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_TOKEN_MINTER_V2;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_TOKEN_MINTER_V2;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_TOKEN_MINTER_V2;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_TOKEN_MINTER_V2;
+    if (chainId == ETH_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == AVAX_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == ARBITRUM_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == BASE_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == LINEA_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == WORLDCHAIN_MAINNET) return TOKEN_MINTER_V2;
 
     revert("Unsupported chainId for CCTP token minter V2");
 }

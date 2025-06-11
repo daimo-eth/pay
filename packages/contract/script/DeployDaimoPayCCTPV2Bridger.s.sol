@@ -8,6 +8,10 @@ import "../src/DaimoPayCCTPV2Bridger.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
+bytes32 constant DEPLOY_SALT_CCTP_V2_BRIDGER = keccak256(
+    "DaimoPayCCTPV2Bridger-deploy3"
+);
+
 contract DeployDaimoPayCCTPV2Bridger is Script {
     function run() public {
         address tokenMinterV2 = _getTokenMinterV2Address(block.chainid);
@@ -34,7 +38,7 @@ contract DeployDaimoPayCCTPV2Bridger is Script {
         vm.startBroadcast();
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayCCTPV2Bridger-deploy2"),
+            DEPLOY_SALT_CCTP_V2_BRIDGER,
             abi.encodePacked(
                 type(DaimoPayCCTPV2Bridger).creationCode,
                 abi.encode(

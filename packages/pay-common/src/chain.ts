@@ -72,7 +72,7 @@ export const worldchain: Chain = {
   type: "evm",
   chainId: 480,
   name: "Worldchain",
-  cctpDomain: null,
+  cctpDomain: 14,
 };
 
 export const supportedChains: Chain[] = [

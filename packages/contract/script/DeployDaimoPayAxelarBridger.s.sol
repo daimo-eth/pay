@@ -8,6 +8,10 @@ import "../src/DaimoPayAxelarBridger.sol";
 import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
+bytes32 constant DEPLOY_SALT_AXELAR_BRIDGER = keccak256(
+    "DaimoPayAxelarBridger-deploy2"
+);
+
 contract DeployDaimoPayAxelarBridger is Script {
     function run() public {
         address axelarGateway = _getAxelarGatewayAddress(block.chainid);
@@ -16,7 +20,7 @@ contract DeployDaimoPayAxelarBridger is Script {
         // destination chain.
         address axelarReceiver = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAxelarBridger-deploy2")
+            DEPLOY_SALT_AXELAR_BRIDGER
         );
 
         (

@@ -26,7 +26,6 @@ SCRIPTS=(
 CHAINS=(
     # "$ETHERSCAN_API_KEY_ARB,https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "$ETHERSCAN_API_KEY_BASE,https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_BLAST,https://blast-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "$ETHERSCAN_API_KEY_BSC,https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "$ETHERSCAN_API_KEY_LINEA,https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "$ETHERSCAN_API_KEY_MANTLE,https://mantle-rpc.publicnode.com"
@@ -35,7 +34,7 @@ CHAINS=(
     # "$ETHERSCAN_API_KEY_WORLD,https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # # Expensive, deploy last
-    # "$ETHERSCAN_API_KEY_L1,https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY" 
+    # "$ETHERSCAN_API_KEY_L1,https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do

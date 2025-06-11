@@ -26,10 +26,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: pnpm --filter connectkit build
+        run: pnpm --filter @rozoai/intent-pay build
 
       - name: Publish to npm
-        run: pnpm --filter connectkit publish --access public --no-git-checks
+        run: pnpm --filter @rozoai/intent-pay publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

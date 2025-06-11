@@ -31,7 +31,7 @@
     "dev": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js",
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0",
-    "release": "npm run build && bumpp"
+    "release": "bumpp"
   },
   "keywords": [
     "ens",

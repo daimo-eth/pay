@@ -10,9 +10,12 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
-import "./DeployDaimoPayAcrossBridger.s.sol";
+import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
+import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
+import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
+import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy3");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy4");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -56,11 +59,11 @@ contract DeployDaimoPayBridger is Script {
         // Get addresses of deployed bridger implementations
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPBridger-deploy2")
+            DEPLOY_SALT_CCTP_BRIDGER
         );
         address cctpV2Bridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayCCTPV2Bridger-deploy2")
+            DEPLOY_SALT_CCTP_V2_BRIDGER
         );
         address acrossBridger = CREATE3.getDeployed(
             msg.sender,
@@ -68,7 +71,7 @@ contract DeployDaimoPayBridger is Script {
         );
         address axelarBridger = CREATE3.getDeployed(
             msg.sender,
-            keccak256("DaimoPayAxelarBridger-deploy2")
+            DEPLOY_SALT_AXELAR_BRIDGER
         );
 
         console.log("cctpBridger address:", cctpBridger);

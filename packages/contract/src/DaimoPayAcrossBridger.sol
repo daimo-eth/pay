@@ -31,6 +31,8 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger {
     }
 
     struct ExtraData {
+        /// The address funds will be refunded to if the bridge fails.
+        address depositor;
         /// Returned from the Across API.
         address exclusiveRelayer;
         /// Returned from the Across API.
@@ -184,7 +186,7 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger {
         });
 
         spokePool.depositV3({
-            depositor: address(this),
+            depositor: extra.depositor,
             recipient: toAddress,
             inputToken: inToken,
             outputToken: outToken,

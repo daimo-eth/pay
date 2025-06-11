@@ -5,23 +5,25 @@ import "forge-std/Script.sol";
 
 import "../src/DaimoPay.sol";
 import "./constants/Constants.s.sol";
+import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
+import {DEPLOY_SALT_PAY_INTENT_FACTORY} from "./DeployPayIntentFactory.s.sol";
+
+bytes32 constant DEPLOY_SALT_DAIMO_PAY = keccak256("DaimoPay-deploy4");
+
 contract DeployDaimoPay is Script {
     function run() public {
         vm.startBroadcast();
 
         address intentFactory = CREATE3.getDeployed(
             msg.sender,
-            keccak256("PayIntentFactory-deploy2")
+            DEPLOY_SALT_PAY_INTENT_FACTORY
         );
-        address bridger = CREATE3.getDeployed(
-            msg.sender,
-            keccak256("DaimoPayBridger-deploy2")
-        );
+        address bridger = CREATE3.getDeployed(msg.sender, DEPLOY_SALT_BRIDGER);
         console.log("using intent factory at", intentFactory);
         console.log("using bridger at", bridger);
 
         address daimoPay = CREATE3.deploy(
-            keccak256("DaimoPay-deploy4"),
+            DEPLOY_SALT_DAIMO_PAY,
             abi.encodePacked(
                 type(DaimoPay).creationCode,
                 abi.encode(intentFactory, bridger)

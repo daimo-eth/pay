@@ -8,7 +8,7 @@ import "../src/DaimoPayAcrossBridger.sol";
 import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
-bytes32 constant DEPLOY_SALT_ACROSS_BRIDGER = keccak256("DaimoPayAcrossBridger-deploy3");
+bytes32 constant DEPLOY_SALT_ACROSS_BRIDGER = keccak256("DaimoPayAcrossBridger-deploy4");
 
 contract DeployDaimoPayAcrossBridger is Script {
     function run() public {

@@ -6,12 +6,16 @@ import "forge-std/Script.sol";
 import "../src/PayIntentFactory.sol";
 import "./constants/Constants.s.sol";
 
+bytes32 constant DEPLOY_SALT_PAY_INTENT_FACTORY = keccak256(
+    "PayIntentFactory-deploy2"
+);
+
 contract DeployPayIntentFactory is Script {
     function run() public {
         vm.startBroadcast();
 
         address intentFactory = CREATE3.deploy(
-            keccak256("PayIntentFactory-deploy2"),
+            DEPLOY_SALT_PAY_INTENT_FACTORY,
             abi.encodePacked(type(PayIntentFactory).creationCode, abi.encode())
         );
 

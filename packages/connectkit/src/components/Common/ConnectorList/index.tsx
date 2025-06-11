@@ -103,10 +103,18 @@ const ConnectorItem = ({
   const onClick = () => {
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
-    } else if (context.paymentState.isDepositFlow && isMobile) {
+    } else if (
+      context.paymentState.isDepositFlow &&
+      isMobile &&
+      !wallet.connector
+    ) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
-    } else if (isMobile && wallet.getDaimoPayDeeplink != null) {
+    } else if (
+      isMobile &&
+      wallet.getDaimoPayDeeplink != null &&
+      !wallet.connector
+    ) {
       context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {
@@ -118,13 +126,7 @@ const ConnectorItem = ({
   };
 
   return (
-    <ConnectorButton
-      type="button"
-      // Is this <a> tag necessary?
-      // as={deeplink ? "a" : undefined}
-      // href={deeplink ? deeplink : undefined}
-      onClick={onClick}
-    >
+    <ConnectorButton type="button" onClick={onClick}>
       <ConnectorIcon
         data-small={wallet.iconShouldShrink}
         data-shape={wallet.iconShape}

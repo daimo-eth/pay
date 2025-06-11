@@ -1,3 +1,29 @@
+# How to release `connectkit` package
+
+## Setup
+
+Make sure `pnpm` is installed.
+
+```sh
+pnpm -v
+```
+
+If not, install it.
+
+```sh
+npm install -g pnpm
+```
+
+## Release
+
+```sh
+pnpm run release
+```
+
+Choose the version.
+
+
+
 <a href="https://paydocs.daimo.com">
   <img src="https://pbs.twimg.com/profile_banners/1666972322828541954/1733698695/1500x500">
 </a>

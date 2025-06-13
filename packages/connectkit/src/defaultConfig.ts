@@ -5,6 +5,7 @@ import {
   base,
   baseSepolia,
   bsc,
+  celo,
   Chain,
   linea,
   mainnet,
@@ -55,6 +56,7 @@ export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
   baseSepolia,
   worldchain,
   mantle,
+  celo,
 ];
 
 /** Daimo Pay recommended config, for use with wagmi's createConfig(). */

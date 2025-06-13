@@ -4,6 +4,7 @@ import {
   arbitrum,
   base,
   bsc,
+  celo,
   ethereum,
   linea,
   mantle,
@@ -48,6 +49,7 @@ export enum TokenLogo {
   BLAST = "https://pay.daimo.com/coin-logos/blast.jpg",
   WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
   MNT = "https://pay.daimo.com/coin-logos/mnt.png",
+  CELO = "https://pay.daimo.com/coin-logos/celo.png",
 }
 
 /* --------------------- Tokens Constants --------------------- */
@@ -264,6 +266,33 @@ export const bscUSDT: Token = token({
 });
 
 const bscTokens: Token[] = [bscBNB, bscWBNB, bscAxlUSDC, bscUSDC, bscUSDT];
+
+//
+// Celo
+//
+
+// CELO functions as both a native token and an ERC-20 compatible token
+export const celoCelo: Token = token({
+  chainId: celo.chainId,
+  token: getAddress("0x471EcE3750Da237f93B8E339c536989b8978a438"),
+  decimals: 18,
+  name: "Celo",
+  symbol: "CELO",
+  logoURI: TokenLogo.CELO,
+});
+
+export const celoAxlUSDC: Token = token({
+  chainId: celo.chainId,
+  token: getAddress("0xEB466342C4d449BC9f53A865D5Cb90586f405215"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Axelar Wrapped USDC",
+  symbol: "axlUSDC",
+  logoURI: TokenLogo.USDC,
+});
+
+// TODO: include celoCelo as known token once we can price it
+const celoTokens: Token[] = [celoAxlUSDC];
 
 //
 // Ethereum
@@ -694,6 +723,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [arbitrum.chainId, arbitrumTokens],
   [base.chainId, baseTokens],
   [bsc.chainId, bscTokens],
+  [celo.chainId, celoTokens],
   [ethereum.chainId, ethereumTokens],
   [linea.chainId, lineaTokens],
   [mantle.chainId, mantleTokens],
@@ -770,6 +800,15 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: bscWBNB,
       [TokenType.BRIDGED_USDC]: bscUSDC,
       [TokenType.AXL_USDC]: bscAxlUSDC,
+    },
+  ],
+  [
+    celo.chainId,
+    {
+      // CELO functions as both a native token and an ERC-20 compatible token
+      [TokenType.NATIVE]: celoCelo,
+      [TokenType.WRAPPED_NATIVE]: celoCelo,
+      [TokenType.AXL_USDC]: celoAxlUSDC,
     },
   ],
   [

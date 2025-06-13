@@ -33,6 +33,7 @@ uint256 constant AVAX_MAINNET = 43114; // C-chain
 uint256 constant BASE_MAINNET = 8453;
 uint256 constant BLAST_MAINNET = 81457;
 uint256 constant BSC_MAINNET = 56;
+uint256 constant CELO_MAINNET = 42220;
 uint256 constant ETH_MAINNET = 1;
 uint256 constant LINEA_MAINNET = 59144;
 uint256 constant LISK_MAINNET = 1135;
@@ -551,6 +552,7 @@ address constant ARBITRUM_MAINNET_AXELAR_GATEWAY = 0xe432150cce91c13a887f7D83692
 address constant AVAX_MAINNET_AXELAR_GATEWAY = 0x5029C0EFf6C34351a0CEc334542cDb22c7928f78;
 address constant BASE_MAINNET_AXELAR_GATEWAY = 0xe432150cce91c13a887f7D836923d5597adD8E31;
 address constant BSC_MAINNET_AXELAR_GATEWAY = 0x304acf330bbE08d1e512eefaa92F6a57871fD895;
+address constant CELO_MAINNET_AXELAR_GATEWAY = 0xe432150cce91c13a887f7D836923d5597adD8E31;
 address constant ETH_MAINNET_AXELAR_GATEWAY = 0x4F4495243837681061C4743b74B3eEdf548D56A5;
 address constant LINEA_MAINNET_AXELAR_GATEWAY = 0xe432150cce91c13a887f7D836923d5597adD8E31;
 address constant MANTLE_MAINNET_AXELAR_GATEWAY = 0xe432150cce91c13a887f7D836923d5597adD8E31;
@@ -562,6 +564,7 @@ function _getAxelarGatewayAddress(uint256 chainId) pure returns (address) {
     if (chainId == AVAX_MAINNET) return AVAX_MAINNET_AXELAR_GATEWAY;
     if (chainId == BASE_MAINNET) return BASE_MAINNET_AXELAR_GATEWAY;
     if (chainId == BSC_MAINNET) return BSC_MAINNET_AXELAR_GATEWAY;
+    if (chainId == CELO_MAINNET) return CELO_MAINNET_AXELAR_GATEWAY;
     if (chainId == ETH_MAINNET) return ETH_MAINNET_AXELAR_GATEWAY;
     if (chainId == LINEA_MAINNET) return LINEA_MAINNET_AXELAR_GATEWAY;
     if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_AXELAR_GATEWAY;
@@ -575,6 +578,7 @@ address constant ARBITRUM_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533c
 address constant AVAX_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
 address constant BASE_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
 address constant BSC_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
+address constant CELO_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
 address constant ETH_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
 address constant LINEA_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
 address constant MANTLE_MAINNET_AXELAR_GAS_SERVICE = 0x2d5d7d31F671F86C782533cc367F14109a082712;
@@ -586,6 +590,7 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
     if (chainId == AVAX_MAINNET) return AVAX_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == BASE_MAINNET) return BASE_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == BSC_MAINNET) return BSC_MAINNET_AXELAR_GAS_SERVICE;
+    if (chainId == CELO_MAINNET) return CELO_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == ETH_MAINNET) return ETH_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == LINEA_MAINNET) return LINEA_MAINNET_AXELAR_GAS_SERVICE;
     if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_AXELAR_GAS_SERVICE;
@@ -595,32 +600,10 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
     revert("Unsupported chainID for Axelar gas service");
 }
 
-string constant ARBITRUM_MAINNET_AXELAR_CHAIN_NAME = "arbitrum";
-string constant AVAX_MAINNET_AXELAR_CHAIN_NAME = "avalanche";
-string constant BASE_MAINNET_AXELAR_CHAIN_NAME = "base";
-string constant BSC_MAINNET_AXELAR_CHAIN_NAME = "binance";
-string constant ETH_MAINNET_AXELAR_CHAIN_NAME = "ethereum";
-string constant LINEA_MAINNET_AXELAR_CHAIN_NAME = "linea";
-string constant MANTLE_MAINNET_AXELAR_CHAIN_NAME = "mantle";
-string constant OP_MAINNET_AXELAR_CHAIN_NAME = "optimism";
-string constant POLYGON_MAINNET_AXELAR_CHAIN_NAME = "polygon";
-
-function _getAxelarChainName(uint256 chainId) pure returns (string memory) {
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == OP_MAINNET) return OP_MAINNET_AXELAR_CHAIN_NAME;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_AXELAR_CHAIN_NAME;
-
-    revert("Unsupported chainID for Axelar chain name");
-}
-
 // ----------------- Deployment ----------------- //
 
+// TODO: Use new CREATE3Factory when redeploying new contracts
+// 0x37922885311Bc9d18E136e4FE6654409d3F45FFd
 CREATE3Factory constant CREATE3 = CREATE3Factory(
     0x4Ce25bE5611B6527eA48f7Abf513d48BAcb4Cc44
 );

@@ -26,6 +26,13 @@ export const bsc: Chain = {
   cctpDomain: null,
 };
 
+export const celo: Chain = {
+  type: "evm",
+  chainId: 42220,
+  name: "Celo",
+  cctpDomain: null,
+};
+
 export const ethereum: Chain = {
   type: "evm",
   chainId: 1,
@@ -79,6 +86,7 @@ export const supportedChains: Chain[] = [
   arbitrum,
   base,
   bsc,
+  celo,
   ethereum,
   linea,
   mantle,
@@ -130,6 +138,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://basescan.org";
     case bsc.chainId:
       return "https://bscscan.com";
+    case celo.chainId:
+      return "https://celoscan.io";
     case ethereum.chainId:
       return "https://etherscan.io";
     case linea.chainId:

@@ -9,7 +9,7 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_AXELAR_BRIDGER = keccak256(
-    "DaimoPayAxelarBridger-deploy2"
+    "DaimoPayAxelarBridger-deploy3"
 );
 
 contract DeployDaimoPayAxelarBridger is Script {
@@ -46,7 +46,7 @@ contract DeployDaimoPayAxelarBridger is Script {
         vm.startBroadcast();
 
         address bridger = CREATE3.deploy(
-            keccak256("DaimoPayAxelarBridger-deploy2"),
+            DEPLOY_SALT_AXELAR_BRIDGER,
             abi.encodePacked(
                 type(DaimoPayAxelarBridger).creationCode,
                 abi.encode(

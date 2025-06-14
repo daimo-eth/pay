@@ -208,7 +208,11 @@ export const DaimoPayModal: React.FC<{
         chainId: chain?.id,
         address,
       });
-    } else if (isSolanaConnected && !isEthConnected) {
+    } else if (
+      isSolanaConnected &&
+      !isEthConnected &&
+      showSolanaPaymentMethod
+    ) {
       paymentState.setTokenMode("solana");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "solana_connected_on_open",

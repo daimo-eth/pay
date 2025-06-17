@@ -77,7 +77,7 @@ const Confirmation: React.FC = () => {
           <>
             <ModalH1>
               <Link href={txURL} target="_blank" rel="noopener noreferrer">
-                Payment completed
+                Payment Completed
               </Link>
             </ModalH1>
             {confirmationMessage && (

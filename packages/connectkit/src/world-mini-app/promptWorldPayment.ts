@@ -66,7 +66,7 @@ export async function promptWorldcoinPayment(
           token_amount: wld.amount,
         },
         {
-          symbol: Tokens.USDCE,
+          symbol: Tokens.USDC,
           token_amount: usdc.amount,
         },
       ],

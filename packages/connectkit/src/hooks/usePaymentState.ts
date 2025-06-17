@@ -384,10 +384,12 @@ export function usePaymentState({
       `[PAY DEPOSIT ADDRESS] hydrated order ${order.id} for ${order.usdValue} USD, checking out with deposit address: ${option}`,
     );
 
-    return await trpc.getDepositAddressForOrder.query({
+    const result = await trpc.getDepositAddressForOrder.query({
       orderId: order.id.toString(),
       option,
     });
+
+    return "error" in result ? null : result;
   };
 
   const { isIOS } = useIsMobile();

@@ -185,11 +185,23 @@ export const walletConfigs: {
   farcaster: {
     name: "Farcaster",
     icon: <Logos.Farcaster />,
+    iconShape: "squircle",
     showInMobileConnectors: true,
     getDaimoPayDeeplink: (payId: string) => {
       return (
-        "https://farcaster.xyz/miniapps/gD1ocvCEj9Ms/daimopay/pay?id=" +
-        getDaimoPayUrl(payId)
+        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
+      );
+    },
+  },
+  minipay: {
+    name: "MiniPay",
+    icon: <Logos.MiniPay />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+    getDaimoPayDeeplink: (payId: string) => {
+      return (
+        "https://cash.minipay.xyz/browse?url=https%253A%252F%252Fpay.daimo.com%252Fpay%253Fid%253D" +
+        payId
       );
     },
   },

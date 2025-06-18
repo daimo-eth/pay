@@ -243,8 +243,6 @@ const Modal: React.FC<ModalProps> = ({
   // eslint-disable-next-line react-hooks/rules-of-hooks
   if (!positionInside) useLockBodyScroll(mounted);
 
-  const prevPage = usePrevious(pageId, pageId);
-
   useEffect(() => {
     setOpen(open);
     if (open) setInTransition(undefined);
@@ -335,8 +333,8 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (shouldUseQrcode()) {
-          return locales.scanScreen_heading;
+        if (context.pendingConnectorId === "Mobile Wallets") {
+          return "Scan with Phone";
         } else {
           return walletInfo?.name;
         }

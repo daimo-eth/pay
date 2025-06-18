@@ -356,7 +356,7 @@ const DaimoPayUIProvider = ({
   return createElement(
     PayContext.Provider,
     { value },
-    <Web3ContextProvider enabled={open}>
+    <Web3ContextProvider>
       <ThemeProvider theme={defaultTheme}>
         {children}
         <DaimoPayModal

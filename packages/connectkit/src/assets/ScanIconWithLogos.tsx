@@ -8,26 +8,33 @@ const IconContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 47px;
-  height: 52px;
-  min-width: 47px;
-  min-height: 52px;
+  width: 100%;
+  height: 100%;
+  max-width: 47px;
+  max-height: 52px;
+  aspect-ratio: 47 / 52;
   svg {
     display: block;
+    width: 100%;
+    height: 100%;
     max-width: 100%;
-    height: auto;
-}
+    max-height: 100%;
+  }
 `;
 
-const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
+const ScanIconWithLogos: React.FC<{
+  logo?: React.ReactNode;
+  showQR?: boolean;
+}> = ({ logo, showQR = true }) => {
   const logoList = [
-    <Logos.MetaMask key="metamask" background={true} />,
-    <Logos.Coinbase key="coinbase" background={true} />,
-    <Logos.Crypto key="crypto" />,
-    <Logos.ImToken key="imtoken" />,
-    <Logos.Argent key="argent" />,
+    <Logos.MetaMask key="metamask" />,
+    <Logos.Coinbase key="coinbase" />,
+    <Logos.Phantom key="phantom" />,
+    <Logos.Backpack key="backpack" />,
+    <Logos.Rainbow key="rainbow" />,
     <Logos.Trust key="trust" />,
   ];
+
   return (
     <IconContainer>
       <svg
@@ -61,9 +68,7 @@ const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
               </foreignObject>
               <foreignObject x="12" y="26" width="9" height="9" rx="2.5">
                 <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
-                  <div style={{ overflow: "hidden", borderRadius: 2.5 }}>
-                    {logoList[2]}
-                  </div>
+                  {logoList[2]}
                 </div>
               </foreignObject>
               <foreignObject x="23" y="26" width="9" height="9" rx="2.5">
@@ -88,87 +93,96 @@ const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
             stroke="url(#paint0_linear_924_12568)"
             strokeWidth="2"
           />
-          <path
-            d="M15 10H29C29 11.1046 28.1046 12 27 12H17C15.8954 12 15 11.1046 15 10Z"
+          <rect
+            width="7"
+            height="2"
+            x="18"
+            y="11"
             fill="var(--ck-graphic-scaniconwithlogos-01)"
+            rx="1"
           />
           <rect
             x="1"
             y="47"
             width="43"
             height="5"
+            rx="1"
             fill="var(--ck-tooltip-background)"
           />
-          <rect
-            x="22"
-            y="1"
-            width="24"
-            height="24"
-            rx="12"
-            fill="var(--ck-graphic-scaniconwithlogos-03)"
-            stroke="var(--ck-tooltip-background)"
-            strokeWidth="2"
-          />
-          <rect
-            x="34.5"
-            y="10"
-            width="2.5"
-            height="2.5"
-            rx="0.75"
-            fill="#373737"
-          />
-          <rect
-            x="31"
-            y="10"
-            width="2.5"
-            height="2.5"
-            rx="0.75"
-            fill="#373737"
-          />
-          <rect
-            x="31"
-            y="13.5"
-            width="2.5"
-            height="2.5"
-            rx="0.75"
-            fill="#373737"
-          />
-          <rect
-            x="34.5"
-            y="13.5"
-            width="2.5"
-            height="2.5"
-            rx="0.75"
-            fill="#373737"
-          />
-          <path
-            d="M28.5 10.5V9C28.5 8.17157 29.1716 7.5 30 7.5H31.5"
-            stroke="#373737"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M36.5 7.5L38 7.5C38.8284 7.5 39.5 8.17157 39.5 9L39.5 10.5"
-            stroke="#373737"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M39.5 15.5L39.5 17C39.5 17.8284 38.8284 18.5 38 18.5L36.5 18.5"
-            stroke="#373737"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M31.5 18.5L30 18.5C29.1716 18.5 28.5 17.8284 28.5 17L28.5 15.5"
-            stroke="#373737"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {showQR && (
+            <>
+              <rect
+                x="22"
+                y="1"
+                width="24"
+                height="24"
+                rx="12"
+                fill="var(--ck-graphic-scaniconwithlogos-03)"
+                stroke="var(--ck-tooltip-background)"
+                strokeWidth="2"
+              />
+              <rect
+                x="34.5"
+                y="10"
+                width="2.5"
+                height="2.5"
+                rx="0.75"
+                fill="#373737"
+              />
+              <rect
+                x="31"
+                y="10"
+                width="2.5"
+                height="2.5"
+                rx="0.75"
+                fill="#373737"
+              />
+              <rect
+                x="31"
+                y="13.5"
+                width="2.5"
+                height="2.5"
+                rx="0.75"
+                fill="#373737"
+              />
+              <rect
+                x="34.5"
+                y="13.5"
+                width="2.5"
+                height="2.5"
+                rx="0.75"
+                fill="#373737"
+              />
+              <path
+                d="M28.5 10.5V9C28.5 8.17157 29.1716 7.5 30 7.5H31.5"
+                stroke="#373737"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M36.5 7.5L38 7.5C38.8284 7.5 39.5 8.17157 39.5 9L39.5 10.5"
+                stroke="#373737"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M39.5 15.5L39.5 17C39.5 17.8284 38.8284 18.5 38 18.5L36.5 18.5"
+                stroke="#373737"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M31.5 18.5L30 18.5C29.1716 18.5 28.5 17.8284 28.5 17L28.5 15.5"
+                stroke="#373737"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </>
+          )}
         </g>
         <defs>
           <linearGradient
@@ -212,4 +226,5 @@ const ScanIconWithLogos: React.FC<{ logo?: React.ReactNode }> = ({ logo }) => {
     </IconContainer>
   );
 };
+
 export default ScanIconWithLogos;

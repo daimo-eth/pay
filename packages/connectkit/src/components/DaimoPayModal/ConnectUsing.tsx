@@ -52,12 +52,7 @@ const ConnectUsing = () => {
           exit={"exit"}
           variants={contentVariants}
         >
-          <ConnectWithQRCode
-            switchConnectMethod={(id?: string) => {
-              //if (id) setId(id);
-              setStatus(states.INJECTOR);
-            }}
-          />
+          <ConnectWithQRCode />
         </motion.div>
       )}
       {status === states.INJECTOR && (
@@ -69,8 +64,7 @@ const ConnectUsing = () => {
           variants={contentVariants}
         >
           <ConnectWithInjector
-            switchConnectMethod={(id?: string) => {
-              //if (id) setId(id);
+            switchConnectMethod={() => {
               setStatus(states.QRCODE);
             }}
           />

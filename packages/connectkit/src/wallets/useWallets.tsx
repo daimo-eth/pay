@@ -2,8 +2,8 @@ import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
 import Logos from "../assets/logos";
+import ScanIconWithLogos from "../assets/ScanIconWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
-import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -21,7 +21,6 @@ export const useWallet = (id: string): WalletProps | null => {
 };
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
-  const context = usePayContext();
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
@@ -116,6 +115,28 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return c;
   });
 
+  wallets.push({
+    id: "Mobile Wallets",
+    name: "Mobile Wallets",
+    shortName: "Mobile",
+    iconConnector: (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: "scale(1.4)",
+          transformOrigin: "center center",
+        }}
+      >
+        <ScanIconWithLogos showQR={false} />
+      </div>
+    ),
+  });
+
   return (
     wallets
       // remove duplicate ids
@@ -158,6 +179,12 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
         if (AisInstalled && !BisInstalled) return -1;
         if (!AisInstalled && BisInstalled) return 1;
+        return 0;
+      })
+      // order last mobile wallets
+      .sort((a, b) => {
+        if (a.id === "Mobile Wallets") return 1;
+        if (b.id === "Mobile Wallets") return -1;
         return 0;
       })
   );

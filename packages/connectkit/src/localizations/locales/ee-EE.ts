@@ -18,7 +18,6 @@ const eeEE: LocaleProps = {
   tryAgainQuestion: "Proovi uuesti?",
   dontHaveTheApp: "Kas teil pole rakendust?",
   scanTheQRCode: "Skaneeri QR-kood",
-  useWalletConnectModal: "Kasuta WalletConnecti modalit",
   useModal: "Kasuta Modalit",
   installTheExtension: "Installi laiendust",
   getWalletName: "Hanki {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const eeEE: LocaleProps = {
 
   scanScreen_heading: `Skaneerige telefoni abil`,
   scanScreen_heading_withConnector: `Skaneerige koos {{ CONNECTORNAME }}-ga`,
-  scanScreen_tooltip_walletConnect: `Ava [WALLETCONNECTLOGO] WalletConnect \ntoetatud rahakott skaneerimiseks`,
   scanScreen_tooltip_default: `Ava {{ CONNECTORNAME }} oma \nmobiiltelefonil skaneerimiseks`,
 
   downloadAppScreen_heading: `Hankige {{ CONNECTORNAME }}`,

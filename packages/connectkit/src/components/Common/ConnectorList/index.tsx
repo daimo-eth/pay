@@ -26,19 +26,14 @@ const ConnectorList = () => {
   const { lastConnectorId } = useLastConnector();
   const { paymentState } = useDaimoPay();
 
-  const walletsToDisplay =
-    context.options?.hideRecentBadge || lastConnectorId === "walletConnect" // do not hoist walletconnect to top of list
-      ? wallets
-      : [
-          // move last used wallet to top of list
-          // using .filter and spread to avoid mutating original array order with .sort
-          ...wallets.filter(
-            (wallet) => lastConnectorId === wallet.connector?.id,
-          ),
-          ...wallets.filter(
-            (wallet) => lastConnectorId !== wallet.connector?.id,
-          ),
-        ];
+  const walletsToDisplay = context.options?.hideRecentBadge
+    ? wallets
+    : [
+        // move last used wallet to top of list
+        // using .filter and spread to avoid mutating original array order with .sort
+        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
+        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+      ];
 
   // For mobile flow, we need to wait for the order to be hydrated before
   // we can deeplink to the in-wallet browser.

@@ -31,7 +31,7 @@ export const OrderHeader = ({
   showSolana?: boolean;
   showZKP2P?: boolean;
 }) => {
-  const { paymentState, route, wcWallet } = usePayContext();
+  const { paymentState, route } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();
   const {
     connected: isSolanaConnected,
@@ -87,10 +87,7 @@ export const OrderHeader = ({
     );
   };
 
-  let walletIcon = renderIcon(
-    connector?.icon || wcWallet?.icon,
-    wcWallet?.name,
-  );
+  let walletIcon = renderIcon(connector?.icon);
   let solanaIcon = renderIcon(
     solanaWallet?.adapter.icon || <Solana />,
     solanaWallet?.adapter.name,

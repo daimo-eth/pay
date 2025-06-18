@@ -31,12 +31,6 @@ type DefaultConfigProps = {
   appDescription?: string;
   appUrl?: string;
 
-  /**
-   * WC 2.0 Project ID (get one here: https://cloud.walletconnect.com/sign-in),
-   * it doesn't do much besides tracking. If not provided, use Daimo's
-   * WalletConnect project ID by default. */
-  walletConnectProjectId?: string;
-
   // Coinbase Wallet preference
   coinbaseWalletPreference?: CoinbaseWalletParameters<"4">["preference"];
 
@@ -65,7 +59,6 @@ const defaultConfig = ({
   appIcon,
   appDescription,
   appUrl,
-  walletConnectProjectId,
   coinbaseWalletPreference,
   additionalConnectors,
   chains = REQUIRED_CHAINS,
@@ -101,8 +94,6 @@ const defaultConfig = ({
         description: appDescription,
         url: appUrl,
       },
-      walletConnectProjectId:
-        walletConnectProjectId ?? "5001414df825adbd5778f52cacea9e49",
       coinbaseWalletPreference,
       additionalConnectors,
     });

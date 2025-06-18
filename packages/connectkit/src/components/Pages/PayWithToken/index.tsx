@@ -1,8 +1,7 @@
 import { WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useState } from "react";
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
-import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import Button from "../../Common/Button";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
@@ -17,10 +16,7 @@ enum PayState {
 }
 
 const PayWithToken: React.FC = () => {
-  const { isMobile, isIOS } = useIsMobile();
-  const { connector } = useAccount();
-  const { triggerResize, paymentState, setRoute, log, wcWallet } =
-    usePayContext();
+  const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { css, keyframes } from "styled-components";
+import { keyframes } from "styled-components";
 import styled from "./../../../styles/styled";
 
 export const QRCodeContainer = styled(motion.div)`
@@ -118,7 +118,7 @@ export const LogoContainer = styled(motion.div)`
   height: 100%;
   transform: translateY(50%) scale(0.9999); // Shifting fix
 `;
-export const LogoIcon = styled(motion.div)<{ $wcLogo?: boolean }>`
+export const LogoIcon = styled(motion.div)`
   z-index: 6;
   position: absolute;
   left: 50%;
@@ -133,14 +133,6 @@ export const LogoIcon = styled(motion.div)<{ $wcLogo?: boolean }>`
     height: 100%;
   }
 
-  ${(props) =>
-    props.$wcLogo
-      ? css`
-          width: 29%;
-          height: 20.5%;
-        `
-      : css`
-          width: 28%;
-          height: 28%;
-        `}
+  width: 28%;
+  height: 28%;
 `;

@@ -265,9 +265,6 @@ export const walletConfigs: {
   //   },
   //   showInMobileConnectors: true,
   //   deeplinkScheme: "ledgerlive://",
-  //   getWalletConnectDeeplink: (uri: string) => {
-  //     return `ledgerlive://wc?uri=${encodeURIComponent(uri)}`;
-  //   },
   //   // getDaimoPayDeeplink: (payId: string) => {
   //   //   return "ledgerlive://discover/" + daimoPayUrl + payId;
   //   // },

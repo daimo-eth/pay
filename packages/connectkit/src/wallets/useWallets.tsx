@@ -28,7 +28,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     // Add injected wallet (if any) first
     connectors.forEach((connector) => {
       if (connector.id === "metaMask") return;
-      if (connector.id === "walletConnect") return;
       if (isCoinbaseWalletConnector(connector.id)) return;
       mobileWallets.push({
         id: connector.id,
@@ -124,17 +123,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         (wallet, index, self) =>
           self.findIndex((w) => w.id === wallet.id) === index,
       )
-      // Replace walletConnect's name with the one from options
-      .map((wallet) => {
-        if (wallet.id === "walletConnect") {
-          return {
-            ...wallet,
-            name: context.options?.walletConnectName || wallet.name,
-            shortName: context.options?.walletConnectName || wallet.shortName,
-          };
-        }
-        return wallet;
-      })
       // remove wallet with id coinbaseWalletSDK if wallet with id 'com.coinbase.wallet' exists
       .filter(
         (wallet, index, self) =>
@@ -170,12 +158,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
         if (AisInstalled && !BisInstalled) return -1;
         if (!AisInstalled && BisInstalled) return 1;
-        return 0;
-      })
-      // move walletConnect to the end
-      .sort((a, b) => {
-        if (a.id === "walletConnect") return 1;
-        if (b.id === "walletConnect") return -1;
         return 0;
       })
   );

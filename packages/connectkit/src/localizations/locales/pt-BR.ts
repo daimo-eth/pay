@@ -18,7 +18,6 @@ const ptBR: LocaleProps = {
   tryAgainQuestion: "Tentar novamente?",
   dontHaveTheApp: "Não tem o aplicativo?",
   scanTheQRCode: "Escaneie o código QR",
-  useWalletConnectModal: "Use o modal do WalletConnect",
   useModal: "Usar modal",
   installTheExtension: "Instale a extensão",
   getWalletName: "Obter {{ CONNECTORNAME }}",
@@ -65,7 +64,6 @@ const ptBR: LocaleProps = {
 
   scanScreen_heading: `Escanear com o celular`,
   scanScreen_heading_withConnector: `Escanear com o {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `Abra uma carteira compatível \ncom o WalletConnect [WALLETCONNECTLOGO] para escanear`,
   scanScreen_tooltip_default: `Abra o {{ CONNECTORNAME }} no \nseu celular para escanear`,
 
   downloadAppScreen_heading: `Obter {{ CONNECTORNAME }}`,

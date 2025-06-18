@@ -13,7 +13,7 @@ import React, {
   useState,
 } from "react";
 import { ThemeProvider } from "styled-components";
-import { useAccount, WagmiContext } from "wagmi";
+import { WagmiContext } from "wagmi";
 
 import { DaimoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
@@ -24,7 +24,6 @@ import {
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
 import { useDaimoPay } from "../hooks/useDaimoPay";
-import { useExtractWcWallet } from "../hooks/useExtractWcWallet";
 import { usePaymentState } from "../hooks/usePaymentState";
 import { PaymentContext, PaymentProvider } from "../provider/PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
@@ -108,12 +107,10 @@ const DaimoPayUIProvider = ({
     hideTooltips: false,
     hideQuestionMarkCTA: false,
     hideNoWalletCTA: false,
-    walletConnectCTA: "link",
     hideRecentBadge: false,
     avoidLayoutShift: true,
     embedGoogleFonts: false,
     truncateLongENSAddress: true,
-    walletConnectName: undefined,
     reducedMotion: false,
     disclaimer: null,
     bufferPolyfill: true,
@@ -256,13 +253,6 @@ const DaimoPayUIProvider = ({
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(() => setErrorMessage(null), [route, open]);
 
-  const { connector } = useAccount();
-
-  // Single source of truth for the currently-connected wallet is the connector
-  // exposed by wagmi. See useAccount(). We watch this connector and use it to
-  // extract the current WalletConnect wallet, if any.
-  const wcWallet = useExtractWcWallet({ connector, log });
-
   const paymentState = usePaymentState({
     trpc,
     lockPayParams,
@@ -332,7 +322,6 @@ const DaimoPayUIProvider = ({
     // Daimo Pay context
     pendingConnectorId,
     setPendingConnectorId,
-    wcWallet,
     sessionId,
     solanaConnector,
     setSolanaConnector,

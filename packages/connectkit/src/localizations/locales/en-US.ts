@@ -16,7 +16,6 @@ const enUS = {
   tryAgainQuestion: "Try Again?",
   dontHaveTheApp: "Don't have the app?",
   scanTheQRCode: "Scan the QR code",
-  useWalletConnectModal: "Use WalletConnect Modal",
   useModal: "Use Modal",
   installTheExtension: "Install the Extension",
   getWalletName: "Get {{ CONNECTORNAME }}",
@@ -62,7 +61,6 @@ const enUS = {
 
   scanScreen_heading: `Scan with Phone`,
   scanScreen_heading_withConnector: `Scan with {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `Open a [WALLETCONNECTLOGO] WalletConnect \nsupported wallet to scan`,
   scanScreen_tooltip_default: `Open {{ CONNECTORNAME }} on \nyour mobile phone to scan`,
 
   downloadAppScreen_heading: `Get {{ CONNECTORNAME }}`,

@@ -5,11 +5,7 @@ import { AnimatePresence, motion, Variants } from "framer-motion";
 import { ResetContainer } from "../../../styles";
 import Portal from "../Portal";
 
-import {
-  flattenChildren,
-  isMobile,
-  isWalletConnectConnector,
-} from "../../../utils";
+import { flattenChildren, isMobile } from "../../../utils";
 
 import {
   BackButton,
@@ -330,7 +326,7 @@ const Modal: React.FC<ModalProps> = ({
   function shouldUseQrcode() {
     if (!wallet) return false; // Fail states are shown in the injector flow
 
-    const useInjector = !wallet.getWalletConnectDeeplink || wallet.isInstalled;
+    const useInjector = wallet.isInstalled;
     return !useInjector;
   }
 
@@ -340,9 +336,7 @@ const Modal: React.FC<ModalProps> = ({
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
         if (shouldUseQrcode()) {
-          return isWalletConnectConnector(wallet?.connector?.id)
-            ? locales.scanScreen_heading
-            : locales.scanScreen_heading_withConnector;
+          return locales.scanScreen_heading;
         } else {
           return walletInfo?.name;
         }

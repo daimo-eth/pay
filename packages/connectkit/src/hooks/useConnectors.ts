@@ -16,14 +16,3 @@ export function useConnector(id: string, uuid?: string) {
   }
   return connectors.find((c) => c.id === id) as Connector;
 }
-
-export function useWalletConnectConnector() {
-  /*
-  options: {
-    qrcode: false,
-    // or
-    showQrModal: false,
-  }
-  */
-  return useConnector("walletConnect");
-}

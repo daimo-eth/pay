@@ -18,7 +18,6 @@ const ruRU: LocaleProps = {
   tryAgainQuestion: "Попробовать снова?",
   dontHaveTheApp: "У вас нет приложения?",
   scanTheQRCode: "Отсканируйте QR-код",
-  useWalletConnectModal: "Использовать окно WalletConnect",
   useModal: "Использовать модальное окно",
   installTheExtension: "Установить расширение",
   getWalletName: "Скачать {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const ruRU: LocaleProps = {
 
   scanScreen_heading: `Сканирование с телефона`,
   scanScreen_heading_withConnector: `Сканирование с помощью {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `Откройте [WALLETCONNECTLOGO] поддерживаемый WalletConnect кошелек для сканирования`,
   scanScreen_tooltip_default: `Откройте {{ CONNECTORNAME }} на вашем мобильном телефоне для сканирования`,
 
   downloadAppScreen_heading: `Скачивание {{ CONNECTORNAME }}`,

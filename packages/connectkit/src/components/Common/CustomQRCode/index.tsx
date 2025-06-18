@@ -38,7 +38,6 @@ function CustomQRCode({
         {image && (
           <LogoContainer>
             <LogoIcon
-              $wcLogo={imagePosition !== "center"}
               style={{
                 background:
                   imagePosition === "center" ? imageBackground : undefined,

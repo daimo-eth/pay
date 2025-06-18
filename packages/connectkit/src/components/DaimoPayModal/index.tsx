@@ -223,7 +223,6 @@ export const DaimoPayModal: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     context.open,
-    context.wcWallet,
     paymentState.walletPaymentOptions.options,
     paymentState.solanaPaymentOptions.options,
     showSolanaPaymentMethod,
@@ -258,7 +257,6 @@ export const DaimoPayModal: React.FC<{
   useEffect(() => setCustomTheme(customTheme), [customTheme, setCustomTheme]);
   useEffect(() => setLang(lang), [lang, setLang]);
 
-  /* When pulling data into WalletConnect, it prioritises the og:title tag over the title tag */
   useEffect(() => {
     const appName = getAppName();
     if (!appName || !context.open) return;
@@ -267,16 +265,6 @@ export const DaimoPayModal: React.FC<{
     title.setAttribute("property", "og:title");
     title.setAttribute("content", appName);
     document.head.prepend(title);
-
-    /*
-    // TODO:  When pulling data into WalletConnect, figure out which icon gets used and replace with appIcon if available 
-    const appIcon = getAppIcon();
-    const icon = document.createElement('link');
-    if (appIcon) {
-      icon.setAttribute('rel', 'icon');
-      icon.setAttribute('href', appIcon);
-      document.head.prepend(icon);
-    }*/
 
     return () => {
       try {

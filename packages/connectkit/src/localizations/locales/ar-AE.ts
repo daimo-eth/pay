@@ -18,7 +18,6 @@ const arAE: LocaleProps = {
   tryAgainQuestion: "هل نحاول مرة أخرى؟",
   dontHaveTheApp: "ليس لديك التطبيق؟",
   scanTheQRCode: "مسح رمز الاستجابة السريعة",
-  useWalletConnectModal: "استخدم نموذج ولِيت‌كنيكت",
   useModal: "استخدم النموذج",
   installTheExtension: "تثبيت الإضافة",
   getWalletName: "الحصول على {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const arAE: LocaleProps = {
 
   scanScreen_heading: `مسح باستخدام الهاتف`,
   scanScreen_heading_withConnector: `مسح باستخدام {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `افتح محفظة تدعم ولِيت‌كنيكت \n لبدء المسح.`,
   scanScreen_tooltip_default: `افتح {{ CONNECTORNAME }} على هاتفك للمسح`,
 
   downloadAppScreen_heading: `الحصول على {{ CONNECTORNAME }}`,

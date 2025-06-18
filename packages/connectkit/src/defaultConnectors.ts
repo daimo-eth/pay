@@ -1,9 +1,7 @@
 import {
   coinbaseWallet,
   CoinbaseWalletParameters,
-  injected,
   safe,
-  walletConnect,
 } from "@wagmi/connectors";
 import { CreateConnectorFn } from "wagmi";
 
@@ -14,14 +12,12 @@ type DefaultConnectorsProps = {
     description?: string;
     url?: string;
   };
-  walletConnectProjectId: string;
   coinbaseWalletPreference?: CoinbaseWalletParameters<"4">["preference"];
   additionalConnectors?: CreateConnectorFn[];
 };
 
 const defaultConnectors = ({
   app,
-  walletConnectProjectId,
   coinbaseWalletPreference,
   additionalConnectors,
 }: DefaultConnectorsProps): CreateConnectorFn[] => {
@@ -42,7 +38,6 @@ const defaultConnectors = ({
 
   // Add the rest of the connectors
   connectors.push(
-    injected({ target: "metaMask" }),
     coinbaseWallet({
       appName: app.name,
       appLogoUrl: app.icon,
@@ -50,29 +45,6 @@ const defaultConnectors = ({
       preference: coinbaseWalletPreference,
     }),
   );
-
-  connectors.push(
-    walletConnect({
-      showQrModal: false,
-      projectId: walletConnectProjectId,
-      metadata: hasAllAppData
-        ? {
-            name: app.name,
-            description: app.description!,
-            url: app.url!,
-            icons: [app.icon!],
-          }
-        : undefined,
-    }),
-  );
-
-  /*
-  connectors.push(
-    injected({
-      shimDisconnect: true,
-    })
-  );
-  */
 
   return connectors;
 };

@@ -91,7 +91,6 @@ const themeGlobals = {
   },
   brand: {
     "--ck-family-brand": "#1A88F8",
-    "--ck-brand-walletConnect": "#3B99FC",
     "--ck-brand-coinbaseWallet": "#0052FF",
     "--ck-brand-metamask": "#f6851b",
     "--ck-brand-metamask-01": "#F6851B",

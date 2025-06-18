@@ -8,7 +8,6 @@ export const wallets: {
   [key: string]: CreateConnectorFn;
 } = Object.keys(walletConfigs).reduce((acc, key) => {
   const config = walletConfigs[key];
-  if (!config?.getWalletConnectDeeplink) return acc;
   const target = key.split(",")[0].trim();
   const flag =
     config.name?.replace("Wallet", "").replace(" ", "") ??

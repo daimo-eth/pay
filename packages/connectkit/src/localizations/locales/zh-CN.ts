@@ -18,7 +18,6 @@ const zhCN: LocaleProps = {
   tryAgainQuestion: "重试？",
   dontHaveTheApp: "没有该应用？",
   scanTheQRCode: "扫描二维码",
-  useWalletConnectModal: "使用 WalletConnect 模态窗",
   useModal: "使用模态窗",
   installTheExtension: "安装扩展程序",
   getWalletName: "获取{{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const zhCN: LocaleProps = {
 
   scanScreen_heading: `手机扫描`,
   scanScreen_heading_withConnector: `手机扫描{{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `打开 [WALLETCONNECTLOGO] WalletConnect 支持的钱包进行扫描`,
   scanScreen_tooltip_default: `打开您手机上的{{ CONNECTORNAME }} 进行扫描`,
 
   downloadAppScreen_heading: `获取{{ CONNECTORNAME }}`,

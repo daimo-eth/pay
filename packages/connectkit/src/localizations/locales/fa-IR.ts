@@ -18,7 +18,6 @@ const faIR: LocaleProps = {
   tryAgainQuestion: "آیا دوباره تلاش کنیم؟",
   dontHaveTheApp: "اپلیکیشن را ندارید؟",
   scanTheQRCode: "اسکن کیو‌آر کد",
-  useWalletConnectModal: "استفاده از مودال والت‌‌کانکت",
   useModal: "استفاده از مودال",
   installTheExtension: "نصب افزونه",
   getWalletName: "دریافت {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const faIR: LocaleProps = {
 
   scanScreen_heading: `اسکن با گوشی`,
   scanScreen_heading_withConnector: `اسکن با {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `یک کیف پول با پشتیبانی از والت‌‌کانکت را باز کنید تا اسکن را آغاز کنید`,
   scanScreen_tooltip_default: `{{ CONNECTORNAME }} را روی گوشی خود باز کنید تا اسکن شود`,
 
   downloadAppScreen_heading: `دریافت {{ CONNECTORNAME }}`,

@@ -182,6 +182,17 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
+  farcaster: {
+    name: "Farcaster",
+    icon: <Logos.Farcaster />,
+    showInMobileConnectors: true,
+    getDaimoPayDeeplink: (payId: string) => {
+      return (
+        "https://farcaster.xyz/miniapps/gD1ocvCEj9Ms/daimopay/pay?id=" +
+        getDaimoPayUrl(payId)
+      );
+    },
+  },
   "me.rainbow": {
     name: "Rainbow Wallet",
     shortName: "Rainbow",

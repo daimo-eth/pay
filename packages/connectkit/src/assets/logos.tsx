@@ -415,6 +415,34 @@ export const Frame = ({ ...props }) => (
   </svg>
 );
 
+export const Farcaster = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="32"
+    height="32"
+    fill="none"
+    viewBox="0 0 32 32"
+  >
+    <g clipPath="url(#clip0_886_2060)">
+      <path
+        fill="#855DCD"
+        d="M25.778 32H6.222A6.22 6.22 0 0 1 0 25.778V6.222A6.22 6.22 0 0 1 6.222 0h19.556A6.22 6.22 0 0 1 32 6.222v19.556A6.22 6.22 0 0 1 25.778 32"
+      ></path>
+      <path
+        fill="#fff"
+        fillRule="evenodd"
+        d="M12.073 27.022H4.266v-.853c0-.393.319-.711.711-.711h.143v-.853c0-.393.318-.712.71-.712V11.236h-.782l-.924-3.13h4.124V4.979h15.503v3.129h4.124l-.924 3.129h-.782v12.657c.392 0 .71.319.71.712v.853h.143c.393 0 .71.318.71.71v.854h-7.797v-.853c0-.393.319-.711.711-.711h.142v-.853c0-.385.306-.698.687-.711v-6.97c-.251-2.79-2.62-4.977-5.475-4.977-2.857 0-5.225 2.187-5.476 4.977v6.97a.71.71 0 0 1 .696.71v.854h.142c.393 0 .71.318.71.71z"
+        clipRule="evenodd"
+      ></path>
+    </g>
+    <defs>
+      <clipPath id="clip0_886_2060">
+        <path fill="#fff" d="M0 0h32v32H0z"></path>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 export const Rainbow = ({ round = false, ...props }: any) => {
   // Here we're using a base64 of an svg because the gradients in this logo do not play nicely on mobile devices
   const withBackground =
@@ -1375,4 +1403,5 @@ export default {
   Solflare,
   OKX,
   Bitget,
+  Farcaster,
 };

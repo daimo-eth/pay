@@ -200,8 +200,8 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     getDaimoPayDeeplink: (payId: string) => {
       return (
-        "https://cash.minipay.xyz/browse?url=https%253A%252F%252Fpay.daimo.com%252Fpay%253Fid%253D" +
-        payId
+        "https://cash.minipay.xyz/browse?url=" +
+        encodeURIComponent(getEncodedDaimoPayUrl(payId))
       );
     },
   },

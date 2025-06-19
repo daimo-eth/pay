@@ -9,8 +9,14 @@
   "main": "./src/index.ts",
   "type": "module",
   "exports": {
-    "import": "./build/index.js",
-    "types": "./build/index.d.ts"
+    ".": {
+      "import": "./build/src/index.js",
+      "types": "./build/index.d.ts"
+    },
+    "./world": {
+      "import": "./build/src/world.js",
+      "types": "./build/world.d.ts"
+    }
   },
   "types": "./build/index.d.ts",
   "engines": {

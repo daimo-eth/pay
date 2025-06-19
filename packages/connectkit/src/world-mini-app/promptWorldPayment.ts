@@ -5,11 +5,14 @@ import {
   worldchainUSDC,
   worldchainWLD,
 } from "@daimo/pay-common";
-import type {
-  MiniAppPaymentPayload,
-  PayCommandInput,
-} from "@worldcoin/minikit-js";
 import { getAddress } from "viem";
+
+import {
+  MiniAppPaymentPayload,
+  MiniKit,
+  PayCommandInput,
+  Tokens,
+} from "@worldcoin/minikit-js";
 
 /**
  * Open Worldcoin's payment drawer and prompt the user to pay a Daimo Pay order.
@@ -19,12 +22,6 @@ export async function promptWorldcoinPayment(
   trpc: any,
 ): Promise<{ paymentId: string; finalPayload: MiniAppPaymentPayload } | null> {
   try {
-    // Dynamically import @worldcoin/minikit-js to avoid bundling it for
-    // developers who don't use World Mini App features, as it's an optional
-    // peer dependency.
-    const { MiniKit, Tokens } = await import(
-      /* webpackIgnore: true */ "@worldcoin/minikit-js"
-    );
     if (!MiniKit.isInstalled()) {
       console.error(
         "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",
@@ -54,7 +51,7 @@ export async function promptWorldcoinPayment(
     );
 
     assert(wld != null, "WLD DP token not found");
-    assert(usdc != null, "USDCe DP token not found");
+    assert(usdc != null, "USDC DP token not found");
 
     const paymentId = crypto.randomUUID().replace(/-/g, "");
     const payload: PayCommandInput = {

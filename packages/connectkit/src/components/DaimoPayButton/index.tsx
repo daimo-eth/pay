@@ -158,7 +158,7 @@ export function DaimoPayButton(props: DaimoPayButtonProps): JSX.Element {
           $useMode={mode ?? context.mode}
           $customTheme={customTheme ?? context.customTheme}
         >
-          <ThemeContainer onClick={!props.disabled && show}>
+          <ThemeContainer onClick={props.disabled ? undefined : show}>
             <ThemedButton
               theme={theme ?? context.theme}
               mode={mode ?? context.mode}

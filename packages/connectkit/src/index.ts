@@ -19,9 +19,6 @@ export { useDaimoPay } from "./hooks/useDaimoPay";
 export { useDaimoPayStatus } from "./hooks/useDaimoPayStatus";
 export { useDaimoPayUI } from "./hooks/useDaimoPayUI";
 
-// TODO: replace with useDaimoPay() more comprehensive status.
-// export { useModal as useDaimoPayModal } from "./hooks/useModal";
-
 // For convenience, export components to show connected account.
 export { default as Avatar } from "./components/Common/Avatar";
 export { default as ChainIcon } from "./components/Common/Chain";
@@ -36,10 +33,3 @@ export * from "./types";
 // TODO: expose this more selectively.
 export { usePayContext } from "./hooks/usePayContext";
 export { PayContext as DaimoPayContext } from "./provider/PayContext";
-
-// World Mini App
-export {
-  WorldPayButton,
-  WorldPayButtonCustomProps,
-  WorldPayButtonProps,
-} from "./world-mini-app/WorldPayButton";

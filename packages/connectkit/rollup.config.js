@@ -1,13 +1,12 @@
 import json from "@rollup/plugin-json";
 import typescript from "@rollup/plugin-typescript";
-import dts from "rollup-plugin-dts";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
 
 /** @type {import('rollup').RollupOptions[]} */
 export default [
-  // Build bundle: index.js
+  // Build a folder of files for better tree-shaking
   {
-    input: ["./src/index.ts"],
+    input: ["./src/index.ts", "./src/world.ts"],
     external: [
       "react",
       "react-dom",
@@ -29,18 +28,20 @@ export default [
     ],
     output: [
       {
-        file: "build/index.js",
+        dir: "build",
         format: "esm",
         sourcemap: true,
+        preserveModules: true,
       },
     ],
-    plugins: [peerDepsExternal(), json(), typescript()],
-  },
-  // Build types: index.d.ts
-  {
-    input: "./src/index.ts",
-    output: { file: "build/index.d.ts", format: "esm" },
-    external: ["../package.json"],
-    plugins: [dts()],
+    plugins: [
+      peerDepsExternal(),
+      json(),
+      typescript({
+        declaration: true,
+        declarationDir: "build",
+        rootDir: "src",
+      }),
+    ],
   },
 ];

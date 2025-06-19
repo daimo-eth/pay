@@ -10,7 +10,7 @@
  * @template S The type of the state.
  * @template E The type of the events.
  */
-interface Store<S, E> {
+export interface Store<S, E> {
   getState: () => S;
   dispatch: (e: E) => void;
   subscribe: (l: listener<S, E>) => () => void;

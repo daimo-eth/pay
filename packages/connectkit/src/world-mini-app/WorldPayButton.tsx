@@ -12,15 +12,13 @@ import { ResetContainer } from "../styles";
 import { CustomTheme, Mode, Theme } from "../types";
 import { promptWorldcoinPayment } from "./promptWorldPayment";
 
+import { MiniKit } from "@worldcoin/minikit-js";
+
 export type WorldPayButtonPaymentProps = {
   /**
    * Your public app ID. Specify either (payId) or (appId + parameters).
    */
   appId: string;
-  /**
-   * Your World Mini App app ID.
-   */
-  worldAppId: string;
   /**
    * Destination chain ID.
    */
@@ -90,7 +88,9 @@ export function WorldPayButton(props: WorldPayButtonProps) {
           $useMode={mode ?? context.mode}
           $customTheme={customTheme ?? context.customTheme}
         >
-          <ThemeContainer onClick={!props.disabled && isMiniKitReady && show}>
+          <ThemeContainer
+            onClick={props.disabled || !isMiniKitReady ? undefined : show}
+          >
             <ThemedButton>
               <DaimoPayButtonInner />
             </ThemedButton>
@@ -107,20 +107,10 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
 
   useEffect(() => {
-    // Dynamically import @worldcoin/minikit-js to avoid bundling it for
-    // developers who don't use World Mini App features, as it's an optional
-    // peer dependency.
-    import(/* webpackIgnore: true */ "@worldcoin/minikit-js")
-      .then(({ MiniKit }) => {
-        if (MiniKit.isInstalled()) {
-          setIsMiniKitReady(true);
-        } else {
-          setIsMiniKitReady(false);
-        }
-      })
-      .catch(() => {
-        setIsMiniKitReady(false);
-      });
+    const result = MiniKit.install();
+    context.log("MiniKit.install()", result);
+    setIsMiniKitReady(result.success);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -168,5 +158,3 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
 }
 
 WorldPayButton.displayName = "WorldPayButton";
-
-WorldPayButton.Custom = WorldPayButtonCustom;

@@ -291,8 +291,27 @@ export const celoAxlUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-// TODO: include celoCelo as known token once we can price it
-const celoTokens: Token[] = [celoAxlUSDC];
+export const celoUSDC: Token = token({
+  chainId: celo.chainId,
+  token: getAddress("0xcebA9300f2b948710d2653dD7B07f33A8B32118C"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+export const celoUSDT: Token = token({
+  chainId: celo.chainId,
+  token: getAddress("0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const celoTokens: Token[] = [celoCelo, celoAxlUSDC, celoUSDC, celoUSDT];
 
 //
 // Ethereum
@@ -808,6 +827,7 @@ const tokensByChainAndType: Map<
       // CELO functions as both a native token and an ERC-20 compatible token
       [TokenType.NATIVE]: celoCelo,
       [TokenType.WRAPPED_NATIVE]: celoCelo,
+      [TokenType.NATIVE_USDC]: celoUSDC,
       [TokenType.AXL_USDC]: celoAxlUSDC,
     },
   ],
@@ -909,6 +929,11 @@ export function getChainBestUSDC(chainId: number): Token | undefined {
 
 export function getChainDAI(chainId: number): Token | undefined {
   return tokensByChainAndType.get(chainId)?.[TokenType.DAI];
+}
+
+/** Returns true if two tokens are equal (same chain and token address). */
+export function tokensEqual(a: Token, b: Token): boolean {
+  return a.chainId === b.chainId && a.token === b.token;
 }
 
 /* --------------------- Native Token Utils --------------------- */

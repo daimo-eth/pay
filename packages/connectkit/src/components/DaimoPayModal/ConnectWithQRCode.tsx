@@ -56,12 +56,12 @@ const ConnectWithQRCode: React.FC<{}> = () => {
             </div>
           }
           tooltipMessage={
-            !wallet?.icon ? (
+            wallet?.id === "Mobile Wallets" ? (
               <>
                 <ScanIconWithLogos />
                 <span>
-                  Scan the QR code and finish <br />
-                  the payment with your phone
+                  Finish the payment <br />
+                  on your mobile phone
                 </span>
               </>
             ) : (

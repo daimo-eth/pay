@@ -18,7 +18,6 @@ const trTR: LocaleProps = {
   tryAgainQuestion: "Tekrar Dene?",
   dontHaveTheApp: "Uygulaman yok mu?",
   scanTheQRCode: "Karekodu tarat",
-  useWalletConnectModal: "WalletConnect Modalini Kullan ",
   useModal: "Modal Kullan",
   installTheExtension: "Eklentiyi İndir",
   getWalletName: "{{ CONNECTORNAME }} Alın",
@@ -64,7 +63,6 @@ const trTR: LocaleProps = {
 
   scanScreen_heading: `Telefon ile Tarat`,
   scanScreen_heading_withConnector: `{{ CONNECTORNAME }} ile tarat`,
-  scanScreen_tooltip_walletConnect: `Desteklenen bir cüzdan taramak için\n [WALLETCONNECTLOGO] WalletConnect uygulamasını aç`,
   scanScreen_tooltip_default: `Taramak için telefonunda\n {{ CONNECTORNAME }} uygulamasını aç`,
 
   downloadAppScreen_heading: `{{ CONNECTORNAME }} İndir`,

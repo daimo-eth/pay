@@ -18,7 +18,6 @@ const viVN: LocaleProps = {
   tryAgainQuestion: "Thử lại?",
   dontHaveTheApp: "Không có app?",
   scanTheQRCode: "Quét mã QR",
-  useWalletConnectModal: "Dùng WalletConnect Modal",
   useModal: "Dùng Modal",
   installTheExtension: "Cài tiện ích",
   getWalletName: "Lấy {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const viVN: LocaleProps = {
 
   scanScreen_heading: `Scan bằng điện thoại`,
   scanScreen_heading_withConnector: `Quét với {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `Mở một [WALLETCONNECTLOGO] mà WalletConnect \n hỗ trợ để quét`,
   scanScreen_tooltip_default: `Mở {{ CONNECTORNAME }} trong \nđiện thoại của bạn để quét`,
 
   downloadAppScreen_heading: `Lấy {{ CONNECTORNAME }}`,

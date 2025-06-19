@@ -26,19 +26,14 @@ const ConnectorList = () => {
   const { lastConnectorId } = useLastConnector();
   const { paymentState } = useDaimoPay();
 
-  const walletsToDisplay =
-    context.options?.hideRecentBadge || lastConnectorId === "walletConnect" // do not hoist walletconnect to top of list
-      ? wallets
-      : [
-          // move last used wallet to top of list
-          // using .filter and spread to avoid mutating original array order with .sort
-          ...wallets.filter(
-            (wallet) => lastConnectorId === wallet.connector?.id,
-          ),
-          ...wallets.filter(
-            (wallet) => lastConnectorId !== wallet.connector?.id,
-          ),
-        ];
+  const walletsToDisplay = context.options?.hideRecentBadge
+    ? wallets
+    : [
+        // move last used wallet to top of list
+        // using .filter and spread to avoid mutating original array order with .sort
+        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
+        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+      ];
 
   // For mobile flow, we need to wait for the order to be hydrated before
   // we can deeplink to the in-wallet browser.
@@ -94,6 +89,7 @@ const ConnectorItem = ({
 
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets = isMobile && wallet.id === "other";
+  const redirectToMobileWallets = wallet.id === "Mobile Wallets";
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -103,6 +99,14 @@ const ConnectorItem = ({
   const onClick = () => {
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
+    } else if (redirectToMobileWallets) {
+      if (context.paymentState.isDepositFlow) {
+        context.paymentState.setSelectedWallet(wallet);
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+      } else {
+        context.setPendingConnectorId("Mobile Wallets");
+        context.setRoute(ROUTES.CONNECT);
+      }
     } else if (
       context.paymentState.isDepositFlow &&
       isMobile &&

@@ -37,7 +37,7 @@ export default function SelectMethod() {
     disconnect: disconnectSolana,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, wcWallet, log } = usePayContext();
+  const { setRoute, paymentState, log } = usePayContext();
   const { disconnectAsync } = useDisconnect();
 
   const {
@@ -65,16 +65,6 @@ export default function SelectMethod() {
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             <img src={connector.icon} alt={connector.name} />
-          </div>
-        );
-      } else if (wcWallet?.icon) {
-        walletIcon = (
-          <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
-            {typeof wcWallet.icon === "string" ? (
-              <img src={wcWallet.icon} alt={wcWallet.name} />
-            ) : (
-              wcWallet.icon
-            )}
           </div>
         );
       } else {

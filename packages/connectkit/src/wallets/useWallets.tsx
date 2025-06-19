@@ -2,8 +2,8 @@ import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
 import Logos from "../assets/logos";
+import ScanIconWithLogos from "../assets/ScanIconWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
-import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -21,14 +21,12 @@ export const useWallet = (id: string): WalletProps | null => {
 };
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
-  const context = usePayContext();
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
     // Add injected wallet (if any) first
     connectors.forEach((connector) => {
       if (connector.id === "metaMask") return;
-      if (connector.id === "walletConnect") return;
       if (isCoinbaseWalletConnector(connector.id)) return;
       mobileWallets.push({
         id: connector.id,
@@ -117,6 +115,44 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return c;
   });
 
+  wallets.push({
+    id: "Mobile Wallets",
+    name: "Mobile Wallets",
+    shortName: "Mobile",
+    icon: (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: "scale(1.4)",
+          transformOrigin: "center center",
+        }}
+      >
+        <ScanIconWithLogos showQR={false} />
+      </div>
+    ),
+    iconConnector: (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: "scale(1.4)",
+          transformOrigin: "center center",
+        }}
+      >
+        <ScanIconWithLogos showQR={false} />
+      </div>
+    ),
+  });
+
   return (
     wallets
       // remove duplicate ids
@@ -124,17 +160,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         (wallet, index, self) =>
           self.findIndex((w) => w.id === wallet.id) === index,
       )
-      // Replace walletConnect's name with the one from options
-      .map((wallet) => {
-        if (wallet.id === "walletConnect") {
-          return {
-            ...wallet,
-            name: context.options?.walletConnectName || wallet.name,
-            shortName: context.options?.walletConnectName || wallet.shortName,
-          };
-        }
-        return wallet;
-      })
       // remove wallet with id coinbaseWalletSDK if wallet with id 'com.coinbase.wallet' exists
       .filter(
         (wallet, index, self) =>
@@ -172,10 +197,10 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         if (!AisInstalled && BisInstalled) return 1;
         return 0;
       })
-      // move walletConnect to the end
+      // order last mobile wallets
       .sort((a, b) => {
-        if (a.id === "walletConnect") return 1;
-        if (b.id === "walletConnect") return -1;
+        if (a.id === "Mobile Wallets") return 1;
+        if (b.id === "Mobile Wallets") return -1;
         return 0;
       })
   );

@@ -22,7 +22,7 @@ const ConnectUsing = () => {
   const wallet = useWallet(pendingConnectorId ?? "");
 
   // If cannot be scanned, display injector flow, which if extension is not installed will show CTA to install it
-  const isQrCode = !wallet?.isInstalled && wallet?.getWalletConnectDeeplink;
+  const isQrCode = !wallet?.isInstalled;
 
   const [status, setStatus] = useState(
     isQrCode ? states.QRCODE : states.INJECTOR,
@@ -52,12 +52,7 @@ const ConnectUsing = () => {
           exit={"exit"}
           variants={contentVariants}
         >
-          <ConnectWithQRCode
-            switchConnectMethod={(id?: string) => {
-              //if (id) setId(id);
-              setStatus(states.INJECTOR);
-            }}
-          />
+          <ConnectWithQRCode />
         </motion.div>
       )}
       {status === states.INJECTOR && (
@@ -69,8 +64,7 @@ const ConnectUsing = () => {
           variants={contentVariants}
         >
           <ConnectWithInjector
-            switchConnectMethod={(id?: string) => {
-              //if (id) setId(id);
+            switchConnectMethod={() => {
               setStatus(states.QRCODE);
             }}
           />

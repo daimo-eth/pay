@@ -32,13 +32,11 @@ export type DaimoPayContextOptions = {
   hideQuestionMarkCTA?: boolean;
   hideNoWalletCTA?: boolean;
   hideRecentBadge?: boolean;
-  walletConnectCTA?: "link" | "modal" | "both";
   /** Avoids layout shift when the DaimoPay modal is open by adding padding to the body */
   avoidLayoutShift?: boolean;
   /** Automatically embeds Google Font of the current theme. Does not work with custom themes */
   embedGoogleFonts?: boolean;
   truncateLongENSAddress?: boolean;
-  walletConnectName?: string;
   reducedMotion?: boolean;
   disclaimer?: ReactNode | string;
   bufferPolyfill?: boolean;

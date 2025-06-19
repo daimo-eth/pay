@@ -32,7 +32,7 @@ import {
 import { useConnect } from "../../../hooks/useConnect";
 import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { detectBrowser, isWalletConnectConnector } from "../../../utils";
+import { detectBrowser } from "../../../utils";
 import { useWallet } from "../../../wallets/useWallets";
 import BrowserIcon from "../../Common/BrowserIcon";
 import CircleSpinner from "../../Spinners/CircleSpinner";
@@ -226,23 +226,6 @@ const ConnectWithInjector: React.FC<{
     );
   }
 
-  // TODO: Make this more generic
-  if (isWalletConnectConnector(wallet?.connector?.id)) {
-    return (
-      <PageContent>
-        <Container>
-          <ModalHeading>Invalid State</ModalHeading>
-          <ModalContent>
-            <Alert>
-              WalletConnect does not have an injection flow. This state should
-              never happen.
-            </Alert>
-          </ModalContent>
-        </Container>
-      </PageContent>
-    );
-  }
-
   return (
     <PageContent>
       <Container>
@@ -339,21 +322,6 @@ const ConnectWithInjector: React.FC<{
                   </ModalH1>
                   <ModalBody>{locales.injectionScreen_failed_p}</ModalBody>
                 </ModalContent>
-                {/* Reason: Coinbase Wallet does not expose a QRURI when extension is installed */}
-                {/* 
-                {wallet?.getWalletConnectDeeplink &&
-                  wallet.id !== 'coinbaseWalletSDK' && (
-                    <>
-                      <OrDivider />
-                      <Button
-                        icon={<Scan />}
-                        onClick={() => switchConnectMethod(id)}
-                      >
-                        {locales.scanTheQRCode}
-                      </Button>
-                    </>
-                  )}
-                   */}
               </Content>
             )}
             {status === states.REJECTED && (
@@ -368,22 +336,6 @@ const ConnectWithInjector: React.FC<{
                   <ModalH1>{locales.injectionScreen_rejected_h1}</ModalH1>
                   <ModalBody>{locales.injectionScreen_rejected_p}</ModalBody>
                 </ModalContent>
-
-                {/* Reason: Coinbase Wallet does not expose a QRURI when extension is installed */}
-                {/* 
-                {wallet?.getWalletConnectDeeplink &&
-                  wallet.id !== 'coinbaseWalletSDK' && (
-                    <>
-                      <OrDivider />
-                      <Button
-                        icon={<Scan />}
-                        onClick={() => switchConnectMethod(id)}
-                      >
-                        {locales.scanTheQRCode}
-                      </Button>
-                    </>
-                  )}
-                   */}
               </Content>
             )}
             {(status === states.CONNECTING || status === states.EXPIRING) && (
@@ -479,16 +431,6 @@ const ConnectWithInjector: React.FC<{
                       <ModalH1>{locales.injectionScreen_install_h1}</ModalH1>
                       <ModalBody>{locales.injectionScreen_install_p}</ModalBody>
                     </ModalContent>
-                    {/**
-                    {(wallet.getWalletConnectDeeplink &&
-                    (!wallet.isInstalled && extensionUrl)) && <OrDivider />}
-
-                    {wallet.getWalletConnectDeeplink && (
-                      <Button icon={<Scan />} onClick={switchConnectMethod}>
-                        {locales.scanTheQRCode}
-                      </Button>
-                    )}
-                    */}
                     {!wallet.isInstalled && extensionUrl && (
                       <Button href={extensionUrl} icon={<BrowserIcon />}>
                         {locales.installTheExtension}

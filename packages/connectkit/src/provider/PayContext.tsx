@@ -11,7 +11,6 @@ import {
   Mode,
   Theme,
 } from "../types";
-import { WalletConfigProps } from "../wallets/walletConfigs";
 import { SolanaWalletName } from "./SolanaContextProvider";
 
 /** Meant for internal use. This will be non-exported in a future SDK version. */
@@ -45,8 +44,6 @@ export type PayContextValue = {
   // All options below are new, specific to Daimo Pay.
   /** Session ID. */
   sessionId: string;
-  /** EVM mobile connector */
-  wcWallet: WalletConfigProps | undefined;
   /** EVM pending connector */
   pendingConnectorId: string | undefined;
   setPendingConnectorId: (id: string) => void;

@@ -5,11 +5,7 @@ import { AnimatePresence, motion, Variants } from "framer-motion";
 import { ResetContainer } from "../../../styles";
 import Portal from "../Portal";
 
-import {
-  flattenChildren,
-  isMobile,
-  isWalletConnectConnector,
-} from "../../../utils";
+import { flattenChildren, isMobile } from "../../../utils";
 
 import {
   BackButton,
@@ -247,8 +243,6 @@ const Modal: React.FC<ModalProps> = ({
   // eslint-disable-next-line react-hooks/rules-of-hooks
   if (!positionInside) useLockBodyScroll(mounted);
 
-  const prevPage = usePrevious(pageId, pageId);
-
   useEffect(() => {
     setOpen(open);
     if (open) setInTransition(undefined);
@@ -330,7 +324,7 @@ const Modal: React.FC<ModalProps> = ({
   function shouldUseQrcode() {
     if (!wallet) return false; // Fail states are shown in the injector flow
 
-    const useInjector = !wallet.getWalletConnectDeeplink || wallet.isInstalled;
+    const useInjector = wallet.isInstalled;
     return !useInjector;
   }
 
@@ -339,10 +333,8 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (shouldUseQrcode()) {
-          return isWalletConnectConnector(wallet?.connector?.id)
-            ? locales.scanScreen_heading
-            : locales.scanScreen_heading_withConnector;
+        if (context.pendingConnectorId === "Mobile Wallets") {
+          return "Scan with Phone";
         } else {
           return walletInfo?.name;
         }

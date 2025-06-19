@@ -2,7 +2,6 @@ import React from "react";
 
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { useWallets } from "../../../wallets/useWallets";
 import {
   WalletConfigProps,
   walletConfigs,
@@ -21,13 +20,10 @@ const MobileConnectors: React.FC = () => {
   const context = usePayContext();
   const { paymentState, setRoute } = context;
 
-  const wallets = useWallets();
-
   // filter out installed wallets
   const walletsIdsToDisplay =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
-      if (wallets.find((w) => w.connector?.id === walletId)) return false;
       if (!wallet.showInMobileConnectors) return false;
       // If the mobile wallet supports solana only, don't show it if we are not supporting solana has a payment method
       if (wallet.isSolanaOnly && !context.paymentState.showSolanaPaymentMethod)

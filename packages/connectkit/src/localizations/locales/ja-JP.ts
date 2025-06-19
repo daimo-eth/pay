@@ -16,7 +16,6 @@ export default {
   tryAgainQuestion: "もう一度試しますか？",
   dontHaveTheApp: "アプリをお持ちではありませんか？",
   scanTheQRCode: "QR コードをスキャン",
-  useWalletConnectModal: "WalletConnect モーダルを使用",
   useModal: "モーダルを使用",
   installTheExtension: "拡張機能をインストール",
   getWalletName: "{{ CONNECTORNAME }} を取得",
@@ -62,7 +61,6 @@ export default {
 
   scanScreen_heading: `電話でスキャンする`,
   scanScreen_heading_withConnector: `{{ CONNECTORNAME }}でスキャンする`,
-  scanScreen_tooltip_walletConnect: `[WALLETCONNECTLOGO] WalletConnect 対応の ウォレットを開いてスキャンします`,
   scanScreen_tooltip_default: `携帯電話で {{ CONNECTORNAME }} を 開いてスキャンします`,
 
   downloadAppScreen_heading: `{{ CONNECTORNAME }} を取得`,

@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import Logos from "../assets/logos";
 
 import { usePayContext } from "./usePayContext";
 
@@ -68,18 +67,6 @@ const wrapTags = (text: string) => {
 
   // Replace text with logo
   return result.map((r) => {
-    if (typeof r === "string") {
-      return r.split(/(\[WALLETCONNECTLOGO\])/g).map((s) => {
-        if (s === "[WALLETCONNECTLOGO]") {
-          return (
-            <span key={s} className="ck-tt-logo">
-              <Logos.WalletConnect />
-            </span>
-          );
-        }
-        return s;
-      });
-    }
     return r;
   });
 };

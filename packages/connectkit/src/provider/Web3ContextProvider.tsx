@@ -7,7 +7,6 @@ import React from "react";
 import { Address, Chain } from "viem";
 import { useAccount } from "wagmi";
 
-import { useWalletConnectUri } from "../hooks/connectors/useWalletConnectUri";
 import { useChainIsSupported } from "../hooks/useChainIsSupported";
 import { useChains } from "../hooks/useChains";
 
@@ -36,26 +35,15 @@ const Web3Context = React.createContext({
 } as Web3Context);
 
 export const Web3ContextProvider = ({
-  enabled,
   children,
 }: {
-  enabled?: boolean;
   children: React.ReactNode;
 }) => {
-  const { uri: walletConnectUri } = useWalletConnectUri({
-    enabled,
-  });
-
   const { address: currentAddress, chain } = useAccount();
   const chainIsSupported = useChainIsSupported(chain?.id);
   const chains = useChains();
 
   const value = {
-    connect: {
-      getUri: (id?: string) => {
-        return walletConnectUri;
-      },
-    },
     dapp: {
       chains,
     },

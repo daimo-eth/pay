@@ -18,7 +18,6 @@ const frFR: LocaleProps = {
   tryAgainQuestion: "Réessayer ?",
   dontHaveTheApp: "Vous n’avez pas l’application ?",
   scanTheQRCode: "Scannez le code QR",
-  useWalletConnectModal: "Utiliser la modale WalletConnect",
   useModal: "Utiliser la modale",
   installTheExtension: "Installer l’extension",
   getWalletName: "Obtenez {{ CONNECTORNAME }}",
@@ -64,7 +63,6 @@ const frFR: LocaleProps = {
 
   scanScreen_heading: `Scannez avec le téléphone`,
   scanScreen_heading_withConnector: `Scannez avec {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_walletConnect: `Ouvrez un portefeuille pris en charge par WalletConnect [WALLETCONNECTLOGO] pour scanner`,
   scanScreen_tooltip_default: `Ouvrez {{ CONNECTORNAME }} sur votre téléphone mobile pour scanner`,
 
   downloadAppScreen_heading: `Obtenez {{ CONNECTORNAME }}`,

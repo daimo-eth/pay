@@ -182,6 +182,29 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
+  farcaster: {
+    name: "Farcaster",
+    icon: <Logos.Farcaster />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+    getDaimoPayDeeplink: (payId: string) => {
+      return (
+        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
+      );
+    },
+  },
+  minipay: {
+    name: "MiniPay",
+    icon: <Logos.MiniPay />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+    getDaimoPayDeeplink: (payId: string) => {
+      return (
+        "https://cash.minipay.xyz/browse?url=" +
+        encodeURIComponent(getEncodedDaimoPayUrl(payId))
+      );
+    },
+  },
   "me.rainbow": {
     name: "Rainbow Wallet",
     shortName: "Rainbow",

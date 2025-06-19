@@ -67,15 +67,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   const wallets = connectors.map((connector): WalletProps => {
     // use overrides
-    const walletId = Object.keys(walletConfigs).find(
-      // where id is comma seperated list
-      (id) =>
-        id
-          .split(",")
-          .map((i) => i.trim())
-          .indexOf(connector.id) !== -1,
-    );
-
     const c: WalletProps = {
       id: connector.id,
       name: connector.name ?? connector.id ?? connector.type,
@@ -95,22 +86,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         connector.type === "farcasterFrame" ||
         isCoinbaseWalletConnector(connector.id), // always run coinbase wallet SDK
     };
-
-    if (walletId) {
-      const wallet = walletConfigs[walletId];
-      return {
-        ...c,
-        iconConnector: connector.icon ? (
-          <img
-            src={connector.icon}
-            alt={connector.name}
-            width={"100%"}
-            height={"100%"}
-          />
-        ) : undefined,
-        ...wallet,
-      };
-    }
 
     return c;
   });
@@ -195,12 +170,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
         if (AisInstalled && !BisInstalled) return -1;
         if (!AisInstalled && BisInstalled) return 1;
-        return 0;
-      })
-      // order last mobile wallets
-      .sort((a, b) => {
-        if (a.id === "Mobile Wallets") return 1;
-        if (b.id === "Mobile Wallets") return -1;
         return 0;
       })
   );

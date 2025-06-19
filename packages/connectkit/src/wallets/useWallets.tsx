@@ -119,6 +119,22 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     id: "Mobile Wallets",
     name: "Mobile Wallets",
     shortName: "Mobile",
+    icon: (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: "scale(1.4)",
+          transformOrigin: "center center",
+        }}
+      >
+        <ScanIconWithLogos showQR={false} />
+      </div>
+    ),
     iconConnector: (
       <div
         style={{

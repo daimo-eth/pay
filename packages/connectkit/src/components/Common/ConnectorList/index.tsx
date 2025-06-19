@@ -89,7 +89,7 @@ const ConnectorItem = ({
 
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets = isMobile && wallet.id === "other";
-  const redirectToMobileWallets = isMobile && wallet.id === "Mobile Wallets";
+  const redirectToMobileWallets = wallet.id === "Mobile Wallets";
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -100,8 +100,13 @@ const ConnectorItem = ({
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
     } else if (redirectToMobileWallets) {
-      context.setPendingConnectorId("Mobile Wallets");
-      context.setRoute(ROUTES.CONNECT);
+      if (context.paymentState.isDepositFlow) {
+        context.paymentState.setSelectedWallet(wallet);
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+      } else {
+        context.setPendingConnectorId("Mobile Wallets");
+        context.setRoute(ROUTES.CONNECT);
+      }
     } else if (
       context.paymentState.isDepositFlow &&
       isMobile &&

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
@@ -12,7 +13,7 @@ import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
 const SelectWalletAmount: React.FC = () => {
-  const { paymentState } = usePayContext();
+  const { paymentState, setPendingConnectorId, setRoute } = usePayContext();
   const { selectedWallet, openInWalletBrowser } = paymentState;
   const { setChosenUsd, hydrateOrder } = useDaimoPay();
 
@@ -39,7 +40,12 @@ const SelectWalletAmount: React.FC = () => {
     setChosenUsd(amountUsd);
     await hydrateOrder();
 
-    openInWalletBrowser(selectedWallet, amountUsd);
+    if (selectedWallet.name === "Mobile Wallets") {
+      setPendingConnectorId("Mobile Wallets");
+      setRoute(ROUTES.CONNECT);
+    } else {
+      openInWalletBrowser(selectedWallet, amountUsd);
+    }
   };
 
   return (

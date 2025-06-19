@@ -50,6 +50,7 @@ export enum TokenLogo {
   WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
   MNT = "https://pay.daimo.com/coin-logos/mnt.png",
   CELO = "https://pay.daimo.com/coin-logos/celo.png",
+  cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
 }
 
 /* --------------------- Tokens Constants --------------------- */
@@ -311,7 +312,23 @@ export const celoUSDT: Token = token({
   logoURI: TokenLogo.USDT,
 });
 
-const celoTokens: Token[] = [celoCelo, celoAxlUSDC, celoUSDC, celoUSDT];
+export const celoCUSD: Token = token({
+  chainId: celo.chainId,
+  token: getAddress("0x765DE816845861e75A25fCA122bb6898B8B1282a"),
+  decimals: 18,
+  fiatISO: "USD",
+  name: "Celo Dollar",
+  symbol: "cUSD",
+  logoURI: TokenLogo.cUSD,
+});
+
+const celoTokens: Token[] = [
+  celoCelo,
+  celoAxlUSDC,
+  celoUSDC,
+  celoUSDT,
+  celoCUSD,
+];
 
 //
 // Ethereum

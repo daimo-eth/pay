@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
 import { WarningIcon } from "../../../assets/icons";
+import ScanIconWithLogos from "../../../assets/ScanIconWithLogos";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -127,6 +128,7 @@ export default function WaitingDepositAddress() {
           depAddr={depAddr}
           refresh={generateDepositAddress}
           triggerResize={triggerResize}
+          selectedDepositAddressOption={selectedDepositAddressOption}
         />
       )}
     </PageContent>
@@ -137,10 +139,12 @@ function DepositAddressInfo({
   depAddr,
   refresh,
   triggerResize,
+  selectedDepositAddressOption,
 }: {
   depAddr?: DepositAddr;
   refresh: () => void;
   triggerResize: () => void;
+  selectedDepositAddressOption?: DepositAddressPaymentOptionMetadata;
 }) {
   const { isMobile } = useIsMobile();
 
@@ -177,9 +181,23 @@ function DepositAddressInfo({
         <QRWrap>
           <CustomQRCode
             value={depAddr?.uri}
-            contentPadding={24}
-            size={200}
             image={logoElement}
+            tooltipMessage={
+              <>
+                <ScanIconWithLogos
+                  logo={
+                    <img
+                      width="100%"
+                      height="100%"
+                      src={selectedDepositAddressOption?.logoURI}
+                    />
+                  }
+                />
+                <span>
+                  Use a {selectedDepositAddressOption?.id} wallet to scan
+                </span>
+              </>
+            }
           />
         </QRWrap>
       )}

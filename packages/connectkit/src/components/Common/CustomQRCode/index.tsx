@@ -10,6 +10,7 @@ import { CustomQRCodeProps } from "./types";
 import { AnimatePresence, motion } from "framer-motion";
 import Tooltip from "../Tooltip";
 
+import React from "react";
 import useWindowSize from "../../../hooks/useWindowSize";
 import { QRCode } from "./QRCode";
 
@@ -23,10 +24,19 @@ function CustomQRCode({
 }: CustomQRCodeProps) {
   const windowSize = useWindowSize();
 
+  // Create a smaller version of the logo for tooltip
+  const TooltipLogo =
+    image &&
+    React.cloneElement(image as React.ReactElement, {
+      ...((image as React.ReactElement).props || {}),
+      width: 32,
+      height: 32,
+    });
+
   const Logo =
     windowSize.width > 920 && tooltipMessage ? (
       <Tooltip xOffset={139} yOffset={5} delay={0.1} message={tooltipMessage}>
-        {image}
+        {TooltipLogo}
       </Tooltip>
     ) : (
       image
@@ -35,20 +45,6 @@ function CustomQRCode({
   return (
     <QRCodeContainer>
       <QRCodeContent style={{ inset: contentPadding }}>
-        {image && (
-          <LogoContainer>
-            <LogoIcon
-              $wcLogo={imagePosition !== "center"}
-              style={{
-                background:
-                  imagePosition === "center" ? imageBackground : undefined,
-              }}
-            >
-              {Logo}
-            </LogoIcon>
-          </LogoContainer>
-        )}
-
         <AnimatePresence initial={false}>
           {value ? (
             <motion.div
@@ -85,6 +81,20 @@ function CustomQRCode({
             </QRPlaceholder>
           )}
         </AnimatePresence>
+
+        {image && (
+          <LogoContainer>
+            <LogoIcon
+              $wcLogo={imagePosition !== "center"}
+              style={{
+                background:
+                  imagePosition === "center" ? imageBackground : undefined,
+              }}
+            >
+              {Logo}
+            </LogoIcon>
+          </LogoContainer>
+        )}
       </QRCodeContent>
     </QRCodeContainer>
   );

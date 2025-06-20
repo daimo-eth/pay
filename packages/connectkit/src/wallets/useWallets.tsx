@@ -68,6 +68,15 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   const wallets = connectors.map((connector): WalletProps => {
     // use overrides
+    const walletId = Object.keys(walletConfigs).find(
+      // where id is comma seperated list
+      (id) =>
+        id
+          .split(",")
+          .map((i) => i.trim())
+          .includes(connector.id),
+    );
+
     const c: WalletProps = {
       id: connector.id,
       name: connector.name ?? connector.id ?? connector.type,
@@ -85,8 +94,24 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         connector.type === "mock" ||
         (connector.type === "injected" && connector.id !== "metaMask") ||
         connector.type === "farcasterFrame" ||
-        isCoinbaseWalletConnector(connector.id), // always run coinbase wallet SDK
+        isCoinbaseWalletConnector(connector.id),
     };
+
+    if (walletId) {
+      const wallet = walletConfigs[walletId];
+      return {
+        ...c,
+        iconConnector: connector.icon ? (
+          <img
+            src={connector.icon}
+            alt={connector.name}
+            width={"100%"}
+            height={"100%"}
+          />
+        ) : undefined,
+        ...wallet,
+      };
+    }
 
     return c;
   });

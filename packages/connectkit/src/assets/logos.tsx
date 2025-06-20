@@ -1328,11 +1328,11 @@ export const OtherWallets = ({ ...props }) => {
     <div style={column} {...props}>
       <div style={row}>
         <div style={cell}>{<MiniPay />}</div>
-        <div style={cell}>{<Phantom />}</div>
+        <div style={cell}>{<Rainbow />}</div>
       </div>
       <div style={row}>
         <div style={cell}>{<Coinbase />}</div>
-        <div style={cell}>{<Family />}</div>
+        <div style={cell}>{<Phantom />}</div>
       </div>
     </div>
   );

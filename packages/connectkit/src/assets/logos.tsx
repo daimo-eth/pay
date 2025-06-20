@@ -1327,7 +1327,7 @@ export const OtherWallets = ({ ...props }) => {
   return (
     <div style={column} {...props}>
       <div style={row}>
-        <div style={cell}>{<MetaMask />}</div>
+        <div style={cell}>{<MiniPay />}</div>
         <div style={cell}>{<Phantom />}</div>
       </div>
       <div style={row}>

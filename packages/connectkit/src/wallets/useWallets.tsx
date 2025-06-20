@@ -24,9 +24,9 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
+
     // Add injected wallet (if any) first
     connectors.forEach((connector) => {
-      if (connector.id === "metaMask") return;
       if (isCoinbaseWalletConnector(connector.id)) return;
       mobileWallets.push({
         id: connector.id,
@@ -39,6 +39,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
+      if (mobileWallets.length >= 3) return;
       const wallet = assertNotNull(
         walletConfigs[idList],
         () => `missing ${idList}`,

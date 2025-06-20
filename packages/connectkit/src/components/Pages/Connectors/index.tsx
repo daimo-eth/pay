@@ -18,6 +18,7 @@ import {
 } from "./styles";
 
 import { DaimoPayOrderMode } from "@daimo/pay-common";
+import { useConnectors } from "wagmi";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
@@ -44,6 +45,11 @@ const Wallets: React.FC = () => {
     }
   }, [isMobile, context.paymentState.isDepositFlow, hydrateOrder, order]);
 
+  // Show new-user education buttons
+  const showLearnMore = !context.options?.hideQuestionMarkCTA;
+  const conns = useConnectors();
+  const showGetWallet = conns.length === 0 && !context.options?.hideNoWalletCTA;
+
   return (
     <PageContent>
       <OrderHeader minified />
@@ -57,7 +63,7 @@ const Wallets: React.FC = () => {
               <ModalBody>{locales.connectorsScreen_p}</ModalBody>
             </ModalContent>
             <InfoBoxButtons>
-              {!context.options?.hideQuestionMarkCTA && (
+              {showLearnMore && (
                 <Button
                   variant={"tertiary"}
                   onClick={() => context.setRoute(ROUTES.ABOUT)}
@@ -65,7 +71,7 @@ const Wallets: React.FC = () => {
                   {locales.learnMore}
                 </Button>
               )}
-              {!context.options?.hideNoWalletCTA && (
+              {showGetWallet && (
                 <Button
                   variant={"tertiary"}
                   onClick={() => context.setRoute(ROUTES.ONBOARDING)}
@@ -78,7 +84,7 @@ const Wallets: React.FC = () => {
         </>
       ) : (
         <>
-          {!context.options?.hideNoWalletCTA && (
+          {showGetWallet && (
             <LearnMoreContainer>
               <LearnMoreButton
                 onClick={() => context.setRoute(ROUTES.ONBOARDING)}

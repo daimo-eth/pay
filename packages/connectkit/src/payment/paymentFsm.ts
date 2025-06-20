@@ -214,6 +214,11 @@ function reducePreview(
   state: Extract<PaymentState, { type: "preview" }>,
   event: PaymentEvent,
 ): PaymentState {
+  assert(
+    state.order.mode !== DaimoPayOrderMode.HYDRATED,
+    "reducePreview called on hydrated order",
+  );
+
   switch (event.type) {
     case "order_hydrated":
       return { type: "payment_unpaid", order: event.order };

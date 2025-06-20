@@ -465,8 +465,8 @@ export function usePaymentState({
   };
 
   const generatePreviewOrder = async () => {
-    if (currPayParams == null) return;
     pay.reset();
+    if (currPayParams == null) return;
     await pay.createPreviewOrder(currPayParams);
   };
 

@@ -1,4 +1,5 @@
 import {
+  assert,
   DaimoPayOrderMode,
   DaimoPayOrderWithOrg,
   getOrderDestChainId,
@@ -191,6 +192,14 @@ async function runSetPayParamsEffects(
   // toUnits is undefined if and only if we're in deposit flow.
   // Set dummy value for deposit flow, since user can edit the amount.
   const toUnits = payParams.toUnits == null ? "0" : payParams.toUnits;
+
+  // Validate payParams.
+  assert(payParams.appId.length > 0, "PayParams: appId required");
+  const isDepositFlow = payParams.toUnits == null;
+  assert(
+    !isDepositFlow || payParams.externalId == null,
+    "PayParams: externalId unsupported in deposit mode",
+  );
 
   try {
     const orderPreview = await trpc.previewOrder.query({

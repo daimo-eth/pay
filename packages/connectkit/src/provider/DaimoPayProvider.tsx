@@ -352,7 +352,6 @@ const DaimoPayUIProvider = ({
     paymentState,
     trpc,
   };
-  log("PayContext", value);
 
   return createElement(
     PayContext.Provider,

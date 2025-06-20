@@ -161,7 +161,7 @@ export const walletConfigs: {
         "https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
       edge: "https://microsoftedge.microsoft.com/addons/detail/metamask/ejbalbakoplchlghecdalmeeeajnimhm",
     },
-    showInMobileConnectors: true,
+    showInMobileConnectors: false,
     deeplinkScheme: "metamask://",
     getDaimoPayDeeplink: (payId: string) => {
       const daimoPayUrl = getDaimoPayUrl(payId);
@@ -220,7 +220,7 @@ export const walletConfigs: {
       edge: "https://rainbow.me/extension?utm_source=daimopay",
       brave: "https://rainbow.me/extension?utm_source=daimopay",
     },
-    showInMobileConnectors: false,
+    showInMobileConnectors: true,
     deeplinkScheme: "rainbow://",
     getDaimoPayDeeplink: (payId: string) => {
       return "rainbow://dapp?url=" + getDaimoPayUrl(payId);

@@ -93,6 +93,12 @@ export default function WaitingDepositAddress() {
         logoURI: "", // Not needed for underpaid orders
       });
     } else {
+      const displayToken = getDisplayToken(selectedDepositAddressOption);
+      const logoURI = selectedDepositAddressOption.logoURI;
+      setDepAddr({
+        displayToken,
+        logoURI,
+      });
       payWithDepositAddress(selectedDepositAddressOption.id).then((details) => {
         if (details) {
           setDepAddr({
@@ -101,8 +107,8 @@ export default function WaitingDepositAddress() {
             coins: details.suffix,
             expirationS: details.expirationS,
             uri: details.uri,
-            displayToken: getDisplayToken(selectedDepositAddressOption),
-            logoURI: selectedDepositAddressOption.logoURI,
+            displayToken,
+            logoURI,
           });
         } else {
           setFailed(true);
@@ -118,17 +124,17 @@ export default function WaitingDepositAddress() {
 
   return (
     <PageContent>
-      {failed ? (
-        selectedDepositAddressOption && (
-          <DepositFailed name={selectedDepositAddressOption.id} />
-        )
-      ) : (
-        <DepositAddressInfo
-          depAddr={depAddr}
-          refresh={generateDepositAddress}
-          triggerResize={triggerResize}
-        />
-      )}
+      {failed
+        ? selectedDepositAddressOption && (
+            <DepositFailed name={selectedDepositAddressOption.id} />
+          )
+        : depAddr && (
+            <DepositAddressInfo
+              depAddr={depAddr}
+              refresh={generateDepositAddress}
+              triggerResize={triggerResize}
+            />
+          )}
     </PageContent>
   );
 }
@@ -138,7 +144,7 @@ function DepositAddressInfo({
   refresh,
   triggerResize,
 }: {
-  depAddr?: DepositAddr;
+  depAddr: DepositAddr;
   refresh: () => void;
   triggerResize: () => void;
 }) {
@@ -151,14 +157,14 @@ function DepositAddressInfo({
   useEffect(triggerResize, [isExpired]);
 
   const logoOffset = isMobile ? 4 : 0;
-  const logoElement = depAddr?.displayToken ? (
+  const logoElement = depAddr.displayToken ? (
     <TokenChainLogo
       token={depAddr.displayToken}
       size={64}
       offset={logoOffset}
     />
   ) : (
-    <img src={depAddr?.logoURI} width="64px" height="64px" />
+    <img src={depAddr.logoURI} width="64px" height="64px" />
   );
 
   return (

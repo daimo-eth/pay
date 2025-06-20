@@ -44,7 +44,6 @@ export const QRPlaceholder = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--ck-qr-border-radius, 24px);
   overflow: hidden;
   > div {
     z-index: 4;

@@ -53,7 +53,7 @@ type DaimoPayUIProviderProps = {
   debugMode?: boolean;
   /** Custom Pay API, useful for test and staging. */
   payApiUrl: string;
-  log: (msg: string) => void;
+  log: (msg: string, ...props: any[]) => void;
 } & useConnectCallbackProps;
 
 const DaimoPayUIProvider = ({
@@ -352,6 +352,7 @@ const DaimoPayUIProvider = ({
     paymentState,
     trpc,
   };
+  log("PayContext", value);
 
   return createElement(
     PayContext.Provider,

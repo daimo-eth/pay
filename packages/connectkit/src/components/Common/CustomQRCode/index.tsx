@@ -64,7 +64,7 @@ function CustomQRCode({
                 size={576}
                 ecl="H"
                 clearArea={!!(imagePosition === "center" && image)}
-                image={imagePosition === "bottom right" ? image : undefined} // idk wtf
+                image={imagePosition === "bottom right" ? image : undefined}
                 imageBackground={imageBackground}
               />
             </motion.div>

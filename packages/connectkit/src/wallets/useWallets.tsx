@@ -2,7 +2,7 @@ import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
 import Logos from "../assets/logos";
-import ScanIconWithLogos from "../assets/ScanIconWithLogos";
+import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
@@ -103,11 +103,11 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transform: "scale(1.4)",
+          transform: "scale(1.2)",
           transformOrigin: "center center",
         }}
       >
-        <ScanIconWithLogos showQR={false} />
+        <MobileWithLogos />
       </div>
     ),
     iconConnector: (
@@ -119,11 +119,11 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transform: "scale(1.4)",
+          transform: "scale(1.2)",
           transformOrigin: "center center",
         }}
       >
-        <ScanIconWithLogos showQR={false} />
+        <MobileWithLogos />
       </div>
     ),
   });
@@ -170,6 +170,12 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
         if (AisInstalled && !BisInstalled) return -1;
         if (!AisInstalled && BisInstalled) return 1;
+        return 0;
+      })
+      // order last mobile wallets
+      .sort((a, b) => {
+        if (a.id === "Mobile Wallets") return 1;
+        if (b.id === "Mobile Wallets") return -1;
         return 0;
       })
   );

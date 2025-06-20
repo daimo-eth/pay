@@ -13,6 +13,7 @@ import CopyToClipboard from "../Common/CopyToClipboard";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
+import MobileWithLogos from "../../assets/MobileWithLogos";
 import { useWallet } from "../../wallets/useWallets";
 
 const ConnectWithQRCode: React.FC<{}> = () => {
@@ -48,11 +49,11 @@ const ConnectWithQRCode: React.FC<{}> = () => {
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "var(--ck-body-background)",
-                transform: "scale(2.2) translateY(15%)",
+                transform: "scale(1.3) translateY(5%)",
                 transformOrigin: "center center",
               }}
             >
-              <ScanIconWithLogos showQR={false} />
+              <MobileWithLogos />
             </div>
           }
           tooltipMessage={

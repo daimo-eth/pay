@@ -94,7 +94,7 @@ export interface PaymentState {
     option: DepositAddressPaymentOptionMetadata | undefined,
   ) => void;
   setChosenUsd: (usd: number) => void;
-  payWithToken: (walletOption: WalletPaymentOption) => Promise<void>;
+  payWithToken: (walletOption: WalletPaymentOption) => Promise<boolean>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
@@ -221,7 +221,9 @@ export function usePaymentState({
   };
 
   /** Commit to a token + amount = initiate payment. */
-  const payWithToken = async (walletOption: WalletPaymentOption) => {
+  const payWithToken = async (
+    walletOption: WalletPaymentOption,
+  ): Promise<boolean> => {
     assert(
       ethWalletAddress != null,
       `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
@@ -277,15 +279,22 @@ export function usePaymentState({
     })();
 
     if (paymentTxHash) {
-      pay.payEthSource({
-        paymentTxHash,
-        sourceChainId: required.token.chainId,
-        payerAddress: ethWalletAddress,
-        sourceToken: getAddress(required.token.token),
-        sourceAmount: paymentAmount,
-      });
+      try {
+        await pay.payEthSource({
+          paymentTxHash,
+          sourceChainId: required.token.chainId,
+          payerAddress: ethWalletAddress,
+          sourceToken: getAddress(required.token.token),
+          sourceAmount: paymentAmount,
+        });
+        return true;
+      } catch {
+        console.error(`[PAY TOKEN] ${paymentTxHash} not a verified payment`);
+        return false;
+      }
     } else {
-      console.error(`[PAY TOKEN] no txHash for payment`);
+      console.error("[PAY TOKEN] no txHash for payment");
+      return false;
     }
   };
 

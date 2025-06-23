@@ -72,7 +72,6 @@ const DaimoPayUIProvider = ({
     throw Error("DaimoPayProvider must be within a PaymentProvider");
   }
 
-  // DaimoPayProvider must be within a WagmiProvider
   if (!React.useContext(WagmiContext)) {
     throw Error("DaimoPayProvider must be within a WagmiProvider");
   }

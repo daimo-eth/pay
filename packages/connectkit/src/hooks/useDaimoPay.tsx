@@ -60,7 +60,12 @@ type DaimoPayFunctions = {
     payerAddress: Address;
     sourceToken: Address;
     sourceAmount: bigint;
-  }) => void;
+  }) => Promise<
+    Extract<
+      PaymentState,
+      { type: "payment_started" | "payment_completed" | "payment_bounced" }
+    >
+  >;
 
   /**
    * Register a Solana payment source for the current order.
@@ -147,11 +152,7 @@ export function useDaimoPay(): UseDaimoPay {
 
       // Wait for the order to enter the "preview" state, which means it
       // has been successfully created.
-      const previewOrderState = await waitForPaymentState(
-        store,
-        (s): s is Extract<PaymentState, { type: "preview" }> =>
-          s.type === "preview",
-      );
+      const previewOrderState = await waitForPaymentState(store, "preview");
 
       return previewOrderState;
     },
@@ -166,24 +167,11 @@ export function useDaimoPay(): UseDaimoPay {
       // result in the order being in any state.
       const previewOrderState = await waitForPaymentState(
         store,
-        (
-          s,
-        ): s is Extract<
-          PaymentState,
-          {
-            type:
-              | "unhydrated"
-              | "payment_unpaid"
-              | "payment_started"
-              | "payment_completed"
-              | "payment_bounced";
-          }
-        > =>
-          s.type === "unhydrated" ||
-          s.type === "payment_unpaid" ||
-          s.type === "payment_started" ||
-          s.type === "payment_completed" ||
-          s.type === "payment_bounced",
+        "unhydrated",
+        "payment_unpaid",
+        "payment_started",
+        "payment_completed",
+        "payment_bounced",
       );
 
       return previewOrderState;
@@ -199,8 +187,7 @@ export function useDaimoPay(): UseDaimoPay {
       // has been successfully hydrated.
       const hydratedOrderState = await waitForPaymentState(
         store,
-        (s): s is Extract<PaymentState, { type: "payment_unpaid" }> =>
-          s.type === "payment_unpaid",
+        "payment_unpaid",
       );
 
       return hydratedOrderState;
@@ -214,14 +201,26 @@ export function useDaimoPay(): UseDaimoPay {
   );
 
   const payEthSource = useCallback(
-    (args: {
+    async (args: {
       paymentTxHash: Hex;
       sourceChainId: number;
       payerAddress: Address;
       sourceToken: Address;
       sourceAmount: bigint;
-    }) => dispatch({ type: "pay_ethereum_source", ...args }),
-    [dispatch],
+    }) => {
+      dispatch({ type: "pay_ethereum_source", ...args });
+
+      // Will throw if the payment is not verified by the server.
+      const paidState = await waitForPaymentState(
+        store,
+        "payment_started",
+        "payment_completed",
+        "payment_bounced",
+      );
+
+      return paidState;
+    },
+    [dispatch, store],
   );
 
   const paySolanaSource = useCallback(

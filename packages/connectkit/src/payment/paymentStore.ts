@@ -16,22 +16,27 @@ export function createPaymentStore(): PaymentStore {
 }
 
 /**
- * Wait for the `PaymentStore` to enter a state matching `predicate`,
+ * Wait for the `PaymentStore` to enter a state matching any of `validTypes`,
  * or reject as soon as it hits the `"error"` state.
  *
  * @returns Promise<T> resolving with the first matching state or rejecting with
  * the error message
  */
-export function waitForPaymentState<T extends PaymentState>(
+export function waitForPaymentState<
+  const T extends readonly PaymentState["type"][],
+>(
   store: PaymentStore,
-  predicate: (s: PaymentState) => s is T,
-): Promise<T> {
-  return waitForState<PaymentState, PaymentEvent, T>(
+  ...validTypes: T
+): Promise<Extract<PaymentState, { type: T[number] }>> {
+  return waitForState<
+    PaymentState,
+    PaymentEvent,
+    Extract<PaymentState, { type: T[number] }>
+  >(
     store,
-    predicate,
-    // isError
+    (s): s is Extract<PaymentState, { type: T[number] }> =>
+      (validTypes as readonly PaymentState["type"][]).includes(s.type),
     (s) => s.type === "error",
-    // getErrorMessage
     (s) => (s as Extract<PaymentState, { type: "error" }>).message,
   );
 }

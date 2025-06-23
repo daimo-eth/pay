@@ -2,7 +2,9 @@ import { WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { getSupportUrl } from "../../../utils/supportUrl";
 import Button from "../../Common/Button";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
@@ -13,11 +15,13 @@ enum PayState {
   SwitchingChain = "Switching Chain",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
+  RequestFailed = "Payment Failed",
 }
 
 const PayWithToken: React.FC = () => {
   const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
+  const { order } = useDaimoPay();
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,
   );
@@ -62,11 +66,15 @@ const PayWithToken: React.FC = () => {
 
     setPayState(PayState.RequestingPayment);
     try {
-      await payWithToken(option);
-      setPayState(PayState.RequestSuccessful);
-      setTimeout(() => {
-        setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
-      }, 200);
+      const success = await payWithToken(option);
+      if (success) {
+        setPayState(PayState.RequestSuccessful);
+        setTimeout(() => {
+          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
+        }, 200);
+      } else {
+        setPayState(PayState.RequestFailed);
+      }
     } catch (e: any) {
       if (e?.name === "ConnectorChainMismatchError") {
         // Workaround for Rainbow wallet bug -- user is able to switch chain without
@@ -121,6 +129,18 @@ const PayWithToken: React.FC = () => {
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
             Retry Payment
+          </Button>
+        )}
+        {payState === PayState.RequestFailed && (
+          <Button
+            onClick={() => {
+              window.open(
+                getSupportUrl(order?.id?.toString() ?? "", "Pay with token"),
+                "_blank",
+              );
+            }}
+          >
+            Contact Support
           </Button>
         )}
       </ModalContent>

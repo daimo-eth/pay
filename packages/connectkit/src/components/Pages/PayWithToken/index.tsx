@@ -66,8 +66,8 @@ const PayWithToken: React.FC = () => {
 
     setPayState(PayState.RequestingPayment);
     try {
-      const success = await payWithToken(option);
-      if (success) {
+      const successTxHash = await payWithToken(option);
+      if (successTxHash != null) {
         setPayState(PayState.RequestSuccessful);
         setTimeout(() => {
           setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });

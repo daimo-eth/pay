@@ -373,7 +373,7 @@ async function runPaySolanaSourceEffects(
       startIntentTxHash: event.paymentTxHash,
       token: event.sourceToken,
     });
-    store.dispatch({ type: "order_refreshed", order });
+    store.dispatch({ type: "payment_verified", order });
   } catch (e: any) {
     store.dispatch({ type: "error", order: prev.order, message: e.message });
   }

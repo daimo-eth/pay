@@ -12,7 +12,7 @@ import {
   PageContent,
 } from "../../../Common/Modal/styles";
 
-import { assert } from "@daimo/pay-common";
+import { WalletPaymentOption } from "@daimo/pay-common";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -30,19 +30,20 @@ const PayWithSolanaToken: React.FC = () => {
     PayState.RequestingPayment,
   );
 
-  const handleTransfer = async () => {
+  const handleTransfer = async (option: WalletPaymentOption) => {
+    setPayState(PayState.RequestingPayment);
     try {
-      setPayState(PayState.RequestingPayment);
-      assert(
-        !!selectedSolanaTokenOption,
-        "[PAY SOLANA] No token option selected",
+      const successTxHash = await payWithSolanaToken(
+        option.required.token.token,
       );
-      await payWithSolanaToken(selectedSolanaTokenOption.required.token.token);
-
-      setPayState(PayState.RequestSuccessful);
-      setTimeout(() => {
-        setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
-      }, 200);
+      if (successTxHash != null) {
+        setPayState(PayState.RequestSuccessful);
+        setTimeout(() => {
+          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
+        }, 200);
+      } else {
+        setPayState(PayState.RequestFailed);
+      }
     } catch (error) {
       console.error(error);
       if (
@@ -60,13 +61,20 @@ const PayWithSolanaToken: React.FC = () => {
     if (!selectedSolanaTokenOption) return;
 
     // Give user time to see the UI before opening
-    const transferTimeout = setTimeout(handleTransfer, 100);
+    const transferTimeout = setTimeout(
+      () => handleTransfer(selectedSolanaTokenOption),
+      100,
+    );
     return () => clearTimeout(transferTimeout);
   }, [selectedSolanaTokenOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     triggerResize();
   }, [payState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (selectedSolanaTokenOption == null) {
+    return <PageContent></PageContent>;
+  }
 
   return (
     <PageContent>
@@ -75,11 +83,11 @@ const PayWithSolanaToken: React.FC = () => {
       )}
       <ModalContent style={{ paddingBottom: 0 }}>
         <ModalH1>{payState}</ModalH1>
-        {selectedSolanaTokenOption && (
-          <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
-        )}
+        <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
         {payState === PayState.RequestCancelled && (
-          <Button onClick={handleTransfer}>Retry Payment</Button>
+          <Button onClick={() => handleTransfer(selectedSolanaTokenOption)}>
+            Retry Payment
+          </Button>
         )}
       </ModalContent>
     </PageContent>

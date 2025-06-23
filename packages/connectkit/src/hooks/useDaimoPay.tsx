@@ -76,7 +76,12 @@ type DaimoPayFunctions = {
   paySolanaSource: (args: {
     paymentTxHash: string;
     sourceToken: SolanaPublicKey;
-  }) => void;
+  }) => Promise<
+    Extract<
+      PaymentState,
+      { type: "payment_started" | "payment_completed" | "payment_bounced" }
+    >
+  >;
 
   /**
    * Reset the current payment state and clear the active order.
@@ -224,9 +229,20 @@ export function useDaimoPay(): UseDaimoPay {
   );
 
   const paySolanaSource = useCallback(
-    (args: { paymentTxHash: string; sourceToken: SolanaPublicKey }) =>
-      dispatch({ type: "pay_solana_source", ...args }),
-    [dispatch],
+    async (args: { paymentTxHash: string; sourceToken: SolanaPublicKey }) => {
+      dispatch({ type: "pay_solana_source", ...args });
+
+      // Will throw if the payment is not verified by the server.
+      const paidState = await waitForPaymentState(
+        store,
+        "payment_started",
+        "payment_completed",
+        "payment_bounced",
+      );
+
+      return paidState;
+    },
+    [dispatch, store],
   );
 
   const reset = useCallback(() => dispatch({ type: "reset" }), [dispatch]);

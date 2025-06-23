@@ -20,7 +20,7 @@ import {
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useState } from "react";
-import { erc20Abi, getAddress, hexToBytes, zeroAddress } from "viem";
+import { erc20Abi, getAddress, Hex, hexToBytes, zeroAddress } from "viem";
 import {
   useAccount,
   useEnsName,
@@ -94,14 +94,16 @@ export interface PaymentState {
     option: DepositAddressPaymentOptionMetadata | undefined,
   ) => void;
   setChosenUsd: (usd: number) => void;
-  payWithToken: (walletOption: WalletPaymentOption) => Promise<void>;
+  payWithToken: (
+    walletOption: WalletPaymentOption,
+  ) => Promise<{ txHash: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
   ) => Promise<DepositAddressPaymentOptionData | null>;
   payWithSolanaToken: (
     inputToken: SolanaPublicKey,
-  ) => Promise<string | undefined>;
+  ) => Promise<{ txHash: string; success: boolean }>;
   openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
   senderEnsName: string | undefined;
 }
@@ -221,7 +223,9 @@ export function usePaymentState({
   };
 
   /** Commit to a token + amount = initiate payment. */
-  const payWithToken = async (walletOption: WalletPaymentOption) => {
+  const payWithToken = async (
+    walletOption: WalletPaymentOption,
+  ): Promise<{ txHash: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
       `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
@@ -276,20 +280,26 @@ export function usePaymentState({
       }
     })();
 
-    if (paymentTxHash) {
-      pay.payEthSource({
+    try {
+      await pay.payEthSource({
         paymentTxHash,
         sourceChainId: required.token.chainId,
         payerAddress: ethWalletAddress,
         sourceToken: getAddress(required.token.token),
         sourceAmount: paymentAmount,
       });
-    } else {
-      console.error(`[PAY TOKEN] no txHash for payment`);
+      return { txHash: paymentTxHash, success: true };
+    } catch {
+      console.error(
+        `[PAY TOKEN] could not verify payment tx on chain: ${paymentTxHash}`,
+      );
+      return { txHash: paymentTxHash, success: false };
     }
   };
 
-  const payWithSolanaToken = async (inputToken: SolanaPublicKey) => {
+  const payWithSolanaToken = async (
+    inputToken: SolanaPublicKey,
+  ): Promise<{ txHash: string; success: boolean }> => {
     const payerPublicKey = solanaWallet.publicKey;
     assert(
       payerPublicKey != null,
@@ -339,12 +349,18 @@ export function usePaymentState({
       }
     })();
 
-    pay.paySolanaSource({
-      paymentTxHash: paymentTxHash,
-      sourceToken: inputToken,
-    });
-
-    return paymentTxHash;
+    try {
+      await pay.paySolanaSource({
+        paymentTxHash: paymentTxHash,
+        sourceToken: inputToken,
+      });
+      return { txHash: paymentTxHash, success: true };
+    } catch {
+      console.error(
+        `[PAY SOLANA] could not verify payment tx on chain: ${paymentTxHash}`,
+      );
+      return { txHash: paymentTxHash, success: false };
+    }
   };
 
   const payWithExternal = async (option: ExternalPaymentOptions) => {

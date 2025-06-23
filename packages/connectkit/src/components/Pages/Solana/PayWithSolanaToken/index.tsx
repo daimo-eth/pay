@@ -7,12 +7,19 @@ import {
   WalletSignTransactionError,
 } from "@solana/wallet-adapter-base";
 import {
+  Link,
   ModalContent,
   ModalH1,
   PageContent,
 } from "../../../Common/Modal/styles";
 
-import { assert } from "@daimo/pay-common";
+import {
+  getChainExplorerTxUrl,
+  solana,
+  WalletPaymentOption,
+} from "@daimo/pay-common";
+import { useDaimoPay } from "../../../../hooks/useDaimoPay";
+import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -26,23 +33,25 @@ enum PayState {
 const PayWithSolanaToken: React.FC = () => {
   const { triggerResize, paymentState, setRoute } = usePayContext();
   const { selectedSolanaTokenOption, payWithSolanaToken } = paymentState;
+  const { order } = useDaimoPay();
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const [txURL, setTxURL] = useState<string | undefined>();
 
-  const handleTransfer = async () => {
+  const handleTransfer = async (option: WalletPaymentOption) => {
+    setPayState(PayState.RequestingPayment);
     try {
-      setPayState(PayState.RequestingPayment);
-      assert(
-        !!selectedSolanaTokenOption,
-        "[PAY SOLANA] No token option selected",
-      );
-      await payWithSolanaToken(selectedSolanaTokenOption.required.token.token);
-
-      setPayState(PayState.RequestSuccessful);
-      setTimeout(() => {
-        setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
-      }, 200);
+      const result = await payWithSolanaToken(option.required.token.token);
+      setTxURL(getChainExplorerTxUrl(solana.chainId, result.txHash));
+      if (result.success) {
+        setPayState(PayState.RequestSuccessful);
+        setTimeout(() => {
+          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
+        }, 200);
+      } else {
+        setPayState(PayState.RequestFailed);
+      }
     } catch (error) {
       console.error(error);
       if (
@@ -60,7 +69,10 @@ const PayWithSolanaToken: React.FC = () => {
     if (!selectedSolanaTokenOption) return;
 
     // Give user time to see the UI before opening
-    const transferTimeout = setTimeout(handleTransfer, 100);
+    const transferTimeout = setTimeout(
+      () => handleTransfer(selectedSolanaTokenOption),
+      100,
+    );
     return () => clearTimeout(transferTimeout);
   }, [selectedSolanaTokenOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -68,18 +80,45 @@ const PayWithSolanaToken: React.FC = () => {
     triggerResize();
   }, [payState]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (selectedSolanaTokenOption == null) {
+    return <PageContent></PageContent>;
+  }
+
   return (
     <PageContent>
       {selectedSolanaTokenOption && (
         <TokenLogoSpinner token={selectedSolanaTokenOption.required.token} />
       )}
       <ModalContent style={{ paddingBottom: 0 }}>
-        <ModalH1>{payState}</ModalH1>
-        {selectedSolanaTokenOption && (
-          <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
+        {txURL ? (
+          <ModalH1>
+            <Link href={txURL} target="_blank" rel="noopener noreferrer">
+              {payState}
+            </Link>
+          </ModalH1>
+        ) : (
+          <ModalH1>{payState}</ModalH1>
         )}
+        <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
         {payState === PayState.RequestCancelled && (
-          <Button onClick={handleTransfer}>Retry Payment</Button>
+          <Button onClick={() => handleTransfer(selectedSolanaTokenOption)}>
+            Retry Payment
+          </Button>
+        )}
+        {payState === PayState.RequestFailed && (
+          <Button
+            onClick={() => {
+              window.open(
+                getSupportUrl(
+                  order?.id?.toString() ?? "",
+                  `Pay with Solana token${txURL ? ` ${txURL}` : ""}`,
+                ),
+                "_blank",
+              );
+            }}
+          >
+            Contact Support
+          </Button>
         )}
       </ModalContent>
     </PageContent>

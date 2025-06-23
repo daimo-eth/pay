@@ -108,6 +108,10 @@ export type PaymentEvent =
   | { type: "order_loaded"; order: DaimoPayOrderWithOrg }
   | { type: "order_hydrated"; order: DaimoPayHydratedOrderWithOrg }
   | {
+      type: "payment_verified";
+      order: DaimoPayHydratedOrderWithOrg;
+    }
+  | {
       type: "order_refreshed";
       order: DaimoPayOrderWithOrg | DaimoPayHydratedOrderWithOrg;
     }
@@ -279,6 +283,17 @@ function reducePaymentUnpaid(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
+    case "payment_verified": {
+      if (event.order.intentStatus === DaimoPayIntentStatus.UNPAID) {
+        // The payment was not detected on chain, or some other error occurred.
+        return {
+          type: "error",
+          order: event.order,
+          message: "Payment failed"
+        }
+      }
+      return reduceOrderRefreshed(state, event.order);
+    }
     case "order_refreshed":
       return reduceOrderRefreshed(state, event.order);
     case "error":

@@ -64,8 +64,9 @@ export function createStore<S, E>(
 }
 
 /**
- * Wait until the store enters a state matching `predicate`, or reject on error.
-
+ * Wait until the store enters any state that satisfies the given predicate(s),
+ * or reject on error.
+ * 
  * @returns
  *   `Promise<T>` resolving with the first state where `predicate` is true,
  *   or rejecting if `isError` ever returns true.
@@ -90,22 +91,25 @@ export function createStore<S, E>(
  */
 export function waitForState<S, E, T extends S>(
   store: Store<S, E>,
-  predicate: (s: S) => s is T,
+  predicates: ((s: S) => s is T) | ReadonlyArray<(s: S) => s is T>,
   isError?: (s: S) => boolean,
   getErrorMessage?: (s: S) => string,
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
-    // Check if current state already satisfies the predicate
-    const current = store.getState();
-    if (predicate(current)) return resolve(current);
+  // Normalise to an array and build a helper that succeeds if *any* guard passes
+  const guards = typeof predicates === "function" ? [predicates] : predicates;
 
-    // Subscribe to state changes and wait until the predicate is satisfied
+  const matches = (s: S): s is T => guards.some((g) => g(s));
+
+  return new Promise((resolve, reject) => {
+    // Fast path – we might already be in a valid state
+    const first = store.getState();
+    if (matches(first)) return resolve(first);
+
     const unsubscribe = store.subscribe(({ next }) => {
-      if (predicate(next)) {
+      if (matches(next)) {
         unsubscribe();
         resolve(next);
       } else if (isError?.(next)) {
-        // Error state reached, reject the promise
         unsubscribe();
         reject(new Error(getErrorMessage?.(next) ?? "error"));
       }

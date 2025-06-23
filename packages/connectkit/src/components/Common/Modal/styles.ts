@@ -195,6 +195,15 @@ export const ModalBodySmall = styled.div`
   }
 `;
 
+export const Link = styled.a`
+  color: var(--ck-body-color);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--ck-body-color-muted);
+  }
+`;
+
 export const BackgroundOverlay = styled(motion.div)<{
   $active: boolean;
   $blur?: number;
@@ -515,8 +524,8 @@ export const InfoButton = styled(motion.button)`
 export const Container = styled(motion.div)`
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   --duration: 200ms;
-  --transition: height var(--duration) var(--ease),
-    width var(--duration) var(--ease);
+  --transition:
+    height var(--duration) var(--ease), width var(--duration) var(--ease);
   z-index: 3;
   display: block;
   pointer-events: none;

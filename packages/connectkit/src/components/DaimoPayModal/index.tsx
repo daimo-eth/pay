@@ -1,23 +1,21 @@
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
+
 import { ROUTES } from "../../constants/routes";
+import { getAppName } from "../../defaultConfig";
+import { useChainIsSupported } from "../../hooks/useChainIsSupported";
+import { useDaimoPay } from "../../hooks/useDaimoPay";
 import { usePayContext } from "../../hooks/usePayContext";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
-
+import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import About from "../Pages/About";
+import Confirmation from "../Pages/Confirmation";
 import Connectors from "../Pages/Connectors";
 import DownloadApp from "../Pages/DownloadApp";
 import MobileConnectors from "../Pages/MobileConnectors";
 import Onboarding from "../Pages/Onboarding";
-import SwitchNetworks from "../Pages/SwitchNetworks";
-import ConnectUsing from "./ConnectUsing";
-
-import { useWallet } from "@solana/wallet-adapter-react";
-import { getAppName } from "../../defaultConfig";
-import { useChainIsSupported } from "../../hooks/useChainIsSupported";
-import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
-import Confirmation from "../Pages/Confirmation";
 import PayWithToken from "../Pages/PayWithToken";
 import SelectAmount from "../Pages/SelectAmount";
 import SelectDepositAddressAmount from "../Pages/SelectDepositAddressAmount";
@@ -31,9 +29,11 @@ import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
+import SwitchNetworks from "../Pages/SwitchNetworks";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
+import ConnectUsing from "./ConnectUsing";
 
 export const DaimoPayModal: React.FC<{
   mode: Mode;
@@ -65,6 +65,7 @@ export const DaimoPayModal: React.FC<{
     setSelectedDepositAddressOption,
     setSelectedWallet,
   } = paymentState;
+  const { paymentState: paymentFsmState } = useDaimoPay();
 
   const {
     isConnected: isEthConnected,
@@ -86,7 +87,8 @@ export const DaimoPayModal: React.FC<{
     closeable &&
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
-    context.route !== ROUTES.SELECT_TOKEN;
+    context.route !== ROUTES.SELECT_TOKEN &&
+    paymentFsmState !== "error";
 
   const onBack = () => {
     const meta = { event: "click-back" };

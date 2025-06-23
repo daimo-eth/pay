@@ -94,14 +94,16 @@ export interface PaymentState {
     option: DepositAddressPaymentOptionMetadata | undefined,
   ) => void;
   setChosenUsd: (usd: number) => void;
-  payWithToken: (walletOption: WalletPaymentOption) => Promise<Hex | undefined>;
+  payWithToken: (
+    walletOption: WalletPaymentOption,
+  ) => Promise<{ txHash: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
   ) => Promise<DepositAddressPaymentOptionData | null>;
   payWithSolanaToken: (
     inputToken: SolanaPublicKey,
-  ) => Promise<string | undefined>;
+  ) => Promise<{ txHash: string; success: boolean }>;
   openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
   senderEnsName: string | undefined;
 }
@@ -223,7 +225,7 @@ export function usePaymentState({
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
     walletOption: WalletPaymentOption,
-  ): Promise<Hex | undefined> => {
+  ): Promise<{ txHash: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
       `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
@@ -286,18 +288,18 @@ export function usePaymentState({
         sourceToken: getAddress(required.token.token),
         sourceAmount: paymentAmount,
       });
-      return paymentTxHash;
+      return { txHash: paymentTxHash, success: true };
     } catch {
       console.error(
         `[PAY TOKEN] could not verify payment tx on chain: ${paymentTxHash}`,
       );
-      return undefined;
+      return { txHash: paymentTxHash, success: false };
     }
   };
 
   const payWithSolanaToken = async (
     inputToken: SolanaPublicKey,
-  ): Promise<string | undefined> => {
+  ): Promise<{ txHash: string; success: boolean }> => {
     const payerPublicKey = solanaWallet.publicKey;
     assert(
       payerPublicKey != null,
@@ -352,12 +354,12 @@ export function usePaymentState({
         paymentTxHash: paymentTxHash,
         sourceToken: inputToken,
       });
-      return paymentTxHash;
+      return { txHash: paymentTxHash, success: true };
     } catch {
       console.error(
         `[PAY SOLANA] could not verify payment tx on chain: ${paymentTxHash}`,
       );
-      return undefined;
+      return { txHash: paymentTxHash, success: false };
     }
   };
 

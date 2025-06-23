@@ -7,12 +7,19 @@ import {
   WalletSignTransactionError,
 } from "@solana/wallet-adapter-base";
 import {
+  Link,
   ModalContent,
   ModalH1,
   PageContent,
 } from "../../../Common/Modal/styles";
 
-import { WalletPaymentOption } from "@daimo/pay-common";
+import {
+  getChainExplorerTxUrl,
+  solana,
+  WalletPaymentOption,
+} from "@daimo/pay-common";
+import { useDaimoPay } from "../../../../hooks/useDaimoPay";
+import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -26,17 +33,18 @@ enum PayState {
 const PayWithSolanaToken: React.FC = () => {
   const { triggerResize, paymentState, setRoute } = usePayContext();
   const { selectedSolanaTokenOption, payWithSolanaToken } = paymentState;
+  const { order } = useDaimoPay();
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const [txURL, setTxURL] = useState<string | undefined>();
 
   const handleTransfer = async (option: WalletPaymentOption) => {
     setPayState(PayState.RequestingPayment);
     try {
-      const successTxHash = await payWithSolanaToken(
-        option.required.token.token,
-      );
-      if (successTxHash != null) {
+      const result = await payWithSolanaToken(option.required.token.token);
+      setTxURL(getChainExplorerTxUrl(solana.chainId, result.txHash));
+      if (result.success) {
         setPayState(PayState.RequestSuccessful);
         setTimeout(() => {
           setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
@@ -82,11 +90,34 @@ const PayWithSolanaToken: React.FC = () => {
         <TokenLogoSpinner token={selectedSolanaTokenOption.required.token} />
       )}
       <ModalContent style={{ paddingBottom: 0 }}>
-        <ModalH1>{payState}</ModalH1>
+        {txURL ? (
+          <ModalH1>
+            <Link href={txURL} target="_blank" rel="noopener noreferrer">
+              {payState}
+            </Link>
+          </ModalH1>
+        ) : (
+          <ModalH1>{payState}</ModalH1>
+        )}
         <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedSolanaTokenOption)}>
             Retry Payment
+          </Button>
+        )}
+        {payState === PayState.RequestFailed && (
+          <Button
+            onClick={() => {
+              window.open(
+                getSupportUrl(
+                  order?.id?.toString() ?? "",
+                  `Pay with Solana token${txURL ? ` ${txURL}` : ""}`,
+                ),
+                "_blank",
+              );
+            }}
+          >
+            Contact Support
           </Button>
         )}
       </ModalContent>

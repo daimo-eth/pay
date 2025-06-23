@@ -1,4 +1,4 @@
-import { WalletPaymentOption } from "@daimo/pay-common";
+import { getChainExplorerTxUrl, WalletPaymentOption } from "@daimo/pay-common";
 import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
@@ -6,7 +6,12 @@ import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { getSupportUrl } from "../../../utils/supportUrl";
 import Button from "../../Common/Button";
-import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
+import {
+  Link,
+  ModalContent,
+  ModalH1,
+  PageContent,
+} from "../../Common/Modal/styles";
 import PaymentBreakdown from "../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 
@@ -25,6 +30,7 @@ const PayWithToken: React.FC = () => {
   const [payState, setPayState] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const [txURL, setTxURL] = useState<string | undefined>();
 
   const walletChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -66,8 +72,11 @@ const PayWithToken: React.FC = () => {
 
     setPayState(PayState.RequestingPayment);
     try {
-      const successTxHash = await payWithToken(option);
-      if (successTxHash != null) {
+      const result = await payWithToken(option);
+      setTxURL(
+        getChainExplorerTxUrl(option.required.token.chainId, result.txHash),
+      );
+      if (result.success) {
         setPayState(PayState.RequestSuccessful);
         setTimeout(() => {
           setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
@@ -83,8 +92,22 @@ const PayWithToken: React.FC = () => {
         const switchSuccessful = await trySwitchingChain(option, true);
         if (switchSuccessful) {
           try {
-            await payWithToken(option);
-            return; // Payment successful after switching chain
+            const retryResult = await payWithToken(option);
+            setTxURL(
+              getChainExplorerTxUrl(
+                option.required.token.chainId,
+                retryResult.txHash,
+              ),
+            );
+            if (retryResult.success) {
+              setPayState(PayState.RequestSuccessful);
+              setTimeout(() => {
+                setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
+              }, 200);
+            } else {
+              setPayState(PayState.RequestFailed);
+            }
+            return; // Payment handled after switching chain
           } catch (retryError) {
             console.error(
               "Failed to pay with token after switching chain",
@@ -124,7 +147,15 @@ const PayWithToken: React.FC = () => {
     <PageContent>
       <TokenLogoSpinner token={selectedTokenOption.required.token} />
       <ModalContent style={{ paddingBottom: 0 }} $preserveDisplay={true}>
-        <ModalH1>{payState}</ModalH1>
+        {txURL ? (
+          <ModalH1>
+            <Link href={txURL} target="_blank" rel="noopener noreferrer">
+              {payState}
+            </Link>
+          </ModalH1>
+        ) : (
+          <ModalH1>{payState}</ModalH1>
+        )}
         <PaymentBreakdown paymentOption={selectedTokenOption} />
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
@@ -135,7 +166,10 @@ const PayWithToken: React.FC = () => {
           <Button
             onClick={() => {
               window.open(
-                getSupportUrl(order?.id?.toString() ?? "", "Pay with token"),
+                getSupportUrl(
+                  order?.id?.toString() ?? "",
+                  `Pay with token${txURL ? ` ${txURL}` : ""}`,
+                ),
                 "_blank",
               );
             }}

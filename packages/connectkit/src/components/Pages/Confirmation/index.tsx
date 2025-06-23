@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
+  Link,
   ModalBody,
   ModalContent,
   ModalH1,
@@ -118,15 +119,6 @@ const InsetContainer = styled(motion.div)`
     position: absolute;
     width: 100%;
     height: 100%;
-  }
-`;
-
-const Link = styled.a`
-  color: var(--ck-body-color);
-  text-decoration: none;
-
-  &:hover {
-    color: var(--ck-body-color-muted);
   }
 `;
 

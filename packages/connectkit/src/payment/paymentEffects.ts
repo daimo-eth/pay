@@ -284,7 +284,10 @@ async function runHydratePayParamsEffects(
         userMetadata: order.userMetadata,
         externalId: order.externalId ?? undefined,
       },
-      refundAddress: event.refundAddress,
+      // Prefer the refund address passed to this function, if specified. This
+      // is for cases where the user pays from an EOA. Otherwise, use the refund
+      // address specified by the dev.
+      refundAddress: event.refundAddress ?? prev.order.refundAddr ?? undefined,
     });
 
     store.dispatch({

@@ -168,38 +168,23 @@ function reduceIdle(
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
-    case "preview_generated":
+    case "preview_generated": {
+      const stateFromOrder = getStateFromOrder(event.order);
+
+      // If order is already hydrated or in terminal state, use that state
+      if (stateFromOrder.type !== "unhydrated") {
+        return stateFromOrder;
+      }
+
+      // Order is not hydrated/processed, handle as preview
       return {
         type: "preview",
         order: event.order,
         payParamsData: event.payParamsData,
       };
-    // Handle cases where the order id is already partially processed
+    }
     case "order_loaded": {
-      const order = event.order;
-      if (order.intentStatus === DaimoPayIntentStatus.COMPLETED) {
-        assert(
-          order.mode === DaimoPayOrderMode.HYDRATED,
-          `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-        );
-        return { type: "payment_completed", order };
-      } else if (order.intentStatus === DaimoPayIntentStatus.BOUNCED) {
-        assert(
-          order.mode === DaimoPayOrderMode.HYDRATED,
-          `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-        );
-        return { type: "payment_bounced", order };
-      } else if (order.intentStatus === DaimoPayIntentStatus.STARTED) {
-        assert(
-          order.mode === DaimoPayOrderMode.HYDRATED,
-          `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-        );
-        return { type: "payment_started", order };
-      } else if (order.mode === DaimoPayOrderMode.HYDRATED) {
-        return { type: "payment_unpaid", order };
-      } else {
-        return { type: "unhydrated", order };
-      }
+      return getStateFromOrder(event.order);
     }
     case "error":
       return {
@@ -289,13 +274,13 @@ function reducePaymentUnpaid(
         return {
           type: "error",
           order: event.order,
-          message: "Payment failed"
-        }
+          message: "Payment failed",
+        };
       }
-      return reduceOrderRefreshed(state, event.order);
+      return getStateFromHydratedOrder(state, event.order);
     }
     case "order_refreshed":
-      return reduceOrderRefreshed(state, event.order);
+      return getStateFromHydratedOrder(state, event.order);
     case "error":
       return {
         type: "error",
@@ -315,7 +300,7 @@ function reducePaymentStarted(
 ): PaymentState {
   switch (event.type) {
     case "order_refreshed":
-      return reduceOrderRefreshed(state, event.order);
+      return getStateFromHydratedOrder(state, event.order);
     case "error":
       return {
         type: "error",
@@ -329,7 +314,42 @@ function reducePaymentStarted(
   }
 }
 
-function reduceOrderRefreshed(
+/**
+ * Determines the appropriate payment state based on an order's status and mode.
+ * Returns the appropriate payment state based on the order's mode and intent status.
+ */
+function getStateFromOrder(order: DaimoPayOrderWithOrg): PaymentState {
+  if (order.intentStatus === DaimoPayIntentStatus.COMPLETED) {
+    assert(
+      order.mode === DaimoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+    );
+    return { type: "payment_completed", order };
+  } else if (order.intentStatus === DaimoPayIntentStatus.BOUNCED) {
+    assert(
+      order.mode === DaimoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+    );
+    return { type: "payment_bounced", order };
+  } else if (order.intentStatus === DaimoPayIntentStatus.STARTED) {
+    assert(
+      order.mode === DaimoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+    );
+    return { type: "payment_started", order };
+  } else if (order.mode === DaimoPayOrderMode.HYDRATED) {
+    return { type: "payment_unpaid", order };
+  } else {
+    // Order is not hydrated (SALE or CHOOSE_AMOUNT mode)
+    return { type: "unhydrated", order };
+  }
+}
+
+/**
+ * Determines the appropriate payment state for a hydrated order. Progresses
+ * the payment through different processing states.
+ */
+function getStateFromHydratedOrder(
   state: Extract<PaymentState, { type: "payment_started" | "payment_unpaid" }>,
   order: DaimoPayOrderWithOrg,
 ): PaymentState {

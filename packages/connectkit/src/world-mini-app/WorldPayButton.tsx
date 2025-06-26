@@ -58,7 +58,14 @@ export type WorldPayButtonPaymentProps = {
   refundAddress?: Address;
 };
 
-export type WorldPayButtonProps = WorldPayButtonPaymentProps & {
+type WorldPayButtonCommonProps = WorldPayButtonPaymentProps & {
+  /** Automatically close the modal after a successful payment. */
+  closeOnSuccess?: boolean;
+  /** Reset the payment after a successful payment. */
+  resetOnSuccess?: boolean;
+};
+
+export type WorldPayButtonProps = WorldPayButtonCommonProps & {
   /** Light mode, dark mode, or auto. */
   mode?: Mode;
   /** Named theme. See docs for options. */
@@ -69,7 +76,7 @@ export type WorldPayButtonProps = WorldPayButtonPaymentProps & {
   disabled?: boolean;
 };
 
-export type WorldPayButtonCustomProps = WorldPayButtonProps & {
+export type WorldPayButtonCustomProps = WorldPayButtonCommonProps & {
   children: (renderProps: {
     show: () => void;
     isMiniKitReady: boolean;
@@ -104,26 +111,36 @@ export function WorldPayButton(props: WorldPayButtonProps) {
 function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const pay = useDaimoPay();
   const context = usePayContext();
+  const { log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
 
   useEffect(() => {
+    log("[WORLD] Installing MiniKit");
     const result = MiniKit.install();
-    context.log("MiniKit.install()", result);
-    setIsMiniKitReady(result.success);
+    log("[WORLD] MiniKit install result", result);
+    log("[WORLD] MiniKit is installed", MiniKit.isInstalled());
+    setIsMiniKitReady(MiniKit.isInstalled());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    log("[WORLD] Creating preview order");
     pay.createPreviewOrder(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pay, JSON.stringify(props)]);
 
   const showSpinner = useCallback(() => {
-    context.showPayment({});
+    log(`[WORLD] showing spinner ${pay.order?.id}`);
+    const modalOptions = {
+      closeOnSuccess: props.closeOnSuccess,
+      resetOnSuccess: props.resetOnSuccess,
+    };
+    context.showPayment(modalOptions);
     context.setRoute(ROUTES.CONFIRMATION);
-  }, [context]);
+  }, [context, pay.order?.id, log, props.closeOnSuccess, props.resetOnSuccess]);
 
   const show = useCallback(async () => {
+    log(`[WORLD] showing payment ${pay.order?.id}`);
     if (!isMiniKitReady) {
       console.error(
         "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",
@@ -140,21 +157,28 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
       return;
     }
 
+    log(`[WORLD] hydrating order ${pay.order?.id}`);
     const { order } = await pay.hydrateOrder();
+    log(
+      `[WORLD] hydrated order ${pay.order?.id}. Prompting payment with MiniKit`,
+    );
     const payRes = await promptWorldcoinPayment(order, context.trpc);
     if (payRes == null || payRes.finalPayload.status == "error") {
-      console.error("[WORLD] Failed to prompt Worldcoin payment: ", payRes);
+      log("[WORLD] Failed to prompt Worldcoin payment: ", payRes);
       return;
     }
 
+    log(`[WORLD] triggering payment search on ${pay.order?.id}`);
     pay.paySource();
 
     // Optimistically assume the source payment is correct and show the
     // confirmation spinner
     showSpinner();
-  }, [pay, showSpinner, context.trpc, isMiniKitReady]);
+  }, [pay, showSpinner, context.trpc, isMiniKitReady, log]);
 
   return props.children({ show, isMiniKitReady });
 }
 
-WorldPayButton.displayName = "WorldPayButton";
+WorldPayButtonCustom.displayName = "WorldPayButton.Custom";
+
+WorldPayButton.Custom = WorldPayButtonCustom;

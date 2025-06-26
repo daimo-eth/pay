@@ -1,10 +1,14 @@
 import { debugJson } from "./debug";
 
 export function assert(condition: boolean, ...args: any[]): asserts condition {
-  if (!condition)
-    throw new Error(
-      "Assertion failed: " + args.map((a) => debugJson(a)).join(", "),
-    );
+  if (condition) return;
+  let msg: string;
+  if (args.length === 1 && typeof args[0] === "function") {
+    msg = args[0]();
+  } else {
+    msg = args.map((a) => debugJson(a)).join(", ");
+  }
+  throw new Error("Assertion failed: " + msg);
 }
 
 export function assertNotNull<T>(

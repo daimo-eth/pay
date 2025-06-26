@@ -10,8 +10,8 @@ import {
 import { useState } from "react";
 import { encodeFunctionData, parseAbi, zeroAddress } from "viem";
 import { useReadContract } from "wagmi";
-import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import { APP_ID, Columns, Container, printEvent } from "../shared";
+import { Text, TextLink } from "../typography";
 
 export default function DemoContract() {
   const counterAddr = "0x7f3c168DD11379748EeF71Bea70371eBA3327Ca5";

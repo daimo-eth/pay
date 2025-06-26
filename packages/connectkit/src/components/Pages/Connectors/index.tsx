@@ -18,7 +18,6 @@ import {
 } from "./styles";
 
 import { DaimoPayOrderMode } from "@daimo/pay-common";
-import { useConnectors } from "wagmi";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
@@ -47,8 +46,7 @@ const Wallets: React.FC = () => {
 
   // Show new-user education buttons
   const showLearnMore = !context.options?.hideQuestionMarkCTA;
-  const conns = useConnectors();
-  const showGetWallet = conns.length === 0 && !context.options?.hideNoWalletCTA;
+  const showGetWallet = !context.options?.hideNoWalletCTA;
 
   return (
     <PageContent>

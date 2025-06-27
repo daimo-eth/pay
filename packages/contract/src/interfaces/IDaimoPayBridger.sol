@@ -35,6 +35,7 @@ interface IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address refundAddress,
         bytes calldata extraData
     ) external;
 }

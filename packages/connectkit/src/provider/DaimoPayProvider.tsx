@@ -392,7 +392,8 @@ type DaimoPayProviderProps = {
 export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
   const payApiUrl = props.payApiUrl ?? "https://pay-api.daimo.xyz/";
   const log = useMemo(
-    () => (props.debugMode ? console.log : () => {}),
+    () =>
+      props.debugMode ? (...args: any[]) => console.log(...args) : () => {},
     [props.debugMode],
   );
 

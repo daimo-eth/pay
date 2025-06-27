@@ -134,11 +134,12 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger {
         inAmount = _inAmount;
     }
 
-    /// Initiate a bridge to a destination chain using CCTP.
+    /// Initiate a bridge to a destination chain using CCTP v1.
     function sendToChain(
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address /* refundAddress */,
         bytes calldata /* extraData */
     ) public {
         require(toChainId != block.chainid, "DPCCTPB: same chain");

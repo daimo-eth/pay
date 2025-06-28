@@ -103,6 +103,7 @@ type DaimoPayState = {
   [S in PaymentState as S["type"]]: {
     paymentState: S["type"];
     order: S extends { order: infer O } ? O : null;
+    paymentErrorMessage: S extends { message: infer M } ? M : null;
   };
 }[PaymentState["type"]];
 
@@ -143,6 +144,8 @@ export function useDaimoPay(): UseDaimoPay {
   }, [paymentFsmState]);
 
   const paymentState = paymentFsmState.type;
+  const paymentErrorMessage =
+    paymentFsmState.type === "error" ? paymentFsmState.message : null;
 
   /* --------------------------------------------------
      Order event dispatch helpers
@@ -255,6 +258,7 @@ export function useDaimoPay(): UseDaimoPay {
   return {
     order,
     paymentState,
+    paymentErrorMessage,
     createPreviewOrder,
     hydrateOrder,
     setPayId,

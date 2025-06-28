@@ -5,8 +5,11 @@ import CrepeIcon from "../../../assets/crepe";
 import styled from "../../../styles/styled";
 import { daimoPayVersion } from "../../../utils/exports";
 
-const PoweredByFooter = ({ supportUrl }: { supportUrl?: string } = {}) => {
-  const [supportVisible, setSupportVisible] = useState(false);
+const PoweredByFooter = ({
+  supportUrl,
+  showNeedHelpImmediately,
+}: { supportUrl?: string; showNeedHelpImmediately?: boolean } = {}) => {
+  const [supportVisible, setSupportVisible] = useState(showNeedHelpImmediately);
 
   useEffect(() => {
     if (supportUrl == null) return;

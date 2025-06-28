@@ -382,6 +382,8 @@ const Modal: React.FC<ModalProps> = ({
         return `Pay with ${chainName} ${selectedTokenOption.balance.token.symbol}`;
       case ROUTES.CONFIRMATION:
         return "Payment Successful";
+      case ROUTES.ERROR:
+        return "Error";
     }
   }
 

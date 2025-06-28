@@ -262,7 +262,9 @@ const DaimoPayUIProvider = ({
 
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
     const id = pay.order?.id;
-    log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
+    log(
+      `[PAY] showing modal ${debugJson({ id, modalOptions, paymentFsmState: pay.paymentState })}`,
+    );
 
     setModalOptions(modalOptions);
     setOpen(true);
@@ -270,7 +272,9 @@ const DaimoPayUIProvider = ({
       paymentState.setTokenMode("all");
     }
 
-    if (
+    if (pay.paymentState === "error") {
+      setRoute(ROUTES.ERROR);
+    } else if (
       pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"

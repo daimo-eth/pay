@@ -249,14 +249,13 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const { children, closeOnSuccess, resetOnSuccess, connectedWalletOnly } =
     props;
   const show = useCallback(() => {
-    if (order == null) return;
     const modalOptions = {
       closeOnSuccess,
       resetOnSuccess,
       connectedWalletOnly,
     };
     context.showPayment(modalOptions);
-  }, [order, connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
+  }, [connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started

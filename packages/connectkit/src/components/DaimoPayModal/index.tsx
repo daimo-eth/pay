@@ -14,6 +14,7 @@ import About from "../Pages/About";
 import Confirmation from "../Pages/Confirmation";
 import Connectors from "../Pages/Connectors";
 import DownloadApp from "../Pages/DownloadApp";
+import ErrorPage from "../Pages/Error";
 import MobileConnectors from "../Pages/MobileConnectors";
 import Onboarding from "../Pages/Onboarding";
 import PayWithToken from "../Pages/PayWithToken";
@@ -88,6 +89,7 @@ export const DaimoPayModal: React.FC<{
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
+    context.route !== ROUTES.ERROR &&
     paymentFsmState !== "error";
 
   const onBack = () => {
@@ -171,6 +173,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SELECT_ZKP2P]: <SelectZKP />,
     [ROUTES.WAITING_WALLET]: <WaitingWallet />,
     [ROUTES.CONFIRMATION]: <Confirmation />,
+    [ROUTES.ERROR]: <ErrorPage />,
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
     [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,
     [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,

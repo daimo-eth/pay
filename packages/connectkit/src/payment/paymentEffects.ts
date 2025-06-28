@@ -86,7 +86,7 @@ export function attachPaymentEffectHandlers(
         } else if (prev.type === "unhydrated") {
           runHydratePayIdEffects(store, trpc, prev, event);
         } else {
-          log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
+          log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         }
         break;
       }
@@ -94,7 +94,7 @@ export function attachPaymentEffectHandlers(
         if (prev.type === "payment_unpaid") {
           runPaySourceEffects(store, trpc, prev);
         } else {
-          log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
+          log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         }
         break;
       }
@@ -102,7 +102,7 @@ export function attachPaymentEffectHandlers(
         if (prev.type === "payment_unpaid") {
           runPayEthereumSourceEffects(store, trpc, prev, event);
         } else {
-          log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
+          log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         }
         break;
       }
@@ -110,13 +110,10 @@ export function attachPaymentEffectHandlers(
         if (prev.type === "payment_unpaid") {
           runPaySolanaSourceEffects(store, trpc, prev, event);
         }
-        log(`[EFFECT] Invalid event ${event.type} on state ${prev.type}`);
+        log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         break;
       }
       default:
-        log(
-          `[EFFECT] No effects to run for event ${event.type} on state ${prev.type}`,
-        );
         break;
     }
   });

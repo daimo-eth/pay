@@ -22,7 +22,7 @@ jobs:
 
       - name: Add upstream remote
         run: |
-          git remote add upstream https://github.com/RozoAI/intent-pay.git
+          git remote add upstream https://github.com/daimo-eth/pay.git
           git fetch upstream
           git merge upstream/main --allow-unrelated-histories || true
 

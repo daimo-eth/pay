@@ -270,7 +270,9 @@ const DaimoPayUIProvider = ({
       paymentState.setTokenMode("all");
     }
 
-    if (
+    if (pay.paymentState === "error") {
+      setRoute(ROUTES.ERROR);
+    } else if (
       pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"

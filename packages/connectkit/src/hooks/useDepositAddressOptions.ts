@@ -1,7 +1,7 @@
 import {
-  DaimoPayOrderMode,
+  RozoPayOrderMode,
   DepositAddressPaymentOptionMetadata,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
@@ -12,17 +12,17 @@ export function useDepositAddressOptions({
 }: {
   trpc: TrpcClient;
   usdRequired: number | undefined;
-  mode: DaimoPayOrderMode | undefined;
+  mode: RozoPayOrderMode | undefined;
 }) {
   const [options, setOptions] = useState<DepositAddressPaymentOptionMetadata[]>(
-    [],
+    []
   );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const refreshDepositAddressOptions = async (
       usd: number,
-      mode: DaimoPayOrderMode,
+      mode: RozoPayOrderMode
     ) => {
       setLoading(true);
       try {

@@ -8,7 +8,7 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { ExternalPaymentOptions } from "@daimo/pay-common";
+import { ExternalPaymentOptions } from "@rozoai/intent-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
 import Button from "../../Common/Button";

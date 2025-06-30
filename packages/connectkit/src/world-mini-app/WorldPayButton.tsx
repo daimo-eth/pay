@@ -1,23 +1,23 @@
+
 import {
-  assertNotNull,
-  DaimoPayEventType,
-  DaimoPayUserMetadata,
-  getDaimoPayOrderView,
+  RozoPayUserMetadata, assertNotNull,
+  RozoPayEventType,
+  getRozoPayOrderView,
   getOrderDestChainId,
   getOrderSourceChainId,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
-  writeDaimoPayOrderID,
-} from "@daimo/pay-common";
+  writeRozoPayOrderID,
+} from "@rozoai/intent-common";
 import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { Address, Hex } from "viem";
 import ThemedButton, {
   ThemeContainer,
 } from "../components/Common/ThemedButton";
-import { DaimoPayButtonInner } from "../components/DaimoPayButton";
+import { RozoPayButtonInner } from "../components/RozoPayButton";
 import { ROUTES } from "../constants/routes";
-import { useDaimoPay } from "../hooks/useDaimoPay";
+import { useRozoPay } from "../hooks/useRozoPay";
 import { usePayContext } from "../hooks/usePayContext";
 import { ResetContainer } from "../styles";
 import { CustomTheme, Mode, Theme } from "../types";
@@ -62,7 +62,7 @@ export type WorldPayButtonPaymentProps = {
   /**
    * Developer metadata. E.g. correlation ID.
    * */
-  metadata?: DaimoPayUserMetadata;
+  metadata?: RozoPayUserMetadata;
   /**
    * The address to refund to if the payment bounces.
    */
@@ -116,7 +116,7 @@ export function WorldPayButton(props: WorldPayButtonProps) {
             onClick={props.disabled || !isMiniKitReady ? undefined : show}
           >
             <ThemedButton>
-              <DaimoPayButtonInner />
+              <RozoPayButtonInner />
             </ThemedButton>
           </ThemeContainer>
         </ResetContainer>
@@ -126,7 +126,7 @@ export function WorldPayButton(props: WorldPayButtonProps) {
 }
 
 function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
-  const pay = useDaimoPay();
+  const pay = useRozoPay();
   const context = usePayContext();
   const { log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
@@ -163,11 +163,11 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
 
     sentStart.current = true;
     onPaymentStarted?.({
-      type: DaimoPayEventType.PaymentStarted,
-      paymentId: writeDaimoPayOrderID(pay.order.id),
+      type: RozoPayEventType.PaymentStarted,
+      paymentId: writeRozoPayOrderID(pay.order.id),
       chainId: sourceChainId,
       txHash: pay.order.sourceInitiateTxHash,
-      payment: getDaimoPayOrderView(pay.order),
+      payment: getRozoPayOrderView(pay.order),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pay.order, pay.paymentState]);
@@ -186,17 +186,17 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     sentComplete.current = true;
     const eventType =
       pay.paymentState === "payment_completed"
-        ? DaimoPayEventType.PaymentCompleted
-        : DaimoPayEventType.PaymentBounced;
+        ? RozoPayEventType.PaymentCompleted
+        : RozoPayEventType.PaymentBounced;
     const event = {
       type: eventType,
-      paymentId: writeDaimoPayOrderID(pay.order.id),
+      paymentId: writeRozoPayOrderID(pay.order.id),
       chainId: getOrderDestChainId(pay.order),
       txHash: assertNotNull(
         pay.order.destFastFinishTxHash ?? pay.order.destClaimTxHash,
         `[WORLD PAY BUTTON] dest tx hash null on order ${pay.order.id} when intent status is ${pay.order.intentStatus}`,
       ),
-      payment: getDaimoPayOrderView(pay.order),
+      payment: getRozoPayOrderView(pay.order),
     };
 
     if (pay.paymentState === "payment_completed") {

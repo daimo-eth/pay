@@ -1,13 +1,13 @@
 "use client";
 
-import { DaimoPayButton } from "@rozoai/intent-pay";
-import { baseUSDC } from "@daimo/pay-common";
+import { RozoPayButton } from "@rozoai/intent-pay";
+import { baseUSDC } from "@rozoai/intent-common";
 import { sdk } from "@farcaster/frame-sdk";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
-import { APP_ID, Container, DAIMO_ADDRESS } from "../shared";
+import { APP_ID, Container, ROZO_ADDRESS } from "../shared";
 
 export default function DemoFarcasterFrame() {
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -30,7 +30,7 @@ export default function DemoFarcasterFrame() {
   return (
     <Container>
       <Text>
-        Daimo Pay can be used to build mini apps that work in Farcaster, World
+        Rozo Pay can be used to build mini apps that work in Farcaster, World
         (& more coming soon). Ship your app with great UX and built-in social
         distribution.
       </Text>
@@ -47,16 +47,16 @@ export default function DemoFarcasterFrame() {
         </Link>{" "}
       </Text>
       <div />
-      <DaimoPayButton
+      <RozoPayButton
         appId={APP_ID}
         toChain={baseUSDC.chainId}
-        toAddress={DAIMO_ADDRESS}
+        toAddress={ROZO_ADDRESS}
         toUnits="0.12" /* $0.12 USDC */
         toToken={getAddress(baseUSDC.token)}
       />
       <Text>
         <TextLink
-          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/mini-app"
+          href="https://github.com/RozoAI/intent-pay/blob/master/examples/nextjs-app/src/app/mini-app"
           target="_blank"
         >
           View on Github ↗

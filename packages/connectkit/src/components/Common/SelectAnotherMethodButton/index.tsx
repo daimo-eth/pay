@@ -1,9 +1,9 @@
-import { ExternalPaymentOptions } from "@daimo/pay-common";
+import { ExternalPaymentOptions } from "@rozoai/intent-common";
 import { Connector, useAccount } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { OptionsList } from "../OptionsList";
@@ -17,7 +17,7 @@ export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, showSolanaPaymentMethod } = paymentState;
   const { connector } = useAccount();
-  const { order } = useDaimoPay();
+  const { order } = useRozoPay();
   const paymentOptions = order?.metadata.payer?.paymentOptions;
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
@@ -66,7 +66,7 @@ export default function SelectAnotherMethodButton() {
 
   function getBestPaymentMethodIcons() {
     let icons = (externalPaymentOptions.options.get("external") ?? [])
-      .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
+      .filter((option) => option.id !== ExternalPaymentOptions.Rozo)
       .map((option) => (
         <div
           key={option.id}

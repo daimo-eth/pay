@@ -17,8 +17,8 @@ import {
   LearnMoreContainer,
 } from "./styles";
 
-import { DaimoPayOrderMode } from "@daimo/pay-common";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { RozoPayOrderMode } from "@rozoai/intent-common";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";
@@ -30,14 +30,14 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
-  const { hydrateOrder, order } = useDaimoPay();
+  const { hydrateOrder, order } = useRozoPay();
 
   // If we're not in deposit mode, hydrate immediately.
   useEffect(() => {
     if (
       !context.paymentState.isDepositFlow &&
       order != null &&
-      order.mode !== DaimoPayOrderMode.HYDRATED
+      order.mode !== RozoPayOrderMode.HYDRATED
     ) {
       hydrateOrder();
     }

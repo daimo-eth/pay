@@ -2,14 +2,14 @@ import { useContext } from "react";
 import { PayParams } from "../payment/paymentFsm";
 import { PayContext } from "../provider/PayContext";
 
-type UseDaimoPayUI = {
+type UseRozoPayUI = {
   resetPayment: (payParams?: Partial<PayParams>) => Promise<void>;
 };
 
-export function useDaimoPayUI(): UseDaimoPayUI {
+export function useRozoPayUI(): UseRozoPayUI {
   const context = useContext(PayContext);
   if (!context) {
-    throw new Error("useDaimoPayUI must be used within a DaimoPayUIProvider");
+    throw new Error("useRozoPayUI must be used within a RozoPayUIProvider");
   }
 
   return {

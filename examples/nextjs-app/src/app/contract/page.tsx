@@ -1,12 +1,12 @@
 "use client";
 
-import { DaimoPayButton } from "@rozoai/intent-pay";
+import { RozoPayButton } from "@rozoai/intent-pay";
 import {
   arbitrum,
   getChainExplorerByChainId,
   PaymentCompletedEvent,
   PaymentStartedEvent,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { useState } from "react";
 import { encodeFunctionData, parseAbi, zeroAddress } from "viem";
 import { useReadContract } from "wagmi";
@@ -49,11 +49,11 @@ export default function DemoContract() {
   return (
     <Container>
       <Text>
-        Daimo Pay enables arbitrary contract calls from any coin on any chain,
+        Rozo Pay enables arbitrary contract calls from any coin on any chain,
         allowing seamless payments for digital goods and user onboarding.
       </Text>
       <Text>
-        Example: A user is onboarding to a prediction market. Daimo Pay enables
+        Example: A user is onboarding to a prediction market. Rozo Pay enables
         the user to place a prediction market bet instantly during onboarding,
         using any tokens they already own.
       </Text>
@@ -70,7 +70,7 @@ export default function DemoContract() {
       <div />
       <Columns>
         <div className="flex-1">
-          <DaimoPayButton
+          <RozoPayButton
             appId={APP_ID}
             toChain={arbitrum.chainId}
             toAddress={counterAddr}
@@ -95,7 +95,7 @@ export default function DemoContract() {
         <div className="flex-1">
           <Text>
             <TextLink
-              href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/contract"
+              href="https://github.com/RozoAI/intent-pay/blob/master/examples/nextjs-app/src/app/contract"
               target="_blank"
             >
               View on Github ↗

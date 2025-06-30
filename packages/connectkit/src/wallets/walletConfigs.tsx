@@ -1,24 +1,24 @@
 import Logos from "../assets/logos";
 
 // Infer in-wallet payment URL from environment.
-let daimoPayHost = "https://pay.daimo.com";
+let rozoPayHost = "https://pay.daimo.com";
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
-    daimoPayHost = "http://localhost:3001";
-  } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
-    daimoPayHost = "https://pay.stage.daimo.xyz";
+    rozoPayHost = "http://localhost:3001";
+  } else if (apiUrl.startsWith("https://pay-api-stage.rozo.xyz")) {
+    rozoPayHost = "https://pay.stage.rozo.xyz";
   } else {
-    daimoPayHost = "https://pay.daimo.com";
+    rozoPayHost = "https://pay.daimo.com";
   }
 }
 
-function getDaimoPayUrl(payId: string) {
-  return daimoPayHost + "/pay?id=" + payId;
+function getRozoPayUrl(payId: string) {
+  return rozoPayHost + "/pay?id=" + payId;
 }
 
-function getEncodedDaimoPayUrl(payId: string) {
-  let url = getDaimoPayUrl(payId);
+function getEncodedRozoPayUrl(payId: string) {
+  let url = getRozoPayUrl(payId);
   let encodedUrl = encodeURIComponent(url);
   return encodedUrl;
 }
@@ -58,8 +58,8 @@ export type WalletConfigProps = {
     safari?: string;
   };
   deeplinkScheme?: string;
-  // For Daimo Pay deeplinks
-  getDaimoPayDeeplink?: (payId: string) => string;
+  // For Rozo Pay deeplinks
+  getRozoPayDeeplink?: (payId: string) => string;
   // To sort mobile wallets to show in the connector list
   showInMobileConnectors?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
@@ -85,8 +85,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "cbwallet://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "cbwallet://dapp?url=" + getEncodedRozoPayUrl(payId);
     },
   },
   "com.coinbase.wallet": {
@@ -104,8 +104,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "cbwallet://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "cbwallet://dapp?url=" + getEncodedRozoPayUrl(payId);
     },
   },
   backpack: {
@@ -114,8 +114,8 @@ export const walletConfigs: {
     icon: <Logos.Backpack />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getDaimoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getDaimoPayUrl(payId));
+    getRozoPayDeeplink: (payId: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId));
       return `https://backpack.app/ul/v1/browse/${url}`;
     },
   },
@@ -125,8 +125,8 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "bitkeep://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "bitkeep://bkconnect?action=dapp&url=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "bitkeep://bkconnect?action=dapp&url=" + getRozoPayUrl(payId);
     },
   },
   "co.family.wallet": {
@@ -140,8 +140,8 @@ export const walletConfigs: {
       ios: "https://family.co/download",
     },
     deeplinkScheme: "familywallet://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "familywallet://browser?url=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "familywallet://browser?url=" + getRozoPayUrl(payId);
     },
     showInMobileConnectors: true,
   },
@@ -165,10 +165,10 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "metamask://",
-    getDaimoPayDeeplink: (payId: string) => {
-      const daimoPayUrl = getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      const rozoPayUrl = getRozoPayUrl(payId);
       return (
-        "https://metamask.app.link/dapp/" + daimoPayUrl.replace("https://", "")
+        "https://metamask.app.link/dapp/" + rozoPayUrl.replace("https://", "")
       );
     },
   },
@@ -178,8 +178,8 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
-    getDaimoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getDaimoPayUrl(payId));
+    getRozoPayDeeplink: (payId: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId));
       const ref = encodeURIComponent(window.location.origin);
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
@@ -189,9 +189,9 @@ export const walletConfigs: {
     icon: <Logos.Farcaster />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getDaimoPayDeeplink: (payId: string) => {
+    getRozoPayDeeplink: (payId: string) => {
       return (
-        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
+        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/rozo-pay/?id=" + payId
       );
     },
   },
@@ -200,10 +200,10 @@ export const walletConfigs: {
     icon: <Logos.MiniPay />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getDaimoPayDeeplink: (payId: string) => {
+    getRozoPayDeeplink: (payId: string) => {
       return (
         "https://cash.minipay.xyz/browse?url=" +
-        encodeURIComponent(getEncodedDaimoPayUrl(payId))
+        encodeURIComponent(getEncodedRozoPayUrl(payId))
       );
     },
   },
@@ -214,18 +214,18 @@ export const walletConfigs: {
     iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/rainbow",
-      website: "https://rainbow.me/?utm_source=daimopay",
+      website: "https://rainbow.me/?utm_source=rozopay",
       android:
-        "https://play.google.com/store/apps/details?id=me.rainbow&referrer=utm_source%3Ddaimopay&utm_source=daimopay",
-      ios: "https://apps.apple.com/app/rainbow-ethereum-wallet/id1457119021?pt=119997837&ct=daimopay&mt=8",
-      chrome: "https://rainbow.me/extension?utm_source=daimopay",
-      edge: "https://rainbow.me/extension?utm_source=daimopay",
-      brave: "https://rainbow.me/extension?utm_source=daimopay",
+        "https://play.google.com/store/apps/details?id=me.rainbow&referrer=utm_source%3Drozopay&utm_source=rozopay",
+      ios: "https://apps.apple.com/app/rainbow-ethereum-wallet/id1457119021?pt=119997837&ct=rozopay&mt=8",
+      chrome: "https://rainbow.me/extension?utm_source=rozopay",
+      edge: "https://rainbow.me/extension?utm_source=rozopay",
+      brave: "https://rainbow.me/extension?utm_source=rozopay",
     },
     showInMobileConnectors: true,
     deeplinkScheme: "rainbow://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "rainbow://dapp?url=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "rainbow://dapp?url=" + getRozoPayUrl(payId);
     },
   },
   // "io.rabby": {
@@ -253,8 +253,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "trust://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "trust://open_url?coin_id=60&url=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "trust://open_url?coin_id=60&url=" + getRozoPayUrl(payId);
     },
   },
   okx: {
@@ -262,8 +262,8 @@ export const walletConfigs: {
     icon: <Logos.OKX />,
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "okx://wallet/dapp/url?dappUrl=" + getRozoPayUrl(payId);
     },
   },
   solflare: {
@@ -271,8 +271,8 @@ export const walletConfigs: {
     icon: <Logos.Solflare />,
     showInMobileConnectors: true,
     deeplinkScheme: "solflare://",
-    getDaimoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getDaimoPayUrl(payId));
+    getRozoPayDeeplink: (payId: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId));
       const ref = encodeURIComponent(window.location.origin);
       return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
     },
@@ -290,10 +290,10 @@ export const walletConfigs: {
   //   },
   //   showInMobileConnectors: true,
   //   deeplinkScheme: "ledgerlive://",
-  //   // getDaimoPayDeeplink: (payId: string) => {
-  //   //   return "ledgerlive://discover/" + daimoPayUrl + payId;
+  //   // getRozoPayDeeplink: (payId: string) => {
+  //   //   return "ledgerlive://discover/" + rozoPayUrl + payId;
   //   // },
-  //   // TODO: Add Daimo Pay to Ledger Live's Discover section https://developers.ledger.com/docs/ledger-live/discover/getting-started
+  //   // TODO: Add Rozo Pay to Ledger Live's Discover section https://developers.ledger.com/docs/ledger-live/discover/getting-started
   //   shouldDeeplinkDesktop: true,
   // },
   zerion: {
@@ -308,8 +308,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "zerion://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "zerion://browser?url=" + getDaimoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string) => {
+      return "zerion://browser?url=" + getRozoPayUrl(payId);
     },
   },
 } as const;

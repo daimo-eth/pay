@@ -81,7 +81,7 @@ if (darkMode) {
 }
 
 const defaultTheme: CustomTheme = {
-  daimoPay: {
+  rozoPay: {
     options: {
       iconStyle: "light",
     },

@@ -1,14 +1,16 @@
 {
-  "name": "@daimo/pay-nextjs-app-example",
+  "name": "@rozoai/pay-nextjs-app-example",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "NEXT_USE_LOCAL_PACKAGES=true next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint --max-warnings=0"
   },
   "dependencies": {
-    "@rozoai/intent-pay": "^0.0.8",
+    "@rozoai/intent-pay": "workspace:*",
+    "@rozoai/intent-common": "workspace:*",
     "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
     "@tanstack/react-query": "^5.51.11",

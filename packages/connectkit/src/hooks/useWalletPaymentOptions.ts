@@ -1,4 +1,4 @@
-import { supportedChains, WalletPaymentOption } from "@daimo/pay-common";
+import { supportedChains, WalletPaymentOption } from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
@@ -50,7 +50,9 @@ export function useWalletPaymentOptions({
         const filteredOptions = newOptions.filter(isSupported);
         if (filteredOptions.length < newOptions.length) {
           log(
-            `[WALLET]: skipping ${newOptions.length - filteredOptions.length} unsupported-chain balances on ${address}`,
+            `[WALLET]: skipping ${
+              newOptions.length - filteredOptions.length
+            } unsupported-chain balances on ${address}`
           );
         }
 

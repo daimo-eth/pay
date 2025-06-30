@@ -12,7 +12,7 @@ export default [
       "react-dom",
       "framer-motion",
       "wagmi",
-      "@daimo/pay-common",
+      "@rozoai/intent-common",
       "buffer",
       "styled-components",
       "@wagmi/connectors",

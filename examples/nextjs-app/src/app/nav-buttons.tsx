@@ -12,13 +12,13 @@ export default function NavButtons() {
   const Btn = ({ route, children }: { route: string; children: string }) => (
     <Link href={route}>
       {pathname === route ? (
-        <Button className="inline-flex px-4 py-2 rounded-md bg-green-dark hover:bg-green-medium text-white transition-colors">
+        <Button className="inline-flex px-4 py-2 rounded-md bg-primary-dark hover:bg-primary-medium text-white transition-colors">
           {children}
         </Button>
       ) : (
         <Button
           outline
-          className="inline-flex px-4 py-2 rounded-md border border-green-dark text-green-dark hover:bg-cream-medium"
+          className="inline-flex px-4 py-2 rounded-md border border-primary-dark text-primary-dark "
         >
           {children}
         </Button>
@@ -28,8 +28,8 @@ export default function NavButtons() {
 
   return (
     <>
-      <Heading className="text-green-dark">DaimoPayButton Examples</Heading>
-      <div className="mt-1 text-sm text-green-medium">
+      <Heading className="text-primary-dark">RozoPayButton Examples</Heading>
+      <div className="mt-1 text-sm text-primary-medium">
         @rozoai/intent-pay v{version}
       </div>
 

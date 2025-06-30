@@ -5,7 +5,7 @@ import { Providers } from "./providers";
 import "../../styles/tailwind.css";
 
 export const metadata: Metadata = {
-  title: "Daimo Pay Checkout Demo",
+  title: "Rozo Pay Checkout Demo",
   description: "Demo showcasing checkout ID correlation",
 };
 

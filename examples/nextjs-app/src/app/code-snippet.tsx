@@ -23,7 +23,7 @@ export default function CodeSnippet({ codeSnippet }: CodeSnippetProps) {
 
   return (
     <div className="relative group">
-      <div className="bg-[#1e1e1e] rounded-lg py-4 text-white overflow-hidden mt-4 w-full border border-green-medium">
+      <div className="bg-[#1e1e1e] rounded-lg py-4 text-white overflow-hidden mt-4 w-full border border-primary-medium">
         <pre
           className="font-mono text-sm md:text-base overflow-x-auto px-3"
           style={{ maxWidth: "100%" }}
@@ -61,7 +61,7 @@ export default function CodeSnippet({ codeSnippet }: CodeSnippetProps) {
         title="Copy code"
       >
         {copied ? (
-          <CheckIcon className="h-4 w-4 text-green-600" />
+          <CheckIcon className="h-4 w-4 text-primary-600" />
         ) : (
           <ClipboardIcon className="h-4 w-4" />
         )}
@@ -84,7 +84,7 @@ function highlightCode(line: string) {
         </span>
         <span className="text-white">{" " + "}"} </span>
         <span className="text-purple-400">from</span>
-        <span className="text-green-400">
+        <span className="text-primary-400">
           {" "}
           &quot;{pathMatch ? pathMatch[1] : ""}&quot;
         </span>
@@ -92,7 +92,7 @@ function highlightCode(line: string) {
       </span>
     );
   }
-  if (line.includes("<DaimoPayButton")) {
+  if (line.includes("<RozoPayButton")) {
     return <span className="text-purple-400">{line}</span>;
   }
   if (line.includes("appId=")) {
@@ -101,7 +101,7 @@ function highlightCode(line: string) {
       <span>
         <span className="text-cyan-300">appId</span>
         <span className="text-white">=</span>
-        <span className="text-green-400">
+        <span className="text-primary-400">
           {valueMatch ? valueMatch[1] : ""}
         </span>
       </span>
@@ -137,7 +137,7 @@ function highlightCode(line: string) {
       <span>
         <span className="text-cyan-300">toUnits</span>
         <span className="text-white">=</span>
-        <span className="text-green-400">
+        <span className="text-primary-400">
           {valueMatch ? valueMatch[1] : ""}
         </span>
       </span>
@@ -161,7 +161,7 @@ function highlightCode(line: string) {
       <span>
         <span className="text-cyan-300">intent</span>
         <span className="text-white">=</span>
-        <span className="text-green-400">
+        <span className="text-primary-400">
           {valueMatch ? valueMatch[1] : ""}
         </span>
       </span>

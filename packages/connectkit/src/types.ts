@@ -25,14 +25,14 @@ export type All = {
 export type { CustomAvatarProps };
 
 /** Global options, across all pay buttons and payments. */
-export type DaimoPayContextOptions = {
+export type RozoPayContextOptions = {
   language?: Languages;
   hideBalance?: boolean;
   hideTooltips?: boolean;
   hideQuestionMarkCTA?: boolean;
   hideNoWalletCTA?: boolean;
   hideRecentBadge?: boolean;
-  /** Avoids layout shift when the DaimoPay modal is open by adding padding to the body */
+  /** Avoids layout shift when the RozoPay modal is open by adding padding to the body */
   avoidLayoutShift?: boolean;
   /** Automatically embeds Google Font of the current theme. Does not work with custom themes */
   embedGoogleFonts?: boolean;
@@ -52,13 +52,13 @@ export type DaimoPayContextOptions = {
 };
 
 /** Modal UI options, set on the pay button triggering that modal. */
-export type DaimoPayModalOptions = {
+export type RozoPayModalOptions = {
   closeOnSuccess?: boolean;
   resetOnSuccess?: boolean;
   connectedWalletOnly?: boolean;
 };
 
-// TODO: move types here from daimo-common/daimoPay.ts:
+// TODO: move types here from rozopay-common/rozopay.ts:
 // type PayEventBase = {
 //   /** The type of payment event. */
 //   type: PaymentStatus;

@@ -1,10 +1,10 @@
 import {
   assert,
-  DaimoPayHydratedOrderWithOrg,
-  DaimoPayTokenAmount,
+  RozoPayHydratedOrderWithOrg,
+  RozoPayTokenAmount,
   worldchainUSDC,
   worldchainWLD,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { getAddress } from "viem";
 
 import {
@@ -15,16 +15,16 @@ import {
 } from "@worldcoin/minikit-js";
 
 /**
- * Open Worldcoin's payment drawer and prompt the user to pay a Daimo Pay order.
+ * Open Worldcoin's payment drawer and prompt the user to pay a Rozo Pay order.
  */
 export async function promptWorldcoinPayment(
-  order: DaimoPayHydratedOrderWithOrg,
-  trpc: any,
+  order: RozoPayHydratedOrderWithOrg,
+  trpc: any
 ): Promise<{ paymentId: string; finalPayload: MiniAppPaymentPayload } | null> {
   try {
     if (!MiniKit.isInstalled()) {
       console.error(
-        "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",
+        "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature."
       );
       return null;
     }
@@ -41,13 +41,13 @@ export async function promptWorldcoinPayment(
           token: worldchainUSDC.token,
         },
       ],
-    })) as DaimoPayTokenAmount[];
+    })) as RozoPayTokenAmount[];
 
     const wld = paymentOptions.find(
-      (opt) => getAddress(opt.token.token) === getAddress(worldchainWLD.token),
+      (opt) => getAddress(opt.token.token) === getAddress(worldchainWLD.token)
     );
     const usdc = paymentOptions.find(
-      (opt) => getAddress(opt.token.token) === getAddress(worldchainUSDC.token),
+      (opt) => getAddress(opt.token.token) === getAddress(worldchainUSDC.token)
     );
 
     assert(wld != null, "WLD DP token not found");

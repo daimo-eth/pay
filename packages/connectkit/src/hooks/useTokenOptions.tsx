@@ -1,10 +1,10 @@
 /// Gets token options when paying from a connected wallet. Supports both EVM
 
 import {
-  DaimoPayToken,
+  RozoPayToken,
   getChainName,
   WalletPaymentOption,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { Option } from "../components/Common/OptionsList";
 import TokenChainLogo from "../components/Common/TokenChainLogo";
 import { ROUTES } from "../constants/routes";
@@ -79,13 +79,13 @@ function getEvmTokenOptions(
     const disabled = option.disabledReason != null;
 
     return {
-      id: getDaimoTokenKey(option.balance.token),
+      id: getRozoTokenKey(option.balance.token),
       sortValue: option.balance.usd,
       title,
       subtitle,
       icons: [
         <TokenChainLogo
-          key={getDaimoTokenKey(option.balance.token)}
+          key={getRozoTokenKey(option.balance.token)}
           token={option.balance.token}
         />,
       ],
@@ -125,13 +125,13 @@ function getSolanaTokenOptions(
     const disabled = option.disabledReason != null;
 
     return {
-      id: getDaimoTokenKey(option.balance.token),
+      id: getRozoTokenKey(option.balance.token),
       sortValue: option.balance.usd,
       title,
       subtitle,
       icons: [
         <TokenChainLogo
-          key={getDaimoTokenKey(option.balance.token)}
+          key={getRozoTokenKey(option.balance.token)}
           token={option.balance.token}
         />,
       ],
@@ -153,6 +153,6 @@ function getSolanaTokenOptions(
   });
 }
 
-function getDaimoTokenKey(token: DaimoPayToken) {
+function getRozoTokenKey(token: RozoPayToken) {
   return `${token.chainId}-${token.token}`;
 }

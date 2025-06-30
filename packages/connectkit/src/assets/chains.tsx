@@ -10,7 +10,7 @@ import {
   polygon,
   solana,
   worldchain,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 
 type Logo = {
   testnet?: boolean;

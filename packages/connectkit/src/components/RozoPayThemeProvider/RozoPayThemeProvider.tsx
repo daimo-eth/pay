@@ -9,14 +9,14 @@ type ContextValue = {
 
 const Context = createContext<ContextValue | null>(null);
 
-type DaimoPayThemeProviderProps = {
+type RozoPayThemeProviderProps = {
   children?: React.ReactNode;
   theme?: Theme;
   mode?: Mode;
   customTheme?: CustomTheme;
 };
 
-export const DaimoPayThemeProvider: React.FC<DaimoPayThemeProviderProps> = ({
+export const RozoPayThemeProvider: React.FC<RozoPayThemeProviderProps> = ({
   children,
   theme = "auto",
   mode = "auto",
@@ -33,6 +33,6 @@ export const DaimoPayThemeProvider: React.FC<DaimoPayThemeProviderProps> = ({
 
 export const useThemeContext = () => {
   const context = React.useContext(Context);
-  if (!context) throw Error("DaimoPayThemeProvider must be inside a Provider.");
+  if (!context) throw Error("RozoPayThemeProvider must be inside a Provider.");
   return context;
 };

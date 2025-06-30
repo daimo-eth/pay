@@ -16,23 +16,23 @@ const styles = {
   ],
   solid: [
     // Base solid style
-    "bg-green-dark hover:bg-green-medium text-white transition-colors",
+    "bg-primary-dark hover:bg-primary-medium text-white transition-colors",
   ],
   outline: [
     // Base outline style
-    "border border-green-dark text-green-dark hover:bg-cream-medium transition-colors",
+    "border border-primary-dark text-primary-dark transition-colors",
   ],
   plain: [
     // Base plain style
-    "text-green-dark hover:text-green-medium transition-colors",
+    "text-primary-dark hover:text-primary-medium transition-colors",
   ],
   colors: {
     "dark/zinc": [
       // Default color
-      "bg-green-dark hover:bg-green-medium text-white transition-colors",
+      "bg-primary-dark hover:bg-primary-medium text-white transition-colors",
     ],
-    green: ["bg-green-dark hover:bg-green-medium text-white transition-colors"],
-    white: ["bg-white text-green-dark hover:bg-cream-light transition-colors"],
+    green: ["bg-primary-dark hover:bg-primary-medium text-white transition-colors"],
+    white: ["bg-white text-primary-dark  transition-colors"],
   },
 };
 

@@ -1,13 +1,15 @@
 {
-  "name": "@daimo/pay-common",
-  "version": "1.12.2-dev",
-  "description": "Daimo Pay shared types and utilities",
+  "name": "@rozoai/intent-common",
+  "version": "0.0.1",
+  "description": "Intent Pay shared types and utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "author": "Daimo",
+  "author": "RozoAI",
   "license": "BSD-2-Clause license",
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
+    "prepare": "npm run build",
     "test": "tape -r ts-node/register/transpile-only test/**/*.test.ts",
     "lint": "npm run lint:deps && npm run lint:style",
     "lint:deps": "npx depcheck --ignores @tsconfig/node20,@types/tape,ts-node",
@@ -26,5 +28,8 @@
     "@scure/base": "^1.2.4",
     "viem": "^2.23.14",
     "zod": "^3.24.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

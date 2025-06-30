@@ -4,7 +4,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import { getAddressContraction } from "@daimo/pay-common";
+import { getAddressContraction } from "@rozoai/intent-common";
 import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
@@ -112,21 +112,21 @@ export default function SelectMethod() {
         title: `Pay with ${solWalletDisplayName}`,
         icons: solanaWallet?.adapter.icon
           ? [
-              <WalletChainLogo
-                key="sol-wallet"
-                walletIcon={solanaWallet.adapter.icon}
-                walletName={solanaWallet.adapter.name}
-                chainLogo={showChainLogo && <Solana />}
-              />,
-            ]
+            <WalletChainLogo
+              key="sol-wallet"
+              walletIcon={solanaWallet.adapter.icon}
+              walletName={solanaWallet.adapter.name}
+              chainLogo={showChainLogo && <Solana />}
+            />,
+          ]
           : [
-              <WalletChainLogo
-                key="sol-wallet"
-                walletIcon={<Solana />}
-                walletName="Default wallet icon"
-                chainLogo={null}
-              />,
-            ],
+            <WalletChainLogo
+              key="sol-wallet"
+              walletIcon={<Solana />}
+              walletName="Default wallet icon"
+              chainLogo={null}
+            />,
+          ],
         onClick: () => {
           paymentState.setTokenMode("solana");
           setRoute(ROUTES.SELECT_TOKEN, {

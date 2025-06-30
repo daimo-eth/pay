@@ -7,7 +7,7 @@ import { TooltipProps, TooltipSizeProps } from "./types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ResetContainer } from "../../../styles";
-import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
+import { useThemeContext } from "../../RozoPayThemeProvider/RozoPayThemeProvider";
 import Portal from "../Portal";
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -53,12 +53,12 @@ const Tooltip: React.FC<TooltipProps> = ({
     if (
       !targetRef.current ||
       bounds.top +
-        bounds.bottom +
-        bounds.left +
-        bounds.right +
-        bounds.height +
-        bounds.width ===
-        0
+      bounds.bottom +
+      bounds.left +
+      bounds.right +
+      bounds.height +
+      bounds.width ===
+      0
     )
       return;
     const x = xOffset + bounds.left + bounds.width;
@@ -88,8 +88,8 @@ const Tooltip: React.FC<TooltipProps> = ({
         style={
           open === undefined
             ? {
-                cursor: "help",
-              }
+              cursor: "help",
+            }
             : {}
         }
         onHoverStart={() => setIsOpen(true)}

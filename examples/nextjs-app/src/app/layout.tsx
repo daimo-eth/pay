@@ -6,14 +6,14 @@ import { LayoutWrapper } from "./layout-wrapper";
 import { Global } from "./global";
 
 export const metadata: Metadata = {
-  title: "Daimo Pay Demo",
+  title: "Rozo Pay Demo",
   description: "One-click crypto payments integration demos",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-cream-light min-h-screen">
+      <body className="bg-white min-h-screen">
         <Global />
         <StyledComponentsRegistry>
           <LayoutWrapper>{children}</LayoutWrapper>

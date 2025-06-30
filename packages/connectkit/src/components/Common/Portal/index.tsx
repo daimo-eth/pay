@@ -4,7 +4,7 @@ import packageJson from "../../../../package.json";
 
 const Portal = (props: any) => {
   props = {
-    selector: "__DAIMOPAY__",
+    selector: "__ROZOPAY__",
     ...props,
   };
 
@@ -20,7 +20,7 @@ const Portal = (props: any) => {
     if (!ref.current) {
       const div = document.createElement("div");
       div.setAttribute("id", selector);
-      div.setAttribute("data-daimopay", `${packageJson.version}`);
+      div.setAttribute("data-rozopay", `${packageJson.version}`);
       document.body.appendChild(div);
       ref.current = div;
     }

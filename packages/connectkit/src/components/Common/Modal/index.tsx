@@ -29,12 +29,12 @@ import {
 import useLockBodyScroll from "../../../hooks/useLockBodyScroll";
 import { usePayContext } from "../../../hooks/usePayContext";
 
-import { getChainName } from "@daimo/pay-common";
+import { getChainName } from "@rozoai/intent-common";
 import { useTransition } from "react-transition-state";
 import { useAccount, useSwitchChain } from "wagmi";
 import { AuthIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
@@ -43,7 +43,7 @@ import {
   useWallet,
   WALLET_ID_MOBILE_WALLETS,
 } from "../../../wallets/useWallets";
-import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
+import { useThemeContext } from "../../RozoPayThemeProvider/RozoPayThemeProvider";
 import FitText from "../FitText";
 
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (
@@ -210,7 +210,7 @@ const Modal: React.FC<ModalProps> = ({
     selectedSolanaTokenOption,
     selectedDepositAddressOption,
   } = context.paymentState;
-  const { order } = useDaimoPay();
+  const { order } = useRozoPay();
 
   const { connector } = useAccount();
   const wallet = useWallet(connector?.id ?? "");
@@ -413,10 +413,10 @@ const Modal: React.FC<ModalProps> = ({
         <Container
           style={dimensionsCSS}
           initial={false}
-          // transition={{
-          //   ease: [0.2555, 0.1111, 0.2555, 1.0001],
-          //   duration: !positionInside && state !== 'entered' ? 0 : 0.24,
-          // }}
+        // transition={{
+        //   ease: [0.2555, 0.1111, 0.2555, 1.0001],
+        //   duration: !positionInside && state !== 'entered' ? 0 : 0.24,
+        // }}
         >
           <div
             style={{

@@ -4,7 +4,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
@@ -16,7 +16,7 @@ import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 const SelectWalletAmount: React.FC = () => {
   const { paymentState, setPendingConnectorId, setRoute } = usePayContext();
   const { selectedWallet, openInWalletBrowser } = paymentState;
-  const { setChosenUsd, hydrateOrder } = useDaimoPay();
+  const { setChosenUsd, hydrateOrder } = useRozoPay();
 
   const maxUsdLimit = paymentState.getOrderUsdLimit();
 

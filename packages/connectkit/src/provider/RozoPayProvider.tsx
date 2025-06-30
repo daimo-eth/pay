@@ -1,8 +1,8 @@
 import {
-  DaimoPayOrderMode,
-  DaimoPayOrderStatusSource,
+  RozoPayOrderMode,
+  RozoPayOrderStatusSource,
   debugJson,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { Buffer } from "buffer";
 import React, {
   createElement,
@@ -15,7 +15,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { WagmiContext } from "wagmi";
 
-import { DaimoPayModal } from "../components/DaimoPayModal";
+import { RozoPayModal } from "../components/RozoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
 import { useChains } from "../hooks/useChains";
@@ -23,14 +23,14 @@ import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
-import { useDaimoPay } from "../hooks/useDaimoPay";
+import { useRozoPay } from "../hooks/useRozoPay";
 import { usePaymentState } from "../hooks/usePaymentState";
 import { PaymentContext, PaymentProvider } from "../provider/PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
 import {
   CustomTheme,
-  DaimoPayContextOptions,
-  DaimoPayModalOptions,
+  RozoPayContextOptions,
+  RozoPayModalOptions,
   Languages,
   Mode,
   Theme,
@@ -44,19 +44,19 @@ import {
 } from "./SolanaContextProvider";
 import { Web3ContextProvider } from "./Web3ContextProvider";
 
-type DaimoPayUIProviderProps = {
+type RozoPayUIProviderProps = {
   children?: React.ReactNode;
   theme?: Theme;
   mode?: Mode;
   customTheme?: CustomTheme;
-  options?: DaimoPayContextOptions;
+  options?: RozoPayContextOptions;
   debugMode?: boolean;
   /** Custom Pay API, useful for test and staging. */
   payApiUrl: string;
   log: (msg: string, ...props: any[]) => void;
 } & useConnectCallbackProps;
 
-const DaimoPayUIProvider = ({
+const RozoPayUIProvider = ({
   children,
   theme = "auto",
   mode = "auto",
@@ -67,20 +67,20 @@ const DaimoPayUIProvider = ({
   debugMode = false,
   payApiUrl,
   log,
-}: DaimoPayUIProviderProps) => {
+}: RozoPayUIProviderProps) => {
   if (!React.useContext(PaymentContext)) {
-    throw Error("DaimoPayProvider must be within a PaymentProvider");
+    throw Error("RozoPayProvider must be within a PaymentProvider");
   }
 
   if (!React.useContext(WagmiContext)) {
-    throw Error("DaimoPayProvider must be within a WagmiProvider");
+    throw Error("RozoPayProvider must be within a WagmiProvider");
   }
 
-  // Only allow for mounting DaimoPayProvider once, so we avoid weird global
+  // Only allow for mounting RozoPayProvider once, so we avoid weird global
   // state collisions.
   if (React.useContext(PayContext)) {
     throw new Error(
-      "Multiple, nested usages of DaimoPayProvider detected. Please use only one.",
+      "Multiple, nested usages of RozoPayProvider detected. Please use only one.",
     );
   }
 
@@ -94,13 +94,13 @@ const DaimoPayUIProvider = ({
   for (const requiredChain of REQUIRED_CHAINS) {
     if (!chains.some((c) => c.id === requiredChain.id)) {
       throw new Error(
-        `Daimo Pay requires chains ${REQUIRED_CHAINS.map((c) => c.name).join(", ")}. Use \`getDefaultConfig\` to automatically configure required chains.`,
+        `Rozo Pay requires chains ${REQUIRED_CHAINS.map((c) => c.name).join(", ")}. Use \`getDefaultConfig\` to automatically configure required chains.`,
       );
     }
   }
 
   // Default config options
-  const defaultOptions: DaimoPayContextOptions = {
+  const defaultOptions: RozoPayContextOptions = {
     language: "en-US",
     hideBalance: false,
     hideTooltips: false,
@@ -122,7 +122,7 @@ const DaimoPayUIProvider = ({
     disableMobileInjector: false,
   };
 
-  const opts: DaimoPayContextOptions = Object.assign(
+  const opts: RozoPayContextOptions = Object.assign(
     {},
     defaultOptions,
     options,
@@ -140,7 +140,7 @@ const DaimoPayUIProvider = ({
      */
   }
 
-  const pay = useDaimoPay();
+  const pay = useRozoPay();
 
   const [ckTheme, setTheme] = useState<Theme>(theme);
   const [ckMode, setMode] = useState<Mode>(mode);
@@ -164,9 +164,9 @@ const DaimoPayUIProvider = ({
   const [lockPayParams, setLockPayParams] = useState<boolean>(false);
   const [paymentCompleted, setPaymentCompleted] = useState<boolean>(false);
   const [route, setRouteState] = useState<ROUTES>(ROUTES.SELECT_METHOD);
-  const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
+  const [modalOptions, setModalOptions] = useState<RozoPayModalOptions>();
 
-  // Daimo Pay context
+  // Rozo Pay context
   const [pendingConnectorId, setPendingConnectorId] = useState<
     string | undefined
   >(undefined);
@@ -186,7 +186,7 @@ const DaimoPayUIProvider = ({
   const [redirectReturnUrl, setRedirectReturnUrl] = useState<
     string | undefined
   >(undefined);
-  // Connect to the Daimo Pay TRPC API
+  // Connect to the Rozo Pay TRPC API
   const trpc = useMemo(() => {
     return createTrpcClient(payApiUrl, sessionId);
   }, [payApiUrl, sessionId]);
@@ -201,7 +201,7 @@ const DaimoPayUIProvider = ({
       setOpenState(open);
 
       // Lock pay params starting from the first time the modal is opened to
-      // prevent the daimo pay order from changing from under the user
+      // prevent the rozo pay order from changing from under the user
       if (open) {
         setLockPayParams(true);
       }
@@ -239,7 +239,7 @@ const DaimoPayUIProvider = ({
 
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
-      const action = route.replace("daimoPay", "");
+      const action = route.replace("rozoPay", "");
       log(`[SET ROUTE] ${action} ${pay.order?.id} ${debugJson(data ?? {})}`);
       trpc.nav.mutate({
         action,
@@ -268,7 +268,7 @@ const DaimoPayUIProvider = ({
     redirectReturnUrl,
   });
 
-  const showPayment = async (modalOptions: DaimoPayModalOptions) => {
+  const showPayment = async (modalOptions: RozoPayModalOptions) => {
     const id = pay.order?.id;
     log(
       `[PAY] showing modal ${debugJson({ id, modalOptions, paymentFsmState: pay.paymentState })}`,
@@ -298,8 +298,8 @@ const DaimoPayUIProvider = ({
   // Watch when the order gets paid and navigate to confirmation
   // ...if underpaid, go to the deposit addr screen, let the user finish paying.
   const isUnderpaid =
-    pay.order?.mode === DaimoPayOrderMode.HYDRATED &&
-    pay.order.sourceStatus === DaimoPayOrderStatusSource.WAITING_PAYMENT &&
+    pay.order?.mode === RozoPayOrderMode.HYDRATED &&
+    pay.order.sourceStatus === RozoPayOrderStatusSource.WAITING_PAYMENT &&
     pay.order.sourceTokenAmount != null;
   useEffect(() => {
     if (
@@ -332,7 +332,7 @@ const DaimoPayUIProvider = ({
     setOpen,
     route,
     setRoute,
-    // Daimo Pay context
+    // Rozo Pay context
     pendingConnectorId,
     setPendingConnectorId,
     sessionId,
@@ -351,16 +351,16 @@ const DaimoPayUIProvider = ({
     log,
     displayError: (message: string | React.ReactNode | null, code?: any) => {
       setErrorMessage(message);
-      console.log("---------DAIMOPAY DEBUG---------");
+      console.log("---------ROZOPAY DEBUG---------");
       console.log(message);
       if (code) console.table(code);
-      console.log("---------/DAIMOPAY DEBUG---------");
+      console.log("---------/ROZOPAY DEBUG---------");
     },
     resize,
     triggerResize: () => onResize((prev) => prev + 1),
 
     // Above: generic ConnectKit context
-    // Below: Daimo Pay context
+    // Below: Rozo Pay context
     showPayment,
     paymentState,
     trpc,
@@ -372,7 +372,7 @@ const DaimoPayUIProvider = ({
     <Web3ContextProvider>
       <ThemeProvider theme={defaultTheme}>
         {children}
-        <DaimoPayModal
+        <RozoPayModal
           lang={ckLang}
           theme={ckTheme}
           mode={mode}
@@ -384,12 +384,12 @@ const DaimoPayUIProvider = ({
   );
 };
 
-type DaimoPayProviderProps = {
+type RozoPayProviderProps = {
   children?: React.ReactNode;
   theme?: Theme;
   mode?: Mode;
   customTheme?: CustomTheme;
-  options?: DaimoPayContextOptions;
+  options?: RozoPayContextOptions;
   debugMode?: boolean;
   /**
    * Be careful with this endpoint, some endpoints (incl. Alchemy) don't support
@@ -402,20 +402,20 @@ type DaimoPayProviderProps = {
 } & useConnectCallbackProps;
 
 /**
- * Provides context for DaimoPayButton and hooks. Place in app root or layout.
+ * Provides context for RozoPayButton and hooks. Place in app root or layout.
  */
-export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
-  const payApiUrl = props.payApiUrl ?? "https://pay-api.daimo.xyz/";
+export const RozoPayProvider = (props: RozoPayProviderProps) => {
+  const payApiUrl = props.payApiUrl ?? "https://intentapi.rozo.ai";
   const log = useMemo(
     () =>
-      props.debugMode ? (...args: any[]) => console.log(...args) : () => {},
+      props.debugMode ? (...args: any[]) => console.log(...args) : () => { },
     [props.debugMode],
   );
 
   return (
     <PaymentProvider payApiUrl={payApiUrl} log={log}>
       <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-        <DaimoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
+        <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
       </SolanaContextProvider>
     </PaymentProvider>
   );

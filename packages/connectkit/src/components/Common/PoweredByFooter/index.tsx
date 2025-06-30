@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
 import CrepeIcon from "../../../assets/crepe";
 import styled from "../../../styles/styled";
-import { daimoPayVersion } from "../../../utils/exports";
+import { rozoPayVersion } from "../../../utils/exports";
 
 const PoweredByFooter = ({
   supportUrl,
@@ -25,7 +25,7 @@ const PoweredByFooter = ({
       <TextButton
         onClick={() => {
           window.open(
-            globalThis.__SUPPORTURL__ || `https://pay.daimo.com?ref=sdk-v${daimoPayVersion}`,
+            globalThis.__SUPPORTURL__ || `https://pay.daimo.com?ref=sdk-v${rozoPayVersion}`,
             "_blank"
           );
         }}
@@ -38,7 +38,7 @@ const PoweredByFooter = ({
               Need help? <Underline>Contact support</Underline>
             </>
           ) : (
-            <>Powered by {globalThis.__POWEREDBY__ || "Daimo Pay"}</>
+            <>Powered by {globalThis.__POWEREDBY__ || "Rozo Pay"}</>
           )}
         </span>
       </TextButton>

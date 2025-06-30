@@ -1,10 +1,10 @@
 import {
   assert,
-  DaimoPayOrderMode,
-  DaimoPayOrderWithOrg,
+  RozoPayOrderMode,
+  RozoPayOrderWithOrg,
   getOrderDestChainId,
-  readDaimoPayOrderID,
-} from "@daimo/pay-common";
+  readRozoPayOrderID,
+} from "@rozoai/intent-common";
 import { formatUnits, getAddress } from "viem";
 import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
@@ -30,18 +30,18 @@ function stopPoller(key: string) {
  * events.
  *
  * @param store The payment store to subscribe to.
- * @param trpc TRPC client pointing to the Daimo Pay API.
+ * @param trpc TRPC client pointing to the Rozo Pay API.
  * @param log The logger to use for logging.
  * @returns A function that can be used to unsubscribe from the store.
  */
 export function attachPaymentEffectHandlers(
   store: PaymentStore,
   trpc: TrpcClient,
-  log: (msg: string) => void,
+  log: (msg: string) => void
 ): () => void {
   const unsubscribe = store.subscribe(({ prev, next, event }) => {
     log(
-      `[EFFECT] processing effects for event ${event.type} on state transition ${prev.type} -> ${next.type}`,
+      `[EFFECT] processing effects for event ${event.type} on state transition ${prev.type} -> ${next.type}`
     );
     /* --------------------------------------------------
      * State-driven effects
@@ -60,7 +60,7 @@ export function attachPaymentEffectHandlers(
       // Stop all pollers when the payment flow is completed or reset
       if (
         ["payment_completed", "payment_bounced", "error", "idle"].includes(
-          next.type,
+          next.type
         )
       ) {
         if ("order" in prev && prev.order) {
@@ -130,7 +130,7 @@ export function attachPaymentEffectHandlers(
 async function pollFindPayments(
   store: PaymentStore,
   trpc: TrpcClient,
-  orderId: bigint,
+  orderId: bigint
 ) {
   const key = `${PollerType.FIND_SOURCE_PAYMENT}:${orderId}`;
 
@@ -155,7 +155,7 @@ async function pollFindPayments(
 async function pollRefreshOrder(
   store: PaymentStore,
   trpc: TrpcClient,
-  orderId: bigint,
+  orderId: bigint
 ) {
   const key = `${PollerType.REFRESH_ORDER}:${orderId}`;
 
@@ -183,7 +183,7 @@ async function pollRefreshOrder(
 async function runSetPayParamsEffects(
   store: PaymentStore,
   trpc: TrpcClient,
-  event: Extract<PaymentEvent, { type: "set_pay_params" }>,
+  event: Extract<PaymentEvent, { type: "set_pay_params" }>
 ) {
   const payParams = event.payParams;
   // toUnits is undefined if and only if we're in deposit flow.
@@ -195,7 +195,7 @@ async function runSetPayParamsEffects(
   const isDepositFlow = payParams.toUnits == null;
   assert(
     !isDepositFlow || payParams.externalId == null,
-    "PayParams: externalId unsupported in deposit mode",
+    "PayParams: externalId unsupported in deposit mode"
   );
 
   try {
@@ -225,7 +225,7 @@ async function runSetPayParamsEffects(
     store.dispatch({
       type: "preview_generated",
       // TODO: Properly type this and fix hacky type casting
-      order: orderPreview as unknown as DaimoPayOrderWithOrg,
+      order: orderPreview as unknown as RozoPayOrderWithOrg,
       payParamsData: {
         appId: payParams.appId,
       },
@@ -238,11 +238,11 @@ async function runSetPayParamsEffects(
 async function runSetPayIdEffects(
   store: PaymentStore,
   trpc: TrpcClient,
-  event: Extract<PaymentEvent, { type: "set_pay_id" }>,
+  event: Extract<PaymentEvent, { type: "set_pay_id" }>
 ) {
   try {
     const { order } = await trpc.getOrder.query({
-      id: readDaimoPayOrderID(event.payId).toString(),
+      id: readRozoPayOrderID(event.payId).toString(),
     });
 
     store.dispatch({
@@ -258,13 +258,13 @@ async function runHydratePayParamsEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "preview" }>,
-  event: Extract<PaymentEvent, { type: "hydrate_order" }>,
+  event: Extract<PaymentEvent, { type: "hydrate_order" }>
 ) {
   const order = prev.order;
 
   const toUnits = formatUnits(
     BigInt(order.destFinalCallTokenAmount.amount),
-    order.destFinalCallTokenAmount.token.decimals,
+    order.destFinalCallTokenAmount.token.decimals
   );
   try {
     const { hydratedOrder } = await trpc.createOrder.mutate({
@@ -276,7 +276,7 @@ async function runHydratePayParamsEffects(
         toUnits,
         toAddress: getAddress(order.destFinalCall.to),
         toCallData: order.destFinalCall.data,
-        isAmountEditable: order.mode === DaimoPayOrderMode.CHOOSE_AMOUNT,
+        isAmountEditable: order.mode === RozoPayOrderMode.CHOOSE_AMOUNT,
         metadata: order.metadata,
         userMetadata: order.userMetadata,
         externalId: order.externalId ?? undefined,
@@ -300,7 +300,7 @@ async function runHydratePayIdEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "unhydrated" }>,
-  event: Extract<PaymentEvent, { type: "hydrate_order" }>,
+  event: Extract<PaymentEvent, { type: "hydrate_order" }>
 ) {
   const order = prev.order;
 
@@ -322,7 +322,7 @@ async function runHydratePayIdEffects(
 async function runPaySourceEffects(
   store: PaymentStore,
   trpc: TrpcClient,
-  prev: Extract<PaymentState, { type: "payment_unpaid" }>,
+  prev: Extract<PaymentState, { type: "payment_unpaid" }>
 ) {
   const orderId = prev.order.id;
 
@@ -340,7 +340,7 @@ async function runPayEthereumSourceEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "payment_unpaid" }>,
-  event: Extract<PaymentEvent, { type: "pay_ethereum_source" }>,
+  event: Extract<PaymentEvent, { type: "pay_ethereum_source" }>
 ) {
   const orderId = prev.order.id;
 
@@ -363,7 +363,7 @@ async function runPaySolanaSourceEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "payment_unpaid" }>,
-  event: Extract<PaymentEvent, { type: "pay_solana_source" }>,
+  event: Extract<PaymentEvent, { type: "pay_solana_source" }>
 ) {
   const orderId = prev.order.id;
 

@@ -1,4 +1,4 @@
-import { assertNotNull } from "@daimo/pay-common";
+import { assertNotNull } from "@rozoai/intent-common";
 import { Connector } from "wagmi";
 
 import Logos from "../assets/logos";

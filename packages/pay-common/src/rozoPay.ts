@@ -23,7 +23,7 @@ import {
 } from "./primitiveTypes";
 
 // lifecycle: waiting payment -> pending processing -> start submitted -> processed (onchain tx was successful)
-export enum DaimoPayOrderStatusSource {
+export enum RozoPayOrderStatusSource {
   WAITING_PAYMENT = "waiting_payment",
   PENDING_PROCESSING = "pending_processing",
   START_SUBMITTED = "start_submitted",
@@ -32,7 +32,7 @@ export enum DaimoPayOrderStatusSource {
 }
 
 // lifecycle: pending -> fast-finish-submitted (onchain tx submitted) -> fast-finished (onchain tx was successful) -> claimed (onchain tx was successful)
-export enum DaimoPayOrderStatusDest {
+export enum RozoPayOrderStatusDest {
   PENDING = "pending",
   FAST_FINISH_SUBMITTED = "fast_finish_submitted",
   /* Fast finish transaction receipt confirmed. */
@@ -40,7 +40,7 @@ export enum DaimoPayOrderStatusDest {
   CLAIM_SUCCESSFUL = "claimed",
 }
 
-export enum DaimoPayOrderMode {
+export enum RozoPayOrderMode {
   SALE = "sale", // product or item sale
   CHOOSE_AMOUNT = "choose_amount", // let the user specify the amount to pay
   HYDRATED = "hydrated", // once hydrated, the order is final and all parameters are known and immutable
@@ -55,14 +55,14 @@ export enum DaimoPayOrderMode {
  * - `payment_bounced` - the final call or transfer reverted. Funds were sent
  *    to the payment's configured refund address on the destination chain.
  */
-export enum DaimoPayIntentStatus {
+export enum RozoPayIntentStatus {
   UNPAID = "payment_unpaid",
   STARTED = "payment_started",
   COMPLETED = "payment_completed",
   BOUNCED = "payment_bounced",
 }
 
-export interface DaimoPayOrderItem {
+export interface RozoPayOrderItem {
   name: string;
   description: string;
   image?: string;
@@ -72,14 +72,14 @@ export const zBridgeTokenOutOptions = z.array(
   z.object({
     token: zAddress,
     amount: zBigIntStr.transform((a) => BigInt(a)),
-  }),
+  })
 );
 
 export type BridgeTokenOutOptions = z.infer<typeof zBridgeTokenOutOptions>;
 
 // NOTE: be careful to modify this type only in backward-compatible ways.
 //       Add OPTIONAL fields, etc. Anything else requires a migration.
-export const zDaimoPayOrderMetadata = z.object({
+export const zRozoPayOrderMetadata = z.object({
   style: z
     .object({
       background: z.string().optional().describe("Background color."),
@@ -98,7 +98,7 @@ export const zDaimoPayOrderMetadata = z.object({
         image: z.string().optional(),
         price: z.string().optional(),
         priceDetails: z.string().optional(),
-      }),
+      })
     )
     .describe("Details about what's being ordered, donated, deposited, etc."),
   payer: z
@@ -107,18 +107,18 @@ export const zDaimoPayOrderMetadata = z.object({
         .array(z.number())
         .optional()
         .describe(
-          "Preferred chain IDs, in descending order. Any assets the user owns on preferred chains will appear first. Defaults to destination chain.",
+          "Preferred chain IDs, in descending order. Any assets the user owns on preferred chains will appear first. Defaults to destination chain."
         ),
       preferredTokens: z
         .array(
           z.object({
             chain: z.number(),
             address: zAddress.transform((a) => getAddress(a)),
-          }),
+          })
         )
         .optional()
         .describe(
-          "Preferred tokens, in descending order. Any preferred assets the user owns will appear first. Defaults to destination token.",
+          "Preferred tokens, in descending order. Any preferred assets the user owns will appear first. Defaults to destination token."
         ),
       // Filter to only allow payments on these chains. Keep this
       // parameter undocumented. Only for specific customers.
@@ -126,20 +126,20 @@ export const zDaimoPayOrderMetadata = z.object({
         .array(z.number())
         .optional()
         .describe(
-          "Filter to only allow payments on these EVM chains. Defaults to all chains.",
+          "Filter to only allow payments on these EVM chains. Defaults to all chains."
         ),
       paymentOptions: z
         .array(z.string())
         .optional()
         .describe(
-          "Payment options like Coinbase, Binance, etc. Defaults to all available options.",
+          "Payment options like Coinbase, Binance, etc. Defaults to all available options."
         ),
     })
     .optional()
     .describe(""),
 });
 
-export type DaimoPayOrderMetadata = z.infer<typeof zDaimoPayOrderMetadata>;
+export type RozoPayOrderMetadata = z.infer<typeof zRozoPayOrderMetadata>;
 
 /**
  * The user-passed metadata must meet these criteria:
@@ -149,38 +149,38 @@ export type DaimoPayOrderMetadata = z.infer<typeof zDaimoPayOrderMetadata>;
  * - Maximum of 40 characters per key
  * - Maximum of 500 characters per value
  */
-export const zDaimoPayUserMetadata = z
+export const zRozoPayUserMetadata = z
   .record(
     z.string().max(40, "Metadata keys cannot be longer than 40 characters"),
-    z.string().max(500, "Metadata values cannot be longer than 500 characters"),
+    z.string().max(500, "Metadata values cannot be longer than 500 characters")
   )
   .nullable()
   .refine(
     (obj) => !obj || Object.keys(obj).length <= 50,
-    "Metadata cannot have more than 50 key-value pairs",
+    "Metadata cannot have more than 50 key-value pairs"
   );
 
-export type DaimoPayUserMetadata = z.infer<typeof zDaimoPayUserMetadata>;
+export type RozoPayUserMetadata = z.infer<typeof zRozoPayUserMetadata>;
 
-export type DaimoPayDehydratedOrder = {
-  mode: DaimoPayOrderMode.SALE | DaimoPayOrderMode.CHOOSE_AMOUNT;
+export type RozoPayDehydratedOrder = {
+  mode: RozoPayOrderMode.SALE | RozoPayOrderMode.CHOOSE_AMOUNT;
   id: bigint;
-  destFinalCallTokenAmount: DaimoPayTokenAmount;
+  destFinalCallTokenAmount: RozoPayTokenAmount;
   destFinalCall: OnChainCall;
   nonce: bigint;
   redirectUri: string | null;
   orgId: string | null;
   createdAt: number | null;
   lastUpdatedAt: number | null;
-  intentStatus: DaimoPayIntentStatus;
-  metadata: DaimoPayOrderMetadata;
+  intentStatus: RozoPayIntentStatus;
+  metadata: RozoPayOrderMetadata;
   externalId: string | null;
-  userMetadata: DaimoPayUserMetadata | null;
+  userMetadata: RozoPayUserMetadata | null;
   refundAddr: Address | null;
 };
 
-export type DaimoPayHydratedOrder = {
-  mode: DaimoPayOrderMode.HYDRATED;
+export type RozoPayHydratedOrder = {
+  mode: RozoPayOrderMode.HYDRATED;
   id: bigint;
   intentAddr: Address;
   /** Nullable because old intents don't record escrow address. */
@@ -189,64 +189,62 @@ export type DaimoPayHydratedOrder = {
   bridgerContractAddress: Address | null;
   /** @deprecated included for backcompat with old versions. Remove soon. */
   handoffAddr: Address;
-  bridgeTokenOutOptions: DaimoPayTokenAmount[];
+  bridgeTokenOutOptions: RozoPayTokenAmount[];
   selectedBridgeTokenOutAddr: Address | null;
   selectedBridgeTokenOutAmount: bigint | null;
-  destFinalCallTokenAmount: DaimoPayTokenAmount;
+  destFinalCallTokenAmount: RozoPayTokenAmount;
   destFinalCall: OnChainCall;
   usdValue: number;
   refundAddr: Address;
   nonce: bigint;
   sourceFulfillerAddr: Address | SolanaPublicKey | null;
-  sourceTokenAmount: DaimoPayTokenAmount | null;
+  sourceTokenAmount: RozoPayTokenAmount | null;
   sourceInitiateTxHash: Hex | null;
   sourceStartTxHash: Hex | null;
-  sourceStatus: DaimoPayOrderStatusSource;
-  destStatus: DaimoPayOrderStatusDest;
+  sourceStatus: RozoPayOrderStatusSource;
+  destStatus: RozoPayOrderStatusDest;
   destFastFinishTxHash: Hex | null;
   destClaimTxHash: Hex | null;
   redirectUri: string | null;
   orgId: string | null;
   createdAt: number | null;
   lastUpdatedAt: number | null;
-  intentStatus: DaimoPayIntentStatus;
-  metadata: DaimoPayOrderMetadata;
+  intentStatus: RozoPayIntentStatus;
+  metadata: RozoPayOrderMetadata;
   externalId: string | null;
-  userMetadata: DaimoPayUserMetadata | null;
+  userMetadata: RozoPayUserMetadata | null;
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
 };
 
-export type DaimoPayOrderWithOrg = DaimoPayOrder & {
-  org: DaimoPayOrgPublicInfo;
+export type RozoPayOrderWithOrg = RozoPayOrder & {
+  org: RozoPayOrgPublicInfo;
 };
 
-export type DaimoPayHydratedOrderWithOrg = DaimoPayHydratedOrder & {
-  org: DaimoPayOrgPublicInfo;
+export type RozoPayHydratedOrderWithOrg = RozoPayHydratedOrder & {
+  org: RozoPayOrgPublicInfo;
 };
 
-export type DaimoPayOrgPublicInfo = {
+export type RozoPayOrgPublicInfo = {
   orgId: string;
   name: string;
   logoURI?: string;
 };
 
-export type DaimoPayHydratedOrderWithoutIntentAddr = Omit<
-  DaimoPayHydratedOrder,
+export type RozoPayHydratedOrderWithoutIntentAddr = Omit<
+  RozoPayHydratedOrder,
   "intentAddr" | "handoffAddr"
 >;
 
-export type DaimoPayOrder = DaimoPayDehydratedOrder | DaimoPayHydratedOrder;
+export type RozoPayOrder = RozoPayDehydratedOrder | RozoPayHydratedOrder;
 
-export function isHydrated(
-  order: DaimoPayOrder,
-): order is DaimoPayHydratedOrder {
-  return order.mode === DaimoPayOrderMode.HYDRATED;
+export function isHydrated(order: RozoPayOrder): order is RozoPayHydratedOrder {
+  return order.mode === RozoPayOrderMode.HYDRATED;
 }
 
-export type DaimoPayOrderView = {
-  id: DaimoPayOrderID;
-  status: DaimoPayIntentStatus;
+export type RozoPayOrderView = {
+  id: RozoPayOrderID;
+  status: RozoPayIntentStatus;
   createdAt: string;
   display: {
     intent: string;
@@ -271,11 +269,11 @@ export type DaimoPayOrderView = {
     callData: Hex | null;
   };
   externalId: string | null;
-  metadata: DaimoPayUserMetadata | null;
+  metadata: RozoPayUserMetadata | null;
 };
 
 export function getOrderSourceChainId(
-  order: DaimoPayHydratedOrder,
+  order: RozoPayHydratedOrder
 ): number | null {
   if (order.sourceTokenAmount == null) {
     return null;
@@ -284,18 +282,18 @@ export function getOrderSourceChainId(
 }
 
 export function getOrderDestChainId(
-  order: DaimoPayOrder | DaimoPayHydratedOrderWithoutIntentAddr,
+  order: RozoPayOrder | RozoPayHydratedOrderWithoutIntentAddr
 ): number {
   return order.destFinalCallTokenAmount.token.chainId;
 }
 
-export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
+export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
   return {
-    id: writeDaimoPayOrderID(order.id),
+    id: writeRozoPayOrderID(order.id),
     status: order.intentStatus,
     createdAt: assertNotNull(
       order.createdAt,
-      `createdAt is null for order with id: ${order.id}`,
+      `createdAt is null for order with id: ${order.id}`
     ).toString(),
     display: {
       intent: order.metadata.intent,
@@ -304,18 +302,18 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
       currency: "USD",
     },
     source:
-      order.mode === DaimoPayOrderMode.HYDRATED &&
+      order.mode === RozoPayOrderMode.HYDRATED &&
       order.sourceTokenAmount != null
         ? {
             payerAddress: order.sourceFulfillerAddr,
             txHash: order.sourceInitiateTxHash,
             chainId: assertNotNull(
               getOrderSourceChainId(order),
-              `source chain id is null for order with source token: ${order.id}`,
+              `source chain id is null for order with source token: ${order.id}`
             ).toString(),
             amountUnits: formatUnits(
               BigInt(order.sourceTokenAmount.amount),
-              order.sourceTokenAmount.token.decimals,
+              order.sourceTokenAmount.token.decimals
             ),
             tokenSymbol: order.sourceTokenAmount.token.symbol,
             tokenAddress: order.sourceTokenAmount.token.token,
@@ -324,13 +322,13 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
     destination: {
       destinationAddress: order.destFinalCall.to,
       txHash:
-        order.mode === DaimoPayOrderMode.HYDRATED
-          ? (order.destFastFinishTxHash ?? order.destClaimTxHash)
+        order.mode === RozoPayOrderMode.HYDRATED
+          ? order.destFastFinishTxHash ?? order.destClaimTxHash
           : null,
       chainId: getOrderDestChainId(order).toString(),
       amountUnits: formatUnits(
         BigInt(order.destFinalCallTokenAmount.amount),
-        order.destFinalCallTokenAmount.token.decimals,
+        order.destFinalCallTokenAmount.token.decimals
       ),
       tokenSymbol: order.destFinalCallTokenAmount.token.symbol,
       tokenAddress: getAddress(order.destFinalCallTokenAmount.token.token),
@@ -342,13 +340,13 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
 }
 
 export type WalletPaymentOption = {
-  balance: DaimoPayTokenAmount;
+  balance: RozoPayTokenAmount;
 
   // TODO: deprecate, replace with requiredUsd / minRequiredUsd / feesUsd
-  // These are overly large objects that duplicate DaimoPayToken
-  required: DaimoPayTokenAmount;
-  minimumRequired: DaimoPayTokenAmount;
-  fees: DaimoPayTokenAmount;
+  // These are overly large objects that duplicate RozoPayToken
+  required: RozoPayTokenAmount;
+  minimumRequired: RozoPayTokenAmount;
+  fees: RozoPayTokenAmount;
 
   disabledReason?: string;
 };
@@ -359,14 +357,15 @@ export type ExternalPaymentOptionMetadata = {
   cta: string;
   logoURI: string;
   logoShape: "circle" | "squircle";
-  paymentToken: DaimoPayToken;
+  paymentToken: RozoPayToken;
   disabled: boolean;
   message?: string;
   minimumUsd?: number;
 };
 
 export enum ExternalPaymentOptions {
-  Daimo = "Daimo",
+  Rozo = "Rozo",
+  RampNetwork = "RampNetwork",
   Solana = "Solana",
   ExternalChains = "ExternalChains",
   // All exchanges
@@ -428,7 +427,7 @@ export type DepositAddressPaymentOptionData = {
   expirationS: number;
 };
 
-export interface DaimoPayToken extends Token {
+export interface RozoPayToken extends Token {
   token: Address | SolanaPublicKey;
   /** Price to convert 1.0 of this token to a USD stablecoin. */
   usd: number;
@@ -444,8 +443,8 @@ export interface DaimoPayToken extends Token {
   fiatSymbol?: string;
 }
 
-export interface DaimoPayTokenAmount {
-  token: DaimoPayToken;
+export interface RozoPayTokenAmount {
+  token: RozoPayToken;
   amount: BigIntStr;
   usd: number; // amount in dollars
 }
@@ -463,21 +462,21 @@ export const emptyOnChainCall: OnChainCall = {
 };
 
 // base58 encoded bigint
-const zDaimoPayOrderID = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
+const zRozoPayOrderID = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
 
-export type DaimoPayOrderID = z.infer<typeof zDaimoPayOrderID>;
+export type RozoPayOrderID = z.infer<typeof zRozoPayOrderID>;
 
 /**
  * Read a base58-encoded id into a bigint.
  */
-export function readDaimoPayOrderID(id: string): bigint {
+export function readRozoPayOrderID(id: string): bigint {
   return bytesToBigInt(base58.decode(id));
 }
 
 /**
  * Write a bigint into a base58-encoded id.
  */
-export function writeDaimoPayOrderID(id: bigint): string {
+export function writeRozoPayOrderID(id: bigint): string {
   return base58.encode(numberToBytes(id));
 }
 
@@ -485,7 +484,7 @@ export const zUUID = z.string().uuid();
 
 export type UUID = z.infer<typeof zUUID>;
 
-export enum DaimoPayEventType {
+export enum RozoPayEventType {
   PaymentStarted = "payment_started",
   PaymentCompleted = "payment_completed",
   PaymentBounced = "payment_bounced",
@@ -493,45 +492,45 @@ export enum DaimoPayEventType {
 }
 
 export type PaymentStartedEvent = {
-  type: DaimoPayEventType.PaymentStarted;
+  type: RozoPayEventType.PaymentStarted;
   isTestEvent?: boolean;
-  paymentId: DaimoPayOrderID;
+  paymentId: RozoPayOrderID;
   chainId: number;
   txHash: Hex | string | null;
-  payment: DaimoPayOrderView;
+  payment: RozoPayOrderView;
 };
 
 export type PaymentCompletedEvent = {
-  type: DaimoPayEventType.PaymentCompleted;
+  type: RozoPayEventType.PaymentCompleted;
   isTestEvent?: boolean;
-  paymentId: DaimoPayOrderID;
+  paymentId: RozoPayOrderID;
   chainId: number;
   txHash: Hex;
-  payment: DaimoPayOrderView;
+  payment: RozoPayOrderView;
 };
 
 export type PaymentBouncedEvent = {
-  type: DaimoPayEventType.PaymentBounced;
+  type: RozoPayEventType.PaymentBounced;
   isTestEvent?: boolean;
-  paymentId: DaimoPayOrderID;
+  paymentId: RozoPayOrderID;
   chainId: number;
   txHash: Hex;
-  payment: DaimoPayOrderView;
+  payment: RozoPayOrderView;
 };
 
 export type PaymentRefundedEvent = {
-  type: DaimoPayEventType.PaymentRefunded;
+  type: RozoPayEventType.PaymentRefunded;
   isTestEvent?: boolean;
-  paymentId: DaimoPayOrderID;
+  paymentId: RozoPayOrderID;
   refundAddress: Address;
   chainId: number;
   tokenAddress: Address;
   txHash: Hex;
   amountUnits: string;
-  payment: DaimoPayOrderView;
+  payment: RozoPayOrderView;
 };
 
-export type DaimoPayEvent =
+export type RozoPayEvent =
   | PaymentStartedEvent
   | PaymentCompletedEvent
   | PaymentBouncedEvent
@@ -558,7 +557,7 @@ export interface WebhookEvent {
   id: UUID;
   endpoint: WebhookEndpoint;
   isTestEvent: boolean;
-  body: DaimoPayEvent;
+  body: RozoPayEvent;
   status: WebhookEventStatus;
   deliveries: WebhookDelivery[];
   createdAt: Date;

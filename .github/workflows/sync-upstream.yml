@@ -2,7 +2,7 @@ name: Sync Fork
 
 on:
   schedule:
-    - cron: '0 0 * * *' # every day at midnight UTC
+    - cron: "0 0 * * *" # every day at midnight UTC
   workflow_dispatch: # manual trigger
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Add upstream remote
         run: |
-          git remote add upstream https://github.com/daimo-eth/pay.git
+          git remote add upstream https://github.com/RozoAI/intent-pay.git
           git fetch upstream
           git merge upstream/main --allow-unrelated-histories || true
 

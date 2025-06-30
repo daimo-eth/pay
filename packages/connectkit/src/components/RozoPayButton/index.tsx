@@ -5,97 +5,97 @@ import { TextContainer } from "./styles";
 
 import {
   assertNotNull,
-  DaimoPayEventType,
-  DaimoPayOrderView,
-  DaimoPayUserMetadata,
+  RozoPayEventType,
+  RozoPayOrderView,
+  RozoPayUserMetadata,
   ExternalPaymentOptionsString,
-  getDaimoPayOrderView,
+  getRozoPayOrderView,
   getOrderDestChainId,
   getOrderSourceChainId,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
-  writeDaimoPayOrderID,
-} from "@daimo/pay-common";
+  writeRozoPayOrderID,
+} from "@rozoai/intent-common";
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
-import { useDaimoPay } from "../../hooks/useDaimoPay";
+import { useRozoPay } from "../../hooks/useRozoPay";
 import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
 import ThemedButton, { ThemeContainer } from "../Common/ThemedButton";
 
 /** Payment details and status. */
-export type DaimoPayment = DaimoPayOrderView;
+export type RozoPayment = RozoPayOrderView;
 
-/** Props for DaimoPayButton. */
+/** Props for RozoPayButton. */
 export type PayButtonPaymentProps =
   | {
-      /**
-       * Your public app ID. Specify either (payId) or (appId + parameters).
-       */
-      appId: string;
-      /**
-       * Destination chain ID.
-       */
-      toChain: number;
-      /**
-       * The destination token to send, completing payment. Must be an ERC-20
-       * token or the zero address, indicating the native token / ETH.
-       */
-      toToken: Address;
-      /**
-       * The amount of destination token to send (transfer or approve).
-       * If not provided, the user will be prompted to enter an amount.
-       */
-      toUnits?: string;
-      /**
-       * The destination address to transfer to, or contract to call.
-       */
-      toAddress: Address;
-      /**
-       * Optional calldata to call an arbitrary function on `toAddress`.
-       */
-      toCallData?: Hex;
-      /**
-       * The intent verb, such as "Pay", "Deposit", or "Purchase".
-       */
-      intent?: string;
-      /**
-       * Payment options. By default, all are enabled.
-       */
-      paymentOptions?: ExternalPaymentOptionsString[];
-      /**
-       * Preferred chain IDs. Assets on these chains will appear first.
-       */
-      preferredChains?: number[];
-      /**
-       * Preferred tokens. These appear first in the token list.
-       */
-      preferredTokens?: { chain: number; address: Address }[];
-      /**
-       * Only allow payments on these EVM chains.
-       */
-      evmChains?: number[];
-      /**
-       * External ID. E.g. a correlation ID.
-       */
-      externalId?: string;
-      /**
-       * Developer metadata. E.g. correlation ID.
-       * */
-      metadata?: DaimoPayUserMetadata;
-      /**
-       * The address to refund to if the payment bounces.
-       */
-      refundAddress?: Address;
-    }
+    /**
+     * Your public app ID. Specify either (payId) or (appId + parameters).
+     */
+    appId: string;
+    /**
+     * Destination chain ID.
+     */
+    toChain: number;
+    /**
+     * The destination token to send, completing payment. Must be an ERC-20
+     * token or the zero address, indicating the native token / ETH.
+     */
+    toToken: Address;
+    /**
+     * The amount of destination token to send (transfer or approve).
+     * If not provided, the user will be prompted to enter an amount.
+     */
+    toUnits?: string;
+    /**
+     * The destination address to transfer to, or contract to call.
+     */
+    toAddress: Address;
+    /**
+     * Optional calldata to call an arbitrary function on `toAddress`.
+     */
+    toCallData?: Hex;
+    /**
+     * The intent verb, such as "Pay", "Deposit", or "Purchase".
+     */
+    intent?: string;
+    /**
+     * Payment options. By default, all are enabled.
+     */
+    paymentOptions?: ExternalPaymentOptionsString[];
+    /**
+     * Preferred chain IDs. Assets on these chains will appear first.
+     */
+    preferredChains?: number[];
+    /**
+     * Preferred tokens. These appear first in the token list.
+     */
+    preferredTokens?: { chain: number; address: Address }[];
+    /**
+     * Only allow payments on these EVM chains.
+     */
+    evmChains?: number[];
+    /**
+     * External ID. E.g. a correlation ID.
+     */
+    externalId?: string;
+    /**
+     * Developer metadata. E.g. correlation ID.
+     * */
+    metadata?: RozoPayUserMetadata;
+    /**
+     * The address to refund to if the payment bounces.
+     */
+    refundAddress?: Address;
+  }
   | {
-      /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
-      payId: string;
-      /** Payment options. By default, all are enabled. */
-      paymentOptions?: ExternalPaymentOptionsString[];
-    };
+    /** The payment ID, generated via the Rozo Pay API. Replaces params above. */
+    payId: string;
+    /** Payment options. By default, all are enabled. */
+    paymentOptions?: ExternalPaymentOptionsString[];
+  };
 
 type PayButtonCommonProps = PayButtonPaymentProps & {
   /** Called when user sends payment and transaction is seen on chain */
@@ -123,7 +123,7 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   redirectReturnUrl?: string;
 };
 
-export type DaimoPayButtonProps = PayButtonCommonProps & {
+export type RozoPayButtonProps = PayButtonCommonProps & {
   /** Light mode, dark mode, or auto. */
   mode?: Mode;
   /** Named theme. See docs for options. */
@@ -134,7 +134,7 @@ export type DaimoPayButtonProps = PayButtonCommonProps & {
   disabled?: boolean;
 };
 
-export type DaimoPayButtonCustomProps = PayButtonCommonProps & {
+export type RozoPayButtonCustomProps = PayButtonCommonProps & {
   /** Custom renderer */
   children: (renderProps: {
     show: () => void;
@@ -143,15 +143,15 @@ export type DaimoPayButtonCustomProps = PayButtonCommonProps & {
 };
 
 /**
- * A button that shows the Daimo Pay checkout. Replaces the traditional
+ * A button that shows the Rozo Pay checkout. Replaces the traditional
  * Connect Wallet » approve » execute sequence with a single action.
  */
-export function DaimoPayButton(props: DaimoPayButtonProps): JSX.Element {
+export function RozoPayButton(props: RozoPayButtonProps): JSX.Element {
   const { theme, mode, customTheme } = props;
   const context = usePayContext();
 
   return (
-    <DaimoPayButtonCustom {...props}>
+    <RozoPayButtonCustom {...props}>
       {({ show }) => (
         <ResetContainer
           $useTheme={theme ?? context.theme}
@@ -164,17 +164,17 @@ export function DaimoPayButton(props: DaimoPayButtonProps): JSX.Element {
               mode={mode ?? context.mode}
               customTheme={customTheme ?? context.customTheme}
             >
-              <DaimoPayButtonInner />
+              <RozoPayButtonInner />
             </ThemedButton>
           </ThemeContainer>
         </ResetContainer>
       )}
-    </DaimoPayButtonCustom>
+    </RozoPayButtonCustom>
   );
 }
 
-/** Like DaimoPayButton, but with custom styling. */
-function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
+/** Like RozoPayButton, but with custom styling. */
+function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   const context = usePayContext();
 
   // Pre-load payment info in background.
@@ -182,26 +182,26 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   let payParams: PayParams | null =
     "appId" in props
       ? {
-          appId: props.appId,
-          toChain: props.toChain,
-          toAddress: props.toAddress,
-          toToken: props.toToken,
-          toUnits: props.toUnits,
-          toCallData: props.toCallData,
-          intent: props.intent,
-          paymentOptions: props.paymentOptions,
-          preferredChains: props.preferredChains,
-          preferredTokens: props.preferredTokens,
-          evmChains: props.evmChains,
-          externalId: props.externalId,
-          metadata: props.metadata,
-          refundAddress: props.refundAddress,
-        }
+        appId: props.appId,
+        toChain: props.toChain,
+        toAddress: props.toAddress,
+        toToken: props.toToken,
+        toUnits: props.toUnits,
+        toCallData: props.toCallData,
+        intent: props.intent,
+        paymentOptions: props.paymentOptions,
+        preferredChains: props.preferredChains,
+        preferredTokens: props.preferredTokens,
+        evmChains: props.evmChains,
+        externalId: props.externalId,
+        metadata: props.metadata,
+        refundAddress: props.refundAddress,
+      }
       : null;
   let payId = "payId" in props ? props.payId : null;
 
   const { paymentState, log } = context;
-  const { order, paymentState: payState } = useDaimoPay();
+  const { order, paymentState: payState } = useRozoPay();
 
   // Set the payId or payParams
   useEffect(() => {
@@ -272,11 +272,11 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
 
     sentStart.current = true;
     onPaymentStarted?.({
-      type: DaimoPayEventType.PaymentStarted,
-      paymentId: writeDaimoPayOrderID(order.id),
+      type: RozoPayEventType.PaymentStarted,
+      paymentId: writeRozoPayOrderID(order.id),
       chainId: sourceChainId,
       txHash: order.sourceInitiateTxHash,
-      payment: getDaimoPayOrderView(order),
+      payment: getRozoPayOrderView(order),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, payState]);
@@ -292,17 +292,17 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
     sentComplete.current = true;
     const eventType =
       payState === "payment_completed"
-        ? DaimoPayEventType.PaymentCompleted
-        : DaimoPayEventType.PaymentBounced;
+        ? RozoPayEventType.PaymentCompleted
+        : RozoPayEventType.PaymentBounced;
     const event = {
       type: eventType,
-      paymentId: writeDaimoPayOrderID(order.id),
+      paymentId: writeRozoPayOrderID(order.id),
       chainId: getOrderDestChainId(order),
       txHash: assertNotNull(
         order.destFastFinishTxHash ?? order.destClaimTxHash,
         `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`,
       ),
-      payment: getDaimoPayOrderView(order),
+      payment: getRozoPayOrderView(order),
     };
 
     if (payState === "payment_completed") {
@@ -331,9 +331,9 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   return children({ show, hide });
 }
 
-DaimoPayButtonCustom.displayName = "DaimoPayButton.Custom";
+RozoPayButtonCustom.displayName = "RozoPayButton.Custom";
 
-DaimoPayButton.Custom = DaimoPayButtonCustom;
+RozoPayButton.Custom = RozoPayButtonCustom;
 
 const contentVariants: Variants = {
   initial: {
@@ -362,8 +362,8 @@ const contentVariants: Variants = {
   },
 };
 
-export function DaimoPayButtonInner() {
-  const { order } = useDaimoPay();
+export function RozoPayButtonInner() {
+  const { order } = useRozoPay();
   const label = order?.metadata?.intent ?? "Pay";
 
   return (

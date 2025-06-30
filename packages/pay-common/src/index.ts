@@ -1,6 +1,6 @@
 export * from "./assert";
 export * from "./chain";
-export * from "./daimoPay";
+export * from "./rozoPay";
 export * from "./debug";
 export * from "./format";
 export * from "./primitiveTypes";

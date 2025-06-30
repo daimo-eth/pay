@@ -1,13 +1,13 @@
-import { DaimoPayEvent, getChainExplorerByChainId } from "@daimo/pay-common";
+import { RozoPayEvent, getChainExplorerByChainId } from "@rozoai/intent-common";
 import { useState, useCallback, useEffect } from "react";
 import { isAddress } from "viem";
 
-export const APP_ID = "daimopay-demo";
+export const APP_ID = "daimopay-demo"; // Your public app ID. Use pay-demo for prototyping only.
 
-export const DAIMOPAY_API_URL =
-  process.env.NEXT_PUBLIC_DAIMOPAY_API_URL || "https://pay-api.daimo.xyz";
+export const ROZOPAY_API_URL =
+  process.env.NEXT_PUBLIC_ROZOPAY_API_URL || "https://pay-api.daimo.xyz";
 
-export const DAIMO_ADDRESS = "0xFBfa6A0D1F44b60d7CCA4b95d5a2CfB15246DB0D";
+export const ROZO_ADDRESS = "0xD891AC81ab4A1eb21750ba50b4eF3e9eb3DA4ada";
 
 export function Container({
   children,
@@ -23,7 +23,7 @@ export function Columns({ children }: { children: React.ReactNode }) {
   return <div className="flex gap-4 items-baseline">{children}</div>;
 }
 
-export function printEvent(e: DaimoPayEvent) {
+export function printEvent(e: RozoPayEvent) {
   const url = getChainExplorerByChainId(e.chainId);
   console.log(`${e.type} payment ${e.paymentId}: ${url}/tx/${e.txHash}`);
 }

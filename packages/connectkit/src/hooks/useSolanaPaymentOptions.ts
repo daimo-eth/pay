@@ -1,4 +1,4 @@
-import { WalletPaymentOption } from "@daimo/pay-common";
+import { WalletPaymentOption } from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 

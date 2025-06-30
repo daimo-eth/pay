@@ -4,15 +4,15 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
-import { DaimoPayOrderMode } from "@daimo/pay-common";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { RozoPayOrderMode } from "@rozoai/intent-common";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
-  const pay = useDaimoPay();
+  const pay = useRozoPay();
   const { order } = pay;
   const {
     isDepositFlow,
@@ -51,7 +51,7 @@ const SelectDepositAddressChain: React.FC = () => {
               icons: [option.logoURI],
               disabled:
                 option.minimumUsd > 0 &&
-                order?.mode === DaimoPayOrderMode.HYDRATED &&
+                order?.mode === RozoPayOrderMode.HYDRATED &&
                 order.usdValue < option.minimumUsd,
               onClick: () => {
                 setSelectedDepositAddressOption(option);

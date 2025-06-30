@@ -51,9 +51,9 @@ export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
   celo,
 ];
 
-/** Daimo Pay recommended config, for use with wagmi's createConfig(). */
+/** Rozo Pay recommended config, for use with wagmi's createConfig(). */
 const defaultConfig = ({
-  appName = "Daimo Pay",
+  appName = "Rozo Pay",
   appIcon,
   appDescription,
   appUrl,

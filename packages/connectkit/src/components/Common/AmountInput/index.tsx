@@ -8,7 +8,7 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { WalletPaymentOption } from "@daimo/pay-common";
+import { WalletPaymentOption } from "@rozoai/intent-common";
 import { parseUnits } from "viem";
 import styled from "../../../styles/styled";
 import {
@@ -79,9 +79,9 @@ const MultiCurrencySelectAmount: React.FC<{
 
     setContinueDisabled(
       Number(sanitizedUsdValue) <= 0 ||
-        Number(sanitizedUsdValue) < selectedTokenOption.minimumRequired.usd ||
-        Number(sanitizedUsdValue) > selectedTokenOption.balance.usd ||
-        Number(sanitizedUsdValue) > maxUsdLimit,
+      Number(sanitizedUsdValue) < selectedTokenOption.minimumRequired.usd ||
+      Number(sanitizedUsdValue) > selectedTokenOption.balance.usd ||
+      Number(sanitizedUsdValue) > maxUsdLimit,
     );
 
     if (Number(sanitizedUsdValue) > selectedTokenOption.balance.usd) {
@@ -108,9 +108,9 @@ const MultiCurrencySelectAmount: React.FC<{
     const newUsdValue = isEditingUsd
       ? value
       : tokenAmountToRoundedUsd(
-          parseUnits(sanitizedValue, balanceToken.decimals),
-          balanceToken,
-        );
+        parseUnits(sanitizedValue, balanceToken.decimals),
+        balanceToken,
+      );
     const newTokenValue = isEditingUsd
       ? usdToRoundedTokenAmount(Number(sanitizedValue), balanceToken)
       : value;

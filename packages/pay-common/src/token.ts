@@ -772,22 +772,22 @@ const knownTokensByChain = new Map<number, Token[]>([
 /**
  * Common tokens, included for convenience.
  *
- * Daimo Pay supports payment in many more tokens. In general, the goal for
+ * Rozo Pay supports payment in many more tokens. In general, the goal for
  * Pay is to accept all tokens with DEX liquidity on any major chain.
  */
 export const knownTokens: Token[] = Array.from(
-  knownTokensByChain.values(),
+  knownTokensByChain.values()
 ).flat();
 
 /* --------------------- Tokens By Address --------------------- */
 
 const tokensByChainAddr = new Map<string, Token>(
-  knownTokens.map((t) => [`${t.chainId}-${t.token}`, t]),
+  knownTokens.map((t) => [`${t.chainId}-${t.token}`, t])
 );
 
 export function getKnownToken(
   chainId: number,
-  tokenAddress: string,
+  tokenAddress: string
 ): Token | undefined {
   return tokensByChainAddr.get(`${chainId}-${tokenAddress}`);
 }
@@ -919,14 +919,14 @@ const tokensByChainAndType: Map<
 export function getChainNativeToken(chainId: number): Token {
   return assertNotNull(
     tokensByChainAndType.get(chainId)?.[TokenType.NATIVE],
-    () => `missing native token for chainId ${chainId}`,
+    () => `missing native token for chainId ${chainId}`
   );
 }
 
 export function getChainWrappedNativeToken(chainId: number): Token {
   return assertNotNull(
     tokensByChainAndType.get(chainId)?.[TokenType.WRAPPED_NATIVE],
-    () => `missing wrapped native token for chainId ${chainId}`,
+    () => `missing wrapped native token for chainId ${chainId}`
   );
 }
 

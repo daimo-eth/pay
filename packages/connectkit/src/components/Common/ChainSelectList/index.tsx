@@ -1,4 +1,4 @@
-import { supportedChains } from "@daimo/pay-common";
+import { supportedChains } from "@rozoai/intent-common";
 import { useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 
@@ -131,14 +131,14 @@ const ChainSelectList = ({
                         animate={
                           // UI fix for Coinbase Wallet on mobile does not remove isPending on rejection event
                           mobile &&
-                          isCoinbaseWalletConnector(connector?.id) &&
-                          isPending &&
-                          pendingChainId === ch.id
+                            isCoinbaseWalletConnector(connector?.id) &&
+                            isPending &&
+                            pendingChainId === ch.id
                             ? {
-                                opacity: [1, 0],
+                              opacity: [1, 0],
 
-                                transition: { delay: 4, duration: 3 },
-                              }
+                              transition: { delay: 4, duration: 3 },
+                            }
                             : { opacity: 1 }
                         }
                       >

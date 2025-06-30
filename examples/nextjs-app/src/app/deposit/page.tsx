@@ -1,12 +1,12 @@
 "use client";
 
-import { DaimoPayButton, useDaimoPayUI } from "@rozoai/intent-pay";
-import * as Tokens from "@daimo/pay-common";
+import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
+import * as Tokens from "@rozoai/intent-common";
 import {
   getChainName,
   getChainNativeToken,
   knownTokens,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
@@ -23,13 +23,13 @@ type Config = {
 export default function DemoDeposit() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [config, setConfig] = usePersistedConfig("daimo-deposit-config", {
+  const [config, setConfig] = usePersistedConfig("rozo-deposit-config", {
     recipientAddress: "",
     chainId: 0,
     tokenAddress: "",
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
-  const { resetPayment } = useDaimoPayUI();
+  const { resetPayment } = useRozoPayUI();
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);
@@ -40,7 +40,7 @@ export default function DemoDeposit() {
     });
   };
 
-  // Only render the DaimoPayButton when we have valid config
+  // Only render the RozoPayButton when we have valid config
   const hasValidConfig =
     config && config.recipientAddress && config.chainId && config.tokenAddress;
 
@@ -71,9 +71,9 @@ export default function DemoDeposit() {
         getChainName(config.chainId).toLowerCase() +
         getChainNativeToken(config.chainId)?.symbol;
       if (tokenVarName) {
-        const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
+        const snippet = `import { ${tokenVarName} } from "@rozoai/intent-common";
 
-<DaimoPayButton
+<RozoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
   toAddress={getAddress("${config.recipientAddress}")}
@@ -95,9 +95,9 @@ export default function DemoDeposit() {
         Object.entries(Tokens).find(([_, t]) => t === token)?.[0] ||
         token.symbol;
 
-      const snippet = `import { ${tokenVarName} } from "@daimo/pay-common";
+      const snippet = `import { ${tokenVarName} } from "@rozoai/intent-common";
 
-<DaimoPayButton
+<RozoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
   toAddress={getAddress("${config.recipientAddress}")}
@@ -118,7 +118,7 @@ export default function DemoDeposit() {
       <div className="flex flex-col items-center gap-8">
         {hasValidConfig ? (
           <>
-            <DaimoPayButton
+            <RozoPayButton
               appId={APP_ID}
               toChain={config.chainId}
               toAddress={getAddress(config.recipientAddress)}
@@ -134,14 +134,14 @@ export default function DemoDeposit() {
               <TextLink
                 href={`https://basescan.org/tx/${txHash}`}
                 target="_blank"
-                className="text-green-medium hover:text-green-dark"
+                className="text-primary-medium hover:text-primary-dark"
               >
                 Transaction Successful ↗
               </TextLink>
             )}
             <button
               onClick={() => setIsConfigOpen(true)}
-              className="bg-green-dark text-white px-6 py-3 rounded-lg hover:bg-green-medium transition-all"
+              className="bg-primary-dark text-white px-6 py-3 rounded-lg hover:bg-primary-medium transition-all"
             >
               Configure Deposit
             </button>
@@ -149,7 +149,7 @@ export default function DemoDeposit() {
         ) : (
           <button
             onClick={() => setIsConfigOpen(true)}
-            className="bg-green-dark text-white px-6 py-3 rounded-lg hover:bg-green-medium transition-all"
+            className="bg-primary-dark text-white px-6 py-3 rounded-lg hover:bg-primary-medium transition-all"
           >
             Create a Deposit
           </button>
@@ -158,7 +158,7 @@ export default function DemoDeposit() {
         {/* Only show implementation code if we have a complete config */}
         {hasValidConfig && (
           <div className="w-full">
-            <Text className="text-lg font-medium text-green-dark mb-2">
+            <Text className="text-lg font-medium text-primary-dark mb-2">
               Implementation Code
             </Text>
             <CodeSnippet codeSnippet={codeSnippet} />

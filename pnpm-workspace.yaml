@@ -1,3 +1,5 @@
 packages:
   - 'packages/connectkit'
+  - 'packages/pay-common'
+  - 'packages/contract'
   - 'examples/nextjs-app'

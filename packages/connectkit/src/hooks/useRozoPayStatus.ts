@@ -1,5 +1,8 @@
-import { DaimoPayIntentStatus, writeDaimoPayOrderID } from "@daimo/pay-common";
-import { useDaimoPay } from "./useDaimoPay";
+import {
+  RozoPayIntentStatus,
+  writeRozoPayOrderID,
+} from "@rozoai/intent-common";
+import { useRozoPay } from "./useRozoPay";
 
 /** Returns the current payment, or undefined if there is none.
  *
@@ -11,13 +14,13 @@ import { useDaimoPay } from "./useDaimoPay";
  * - `payment_bounced` - the final call or transfer reverted. Funds were sent
  *    to the payment's configured refund address on the destination chain.
  */
-export function useDaimoPayStatus():
-  | { paymentId: string; status: DaimoPayIntentStatus }
+export function useRozoPayStatus():
+  | { paymentId: string; status: RozoPayIntentStatus }
   | undefined {
-  const { order } = useDaimoPay();
+  const { order } = useRozoPay();
   if (order == null) return undefined;
 
-  const paymentId = writeDaimoPayOrderID(order.id);
+  const paymentId = writeRozoPayOrderID(order.id);
 
   return { paymentId, status: order.intentStatus };
 }

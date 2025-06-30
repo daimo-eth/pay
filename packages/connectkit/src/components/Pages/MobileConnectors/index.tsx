@@ -32,7 +32,7 @@ const MobileConnectors: React.FC = () => {
     }) ?? [];
 
   const goToWallet = (wallet: WalletConfigProps) => {
-    if (wallet.getDaimoPayDeeplink == null) {
+    if (wallet.getRozoPayDeeplink == null) {
       console.error(`wallet ${wallet.name} has no deeplink`);
       return;
     }

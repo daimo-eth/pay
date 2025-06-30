@@ -1,16 +1,16 @@
 import {
   assert,
-  DaimoPayHydratedOrderWithOrg,
-  DaimoPayIntentStatus,
-  DaimoPayOrder,
-  DaimoPayOrderID,
-  DaimoPayOrderMode,
-  DaimoPayOrderWithOrg,
-  DaimoPayUserMetadata,
+  RozoPayHydratedOrderWithOrg,
+  RozoPayIntentStatus,
+  RozoPayOrder,
+  RozoPayOrderID,
+  RozoPayOrderMode,
+  RozoPayOrderWithOrg,
+  RozoPayUserMetadata,
   ExternalPaymentOptionsString,
   isHydrated,
   SolanaPublicKey,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { Address, Hex, parseUnits } from "viem";
 
 /** Payment parameters. The payment is created only after user taps pay. */
@@ -43,7 +43,7 @@ export interface PayParams {
   /** External ID. E.g. a correlation ID. */
   externalId?: string;
   /** Developer metadata. E.g. correlation ID. */
-  metadata?: DaimoPayUserMetadata;
+  metadata?: RozoPayUserMetadata;
   /** The address to refund to if the payment bounces or a refund is requested. */
   refundAddress?: Address;
 }
@@ -55,22 +55,22 @@ export type PaymentState =
   // but not saved to the db
   | {
       type: "preview";
-      order: DaimoPayOrderWithOrg;
+      order: RozoPayOrderWithOrg;
       payParamsData: PayParamsData;
     }
   // payId is set, payParams are not set. An unhydrated order has been created
   // and saved to the db
-  | { type: "unhydrated"; order: DaimoPayOrderWithOrg }
+  | { type: "unhydrated"; order: RozoPayOrderWithOrg }
   // Order was hydrated and is waiting to be paid
-  | { type: "payment_unpaid"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "payment_unpaid"; order: RozoPayHydratedOrderWithOrg }
   // Order was paid, destination was not processed
-  | { type: "payment_started"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "payment_started"; order: RozoPayHydratedOrderWithOrg }
   // Order was paid and processed successfully
-  | { type: "payment_completed"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "payment_completed"; order: RozoPayHydratedOrderWithOrg }
   // Order was paid but the destination failed to process
-  | { type: "payment_bounced"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "payment_bounced"; order: RozoPayHydratedOrderWithOrg }
   // An error occurred
-  | { type: "error"; order: DaimoPayOrder | undefined; message: string };
+  | { type: "error"; order: RozoPayOrder | undefined; message: string };
 
 export type PaymentStateType = PaymentState["type"];
 
@@ -79,7 +79,7 @@ export const initialPaymentState: PaymentState = { type: "idle" };
 export type PaymentEvent =
   /* command events (kick off an effect) */
   | { type: "set_pay_params"; payParams: PayParams }
-  | { type: "set_pay_id"; payId: DaimoPayOrderID }
+  | { type: "set_pay_id"; payId: RozoPayOrderID }
   // HACK: edit the order in-memory to change the amount in deposit flow
   | { type: "set_chosen_usd"; usd: number }
   | { type: "hydrate_order"; refundAddress?: Address }
@@ -102,24 +102,24 @@ export type PaymentEvent =
   /* result events (effect finished) */
   | {
       type: "preview_generated";
-      order: DaimoPayOrderWithOrg;
+      order: RozoPayOrderWithOrg;
       payParamsData: PayParamsData;
     }
-  | { type: "order_loaded"; order: DaimoPayOrderWithOrg }
-  | { type: "order_hydrated"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "order_loaded"; order: RozoPayOrderWithOrg }
+  | { type: "order_hydrated"; order: RozoPayHydratedOrderWithOrg }
   | {
       type: "payment_verified";
-      order: DaimoPayHydratedOrderWithOrg;
+      order: RozoPayHydratedOrderWithOrg;
     }
   | {
       type: "order_refreshed";
-      order: DaimoPayOrderWithOrg | DaimoPayHydratedOrderWithOrg;
+      order: RozoPayOrderWithOrg | RozoPayHydratedOrderWithOrg;
     }
-  | { type: "dest_processed"; order: DaimoPayHydratedOrderWithOrg }
+  | { type: "dest_processed"; order: RozoPayHydratedOrderWithOrg }
   /* failure / util */
   | {
       type: "error";
-      order: DaimoPayOrder | undefined;
+      order: RozoPayOrder | undefined;
       message: string;
     }
   | { type: "reset" };
@@ -133,7 +133,7 @@ type PayParamsData = {
  */
 export function paymentReducer(
   state: PaymentState,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (state.type) {
     case "idle":
@@ -165,7 +165,7 @@ export function paymentReducer(
 
 function reduceIdle(
   state: Extract<PaymentState, { type: "idle" }>,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (event.type) {
     case "preview_generated": {
@@ -201,11 +201,11 @@ function reduceIdle(
 
 function reducePreview(
   state: Extract<PaymentState, { type: "preview" }>,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   assert(
-    state.order.mode !== DaimoPayOrderMode.HYDRATED,
-    "reducePreview called on hydrated order",
+    state.order.mode !== RozoPayOrderMode.HYDRATED,
+    "reducePreview called on hydrated order"
   );
 
   switch (event.type) {
@@ -245,7 +245,7 @@ function reducePreview(
 
 function reduceUnhydrated(
   state: Extract<PaymentState, { type: "unhydrated" }>,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (event.type) {
     case "order_hydrated":
@@ -265,11 +265,11 @@ function reduceUnhydrated(
 
 function reducePaymentUnpaid(
   state: Extract<PaymentState, { type: "payment_unpaid" }>,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (event.type) {
     case "payment_verified": {
-      if (event.order.intentStatus === DaimoPayIntentStatus.UNPAID) {
+      if (event.order.intentStatus === RozoPayIntentStatus.UNPAID) {
         // The payment was not detected on chain, or some other error occurred.
         return {
           type: "error",
@@ -296,7 +296,7 @@ function reducePaymentUnpaid(
 
 function reducePaymentStarted(
   state: Extract<PaymentState, { type: "payment_started" }>,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (event.type) {
     case "order_refreshed":
@@ -318,26 +318,26 @@ function reducePaymentStarted(
  * Determines the appropriate payment state based on an order's status and mode.
  * Returns the appropriate payment state based on the order's mode and intent status.
  */
-function getStateFromOrder(order: DaimoPayOrderWithOrg): PaymentState {
-  if (order.intentStatus === DaimoPayIntentStatus.COMPLETED) {
+function getStateFromOrder(order: RozoPayOrderWithOrg): PaymentState {
+  if (order.intentStatus === RozoPayIntentStatus.COMPLETED) {
     assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+      order.mode === RozoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`
     );
     return { type: "payment_completed", order };
-  } else if (order.intentStatus === DaimoPayIntentStatus.BOUNCED) {
+  } else if (order.intentStatus === RozoPayIntentStatus.BOUNCED) {
     assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+      order.mode === RozoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`
     );
     return { type: "payment_bounced", order };
-  } else if (order.intentStatus === DaimoPayIntentStatus.STARTED) {
+  } else if (order.intentStatus === RozoPayIntentStatus.STARTED) {
     assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
+      order.mode === RozoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`
     );
     return { type: "payment_started", order };
-  } else if (order.mode === DaimoPayOrderMode.HYDRATED) {
+  } else if (order.mode === RozoPayOrderMode.HYDRATED) {
     return { type: "payment_unpaid", order };
   } else {
     // Order is not hydrated (SALE or CHOOSE_AMOUNT mode)
@@ -351,17 +351,17 @@ function getStateFromOrder(order: DaimoPayOrderWithOrg): PaymentState {
  */
 function getStateFromHydratedOrder(
   state: Extract<PaymentState, { type: "payment_started" | "payment_unpaid" }>,
-  order: DaimoPayOrderWithOrg,
+  order: RozoPayOrderWithOrg
 ): PaymentState {
   assert(isHydrated(order), `[PAYMENT_REDUCER] unhydrated`);
   switch (order.intentStatus) {
-    case DaimoPayIntentStatus.UNPAID:
+    case RozoPayIntentStatus.UNPAID:
       return { type: "payment_unpaid", order };
-    case DaimoPayIntentStatus.STARTED:
+    case RozoPayIntentStatus.STARTED:
       return { type: "payment_started", order };
-    case DaimoPayIntentStatus.COMPLETED:
+    case RozoPayIntentStatus.COMPLETED:
       return { type: "payment_completed", order };
-    case DaimoPayIntentStatus.BOUNCED:
+    case RozoPayIntentStatus.BOUNCED:
       return { type: "payment_bounced", order };
     default:
       return state;
@@ -373,7 +373,7 @@ function reduceTerminal(
     PaymentState,
     { type: "payment_completed" | "payment_bounced" | "error" }
   >,
-  event: PaymentEvent,
+  event: PaymentEvent
 ): PaymentState {
   switch (event.type) {
     case "reset":

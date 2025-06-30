@@ -1,11 +1,11 @@
 "use client";
 
-import { DaimoPayButton } from "@rozoai/intent-pay";
+import { RozoPayButton } from "@rozoai/intent-pay";
 import {
   baseUSDC,
   getAddressContraction,
   PaymentStartedEvent,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { useCallback, useState } from "react";
 import { getAddress } from "viem";
 import { Code, Text, TextLink } from "../../shared/tailwind-catalyst/text";
@@ -13,7 +13,7 @@ import {
   APP_ID,
   Columns,
   Container,
-  DAIMO_ADDRESS,
+  ROZO_ADDRESS,
   printEvent,
 } from "../shared";
 
@@ -40,7 +40,7 @@ export default function DemoCheckout() {
         tab.
       </Text>
       <Text>
-        In addition to callbacks like <Code>onPaymentSucceeded</Code>, Daimo Pay
+        In addition to callbacks like <Code>onPaymentSucceeded</Code>, Rozo Pay
         supports{" "}
         <TextLink href="https://paydocs.daimo.com/webhooks">webhooks</TextLink>{" "}
         to track payment status reliably on the backend.
@@ -48,10 +48,10 @@ export default function DemoCheckout() {
       <div />
       <Columns>
         <div className="flex-1">
-          <DaimoPayButton
+          <RozoPayButton
             appId={APP_ID}
             toChain={baseUSDC.chainId}
-            toAddress={DAIMO_ADDRESS}
+            toAddress={ROZO_ADDRESS}
             toUnits="0.42" /* $0.42 USDC */
             toToken={getAddress(baseUSDC.token)}
             intent="Purchase"
@@ -70,7 +70,7 @@ export default function DemoCheckout() {
       </Columns>
       <Text>
         <TextLink
-          href="https://github.com/daimo-eth/pay/blob/master/examples/nextjs-app/src/app/checkout"
+          href="https://github.com/RozoAI/intent-pay/blob/master/examples/nextjs-app/src/app/checkout"
           target="_blank"
         >
           View on Github ↗

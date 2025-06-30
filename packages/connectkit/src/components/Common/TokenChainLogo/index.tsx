@@ -1,4 +1,4 @@
-import { Token } from "@daimo/pay-common";
+import { Token } from "@rozoai/intent-common";
 import { motion } from "framer-motion";
 import { chainToLogo } from "../../../assets/chains";
 import styled from "../../../styles/styled";
@@ -24,7 +24,7 @@ const TokenChainLogo = ({
   );
 };
 
-const TokenChainContainer = styled(motion.div)<{ $size: number }>`
+const TokenChainContainer = styled(motion.div) <{ $size: number }>`
   position: relative;
   width: ${(props) => props.$size}px;
   height: ${(props) => props.$size}px;
@@ -47,7 +47,7 @@ const TokenImage = styled.img<{ $size: number; $showBorder: boolean }>`
   `}
 `;
 
-const ChainContainer = styled(motion.div)<{
+const ChainContainer = styled(motion.div) <{
   $size: number;
   $offset: number;
   $showBorder: boolean;

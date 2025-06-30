@@ -5,8 +5,8 @@ import { useConnectCallbackProps } from "../hooks/useConnectCallback";
 import { PaymentState } from "../hooks/usePaymentState";
 import {
   CustomTheme,
-  DaimoPayContextOptions,
-  DaimoPayModalOptions,
+  RozoPayContextOptions,
+  RozoPayModalOptions,
   Languages,
   Mode,
   Theme,
@@ -18,7 +18,7 @@ export const PayContext = createContext<PayContextValue | null>(null);
 
 export type PayLogFn = (message: string, ...props: any[]) => void;
 
-/** Daimo Pay internal context. */
+/** Rozo Pay internal context. */
 export type PayContextValue = {
   theme: Theme;
   setTheme: React.Dispatch<React.SetStateAction<Theme>>;
@@ -43,7 +43,7 @@ export type PayContextValue = {
   resize: number;
   triggerResize: () => void;
 
-  // All options below are new, specific to Daimo Pay.
+  // All options below are new, specific to Rozo Pay.
   /** Session ID. */
   sessionId: string;
   /** EVM pending connector */
@@ -55,9 +55,9 @@ export type PayContextValue = {
     React.SetStateAction<SolanaWalletName | undefined>
   >;
   /** Global options, across all pay buttons and payments. */
-  options?: DaimoPayContextOptions;
+  options?: RozoPayContextOptions;
   /** Loads a payment, then shows the modal to complete payment. */
-  showPayment: (modalOptions: DaimoPayModalOptions) => Promise<void>;
+  showPayment: (modalOptions: RozoPayModalOptions) => Promise<void>;
   /** Payment status & callbacks. */
   paymentState: PaymentState;
   /** TRPC API client. Internal use only. */

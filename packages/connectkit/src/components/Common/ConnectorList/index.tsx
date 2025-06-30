@@ -1,6 +1,6 @@
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -29,16 +29,16 @@ const ConnectorList = () => {
 
   const wallets = useWallets(isMobile);
   const { lastConnectorId } = useLastConnector();
-  const { paymentState } = useDaimoPay();
+  const { paymentState } = useRozoPay();
 
   const walletsToDisplay = context.options?.hideRecentBadge
     ? wallets
     : [
-        // move last used wallet to top of list
-        // using .filter and spread to avoid mutating original array order with .sort
-        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
-        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
-      ];
+      // move last used wallet to top of list
+      // using .filter and spread to avoid mutating original array order with .sort
+      ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
+      ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+    ];
 
   // For mobile flow, we need to wait for the order to be hydrated before
   // we can deeplink to the in-wallet browser.
@@ -122,7 +122,7 @@ const ConnectorItem = ({
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
     } else if (
       isMobile &&
-      wallet.getDaimoPayDeeplink != null &&
+      wallet.getRozoPayDeeplink != null &&
       !wallet.connector
     ) {
       context.paymentState.openInWalletBrowser(wallet);

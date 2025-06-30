@@ -1,4 +1,4 @@
-import { PlatformType } from "@daimo/pay-common";
+import { PlatformType } from "@rozoai/intent-common";
 
 export function detectPlatform(ua: string): PlatformType {
   // From https://dev.to/konyu/using-javascript-to-determine-whether-the-client-is-ios-or-android-4i1j

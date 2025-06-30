@@ -10,11 +10,11 @@ import {
   optimismUSDC,
   polygonUSDC,
   type Token,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
 import { WarningIcon } from "../../../assets/icons";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
@@ -51,7 +51,7 @@ export default function WaitingDepositAddress() {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
-  const { order } = useDaimoPay();
+  const { order } = useRozoPay();
 
   const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);
@@ -126,15 +126,15 @@ export default function WaitingDepositAddress() {
     <PageContent>
       {failed
         ? selectedDepositAddressOption && (
-            <DepositFailed name={selectedDepositAddressOption.id} />
-          )
+          <DepositFailed name={selectedDepositAddressOption.id} />
+        )
         : depAddr && (
-            <DepositAddressInfo
-              depAddr={depAddr}
-              refresh={generateDepositAddress}
-              triggerResize={triggerResize}
-            />
-          )}
+          <DepositAddressInfo
+            depAddr={depAddr}
+            refresh={generateDepositAddress}
+            triggerResize={triggerResize}
+          />
+        )}
     </PageContent>
   );
 }

@@ -4,7 +4,7 @@ import {
   solana,
   supportedChains,
   Token,
-} from "@daimo/pay-common";
+} from "@rozoai/intent-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useState } from "react";
 import { isAddress } from "viem";
@@ -57,7 +57,7 @@ export function ConfigPanel({
   // Load saved config after mount
   useEffect(() => {
     const storageKey =
-      configType === "payment" ? "daimo-basic-config" : "daimo-deposit-config";
+      configType === "payment" ? "rozo-basic-config" : "rozo-deposit-config";
     try {
       const savedConfig = localStorage.getItem(storageKey);
       if (savedConfig) {
@@ -155,20 +155,20 @@ export function ConfigPanel({
   return (
     <div
       className={`
-      fixed right-0 top-0 h-full w-96 bg-cream-light shadow-lg transform transition-transform z-50
+      fixed right-0 top-0 h-full w-96 shadow-lg transform transition-transform z-50 bg-white
       ${isOpen ? "translate-x-0" : "translate-x-full"}
     `}
     >
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-green-dark">
+          <h2 className="text-xl font-semibold text-primary-dark">
             {configType === "payment"
               ? "Payment Configuration"
               : "Deposit Configuration"}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-green-dark hover:text-green-medium"
+            className="p-2 text-primary-dark hover:text-primary-medium"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -188,11 +188,10 @@ export function ConfigPanel({
                   recipientAddress: e.target.value,
                 }))
               }
-              className={`w-full p-2 border rounded ${
-                addressError
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
-                  : "border-gray-300 focus:border-green-medium focus:ring-green-light"
-              } focus:ring focus:ring-opacity-50`}
+              className={`w-full p-2 border rounded ${addressError
+                ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                : "border-gray-300 focus:border-primary-medium focus:ring-primary-light"
+                } focus:ring focus:ring-opacity-50`}
               placeholder="0x..."
               formNoValidate
             />
@@ -214,7 +213,7 @@ export function ConfigPanel({
                   tokenAddress: "", // Reset token when chain changes
                 }))
               }
-              className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+              className="w-full p-2 border border-gray-300 focus:border-primary-medium focus:ring focus:ring-primary-light focus:ring-opacity-50 rounded"
             >
               <option value={0}>Select Chain</option>
               {chains.map((chain) => (
@@ -238,7 +237,7 @@ export function ConfigPanel({
                     tokenAddress: e.target.value,
                   }))
                 }
-                className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+                className="w-full p-2 border border-gray-300 focus:border-primary-medium focus:ring focus:ring-primary-light focus:ring-opacity-50 rounded"
               >
                 <option value="">Select Token</option>
                 {tokens.map((token) => (
@@ -266,7 +265,7 @@ export function ConfigPanel({
                   }))
                 }
                 step="0.01"
-                className="w-full p-2 border border-gray-300 focus:border-green-medium focus:ring focus:ring-green-light focus:ring-opacity-50 rounded"
+                className="w-full p-2 border border-gray-300 focus:border-primary-medium focus:ring focus:ring-primary-light focus:ring-opacity-50 rounded"
                 placeholder="Enter amount..."
                 formNoValidate
               />
@@ -275,7 +274,7 @@ export function ConfigPanel({
 
           <button
             type="submit"
-            className="w-full bg-green-dark text-white py-2 px-4 rounded hover:bg-green-medium transition-colors"
+            className="w-full bg-primary-dark text-white py-2 px-4 rounded hover:bg-primary-medium transition-colors"
             disabled={!isFormValid()}
           >
             Confirm

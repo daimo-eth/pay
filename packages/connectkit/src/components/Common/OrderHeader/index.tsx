@@ -1,4 +1,4 @@
-import { getAddressContraction } from "@daimo/pay-common";
+import { getAddressContraction } from "@rozoai/intent-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
 import React from "react";
@@ -14,7 +14,7 @@ import {
 import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useRozoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
@@ -39,7 +39,7 @@ export const OrderHeader = ({
     wallet: solanaWallet,
   } = useWallet();
   const { senderEnsName } = paymentState;
-  const { order } = useDaimoPay();
+  const { order } = useRozoPay();
 
   const ethWalletDisplayName =
     senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
@@ -170,7 +170,7 @@ function CoinLogos({ $size = 24 }: { $size?: number }) {
   );
 }
 
-const TitleAmount = styled(motion.h1)<{
+const TitleAmount = styled(motion.h1) <{
   $error?: boolean;
   $valid?: boolean;
 }>`
@@ -229,7 +229,7 @@ const AnyChainAnyCoinContainer = styled(motion.div)`
   margin-bottom: 24px;
 `;
 
-const LogoContainer = styled(motion.div)<{
+const LogoContainer = styled(motion.div) <{
   $marginLeft?: number;
   $zIndex?: number;
   $size: number;

@@ -1,14 +1,14 @@
-// hooks/useDaimoPay.ts
-import { DaimoPayOrderID, SolanaPublicKey } from "@daimo/pay-common";
+// hooks/useRozoPay.ts
+import { RozoPayOrderID, SolanaPublicKey } from "@rozoai/intent-common";
 import { useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 import { Address, Hex } from "viem";
 import { PaymentEvent, PaymentState, PayParams } from "../payment/paymentFsm";
 import { waitForPaymentState } from "../payment/paymentStore";
 import { PaymentContext } from "../provider/PaymentProvider";
 
-type DaimoPayFunctions = {
+type RozoPayFunctions = {
   /**
-   * Create a new Daimo Pay order preview with the given parameters.
+   * Create a new Rozo Pay order preview with the given parameters.
    * Call this to start a new payment flow.
    *
    * @param params - Parameters describing the payment to be created.
@@ -18,21 +18,21 @@ type DaimoPayFunctions = {
   ) => Promise<Extract<PaymentState, { type: "preview" }>>;
 
   /**
-   * Set the order ID to fetch and manage an existing Daimo Pay order.
+   * Set the order ID to fetch and manage an existing Rozo Pay order.
    * Useful for resuming or referencing a previously created order.
    *
-   * @param id - The Daimo Pay order ID to set.
+   * @param id - The Rozo Pay order ID to set.
    */
-  setPayId: (id: DaimoPayOrderID) => Promise<
+  setPayId: (id: RozoPayOrderID) => Promise<
     Extract<
       PaymentState,
       {
         type:
-          | "unhydrated"
-          | "payment_unpaid"
-          | "payment_started"
-          | "payment_completed"
-          | "payment_bounced";
+        | "unhydrated"
+        | "payment_unpaid"
+        | "payment_started"
+        | "payment_completed"
+        | "payment_bounced";
       }
     >
   >;
@@ -99,7 +99,7 @@ type DaimoPayFunctions = {
 
 // Enforce that order is typed correctly based on paymentState.
 // E.g. if paymentState is "payment_completed", then order must be hydrated.
-type DaimoPayState = {
+type RozoPayState = {
   [S in PaymentState as S["type"]]: {
     paymentState: S["type"];
     order: S extends { order: infer O } ? O : null;
@@ -107,22 +107,22 @@ type DaimoPayState = {
   };
 }[PaymentState["type"]];
 
-export type UseDaimoPay = DaimoPayFunctions & DaimoPayState;
+export type UseRozoPay = RozoPayFunctions & RozoPayState;
 
 /**
- * React hook for interacting with Daimo Pay orders and payments. Use this hook
- * to manage the lifecycle of a Daimo Pay payment in your application.
+ * React hook for interacting with Rozo Pay orders and payments. Use this hook
+ * to manage the lifecycle of a Rozo Pay payment in your application.
  *
  * This hook provides a simple interface to create, hydrate, pay, and reset
- * Daimo Pay orders.
+ * Rozo Pay orders.
  *
- * @returns {UseDaimoPay} An object with current payment state and methods to
- * manage Daimo Pay orders and payments.
+ * @returns {UseRozoPay} An object with current payment state and methods to
+ * manage Rozo Pay orders and payments.
  */
-export function useDaimoPay(): UseDaimoPay {
+export function useRozoPay(): UseRozoPay {
   const store = useContext(PaymentContext);
   if (!store) {
-    throw new Error("useDaimoPay must be used within <PaymentProvider>");
+    throw new Error("useRozoPay must be used within <PaymentProvider>");
   }
 
   /* --------------------------------------------------
@@ -168,7 +168,7 @@ export function useDaimoPay(): UseDaimoPay {
   );
 
   const setPayId = useCallback(
-    async (payId: DaimoPayOrderID) => {
+    async (payId: RozoPayOrderID) => {
       dispatch({ type: "set_pay_id", payId });
 
       // Wait for the order to be queried from the API. Using payId could
@@ -267,5 +267,5 @@ export function useDaimoPay(): UseDaimoPay {
     paySolanaSource,
     reset,
     setChosenUsd,
-  } as UseDaimoPay;
+  } as UseRozoPay;
 }

@@ -1,23 +1,22 @@
-import type { AppRouter } from "@daimo/pay-api";
 import {
   CreateTRPCClient,
   createTRPCClient,
   httpBatchLink,
 } from "@trpc/client";
-import { daimoPayVersion } from "./exports";
+import { rozoPayVersion } from "./exports";
 
-export type TrpcClient = CreateTRPCClient<AppRouter>;
+export type TrpcClient = CreateTRPCClient<any>;
 
 export function createTrpcClient(
   apiUrl: string,
-  sessionId: string,
+  sessionId: string
 ): TrpcClient {
-  return createTRPCClient<AppRouter>({
+  return createTRPCClient({
     links: [
       httpBatchLink({
         url: apiUrl,
         headers: {
-          "x-pay-version": daimoPayVersion,
+          "x-pay-version": rozoPayVersion,
           "x-session-id": sessionId,
         },
       }),

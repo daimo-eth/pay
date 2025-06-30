@@ -37,7 +37,8 @@ export default function SelectMethod() {
     disconnect: disconnectSolana,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, log } = usePayContext();
+  const { setRoute, paymentState, log, disableMobileInjector } =
+    usePayContext();
   const { disconnectAsync } = useDisconnect();
 
   const {
@@ -48,8 +49,14 @@ export default function SelectMethod() {
   } = paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
-  const showConnectedEth = isEthConnected;
-  const showConnectedSolana = isSolanaConnected && showSolanaPaymentMethod;
+  // Desktop: Always show connected wallets when available
+  // Mobile: Only show connected wallets when mobile injector is enabled (!disableMobileInjector)
+  const showConnectedEth =
+    isEthConnected && (!isMobile || !disableMobileInjector);
+  const showConnectedSolana =
+    isSolanaConnected &&
+    showSolanaPaymentMethod &&
+    (!isMobile || !disableMobileInjector);
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
@@ -258,6 +265,7 @@ function getBestUnconnectedWalletIcons(
   } else {
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
+    if (!isCoinbase) icons.push(<Coinbase />);
   }
 
   return icons;

@@ -28,6 +28,8 @@ export type PayContextValue = {
   setCustomTheme: React.Dispatch<React.SetStateAction<CustomTheme | undefined>>;
   lang: Languages;
   setLang: React.Dispatch<React.SetStateAction<Languages>>;
+  disableMobileInjector: boolean;
+  setDisableMobileInjector: React.Dispatch<React.SetStateAction<boolean>>;
   setOnOpen: (fn?: () => void) => void;
   setOnClose: (fn?: () => void) => void;
   open: boolean;

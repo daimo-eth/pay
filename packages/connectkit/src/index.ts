@@ -17,7 +17,6 @@ export {
 // Hooks to track payment status + UI status.
 export { useDaimoPay } from "./hooks/useDaimoPay";
 export { useDaimoPayStatus } from "./hooks/useDaimoPayStatus";
-export { useDaimoPayUI } from "./hooks/useDaimoPayUI";
 
 // For convenience, export components to show connected account.
 export { default as Avatar } from "./components/Common/Avatar";

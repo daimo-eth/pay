@@ -1,6 +1,6 @@
 "use client";
 
-import { DaimoPayButton, useDaimoPayUI } from "@daimo/pay";
+import { DaimoPayButton, useDaimoPay } from "@daimo/pay";
 import * as Tokens from "@daimo/pay-common";
 import {
   getChainName,
@@ -29,15 +29,11 @@ export default function DemoDeposit() {
     tokenAddress: "",
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
-  const { resetPayment } = useDaimoPayUI();
+  const { reset } = useDaimoPay();
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);
-    resetPayment({
-      toChain: config.chainId,
-      toAddress: getAddress(config.recipientAddress),
-      toToken: getAddress(config.tokenAddress),
-    });
+    reset();
   };
 
   // Only render the DaimoPayButton when we have valid config

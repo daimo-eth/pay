@@ -26,14 +26,12 @@ contract UniversalAddressFactory {
         beacon = _beacon;
     }
 
-    // ───────────────────────────────────────────────────────────────────────────
-    // External user-facing deployment function
-    // ───────────────────────────────────────────────────────────────────────────
-
+    /// @notice External Universal Address deployment function
     /// @param toChainId     Destination chain ID.
     /// @param toCoin        ERC20 token minted/credited on dest chain.
     /// @param toAddress     Recipient wallet on dest chain.
     /// @param refundAddress Sweep target for unsupported tokens (same chain).
+    /// @return uaAddr The address of the deployed Universal Address
     function deployUA(uint256 toChainId, IERC20 toCoin, address toAddress, address refundAddress)
         external
         returns (address uaAddr)
@@ -45,22 +43,18 @@ contract UniversalAddressFactory {
         uaAddr = getUAAddress(initCalldata);
 
         if (uaAddr.code.length == 0) {
-            uaAddr = address(
-                new BeaconProxy{salt: 0}(address(beacon), initCalldata)
-            );
+            uaAddr = address(new BeaconProxy{salt: 0}(address(beacon), initCalldata));
         }
 
         emit UADeployed(toChainId, toCoin, toAddress, refundAddress, uaAddr);
     }
 
-    // ───────────────────────────────────────────────────────────────────────────
-    // View helpers (pure math)
-    // ───────────────────────────────────────────────────────────────────────────
-
+    /// @notice View helper to compute the address of a Universal Address
+    /// @param initData Initialization data for the Universal Address
+    /// @return address The computed address of the Universal Address
     function getUAAddress(bytes memory initData) public view returns (address) {
-        bytes32 salt = keccak256(initData);
         bytes memory creationCode =
             abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(beacon), initData));
-        return Create2.computeAddress(salt, keccak256(creationCode));
+        return Create2.computeAddress(0, keccak256(creationCode));
     }
 }

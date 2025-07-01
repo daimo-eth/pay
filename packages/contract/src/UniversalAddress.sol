@@ -5,6 +5,7 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.s
 import "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import "./SharedConfig.sol";
 import "./TokenUtils.sol";
@@ -218,21 +219,34 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // Internal helpers
     // ───────────────────────────────────────────────────────────────────────────
 
+    /// @notice Computes the salt for the BridgeReceiver that will be deployed via CREATE2 using `userSalt` and `amount`.
+    /// @param userSalt The salt to use for the CREATE2 deployment.
+    /// @param amount The amount of the token to check the balance of.
+    /// @return salt The salt for the BridgeReceiver.
     function _receiverSalt(bytes32 userSalt, uint256 amount) internal view returns (bytes32) {
         return keccak256(abi.encodePacked("receiver", address(this), userSalt, amount));
     }
 
+    /// @notice Computes the deterministic address of the BridgeReceiver that will be deployed via CREATE2 using `salt`.
+    /// @param salt The salt to use for the CREATE2 deployment.
+    /// @return addr The address of the BridgeReceiver.
     function _computeReceiverAddress(bytes32 salt) internal view returns (address payable addr) {
-        // Deterministic CREATE2: keccak256(0xFF ++ deployer ++ salt ++ initCodeHash)
-        bytes memory bytecode = type(BridgeReceiver).creationCode;
-        bytes32 hash = keccak256(abi.encodePacked(hex"ff", address(this), salt, keccak256(bytecode)));
-        addr = payable(address(uint160(uint256(hash))));
+        // Constructor arg is always the canonical USDC on this chain.
+        bytes memory initCode =
+            abi.encodePacked(type(BridgeReceiver).creationCode, abi.encode(IERC20(cfg.addr(USDC_KEY))));
+
+        addr = payable(Create2.computeAddress(salt, keccak256(initCode)));
     }
 
-    /// Executes arbitrary calls and checks post-balance on `requiredToken`.
-    /// Any deficit relative to `requiredAmount` is pulled from `swapFunder`,
-    /// while any surplus is returned to the same address to keep the contract
-    /// balance clean.
+    /// @notice Executes arbitrary calls and checks post-balance on `requiredToken`.
+    /// @param calls The sequence of calls to execute.
+    /// @param requiredToken The token to check the balance of.
+    /// @param requiredAmount The amount of the token to check the balance of.
+    /// @param swapFunder The address to pull the deficit from.
+    /// @dev Executes arbitrary calls and checks post-balance on `requiredToken`.
+    ///      Any deficit relative to `requiredAmount` is pulled from `swapFunder`,
+    ///      while any surplus is returned to the same address to keep the contract
+    ///      balance clean.
     function _swapInPlace(
         Call[] calldata calls,
         IERC20 requiredToken,

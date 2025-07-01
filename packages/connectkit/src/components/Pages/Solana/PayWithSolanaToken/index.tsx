@@ -18,8 +18,7 @@ import {
   solana,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
-import { useRozoPay } from "../../../../hooks/useRozoPay";
-import { getSupportUrl } from "../../../../utils/supportUrl";
+import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -105,7 +104,7 @@ const PayWithSolanaToken: React.FC = () => {
             Retry Payment
           </Button>
         )}
-        {payState === PayState.RequestFailed && (
+        {/* {payState === PayState.RequestFailed && (
           <Button
             onClick={() => {
               window.open(
@@ -119,7 +118,7 @@ const PayWithSolanaToken: React.FC = () => {
           >
             Contact Support
           </Button>
-        )}
+        )} */}
       </ModalContent>
     </PageContent>
   );

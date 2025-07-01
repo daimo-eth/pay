@@ -5,7 +5,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
 import { RozoPayOrderMode } from "@rozoai/intent-common";
-import { useRozoPay } from "../../../hooks/useRozoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
@@ -23,6 +23,7 @@ const SelectDepositAddressChain: React.FC = () => {
 
   return (
     <PageContent>
+      // TODO: Hide Tron and Ethereum from the deposit address options
       <OrderHeader minified excludeLogos={["tron", "eth"]} />
 
       {!depositAddressOptions.loading &&
@@ -45,7 +46,7 @@ const SelectDepositAddressChain: React.FC = () => {
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
         options={
-          // Hide Tron and Ethereum from the deposit address options
+          //TODO: Hide Tron and Ethereum from the deposit address options
           depositAddressOptions.options?.filter(option =>
             !option.id.toLowerCase().includes("tron") &&
             !option.id.toLowerCase().includes("ethereum")

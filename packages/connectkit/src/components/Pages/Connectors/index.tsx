@@ -18,7 +18,7 @@ import {
 } from "./styles";
 
 import { RozoPayOrderMode } from "@rozoai/intent-common";
-import { useRozoPay } from "../../../hooks/useRozoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";

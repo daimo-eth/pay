@@ -229,6 +229,7 @@ export default function SelectMethod() {
 
   return (
     <PageContent>
+      {/* TODO: Hide Tron and Ethereum from the deposit address options */}
       <OrderHeader excludeLogos={["tron", "eth"]} />
 
       <OptionsList

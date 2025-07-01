@@ -1,5 +1,6 @@
 import Logos from "../assets/logos";
 
+// TODO: Change the URL to Rozo Pay when the APP is ready
 // Infer in-wallet payment URL from environment.
 let rozoPayHost = "https://pay.daimo.com";
 

@@ -15,7 +15,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { WagmiContext } from "wagmi";
 
-import { RozoPayModal } from "../components/RozoPayModal";
+import { RozoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
 import { useChains } from "../hooks/useChains";
@@ -23,9 +23,9 @@ import {
   useConnectCallback,
   useConnectCallbackProps,
 } from "../hooks/useConnectCallback";
-import { useRozoPay } from "../hooks/useRozoPay";
+import { useRozoPay } from "../hooks/useDaimoPay";
 import { usePaymentState } from "../hooks/usePaymentState";
-import { PaymentContext, PaymentProvider } from "../provider/PaymentProvider";
+import { PaymentContext, PaymentProvider } from "./PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
 import {
   CustomTheme,
@@ -201,7 +201,7 @@ const RozoPayUIProvider = ({
       setOpenState(open);
 
       // Lock pay params starting from the first time the modal is opened to
-      // prevent the rozo pay order from changing from under the user
+      // prevent the rozopay order from changing from under the user
       if (open) {
         setLockPayParams(true);
       }
@@ -271,7 +271,11 @@ const RozoPayUIProvider = ({
   const showPayment = async (modalOptions: RozoPayModalOptions) => {
     const id = pay.order?.id;
     log(
-      `[PAY] showing modal ${debugJson({ id, modalOptions, paymentFsmState: pay.paymentState })}`,
+      `[PAY] showing modal ${debugJson({
+        id,
+        modalOptions,
+        paymentFsmState: pay.paymentState,
+      })}`,
     );
 
     setModalOptions(modalOptions);
@@ -351,10 +355,10 @@ const RozoPayUIProvider = ({
     log,
     displayError: (message: string | React.ReactNode | null, code?: any) => {
       setErrorMessage(message);
-      console.log("---------ROZOPAY DEBUG---------");
+      console.log("---------ROZO PAY DEBUG---------");
       console.log(message);
       if (code) console.table(code);
-      console.log("---------/ROZOPAY DEBUG---------");
+      console.log("---------/ROZO PAY DEBUG---------");
     },
     resize,
     triggerResize: () => onResize((prev) => prev + 1),

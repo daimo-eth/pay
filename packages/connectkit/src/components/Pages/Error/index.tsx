@@ -5,19 +5,21 @@ import {
 } from "../../Common/Modal/styles";
 
 import { AlertIcon } from "../../../assets/icons";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
-import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
+import { rozoPayVersion } from "../../../utils/exports";
+import { useMemo } from "react";
 
 export default function ErrorPage() {
-  const pay = useDaimoPay();
-  const supportUrl = getSupportUrl(pay.order?.id?.toString() ?? "", "Error");
+  const pay = useRozoPay();
 
-  let errorBody = "Unknown error";
-  if (pay.paymentState === "error") {
-    errorBody = pay.paymentErrorMessage;
-  }
+  const errorBody = useMemo(() => {
+    if (pay.paymentState === "error") {
+      return pay.paymentErrorMessage;
+    }
+    return "Unknown error";
+  }, [pay.paymentState, pay.paymentErrorMessage]);
 
   return (
     <PageContent>
@@ -36,7 +38,7 @@ export default function ErrorPage() {
             <strong>{errorBody}</strong>
           </ErrorBody>
         </CenterContainer>
-        <PoweredByFooter supportUrl={supportUrl} showNeedHelpImmediately />
+        <PoweredByFooter preFilledMessage={`Order ID: ${pay.order?.id}\nError: ${errorBody}\nVersion: ${rozoPayVersion}\n\nTell us how we can help`} showSupport />
       </ModalContent>
     </PageContent>
   );

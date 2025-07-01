@@ -2,7 +2,7 @@ import {
   RozoPayIntentStatus,
   writeRozoPayOrderID,
 } from "@rozoai/intent-common";
-import { useRozoPay } from "./useRozoPay";
+import { useRozoPay } from "./useDaimoPay";
 
 /** Returns the current payment, or undefined if there is none.
  *

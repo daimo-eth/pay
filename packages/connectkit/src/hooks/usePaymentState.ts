@@ -28,13 +28,13 @@ import {
   useWriteContract,
 } from "wagmi";
 
-import { PayButtonPaymentProps } from "../components/RozoPayButton";
+import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
-import { useRozoPay } from "./useRozoPay";
+import { useRozoPay } from "./useDaimoPay";
 import { useDepositAddressOptions } from "./useDepositAddressOptions";
 import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";

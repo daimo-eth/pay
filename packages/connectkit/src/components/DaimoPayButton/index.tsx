@@ -19,7 +19,7 @@ import {
 } from "@rozoai/intent-common";
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
-import { useRozoPay } from "../../hooks/useRozoPay";
+import { useRozoPay } from "../../hooks/useDaimoPay";
 import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";

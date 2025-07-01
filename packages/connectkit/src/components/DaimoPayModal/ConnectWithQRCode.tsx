@@ -6,7 +6,7 @@ import { OrDivider } from "../Common/Modal";
 import { ModalContent, PageContent } from "../Common/Modal/styles";
 
 import ScanIconWithLogos from "../../assets/ScanIconWithLogos";
-import { useRozoPay } from "../../hooks/useRozoPay";
+import { useRozoPay } from "../../hooks/useDaimoPay";
 import useLocales from "../../hooks/useLocales";
 import Button from "../Common/Button";
 import CopyToClipboard from "../Common/CopyToClipboard";

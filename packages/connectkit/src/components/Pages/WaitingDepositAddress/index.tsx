@@ -14,7 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
 import { WarningIcon } from "../../../assets/icons";
-import { useRozoPay } from "../../../hooks/useRozoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";

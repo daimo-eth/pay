@@ -16,7 +16,7 @@ import {
 } from "@rozoai/intent-common";
 import { motion } from "framer-motion";
 import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
-import { useRozoPay } from "../../../hooks/useRozoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import { rozoPayVersion } from "../../../utils/exports";

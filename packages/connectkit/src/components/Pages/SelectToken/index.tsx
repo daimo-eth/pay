@@ -34,7 +34,8 @@ export default function SelectToken() {
       <OptionsList
         requiredSkeletons={4}
         isLoading={isLoading}
-        options={optionsList}
+        // TODO: Hide Tron and Ethereum from the token options
+        options={optionsList.filter((option) => option.id !== "1-0x0000000000000000000000000000000000000000")}
         scrollHeight={
           isAnotherMethodButtonVisible && isMobileFormat ? 225 : 300
         }

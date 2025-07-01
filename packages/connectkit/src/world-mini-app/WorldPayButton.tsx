@@ -15,9 +15,9 @@ import { Address, Hex } from "viem";
 import ThemedButton, {
   ThemeContainer,
 } from "../components/Common/ThemedButton";
-import { RozoPayButtonInner } from "../components/RozoPayButton";
+import { RozoPayButtonInner } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
-import { useRozoPay } from "../hooks/useRozoPay";
+import { useRozoPay } from "../hooks/useDaimoPay";
 import { usePayContext } from "../hooks/usePayContext";
 import { ResetContainer } from "../styles";
 import { CustomTheme, Mode, Theme } from "../types";

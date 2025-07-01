@@ -2,9 +2,8 @@ import { getChainExplorerTxUrl, WalletPaymentOption } from "@rozoai/intent-commo
 import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
-import { useRozoPay } from "../../../hooks/useRozoPay";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { getSupportUrl } from "../../../utils/supportUrl";
 import Button from "../../Common/Button";
 import {
   Link,
@@ -162,7 +161,7 @@ const PayWithToken: React.FC = () => {
             Retry Payment
           </Button>
         )}
-        {payState === PayState.RequestFailed && (
+        {/* {payState === PayState.RequestFailed && (
           <Button
             onClick={() => {
               window.open(
@@ -176,7 +175,7 @@ const PayWithToken: React.FC = () => {
           >
             Contact Support
           </Button>
-        )}
+        )} */}
       </ModalContent>
     </PageContent>
   );

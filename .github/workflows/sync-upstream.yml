@@ -1,4 +1,4 @@
-name: Sync Fork
+name: Sync Fork with Upstream
 
 on:
   schedule:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout fork
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
@@ -20,12 +20,27 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Add upstream remote
+      - name: Add upstream remote and rebase
         run: |
           git remote add upstream https://github.com/daimo-eth/pay.git
           git fetch upstream
-          git merge upstream/main --allow-unrelated-histories || true
+          
+          # Store current branch name
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          
+          # Rebase current branch onto upstream/main
+          git rebase upstream/main || {
+            # If rebase fails, abort and create a report
+            git rebase --abort
+            echo "::warning::Rebase failed. Manual intervention may be required."
+            exit 1
+          }
 
       - name: Push changes
         run: |
-          git push origin main
+          # Force push with lease for safety (prevents overwriting others' work)
+          git push --force-with-lease origin $CURRENT_BRANCH
+        
+      - name: Report success
+        if: success()
+        run: echo "Successfully rebased onto upstream/main and pushed to origin."

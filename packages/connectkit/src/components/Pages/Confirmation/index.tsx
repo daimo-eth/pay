@@ -22,7 +22,7 @@ import PoweredByFooter from "../../Common/PoweredByFooter";
 import { rozoPayVersion } from "../../../utils/exports";
 
 const Confirmation: React.FC = () => {
-  const { confirmationMessage, onSuccess } = usePayContext();
+  const { confirmationMessage, onSuccess, debugMode, log } = usePayContext();
   const { order, paymentState } = useRozoPay();
 
   const { done, txURL } = useMemo(() => {
@@ -48,6 +48,12 @@ const Confirmation: React.FC = () => {
       onSuccess();
     }
   }, [done, onSuccess]);
+
+  useEffect(() => {
+    if (debugMode) {
+      console.log(`[ORDER] Order: `, order);
+    }
+  }, [order, debugMode]);
 
   return (
     <PageContent
@@ -88,6 +94,7 @@ const Confirmation: React.FC = () => {
         )}
 
         <PoweredByFooter
+          showSupport={!done}
           preFilledMessage={`Transaction: ${txURL}\nVersion: ${rozoPayVersion}\n\nTell us how we can help`}
         />
       </ModalContent>

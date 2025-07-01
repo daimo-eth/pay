@@ -5,7 +5,7 @@ import { rozoPayVersion } from "../../../utils/exports";
 import IntercomInitializer from "../Intercom";
 import { usePayContext } from "../../../hooks/usePayContext";
 
-const PoweredByFooter = ({ preFilledMessage }: { preFilledMessage?: string } = {}) => {
+const PoweredByFooter = ({ preFilledMessage, showSupport = true }: { preFilledMessage?: string, showSupport?: boolean } = {}) => {
   const context = usePayContext();
 
   const handleContactClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -33,9 +33,11 @@ const PoweredByFooter = ({ preFilledMessage }: { preFilledMessage?: string } = {
         >
           <span>Powered by {globalThis.__POWEREDBY__ || "Rozo Pay"}</span>
         </TextButton>
-        <TextButton onClick={handleContactClick}>
-          Get help
-        </TextButton>
+        {showSupport && (
+          <TextButton onClick={handleContactClick}>
+            Get help
+          </TextButton>
+        )}
       </Container>
     </>
   );

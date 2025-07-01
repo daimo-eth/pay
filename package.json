@@ -14,7 +14,7 @@
     "release": "pnpm build && pnpm --filter @rozoai/intent-common publish && pnpm --filter @rozoai/intent-pay release",
     "clean": "pnpm dlx rimraf '**/node_modules'",
     "clean:full": "pnpm clean && pnpm dlx rimraf pnpm-lock.yaml",
-    "clean:deps": "pnpm dlx rimraf '**/node_modules' '**/dist' '**/build' '**/coverage'"
+    "clean:deps": "pnpm dlx rimraf '**/node_modules' '**/dist' '**/build' '**/.next'"
   },
   "keywords": [],
   "author": "",

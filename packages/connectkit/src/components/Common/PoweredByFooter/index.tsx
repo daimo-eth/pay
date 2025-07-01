@@ -1,48 +1,43 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
-import CrepeIcon from "../../../assets/crepe";
 import styled from "../../../styles/styled";
 import { rozoPayVersion } from "../../../utils/exports";
+import IntercomInitializer from "../Intercom";
+import { usePayContext } from "../../../hooks/usePayContext";
 
-const PoweredByFooter = ({
-  supportUrl,
-  showNeedHelpImmediately,
-}: { supportUrl?: string; showNeedHelpImmediately?: boolean } = {}) => {
-  const [supportVisible, setSupportVisible] = useState(showNeedHelpImmediately);
+const PoweredByFooter = ({ preFilledMessage }: { preFilledMessage?: string } = {}) => {
+  const context = usePayContext();
 
-  useEffect(() => {
-    if (supportUrl == null) return;
-    // Show the support link after delay
-    const timer = setTimeout(() => {
-      setSupportVisible(true);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [supportUrl]);
+  const handleContactClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+
+    if (typeof window.Intercom === 'function') {
+      context.setOpen(false);
+      window.Intercom('showNewMessage', preFilledMessage || 'Hi, I need help with my payment. \n\nVersion: ' + rozoPayVersion);
+    } else {
+      window.open(globalThis.__SUPPORTURL__ || `https://pay.rozo.ai?ref=sdk-v${rozoPayVersion}`);
+    }
+  };
 
   return (
-    <Container>
-      <TextButton
-        onClick={() => {
-          window.open(
-            globalThis.__SUPPORTURL__ || `https://pay.daimo.com?ref=sdk-v${rozoPayVersion}`,
-            "_blank"
-          );
-        }}
-        className={supportVisible ? "support" : ""}
-      >
-        {!supportVisible && <CrepeIcon />}
-        <span>
-          {supportVisible ? (
-            <>
-              Need help? <Underline>Contact support</Underline>
-            </>
-          ) : (
-            <>Powered by {globalThis.__POWEREDBY__ || "Rozo Pay"}</>
-          )}
-        </span>
-      </TextButton>
-    </Container>
+    <>
+      <IntercomInitializer />
+      <Container>
+        <TextButton
+          onClick={() => {
+            window.open(
+              'https://github.com/RozoAI/intent-pay',
+              "_blank"
+            );
+          }}
+        >
+          <span>Powered by {globalThis.__POWEREDBY__ || "Rozo Pay"}</span>
+        </TextButton>
+        <TextButton onClick={handleContactClick}>
+          Get help
+        </TextButton>
+      </Container>
+    </>
   );
 };
 
@@ -50,6 +45,10 @@ const Container = styled(motion.div)`
   text-align: center;
   margin-top: 16px;
   margin-bottom: -4px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: space-between;
 `;
 
 const fadeIn = keyframes`
@@ -65,14 +64,14 @@ const TextButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 42px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 8px;
   border-radius: 6px;
   background: none;
   color: var(--ck-body-color-muted);
   text-decoration-color: var(--ck-body-color-muted);
-  font-size: 15px;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 16px;
   font-weight: 500;
 
   transition:

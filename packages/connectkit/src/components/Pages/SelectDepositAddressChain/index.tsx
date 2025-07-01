@@ -9,6 +9,7 @@ import { useRozoPay } from "../../../hooks/useRozoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
+import PoweredByFooter from "../../Common/PoweredByFooter";
 
 const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
@@ -22,7 +23,7 @@ const SelectDepositAddressChain: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified />
+      <OrderHeader minified excludeLogos={["tron", "eth"]} />
 
       {!depositAddressOptions.loading &&
         depositAddressOptions.options?.length === 0 && (
@@ -44,7 +45,11 @@ const SelectDepositAddressChain: React.FC = () => {
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
         options={
-          depositAddressOptions.options?.map((option) => {
+          // Hide Tron and Ethereum from the deposit address options
+          depositAddressOptions.options?.filter(option =>
+            !option.id.toLowerCase().includes("tron") &&
+            !option.id.toLowerCase().includes("ethereum")
+          ).map((option) => {
             return {
               id: option.id,
               title: option.id,
@@ -66,6 +71,7 @@ const SelectDepositAddressChain: React.FC = () => {
           }) ?? []
         }
       />
+      <PoweredByFooter preFilledMessage={"Help"} />
     </PageContent>
   );
 };

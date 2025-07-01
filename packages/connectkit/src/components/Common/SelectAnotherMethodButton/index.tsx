@@ -85,8 +85,8 @@ export default function SelectAnotherMethodButton() {
       if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
       if (includeDepositAddressOption && additionalIcons.length < 3)
         additionalIcons.push(<Bitcoin />);
-      if (includeDepositAddressOption && additionalIcons.length < 3)
-        additionalIcons.push(<Tron />);
+      /* if (includeDepositAddressOption && additionalIcons.length < 3)
+        additionalIcons.push(<Tron />); */
       if (additionalIcons.length < 3)
         additionalIcons.push(...getBestUnconnectedWalletIcons(connector));
 

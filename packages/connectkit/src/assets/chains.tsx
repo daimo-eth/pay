@@ -133,6 +133,7 @@ export const Polygon = ({ testnet, ...props }: Logo) => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     style={{
+      borderRadius: "50%",
       background: testnet
         ? "linear-gradient(180deg, #8995A9 0%, #424D5F 99.48%)"
         : "#6F41D8",
@@ -154,6 +155,7 @@ export const Optimism = ({ testnet, ...props }: Logo) => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     style={{
+      borderRadius: "50%",
       background: testnet
         ? "linear-gradient(180deg, #8995A9 0%, #424D5F 99.48%)"
         : "#FF0420",
@@ -183,6 +185,7 @@ export const Arbitrum = ({ testnet, ...props }: Logo) => {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{
+        borderRadius: "50%",
         background: testnet
           ? "linear-gradient(180deg, #8995A9 0%, #424D5F 99.48%)"
           : "#2C364F",
@@ -749,6 +752,7 @@ export const Base = ({ testnet, ...props }: { testnet?: boolean }) => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     style={{
+      borderRadius: "50%",
       background: testnet
         ? "linear-gradient(180deg, #8995A9 0%, #424D5F 99.48%)"
         : "#0052FF",

@@ -7,7 +7,7 @@ import { PageContent } from "../../Common/Modal/styles";
 import { getAddressContraction } from "@rozoai/intent-common";
 import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
+import { Arbitrum, Base, Ethereum, Optimism, Polygon, Solana, Tron } from "../../../assets/chains";
 import {
   Coinbase,
   Phantom,
@@ -229,7 +229,7 @@ export default function SelectMethod() {
 
   return (
     <PageContent>
-      <OrderHeader />
+      <OrderHeader excludeLogos={["tron", "eth"]} />
 
       <OptionsList
         requiredSkeletons={isMobile ? 4 : 3} // TODO: programmatically determine skeletons to best avoid layout shifts
@@ -301,7 +301,7 @@ function getDepositAddressOption(
   return {
     id: "depositAddress",
     title: "Pay to address",
-    icons: [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />],
+    icons: [<Base key="base" />, <Arbitrum key="arbitrum" />, <Optimism key="optimism" />, <Polygon key="polygon" />],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },

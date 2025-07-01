@@ -18,8 +18,8 @@ import { motion } from "framer-motion";
 import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
 import { useRozoPay } from "../../../hooks/useRozoPay";
 import styled from "../../../styles/styled";
-import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
+import { rozoPayVersion } from "../../../utils/exports";
 
 const Confirmation: React.FC = () => {
   const { confirmationMessage, onSuccess } = usePayContext();
@@ -88,10 +88,7 @@ const Confirmation: React.FC = () => {
         )}
 
         <PoweredByFooter
-          supportUrl={getSupportUrl(
-            order?.id?.toString() ?? "",
-            done ? "Confirmed" : "Confirming",
-          )}
+          preFilledMessage={`Transaction: ${txURL}\nVersion: ${rozoPayVersion}\n\nTell us how we can help`}
         />
       </ModalContent>
     </PageContent>

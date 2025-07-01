@@ -3,7 +3,6 @@ import {
   createTRPCClient,
   httpBatchLink,
 } from "@trpc/client";
-import { rozoPayVersion } from "./exports";
 
 export type TrpcClient = CreateTRPCClient<any>;
 
@@ -16,7 +15,8 @@ export function createTrpcClient(
       httpBatchLink({
         url: apiUrl,
         headers: {
-          "x-pay-version": rozoPayVersion,
+          // TODO: The version here must use the latest version of @daimo/pay, so that the API can function for the payment confirmation flow.
+          "x-pay-version": "1.11.5",
           "x-session-id": sessionId,
         },
       }),

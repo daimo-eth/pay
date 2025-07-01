@@ -170,7 +170,7 @@ const IconStackContainer = styled(motion.div)`
   justify-content: center;
 `;
 
-const IconStackItem = styled(motion.div)<{
+const IconStackItem = styled(motion.div) <{
   $marginRight?: number;
   $zIndex?: number;
 }>`

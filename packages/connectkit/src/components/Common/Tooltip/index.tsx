@@ -7,7 +7,7 @@ import { TooltipProps, TooltipSizeProps } from "./types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ResetContainer } from "../../../styles";
-import { useThemeContext } from "../../RozoPayThemeProvider/RozoPayThemeProvider";
+import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import Portal from "../Portal";
 
 const Tooltip: React.FC<TooltipProps> = ({

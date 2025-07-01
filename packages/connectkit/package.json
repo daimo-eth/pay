@@ -1,10 +1,10 @@
 {
   "name": "@rozoai/intent-pay",
   "private": false,
-  "version": "0.0.8",
+  "version": "0.0.9",
   "author": "RozoAI",
   "homepage": "https://github.com/RozoAI/intent-pay",
-  "license": "BSD-2-Clause license",
+  "license": "BSD-2-Clause",
   "description": "Seamless crypto payments. Onboard users from any chain, any coin into your app with one click.",
   "main": "./src/index.ts",
   "type": "module",
@@ -48,7 +48,7 @@
     "crypto"
   ],
   "dependencies": {
-    "@rozoai/intent-common": "workspace:*",
+    "@rozoai/intent-common": "^0.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",

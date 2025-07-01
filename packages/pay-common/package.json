@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "RozoAI",
-  "license": "BSD-2-Clause license",
+  "license": "BSD-2-Clause",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

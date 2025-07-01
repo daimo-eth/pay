@@ -47,6 +47,8 @@ export type DaimoPayContextOptions = {
   walletOnboardingUrl?: string;
   /** Blur the background when the modal is open */
   overlayBlur?: number;
+  /** Disable mobile wallet injector detection */
+  disableMobileInjector?: boolean;
 };
 
 /** Modal UI options, set on the pay button triggering that modal. */

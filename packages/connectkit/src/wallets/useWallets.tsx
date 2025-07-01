@@ -4,6 +4,7 @@ import { Connector } from "wagmi";
 import Logos from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
+import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -21,21 +22,28 @@ export const useWallet = (id: string): WalletProps | null => {
 };
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
+  const context = usePayContext();
+  const { disableMobileInjector } = context;
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
 
-    // Add injected wallet (if any) first
-    connectors.forEach((connector) => {
-      if (isCoinbaseWalletConnector(connector.id)) return;
-      mobileWallets.push({
-        id: connector.id,
-        connector,
-        shortName: connector.name,
-        iconConnector: <img src={connector.icon} alt={connector.name} />,
-        iconShape: "squircle",
+    // Add injected wallet (if any) first, unless disabled
+    if (!disableMobileInjector) {
+      connectors.forEach((connector) => {
+        if (isCoinbaseWalletConnector(connector.id)) return;
+        if (!isInjectedConnector(connector.type)) return;
+        // Skip any connectors that mention WalletConnect
+        if (connector.name?.toLowerCase().includes("walletconnect")) return;
+        mobileWallets.push({
+          id: connector.id,
+          connector,
+          shortName: connector.name,
+          iconConnector: <img src={connector.icon} alt={connector.name} />,
+          iconShape: "squircle",
+        });
       });
-    });
+    }
 
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
@@ -68,55 +76,60 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return mobileWallets;
   }
 
-  const wallets = connectors.map((connector): WalletProps => {
-    // use overrides
-    const walletId = Object.keys(walletConfigs).find(
-      // where id is comma seperated list
-      (id) =>
-        id
-          .split(",")
-          .map((i) => i.trim())
-          .includes(connector.id),
-    );
+  const wallets = connectors
+    .filter((connector) => {
+      // Skip any connectors that mention WalletConnect
+      return !connector.name?.toLowerCase().includes("walletconnect");
+    })
+    .map((connector): WalletProps => {
+      // use overrides
+      const walletId = Object.keys(walletConfigs).find(
+        // where id is comma seperated list
+        (id) =>
+          id
+            .split(",")
+            .map((i) => i.trim())
+            .includes(connector.id),
+      );
 
-    const c: WalletProps = {
-      id: connector.id,
-      name: connector.name ?? connector.id ?? connector.type,
-      icon: (
-        <img
-          src={connector.icon}
-          alt={connector.name}
-          width={"100%"}
-          height={"100%"}
-        />
-      ),
-      connector,
-      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
-      isInstalled:
-        connector.type === "mock" ||
-        (connector.type === "injected" && connector.id !== "metaMask") ||
-        connector.type === "farcasterFrame" ||
-        isCoinbaseWalletConnector(connector.id),
-    };
-
-    if (walletId) {
-      const wallet = walletConfigs[walletId];
-      return {
-        ...c,
-        iconConnector: connector.icon ? (
+      const c: WalletProps = {
+        id: connector.id,
+        name: connector.name ?? connector.id ?? connector.type,
+        icon: (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
-        ) : undefined,
-        ...wallet,
+        ),
+        connector,
+        iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+        isInstalled:
+          connector.type === "mock" ||
+          (connector.type === "injected" && connector.id !== "metaMask") ||
+          connector.type === "farcasterFrame" ||
+          isCoinbaseWalletConnector(connector.id),
       };
-    }
 
-    return c;
-  });
+      if (walletId) {
+        const wallet = walletConfigs[walletId];
+        return {
+          ...c,
+          iconConnector: connector.icon ? (
+            <img
+              src={connector.icon}
+              alt={connector.name}
+              width={"100%"}
+              height={"100%"}
+            />
+          ) : undefined,
+          ...wallet,
+        };
+      }
+
+      return c;
+    });
 
   wallets.push({
     id: "Mobile Wallets",

@@ -6,6 +6,7 @@ import { ROUTES } from "../../constants/routes";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
+import useIsMobile from "../../hooks/useIsMobile";
 import { usePayContext } from "../../hooks/usePayContext";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
@@ -41,19 +42,28 @@ export const DaimoPayModal: React.FC<{
   theme: Theme;
   customTheme: CustomTheme;
   lang: Languages;
+  disableMobileInjector: boolean;
 }> = ({
   mode,
   theme,
   customTheme,
   lang,
+  disableMobileInjector,
 }: {
   mode: Mode;
   theme: Theme;
   customTheme: CustomTheme;
   lang: Languages;
+  disableMobileInjector: boolean;
 }) => {
   const context = usePayContext();
-  const { setMode, setTheme, setCustomTheme, setLang } = context;
+  const {
+    setMode,
+    setTheme,
+    setCustomTheme,
+    setLang,
+    setDisableMobileInjector,
+  } = context;
   const paymentState = context.paymentState;
   const {
     generatePreviewOrder,
@@ -195,6 +205,7 @@ export const DaimoPayModal: React.FC<{
     }
     context.setOpen(false, { event: "click-close" });
   }
+  const { isMobile } = useIsMobile();
 
   // If the user has a wallet already connected upon opening the modal, go
   // straight to the select token screen
@@ -205,7 +216,12 @@ export const DaimoPayModal: React.FC<{
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
-    if (isEthConnected && !isSolanaConnected) {
+    // If mobile injector is disabled, don't show the connected wallets.
+    if (
+      isEthConnected &&
+      !isSolanaConnected &&
+      (!isMobile || !disableMobileInjector)
+    ) {
       paymentState.setTokenMode("evm");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
@@ -216,7 +232,8 @@ export const DaimoPayModal: React.FC<{
     } else if (
       isSolanaConnected &&
       !isEthConnected &&
-      showSolanaPaymentMethod
+      showSolanaPaymentMethod &&
+      !disableMobileInjector
     ) {
       paymentState.setTokenMode("solana");
       context.setRoute(ROUTES.SELECT_TOKEN, {
@@ -261,6 +278,10 @@ export const DaimoPayModal: React.FC<{
   useEffect(() => setTheme(theme), [theme, setTheme]);
   useEffect(() => setCustomTheme(customTheme), [customTheme, setCustomTheme]);
   useEffect(() => setLang(lang), [lang, setLang]);
+  useEffect(
+    () => setDisableMobileInjector(disableMobileInjector),
+    [disableMobileInjector, setDisableMobileInjector],
+  );
 
   useEffect(() => {
     const appName = getAppName();

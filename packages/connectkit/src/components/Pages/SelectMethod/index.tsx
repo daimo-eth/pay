@@ -205,26 +205,6 @@ export default function SelectMethod() {
     });
   }
 
-  // // External payment options, e.g. Binance, Coinbase, etc.
-  // options.push(
-  //   ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
-  //     id: option.id,
-  //     title: option.cta,
-  //     icons: [option.logoURI],
-  //     onClick: () => {
-  //       setSelectedExternalOption(option);
-  //       const meta = { event: "click-option", option: option.id };
-  //       if (paymentState.isDepositFlow) {
-  //         setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
-  //       } else {
-  //         setRoute(ROUTES.WAITING_EXTERNAL, meta);
-  //       }
-  //     },
-  //     disabled: option.disabled,
-  //     subtitle: option.message,
-  //   })),
-  // );
-
   const depositAddressOption = getDepositAddressOption(setRoute);
   options.push(depositAddressOption);
 

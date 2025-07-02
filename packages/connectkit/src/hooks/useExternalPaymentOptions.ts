@@ -31,7 +31,10 @@ export function useExternalPaymentOptions({
   mode: DaimoPayOrderMode | undefined;
 }): {
   /// Exteral options, organized by optionType
-  options: Map<"external" | "zkp2p", ExternalPaymentOptionMetadata[]>;
+  options: Map<
+    "external" | "zkp2p" | "exchange",
+    ExternalPaymentOptionMetadata[]
+  >;
   loading: boolean;
 } {
   const [options, setOptions] = useState<

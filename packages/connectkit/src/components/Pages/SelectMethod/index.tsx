@@ -188,25 +188,42 @@ export default function SelectMethod() {
     }
   }
 
-  // External payment options, e.g. Binance, Coinbase, etc.
-  options.push(
-    ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
-      id: option.id,
-      title: option.cta,
-      icons: [option.logoURI],
+  // Pay with Exchange
+  const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
+  const showExchangePaymentMethod = exchangeOptions.length > 0;
+  if (showExchangePaymentMethod) {
+    options.push({
+      id: "exchange",
+      title: "Pay with exchange",
+      icons: exchangeOptions.map((option) => option.logoURI),
       onClick: () => {
-        setSelectedExternalOption(option);
-        const meta = { event: "click-option", option: option.id };
-        if (paymentState.isDepositFlow) {
-          setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
-        } else {
-          setRoute(ROUTES.WAITING_EXTERNAL, meta);
-        }
+        setRoute(ROUTES.SELECT_EXCHANGE, {
+          event: "click-option",
+          option: "exchange",
+        });
       },
-      disabled: option.disabled,
-      subtitle: option.message,
-    })),
-  );
+    });
+  }
+
+  // // External payment options, e.g. Binance, Coinbase, etc.
+  // options.push(
+  //   ...(externalPaymentOptions.options.get("external") ?? []).map((option) => ({
+  //     id: option.id,
+  //     title: option.cta,
+  //     icons: [option.logoURI],
+  //     onClick: () => {
+  //       setSelectedExternalOption(option);
+  //       const meta = { event: "click-option", option: option.id };
+  //       if (paymentState.isDepositFlow) {
+  //         setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+  //       } else {
+  //         setRoute(ROUTES.WAITING_EXTERNAL, meta);
+  //       }
+  //     },
+  //     disabled: option.disabled,
+  //     subtitle: option.message,
+  //   })),
+  // );
 
   const depositAddressOption = getDepositAddressOption(setRoute);
   options.push(depositAddressOption);

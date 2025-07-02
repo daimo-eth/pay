@@ -22,6 +22,7 @@ import PayWithToken from "../Pages/PayWithToken";
 import SelectAmount from "../Pages/SelectAmount";
 import SelectDepositAddressAmount from "../Pages/SelectDepositAddressAmount";
 import SelectDepositAddressChain from "../Pages/SelectDepositAddressChain";
+import SelectExchange from "../Pages/SelectExchange";
 import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
@@ -175,6 +176,7 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SELECT_TOKEN]: <SelectToken />,
     [ROUTES.SELECT_AMOUNT]: <SelectAmount />,
     [ROUTES.SELECT_EXTERNAL_AMOUNT]: <SelectExternalAmount />,
+    [ROUTES.SELECT_EXCHANGE]: <SelectExchange />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: <SelectDepositAddressAmount />,
     [ROUTES.SELECT_WALLET_AMOUNT]: <SelectWalletAmount />,
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,

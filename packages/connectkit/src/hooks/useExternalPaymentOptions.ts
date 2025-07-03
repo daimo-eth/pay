@@ -38,7 +38,7 @@ export function useExternalPaymentOptions({
   loading: boolean;
 } {
   const [options, setOptions] = useState<
-    Map<"external" | "zkp2p", ExternalPaymentOptionMetadata[]>
+    Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
 
@@ -60,16 +60,22 @@ export function useExternalPaymentOptions({
         // Filter out options not in options JSON
         const enabledExtPaymentOptions =
           filterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
+
         const hasAllPaymentApps = enabledExtPaymentOptions.includes(
           ExternalPaymentOptions.AllPaymentApps,
         );
+        const hasAllExchanges = enabledExtPaymentOptions.includes(
+          ExternalPaymentOptions.AllExchanges,
+        );
+
         const filteredOptions = newOptions.filter(
           (option: ExternalPaymentOptionMetadata) =>
             enabledExtPaymentOptions.includes(option.id) ||
-            (hasAllPaymentApps && option.optionType === "zkp2p"),
+            (hasAllPaymentApps && option.optionType === "zkp2p") ||
+            (hasAllExchanges && option.optionType === "exchange"),
         );
         const optionsByType: Map<
-          "external" | "zkp2p",
+          "external" | "zkp2p" | "exchange",
           ExternalPaymentOptionMetadata[]
         > = new Map();
         filteredOptions.forEach((option) => {

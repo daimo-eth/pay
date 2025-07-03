@@ -2,7 +2,9 @@ import React from "react";
 
 import { ModalH1, PageContent } from "../../Common/Modal/styles";
 
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ROUTES } from "../../../constants/routes";
+import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -10,7 +12,9 @@ import { OrderHeader } from "../../Common/OrderHeader";
 const SelectExchange: React.FC = () => {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, setSelectedExternalOption } = paymentState;
+  const { isMobile } = useIsMobile();
   const exchangeOptions = externalPaymentOptions.options.get("exchange");
+  console.log("exchangeOptions", exchangeOptions);
 
   if (!exchangeOptions) {
     return (
@@ -21,7 +25,15 @@ const SelectExchange: React.FC = () => {
     );
   }
 
-  const options = exchangeOptions.map((option) => ({
+  // Filter out Lemon on desktop
+  const filteredExchangeOptions = exchangeOptions.filter((option) => {
+    if (!isMobile && option.id === ExternalPaymentOptions.Lemon) {
+      return false;
+    }
+    return true;
+  });
+
+  const options = filteredExchangeOptions.map((option) => ({
     id: option.id,
     title: option.cta,
     icons: [option.logoURI],

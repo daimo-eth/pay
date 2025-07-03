@@ -12,6 +12,18 @@ import "./TokenUtils.sol";
 import {Call} from "./DaimoPayExecutor.sol";
 import {IDaimoPayBridger, TokenAmount} from "./interfaces/IDaimoPayBridger.sol";
 
+
+/// @notice Describes the routing parameters for a payment initiated via a
+///         UniversalAddress.  Encodes the final destination chain/token and
+///         the beneficiary+refund addrs so that indexers can recover the full
+///         context from a single log.
+struct PayRoute {
+    uint256 toChainId;      // Destination chain where funds will settle.
+    IERC20 toCoin;          // Destination token (eg native USDC on dest).
+    address toAddr;         // Beneficiary wallet on the destination chain.
+    address refundAddr;     // Address that will receive unsupported tokens.
+}
+
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Universal cross-chain deposit address with bridge + optional
@@ -40,17 +52,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// Global, chain-specific configuration contract.
     SharedConfig public cfg;
 
-    /// Destination chain where final funds will arrive.
-    uint256 public toChainId;
-
-    /// Destination token (eg USDT, DAI, native USDC on dest chain).
-    IERC20 public toCoin;
-
-    /// Beneficiary wallet on the destination chain.
-    address public beneficiary;
-
-    /// Where non-allow-listed tokens are swept.
-    address public refundAddress;
+    /// Per-UA routing config
+    PayRoute public route;
 
     /// Map receiverSalt ⇒ relayer that performed fastFinish. Sentinel = ADDR_MAX
     /// when already claimed, 0x0 when open.
@@ -68,15 +71,17 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         SharedConfig _cfg,
         uint256 _toChainId,
         IERC20 _toCoin,
-        address _beneficiary,
-        address _refundAddress
+        address _toAddr,
+        address _refundAddr
     ) external initializer {
         __ReentrancyGuard_init();
         cfg = _cfg;
-        toChainId = _toChainId;
-        toCoin = _toCoin;
-        beneficiary = _beneficiary;
-        refundAddress = _refundAddress;
+        route = PayRoute({
+            toChainId: _toChainId,
+            toCoin: _toCoin,
+            toAddr: _toAddr,
+            refundAddr: _refundAddr
+        });
     }
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -109,11 +114,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         uint256 balance = inputToken.balanceOf(address(this));
         require(balance > 0, "UA: no balance");
 
-        if (block.chainid == toChainId) {
+        if (block.chainid == route.toChainId) {
             // If the destination chain is the same as the source chain, we can
             // just transfer the funds to the beneficiary.
-            TokenUtils.transfer({token: inputToken, recipient: payable(beneficiary), amount: balance});
-            emit StartBridge(userSalt, balance, beneficiary);
+            TokenUtils.transfer({token: inputToken, recipient: payable(route.toAddr), amount: balance});
+            emit Start(userSalt, balance, route.toAddr, route);
         } else {
             // Otherwise, we're finna bridge.
 
@@ -135,13 +140,13 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
             address receiverAddr = _computeReceiverAddress(recvSalt);
 
             IDaimoPayBridger(bridgerAddr).sendToChain({
-                toChainId: toChainId,
+                toChainId: route.toChainId,
                 toAddress: receiverAddr,
                 bridgeTokenOutOptions: outOpts,
                 extraData: bridgeExtra
             });
 
-            emit StartBridge(recvSalt, balance, receiverAddr);
+            emit Start(recvSalt, balance, receiverAddr, route);
         }
     }
 
@@ -152,7 +157,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         nonReentrant
         whenNotPaused
     {
-        require(block.chainid == toChainId, "UA: wrong chain");
+        require(block.chainid == route.toChainId, "UA: wrong chain");
 
         IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
 
@@ -164,8 +169,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         usdc.safeTransferFrom(msg.sender, address(this), bridgedAmount);
 
         // Swap to final token if needed and deliver to beneficiary.
-        _swapInPlace(swapCalls, toCoin, bridgedAmount, payable(msg.sender));
-        TokenUtils.transfer({token: toCoin, recipient: payable(beneficiary), amount: bridgedAmount});
+        _swapInPlace(swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
+        TokenUtils.transfer({token: route.toCoin, recipient: payable(route.toAddr), amount: bridgedAmount});
 
         // Record relayer as filler.
         receiverFiller[recvSalt] = msg.sender;
@@ -175,7 +180,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
     /// @notice Complete the intent after the canonical bridge lands.
     function claim(uint256 bridgedAmount, bytes32 userSalt) external nonReentrant whenNotPaused {
-        require(block.chainid == toChainId, "UA: wrong chain");
+        require(block.chainid == route.toChainId, "UA: wrong chain");
 
         IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
         bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount);
@@ -193,7 +198,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         // Distribute funds based on fast-finish status.
         if (filler == address(0)) {
             // No fastFinish; deliver to beneficiary.
-            TokenUtils.transfer({token: usdc, recipient: payable(beneficiary), amount: bridgedAmount});
+            TokenUtils.transfer({token: usdc, recipient: payable(route.toAddr), amount: bridgedAmount});
         } else {
             // Repay the relayer.
             TokenUtils.transfer({token: usdc, recipient: payable(filler), amount: bridgedAmount});
@@ -209,8 +214,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < n; ++i) {
             IERC20 tok = tokens[i];
             if (!cfg.allowedStable(address(tok))) {
-                uint256 amt = TokenUtils.transferBalance({token: tok, recipient: payable(refundAddress)});
-                emit Refund(address(tok), amt, refundAddress);
+                uint256 amt = TokenUtils.transferBalance({token: tok, recipient: payable(route.refundAddr)});
+                emit Refund(address(tok), amt, route.refundAddr);
             }
         }
     }
@@ -285,7 +290,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // Events
     // ───────────────────────────────────────────────────────────────────────────
 
-    event StartBridge(bytes32 indexed salt, uint256 amountUSDC, address receiver);
+    event Start(bytes32 indexed salt, uint256 amountUSDC, address receiver, PayRoute route);
     event FastFinish(bytes32 indexed salt, uint256 amountDestTok, address indexed relayer);
     event Claim(bytes32 indexed salt, uint256 bridgedUSDC, uint256 repaidUSDC);
     event Refund(address indexed token, uint256 amount, address indexed refundAddr);

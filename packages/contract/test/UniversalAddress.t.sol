@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import "forge-std/Test.sol";
 import {SharedConfig} from "../src/SharedConfig.sol";
 import {UniversalAddressFactory} from "../src/UniversalAddressFactory.sol";
-import {UniversalAddress, BridgeReceiver} from "../src/UniversalAddress.sol";
+import {UniversalAddress, BridgeReceiver, PayRoute} from "../src/UniversalAddress.sol";
 import {UpgradeableBeacon} from "openzeppelin-contracts/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {BeaconProxy} from "openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
 import {Call} from "../src/DaimoPayExecutor.sol";
@@ -125,9 +125,14 @@ contract UniversalAddressStartTest is UA_Setup {
         uint256 amount = 100e6;
         _depositToUA(ua, amount);
 
-        // Expect StartBridge event with receiver == beneficiary
+        // Expect Start event with full routing information
         vm.expectEmit(address(ua));
-        emit UniversalAddress.StartBridge(ZERO_SALT, amount, ALEX);
+        emit UniversalAddress.Start(
+            ZERO_SALT,
+            amount,
+            ALEX,
+            PayRoute({toChainId: DEST_CHAIN_ID, toCoin: IERC20(address(usdc)), toAddr: ALEX, refundAddr: ALICE})
+        );
 
         ua.start(usdc, ZERO_SALT, new Call[](0), "");
 

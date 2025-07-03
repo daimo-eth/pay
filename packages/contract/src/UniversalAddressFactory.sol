@@ -43,7 +43,10 @@ contract UniversalAddressFactory {
         uaAddr = getUAAddress(initCalldata);
 
         if (uaAddr.code.length == 0) {
-            uaAddr = address(new BeaconProxy{salt: 0}(address(beacon), initCalldata));
+            address deployedAddr = address(new BeaconProxy{salt: 0}(address(beacon), initCalldata));
+            if (deployedAddr != uaAddr) {
+                revert("UAF: UA address mismatch");
+            }
         }
 
         emit UADeployed(toChainId, toCoin, toAddress, refundAddress, uaAddr);

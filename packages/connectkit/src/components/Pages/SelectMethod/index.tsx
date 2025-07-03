@@ -4,10 +4,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import {
-  ExternalPaymentOptions,
-  getAddressContraction,
-} from "@daimo/pay-common";
+import { getAddressContraction } from "@daimo/pay-common";
 import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
@@ -194,25 +191,12 @@ export default function SelectMethod() {
   // Pay with Exchange
   const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
 
-  // Filter out Lemon on desktop
-  const filteredExchangeOptions = exchangeOptions.filter((option) => {
-    if (!isMobile && option.id === ExternalPaymentOptions.Lemon) {
-      return false;
-    }
-    return true;
-  });
-
-  // Sort alphabetically (Binance, Coinbase, Lemon)
-  const sortedExchangeOptions = filteredExchangeOptions.sort((a, b) => {
-    return a.cta.localeCompare(b.cta);
-  });
-
-  const showExchangePaymentMethod = sortedExchangeOptions.length > 0;
+  const showExchangePaymentMethod = exchangeOptions.length > 0;
   if (showExchangePaymentMethod) {
     options.push({
       id: "exchange",
       title: "Pay with exchange",
-      icons: sortedExchangeOptions.slice(0, 3).map((option) => option.logoURI),
+      icons: exchangeOptions.slice(0, 3).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_EXCHANGE, {
           event: "click-option",

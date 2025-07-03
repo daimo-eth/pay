@@ -3,6 +3,7 @@ export enum ROUTES {
   SELECT_TOKEN = "daimoPaySelectToken",
   SELECT_AMOUNT = "daimoPaySelectAmount",
   SELECT_EXTERNAL_AMOUNT = "daimoPaySelectExternalAmount",
+  SELECT_EXCHANGE = "daimoPaySelectExchange",
   SELECT_DEPOSIT_ADDRESS_AMOUNT = "daimoPaySelectDepositAddressAmount",
   SELECT_WALLET_AMOUNT = "daimoPaySelectWalletAmount",
   SELECT_ZKP2P = "daimoPaySelectZKP2P",

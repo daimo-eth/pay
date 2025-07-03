@@ -23,7 +23,6 @@ const SelectDepositAddressChain: React.FC = () => {
 
   return (
     <PageContent>
-      // TODO: Hide Tron and Ethereum from the deposit address options
       <OrderHeader minified excludeLogos={["tron", "eth"]} />
 
       {!depositAddressOptions.loading &&

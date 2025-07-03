@@ -16,6 +16,15 @@ import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import MobileWithLogos from "../../assets/MobileWithLogos";
 import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
 
+/**
+ * Continues a Daimo Pay flow in another app.
+ * - If the pendingConnectorId is a mobile wallet, deeplink directly into that
+ *   wallet. This opens the flow in eg. the Rainbow in-app browser, letting the
+ *   user finish the flow in a single app switch instead of multiple.
+ * - If the pendingConnectorId is MOBILE_WALLETS_CONNECTOR_ID, then show a QR
+ *   that the user can scan from their phone. This opens the flow in eg. mobile
+ *   Safari, letting them pick which app they want to use & finish there.
+ */
 const ConnectWithQRCode: React.FC<{}> = () => {
   const context = usePayContext();
   const { pendingConnectorId } = context;
@@ -33,11 +42,15 @@ const ConnectWithQRCode: React.FC<{}> = () => {
   const showAdditionalOptions = false;
   const payId = pay.order ? writeDaimoPayOrderID(pay.order.id) : "";
 
+  const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
+  const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
+  const url = `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+
   return (
     <PageContent>
       <ModalContent style={{ paddingBottom: 8, gap: 14 }}>
         <CustomQRCode
-          value={`https://pay.daimo.com/pay?id=${payId}`}
+          value={url}
           image={
             <div
               style={{
@@ -57,7 +70,7 @@ const ConnectWithQRCode: React.FC<{}> = () => {
             </div>
           }
           tooltipMessage={
-            wallet?.id === WALLET_ID_MOBILE_WALLETS ? (
+            isDesktopLinkToMobileWallets ? (
               <>
                 <ScanIconWithLogos />
                 <span>

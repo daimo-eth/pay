@@ -103,7 +103,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
 
     /// @notice Begin a cross-chain transfer. Executed on the SOURCE chain.
-    /// @param inputToken  Token deposited by user (must be allow-listed).
+    /// @param inputToken  Token deposited by user (must be whitelisted).
     /// @param userSalt    User-chosen randomness component for receiver
     ///                    address derivation.
     /// @param swapCalls   Sequence of on-chain calls that convert inputToken →
@@ -114,7 +114,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         nonReentrant
         whenNotPaused
     {
-        require(cfg.allowedStable(address(inputToken)), "UA: token disallowed");
+        require(cfg.whitelistedStable(address(inputToken)), "UA: token not whitelisted");
 
         uint256 balance = inputToken.balanceOf(address(this));
         require(balance > 0, "UA: no balance");
@@ -213,15 +213,14 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         emit Claim(recvSalt, bridgedAmount, bridgedAmount);
     }
 
-    /// @notice Sweep any non-allow-listed tokens back to user's refund address.
+    /// @notice Sweep any non-whitelisted tokens back to user's refund address.
     function refund(IERC20[] calldata tokens) external nonReentrant whenNotPaused {
         uint256 n = tokens.length;
         for (uint256 i = 0; i < n; ++i) {
             IERC20 tok = tokens[i];
-            if (!cfg.allowedStable(address(tok))) {
-                uint256 amt = TokenUtils.transferBalance({token: tok, recipient: payable(route.refundAddr)});
-                emit Refund(address(tok), amt, route.refundAddr);
-            }
+            require(!cfg.whitelistedStable(address(tok)), "UA: can't refund whitelisted coin");
+            uint256 amt = TokenUtils.transferBalance({token: tok, recipient: payable(route.refundAddr)});
+            emit Refund(address(tok), amt, route.refundAddr);
         }
     }
 

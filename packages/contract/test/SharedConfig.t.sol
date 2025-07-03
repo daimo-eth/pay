@@ -37,10 +37,10 @@ contract SharedConfigTest is Test {
         assertTrue(!cfg.paused());
     }
 
-    function testAllowedStableToggle() public {
+    function testWhitelistedStableToggle() public {
         // Initially false
-        assertTrue(!cfg.allowedStable(address(usdc)));
-        cfg.setAllowedStable(address(usdc), true);
-        assertTrue(cfg.allowedStable(address(usdc)));
+        assertTrue(!cfg.whitelistedStable(address(usdc)));
+        cfg.setWhitelistedStable(address(usdc), true);
+        assertTrue(cfg.whitelistedStable(address(usdc)));
     }
 }

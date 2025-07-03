@@ -20,9 +20,9 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     ///      this way it's easier to handle upgradeability.
     mapping(bytes32 => address) public addr;
 
-    /// Stablecoin allow-list. UA contracts refuse unsupported assets and can
+    /// Stablecoin whitelist. UA contracts refuse unsupported assets and can
     /// sweep them to the "refundAddress".
-    mapping(address => bool) public allowedStable;
+    mapping(address => bool) public whitelistedStable;
 
     /// Global pause switch. When true, state-changing operations in UA contracts
     /// must revert. (Enforced via modifier in UA implementation contracts.)
@@ -54,15 +54,15 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
-    // Stable-coin allow-list management
+    // Stable-coin whitelist management
     // ───────────────────────────────────────────────────────────────────────────
 
-    /// @notice Set whether a stablecoin is allowed.
+    /// @notice Set whether a stablecoin is whitelisted.
     /// @param token The stablecoin address.
-    /// @param allowed Whether the stablecoin is allowed.
-    function setAllowedStable(address token, bool allowed) external onlyOwner {
-        allowedStable[token] = allowed;
-        emit AllowedStableSet(token, allowed);
+    /// @param whitelisted Whether the stablecoin is whitelisted.
+    function setWhitelistedStable(address token, bool whitelisted) external onlyOwner {
+        whitelistedStable[token] = whitelisted;
+        emit WhitelistedStableSet(token, whitelisted);
     }
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
 
     event AddrSet(bytes32 indexed key, address indexed value);
-    event AllowedStableSet(address indexed token, bool allowed);
+    event WhitelistedStableSet(address indexed token, bool whitelisted);
     event PausedSet(bool paused);
 
     // ───────────────────────────────────────────────────────────────────────────

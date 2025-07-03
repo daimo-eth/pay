@@ -52,8 +52,8 @@ abstract contract UA_Setup is Test {
         cfg.setAddr(USDC_KEY, address(usdc));
         // Dummy bridger will be deployed later
         // Allow-list stablecoins
-        cfg.setAllowedStable(address(usdc), true);
-        cfg.setAllowedStable(address(usdt), true);
+        cfg.setWhitelistedStable(address(usdc), true);
+        cfg.setWhitelistedStable(address(usdt), true);
 
         // 3. Deploy DummyBridger and write to config
         bridger = new DummyBridger();
@@ -207,13 +207,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
         start() negative-path coverage
     ──────────────────────────────────────────────────────────────────────────*/
 
-    function testStartTokenDisallowed() public {
+    function testStartTokenNotWhitelisted() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         uint256 amount = 100e18; // DAI has 18 decimals
         // Transfer unsupported token (DAI) into the UA
         dai.transfer(address(ua), amount);
-        // Expect revert because DAI is not on the allow-list
-        vm.expectRevert("UA: token disallowed");
+        // Expect revert because DAI is not on the whitelist
+        vm.expectRevert("UA: token not whitelisted");
         ua.start(dai, ZERO_SALT, new Call[](0), "");
     }
 

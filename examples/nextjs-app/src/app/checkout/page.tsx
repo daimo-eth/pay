@@ -8,7 +8,6 @@ import {
 } from "@daimo/pay-common";
 import { useCallback, useState } from "react";
 import { getAddress } from "viem";
-import { Code, Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import {
   APP_ID,
   Columns,
@@ -16,6 +15,7 @@ import {
   DAIMO_ADDRESS,
   printEvent,
 } from "../shared";
+import { Code, Text, TextLink } from "../typography";
 
 export default function DemoCheckout() {
   const [payId, setPayId] = useState<string>();

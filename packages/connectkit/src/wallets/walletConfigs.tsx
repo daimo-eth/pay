@@ -24,6 +24,8 @@ function getEncodedDaimoPayUrl(payId: string) {
 }
 
 export type WalletConfigProps = {
+  // Wallet ID, eg "io.rabby" or a sentinel value like WALLET_ID_OTHER_WALLET.
+  id?: string;
   // Wallets name
   name?: string;
   // Wallets short name. Defaults to `name`

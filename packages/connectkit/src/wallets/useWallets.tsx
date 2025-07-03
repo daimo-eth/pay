@@ -8,6 +8,11 @@ import { usePayContext } from "../hooks/usePayContext";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
+/** Special wallet ID for "other wallets" option. */
+export const WALLET_ID_OTHER_WALLET = "otherWallet";
+/** Special wallet ID for "mobile wallets" option. */
+export const WALLET_ID_MOBILE_WALLETS = "mobileWallets";
+
 export type WalletProps = {
   id: string;
   connector?: Connector;
@@ -20,6 +25,7 @@ export const useWallet = (id: string): WalletProps | null => {
   if (!wallet) return null;
   return wallet;
 };
+
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
   const context = usePayContext();
@@ -65,7 +71,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
     // Add other wallet
     mobileWallets.push({
-      id: "other",
+      id: WALLET_ID_OTHER_WALLET,
       name: "Other Wallets",
       shortName: "Other",
       iconConnector: <Logos.OtherWallets />,
@@ -132,7 +138,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     });
 
   wallets.push({
-    id: "Mobile Wallets",
+    id: WALLET_ID_MOBILE_WALLETS,
     name: "Mobile Wallets",
     shortName: "Mobile",
     icon: (
@@ -213,10 +219,10 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         if (!AisInstalled && BisInstalled) return 1;
         return 0;
       })
-      // order last mobile wallets
+      // order "mobile wallets" option last
       .sort((a, b) => {
-        if (a.id === "Mobile Wallets") return 1;
-        if (b.id === "Mobile Wallets") return -1;
+        if (a.id === WALLET_ID_MOBILE_WALLETS) return 1;
+        if (b.id === WALLET_ID_MOBILE_WALLETS) return -1;
         return 0;
       })
   );

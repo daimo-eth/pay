@@ -8,6 +8,7 @@ import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
+import { WALLET_ID_MOBILE_WALLETS } from "../../../wallets/useWallets";
 import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
@@ -40,8 +41,8 @@ const SelectWalletAmount: React.FC = () => {
     setChosenUsd(amountUsd);
     await hydrateOrder();
 
-    if (selectedWallet.name === "Mobile Wallets") {
-      setPendingConnectorId("Mobile Wallets");
+    if (selectedWallet.id === WALLET_ID_MOBILE_WALLETS) {
+      setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
       setRoute(ROUTES.CONNECT);
     } else {
       openInWalletBrowser(selectedWallet, amountUsd);

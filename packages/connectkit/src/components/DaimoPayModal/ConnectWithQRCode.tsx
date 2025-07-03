@@ -14,7 +14,7 @@ import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import MobileWithLogos from "../../assets/MobileWithLogos";
-import { useWallet } from "../../wallets/useWallets";
+import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
 
 const ConnectWithQRCode: React.FC<{}> = () => {
   const context = usePayContext();
@@ -57,7 +57,7 @@ const ConnectWithQRCode: React.FC<{}> = () => {
             </div>
           }
           tooltipMessage={
-            wallet?.id === "Mobile Wallets" ? (
+            wallet?.id === WALLET_ID_MOBILE_WALLETS ? (
               <>
                 <ScanIconWithLogos />
                 <span>

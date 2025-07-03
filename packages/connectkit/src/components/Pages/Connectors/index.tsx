@@ -32,17 +32,16 @@ const Wallets: React.FC = () => {
   const { isMobile } = useIsMobile();
   const { hydrateOrder, order } = useDaimoPay();
 
-  // If we're on mobile & not in deposit mode, hydrate immediately.
+  // If we're not in deposit mode, hydrate immediately.
   useEffect(() => {
     if (
-      isMobile &&
       !context.paymentState.isDepositFlow &&
       order != null &&
       order.mode !== DaimoPayOrderMode.HYDRATED
     ) {
       hydrateOrder();
     }
-  }, [isMobile, context.paymentState.isDepositFlow, hydrateOrder, order]);
+  }, [context.paymentState.isDepositFlow, hydrateOrder, order]);
 
   // Show new-user education buttons
   const showLearnMore = !context.options?.hideQuestionMarkCTA;

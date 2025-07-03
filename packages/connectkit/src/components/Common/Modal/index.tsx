@@ -39,7 +39,10 @@ import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
 import { CustomTheme } from "../../../types";
-import { useWallet } from "../../../wallets/useWallets";
+import {
+  useWallet,
+  WALLET_ID_MOBILE_WALLETS,
+} from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
@@ -333,7 +336,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (context.pendingConnectorId === "Mobile Wallets") {
+        if (context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS) {
           return "Scan with Phone";
         } else {
           return walletInfo?.name;

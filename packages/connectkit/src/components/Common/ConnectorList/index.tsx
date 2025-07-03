@@ -5,7 +5,12 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { detectBrowser, isCoinbaseWalletConnector } from "../../../utils";
-import { WalletProps, useWallets } from "../../../wallets/useWallets";
+import {
+  WALLET_ID_MOBILE_WALLETS,
+  WALLET_ID_OTHER_WALLET,
+  WalletProps,
+  useWallets,
+} from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
 import Alert from "../Alert";
 import {
@@ -88,8 +93,9 @@ const ConnectorItem = ({
   const { connect } = useConnect();
 
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
-  const redirectToMoreWallets = isMobile && wallet.id === "other";
-  const redirectToMobileWallets = wallet.id === "Mobile Wallets";
+  const redirectToMoreWallets =
+    isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
+  const redirectToMobileWallets = wallet.id === WALLET_ID_MOBILE_WALLETS;
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -104,7 +110,7 @@ const ConnectorItem = ({
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
       } else {
-        context.setPendingConnectorId("Mobile Wallets");
+        context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
         context.setRoute(ROUTES.CONNECT);
       }
     } else if (

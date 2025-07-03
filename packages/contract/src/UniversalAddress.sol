@@ -44,6 +44,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // Keys for the SharedConfig mapping.
     bytes32 public constant USDC_KEY = keccak256("USDC_KEY");
     bytes32 public constant BRIDGER_KEY = keccak256("BRIDGER_KEY");
+    bytes32 public constant MIN_START_USDC_KEY = keccak256("MIN_START_USDC");
+
 
     // ───────────────────────────────────────────────────────────────────────────
     // Storage
@@ -104,44 +106,52 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
     /// @notice Begin a cross-chain transfer. Executed on the SOURCE chain.
     /// @param inputToken  Token deposited by user (must be whitelisted).
+    /// @param amount      Portion of the UA's balance to bridge. Must satisfy
+    ///                    `amount >= min(cfg.num(MIN_START_USDC_KEY), balance)`.
     /// @param userSalt    User-chosen randomness component for receiver
     ///                    address derivation.
-    /// @param swapCalls   Sequence of on-chain calls that convert inputToken →
-    ///                    native USDC (1:1 bridge medium).
+    /// @param swapCalls   Sequence of on-chain calls that convert
+    ///                    `inputToken → native USDC` (1:1 bridge medium).
     /// @param bridgeExtra Extra data passed straight to `DaimoPayBridger`.
-    function start(IERC20 inputToken, bytes32 userSalt, Call[] calldata swapCalls, bytes calldata bridgeExtra)
-        external
-        nonReentrant
-        whenNotPaused
-    {
+    function start(
+        IERC20 inputToken,
+        uint256 amount,
+        bytes32 userSalt,
+        Call[] calldata swapCalls,
+        bytes calldata bridgeExtra
+    ) external nonReentrant whenNotPaused {
         require(cfg.whitelistedStable(address(inputToken)), "UA: token not whitelisted");
 
         uint256 balance = inputToken.balanceOf(address(this));
         require(balance > 0, "UA: no balance");
+        require(amount > 0 && amount <= balance, "UA: invalid amount");
+
+        // Enforce minimum chunk size to avoid griefing with tiny transfers.
+        uint256 minAmt = balance < cfg.num(MIN_START_USDC_KEY) ? balance : cfg.num(MIN_START_USDC_KEY);
+        require(amount >= minAmt, "UA: amount below minimum");
 
         if (block.chainid == route.toChainId) {
-            // If the destination chain is the same as the source chain, we can
-            // just transfer the funds to the beneficiary.
+            // Same-chain transfer – move the entire balance (must match amount).
+            require(amount == balance, "UA: amount != balance on same chain");
             TokenUtils.transfer({token: inputToken, recipient: payable(route.toAddr), amount: balance});
             emit Start(userSalt, balance, route.toAddr, route);
         } else {
-            // Otherwise, we're finna bridge.
+            // Cross-chain path.
 
-            // Convert to canonical USDC.
-            // We use USDC as an intermediate token for cross-chain bridging.
+            // Convert `amount` of `inputToken` to canonical USDC.
             IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-            _swapViaExecutor(inputToken, swapCalls, usdc, balance, payable(msg.sender));
+            _swapViaExecutor(inputToken, amount, swapCalls, usdc, amount, payable(msg.sender));
 
-            // Prepare single-option bridgeTokenOut.
+            // Prepare bridge parameters (single-token option).
             TokenAmount[] memory outOpts = new TokenAmount[](1);
-            outOpts[0] = TokenAmount({token: usdc, amount: balance});
+            outOpts[0] = TokenAmount({token: usdc, amount: amount});
 
-            // Get bridger router from config and initiate bridge.
+            // Retrieve bridger and sanity-check.
             address bridgerAddr = cfg.addr(BRIDGER_KEY);
             require(bridgerAddr != address(0), "UA: bridger missing");
 
-            // Compute deterministic BridgeReceiver address per spec.
-            bytes32 recvSalt = _receiverSalt(userSalt, balance);
+            // Deterministic BridgeReceiver address.
+            bytes32 recvSalt = _receiverSalt(userSalt, amount);
             address receiverAddr = _computeReceiverAddress(recvSalt);
 
             IDaimoPayBridger(bridgerAddr).sendToChain({
@@ -151,7 +161,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
                 extraData: bridgeExtra
             });
 
-            emit Start(recvSalt, balance, receiverAddr, route);
+            emit Start(recvSalt, amount, receiverAddr, route);
         }
     }
 
@@ -174,7 +184,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         usdc.safeTransferFrom(msg.sender, address(this), bridgedAmount);
 
         // Swap to final token if needed and deliver to beneficiary.
-        _swapViaExecutor(IERC20(usdc), swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
+        _swapViaExecutor(IERC20(usdc), bridgedAmount, swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
         TokenUtils.transfer({token: route.toCoin, recipient: payable(route.toAddr), amount: bridgedAmount});
 
         // Record relayer as filler.
@@ -250,6 +260,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// @notice Execute the provided swap calls in an isolated executor.
     /// @param inputToken      Token currently held by the UA that will be
     ///                        provided to the swap.
+    /// @param inputAmount     Portion of the UA's balance to bridge. Must satisfy
+    ///                        `inputAmount <= balance`.
     /// @param calls           Sequence of swap calls.
     /// @param requiredToken   Token that must be produced by the swap.
     /// @param requiredAmount  Minimum amount of `requiredToken` that must be
@@ -258,6 +270,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     ///                        recipient of surplus.
     function _swapViaExecutor(
         IERC20 inputToken,
+        uint256 inputAmount,
         Call[] calldata calls,
         IERC20 requiredToken,
         uint256 requiredAmount,
@@ -272,12 +285,13 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
         uint256 beforeBal = TokenUtils.getBalanceOf(requiredToken, address(this));
 
-        // Transfer the input tokens to the executor so that it can perform the
-        // swap. These tokens are thus the only assets it will have access to.
-        uint256 inBal = TokenUtils.getBalanceOf(inputToken, address(this));
-        if (inBal > 0) {
-            TokenUtils.transfer({token: inputToken, recipient: payable(address(exec)), amount: inBal});
-        }
+        // Ensure sufficient balance and transfer **only** `inputAmount` to the
+        // executor so that it can perform the swap.
+        require(
+            TokenUtils.getBalanceOf(inputToken, address(this)) >= inputAmount,
+            "UA: insufficient input bal"
+        );
+        TokenUtils.transfer({token: inputToken, recipient: payable(address(exec)), amount: inputAmount});
 
         // Prepare the expected output array.
         TokenAmount[] memory expected = new TokenAmount[](1);

@@ -20,6 +20,10 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     ///      this way it's easier to handle upgradeability.
     mapping(bytes32 => address) public addr;
 
+    /// Generic mapping from 32-byte key to a uint256.
+    /// Facilitates storing numeric configuration values (min amounts, fees, etc.).
+    mapping(bytes32 => uint256) public num;
+
     /// Stablecoin whitelist. UA contracts refuse unsupported assets and can
     /// sweep them to the "refundAddress".
     mapping(address => bool) public whitelistedStable;
@@ -54,6 +58,18 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
+    // Numeric values management
+    // ───────────────────────────────────────────────────────────────────────────
+
+    /// @notice Set a numeric config value for the given key.
+    /// @param key The key to set the value for.
+    /// @param value The uint256 value to assign.
+    function setNum(bytes32 key, uint256 value) external onlyOwner {
+        num[key] = value;
+        emit NumSet(key, value);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
     // Stable-coin whitelist management
     // ───────────────────────────────────────────────────────────────────────────
 
@@ -81,6 +97,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
 
     event AddrSet(bytes32 indexed key, address indexed value);
+    event NumSet(bytes32 indexed key, uint256 value);
     event WhitelistedStableSet(address indexed token, bool whitelisted);
     event PausedSet(bool paused);
 

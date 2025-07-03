@@ -74,6 +74,11 @@ abstract contract UA_Setup is Test {
         address uaAddr = factory.deployUA(DEST_CHAIN_ID, IERC20(address(usdc)), beneficiary, refund);
         ua = UniversalAddress(payable(uaAddr));
     }
+
+    // Add helper to encode an ERC20 approve call so all child test contracts can reuse it.
+    function _encodeApprove(IERC20 token, address spender, uint256 amount) internal pure returns (bytes memory) {
+        return abi.encodeWithSelector(token.approve.selector, spender, amount);
+    }
 }
 
 /*──────────────────────────────────────────────────────────────────────────────
@@ -134,7 +139,7 @@ contract UniversalAddressStartTest is UA_Setup {
             PayRoute({toChainId: DEST_CHAIN_ID, toCoin: IERC20(address(usdc)), toAddr: ALEX, refundAddr: ALICE})
         );
 
-        ua.start(usdc, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
 
         // Funds should have been delivered to beneficiary
         assertEq(usdc.balanceOf(ALEX), amount);
@@ -165,8 +170,11 @@ contract UniversalAddressStartTest is UA_Setup {
         bytes memory callData =
             abi.encodeWithSelector(swapper.swap.selector, IERC20(address(usdc)), address(ua), amount);
 
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({to: address(swapper), value: 0, data: callData});
+        Call[] memory calls = new Call[](2);
+        // First, executor approves the swapper to pull USDC
+        calls[0] = Call({to: address(usdc), value: 0, data: _encodeApprove(usdc, address(swapper), amount)});
+        // Then perform the swap
+        calls[1] = Call({to: address(swapper), value: 0, data: callData});
 
         // expect DummyBridger events
         vm.expectEmit(address(bridger));
@@ -183,7 +191,7 @@ contract UniversalAddressStartTest is UA_Setup {
             toAmount: amount
         });
 
-        ua.start(usdc, ZERO_SALT, calls, "");
+        ua.start(usdc, amount, ZERO_SALT, calls, "");
 
         // DummyBridger does not pull tokens, so UA keeps its USDC. Ensure it still holds at least the original deposit.
         assertGe(usdc.balanceOf(address(ua)), amount);
@@ -214,7 +222,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         dai.transfer(address(ua), amount);
         // Expect revert because DAI is not on the whitelist
         vm.expectRevert("UA: token not whitelisted");
-        ua.start(dai, ZERO_SALT, new Call[](0), "");
+        ua.start(dai, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartPaused() public {
@@ -225,13 +233,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Pause all UAs via SharedConfig
         cfg.setPaused(true);
         vm.expectRevert("UA: paused");
-        ua.start(usdc, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartNoBalance() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         vm.expectRevert("UA: no balance");
-        ua.start(usdc, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, 0, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartBridgerMissing() public {
@@ -248,7 +256,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Remove bridger address from config
         cfg.setAddr(BRIDGER_KEY, address(0));
         vm.expectRevert("UA: bridger missing");
-        ua.start(usdc, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
     }
 
     /*──────────────────────────────────────────────────────────────────────────
@@ -277,15 +285,16 @@ contract UniversalAddressEdgeTest is UA_Setup {
         bytes memory callData =
             abi.encodeWithSelector(swapper.swap.selector, IERC20(address(usdc)), address(ua), delivered);
 
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({to: address(swapper), value: 0, data: callData});
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({to: address(usdc), value: 0, data: _encodeApprove(usdc, address(swapper), amount)});
+        calls[1] = Call({to: address(swapper), value: 0, data: callData});
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, ZERO_SALT, calls, "");
+        ua.start(usdc, amount, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
-        // UA should now hold the original deposit *plus* the deficit & delivered
-        uint256 expectedBal = amount * 2; // deposit + delivered + deficit == 2x
+        // UA should now hold the original deposit *plus* delivered & deficit (2x).
+        uint256 expectedBal = amount * 2;
         assertEq(usdc.balanceOf(address(ua)), expectedBal);
         assertEq(balBefore - balAfter, amount - delivered);
     }
@@ -305,12 +314,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
         bytes memory call1 = abi.encodeWithSelector(swapper.swap.selector, IERC20(address(usdc)), address(ua), required);
         bytes memory call2 = abi.encodeWithSelector(swapper.swap.selector, IERC20(address(usdc)), address(ua), surplus);
 
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call(address(swapper), 0, call1);
-        calls[1] = Call(address(swapper), 0, call2);
+        Call[] memory calls = new Call[](3);
+        calls[0] = Call({to: address(usdc), value: 0, data: _encodeApprove(usdc, address(swapper), required + surplus)});
+        calls[1] = Call(address(swapper), 0, call1);
+        calls[2] = Call(address(swapper), 0, call2);
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, ZERO_SALT, calls, "");
+        ua.start(usdc, required, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
         // Surplus should be refunded to msg.sender (this contract)

@@ -9,7 +9,7 @@ import "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import "./SharedConfig.sol";
 import "./TokenUtils.sol";
-import {Call} from "./DaimoPayExecutor.sol";
+import {DaimoPayExecutor, Call} from "./DaimoPayExecutor.sol";
 import {IDaimoPayBridger, TokenAmount} from "./interfaces/IDaimoPayBridger.sol";
 
 
@@ -58,6 +58,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// Map receiverSalt ⇒ relayer that performed fastFinish. Sentinel = ADDR_MAX
     /// when already claimed, 0x0 when open.
     mapping(bytes32 => address) public receiverFiller;
+
+    /// Sandbox contract used to execute arbitrary swap calls. Deployed once per
+    /// UA and immutable thereafter. All untrusted calls happen from within this
+    /// contract so that malicious approvals cannot be set on the UA itself.
+    DaimoPayExecutor public executor;
 
     // 45-word gap for upgrades
     uint256[45] private __gap;
@@ -125,7 +130,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
             // Convert to canonical USDC.
             // We use USDC as an intermediate token for cross-chain bridging.
             IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-            _swapInPlace(swapCalls, IERC20(address(usdc)), balance, payable(msg.sender));
+            _swapViaExecutor(inputToken, swapCalls, usdc, balance, payable(msg.sender));
 
             // Prepare single-option bridgeTokenOut.
             TokenAmount[] memory outOpts = new TokenAmount[](1);
@@ -165,11 +170,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount);
         require(receiverFiller[recvSalt] == address(0), "UA: already finished");
 
-        // Pull USDC from relayer.
+        // Pull USDC from relayer to fund the swap / instant payout.
         usdc.safeTransferFrom(msg.sender, address(this), bridgedAmount);
 
         // Swap to final token if needed and deliver to beneficiary.
-        _swapInPlace(swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
+        _swapViaExecutor(IERC20(usdc), swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
         TokenUtils.transfer({token: route.toCoin, recipient: payable(route.toAddr), amount: bridgedAmount});
 
         // Record relayer as filler.
@@ -243,30 +248,44 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         addr = payable(Create2.computeAddress(salt, keccak256(initCode)));
     }
 
-    /// @notice Executes arbitrary calls and checks post-balance on `requiredToken`.
-    /// @param calls The sequence of calls to execute.
-    /// @param requiredToken The token to check the balance of.
-    /// @param requiredAmount The amount of the token to check the balance of.
-    /// @param swapFunder The address to pull the deficit from.
-    /// @dev Executes arbitrary calls and checks post-balance on `requiredToken`.
-    ///      Any deficit relative to `requiredAmount` is pulled from `swapFunder`,
-    ///      while any surplus is returned to the same address to keep the contract
-    ///      balance clean.
-    function _swapInPlace(
+    /// @notice Execute the provided swap calls in an isolated executor.
+    /// @param inputToken      Token currently held by the UA that will be
+    ///                        provided to the swap.
+    /// @param calls           Sequence of swap calls.
+    /// @param requiredToken   Token that must be produced by the swap.
+    /// @param requiredAmount  Minimum amount of `requiredToken` that must be
+    ///                        returned to the UA.
+    /// @param swapFunder      Address responsible for covering any deficit and
+    ///                        recipient of surplus.
+    function _swapViaExecutor(
+        IERC20 inputToken,
         Call[] calldata calls,
         IERC20 requiredToken,
         uint256 requiredAmount,
         address payable swapFunder
     ) internal {
+        // TODO: i think we can reuse the single executor using a permissionless wrapper
+        DaimoPayExecutor exec = executor;
+        if (address(exec) == address(0)) {
+            exec = new DaimoPayExecutor(address(this));
+            executor = exec;
+        }
+
         uint256 beforeBal = TokenUtils.getBalanceOf(requiredToken, address(this));
 
-        // Execute the swap calls in-place.
-        uint256 n = calls.length;
-        for (uint256 i = 0; i < n; ++i) {
-            Call calldata c = calls[i];
-            (bool ok,) = c.to.call{value: c.value}(c.data);
-            require(ok, "UA: swap call failed");
+        // Transfer the input tokens to the executor so that it can perform the
+        // swap. These tokens are thus the only assets it will have access to.
+        uint256 inBal = TokenUtils.getBalanceOf(inputToken, address(this));
+        if (inBal > 0) {
+            TokenUtils.transfer({token: inputToken, recipient: payable(address(exec)), amount: inBal});
         }
+
+        // Prepare the expected output array.
+        TokenAmount[] memory expected = new TokenAmount[](1);
+        expected[0] = TokenAmount({token: requiredToken, amount: requiredAmount});
+
+        // Execute the swap inside the executor.
+        exec.execute(calls, expected, payable(address(this)), swapFunder);
 
         uint256 afterBal = TokenUtils.getBalanceOf(requiredToken, address(this));
         uint256 produced = afterBal - beforeBal;

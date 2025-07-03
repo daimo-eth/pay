@@ -130,39 +130,34 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         uint256 minAmt = balance < cfg.num(MIN_START_USDC_KEY) ? balance : cfg.num(MIN_START_USDC_KEY);
         require(amount >= minAmt, "UA: amount below minimum");
 
-        if (block.chainid == route.toChainId) {
-            // Same-chain transfer – move the entire balance (must match amount).
-            require(amount == balance, "UA: amount != balance on same chain");
-            TokenUtils.transfer({token: inputToken, recipient: payable(route.toAddr), amount: balance});
-            emit Start(userSalt, balance, route.toAddr, route);
-        } else {
-            // Cross-chain path.
+        // Only allow start on non-destination chains; same-chain transfers
+        // should be handled via `claim()` for cleaner event semantics.
+        require(block.chainid != route.toChainId, "UA: on destination chain");
 
-            // Convert `amount` of `inputToken` to canonical USDC.
-            IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-            _swapViaExecutor(inputToken, amount, swapCalls, usdc, amount, payable(msg.sender));
+        // Convert `amount` of `inputToken` to canonical USDC.
+        IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
+        _swapViaExecutor(inputToken, amount, swapCalls, usdc, amount, payable(msg.sender));
 
-            // Prepare bridge parameters (single-token option).
-            TokenAmount[] memory outOpts = new TokenAmount[](1);
-            outOpts[0] = TokenAmount({token: usdc, amount: amount});
+        // Prepare bridge parameters (single-token option).
+        TokenAmount[] memory outOpts = new TokenAmount[](1);
+        outOpts[0] = TokenAmount({token: usdc, amount: amount});
 
-            // Retrieve bridger and sanity-check.
-            address bridgerAddr = cfg.addr(BRIDGER_KEY);
-            require(bridgerAddr != address(0), "UA: bridger missing");
+        // Retrieve bridger and sanity-check.
+        address bridgerAddr = cfg.addr(BRIDGER_KEY);
+        require(bridgerAddr != address(0), "UA: bridger missing");
 
-            // Deterministic BridgeReceiver address.
-            bytes32 recvSalt = _receiverSalt(userSalt, amount);
-            address receiverAddr = _computeReceiverAddress(recvSalt);
+        // Deterministic BridgeReceiver address.
+        bytes32 recvSalt = _receiverSalt(userSalt, amount);
+        address receiverAddr = _computeReceiverAddress(recvSalt);
 
-            IDaimoPayBridger(bridgerAddr).sendToChain({
-                toChainId: route.toChainId,
-                toAddress: receiverAddr,
-                bridgeTokenOutOptions: outOpts,
-                extraData: bridgeExtra
-            });
+        IDaimoPayBridger(bridgerAddr).sendToChain({
+            toChainId: route.toChainId,
+            toAddress: receiverAddr,
+            bridgeTokenOutOptions: outOpts,
+            extraData: bridgeExtra
+        });
 
-            emit Start(recvSalt, amount, receiverAddr, route);
-        }
+        emit Start(recvSalt, amount, receiverAddr, route);
     }
 
     /// @notice Relayer-only function on DESTINATION chain: deliver funds early

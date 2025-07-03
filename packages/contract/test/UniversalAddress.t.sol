@@ -121,7 +121,7 @@ contract UniversalAddressStartTest is UA_Setup {
         usdc.transfer(address(ua), amount);
     }
 
-    function testStartSameChain() public {
+    function testStartSameChainReverts() public {
         // Make source chain equal to dest chain
         uint256 origChain = block.chainid;
         vm.chainId(DEST_CHAIN_ID);
@@ -130,20 +130,12 @@ contract UniversalAddressStartTest is UA_Setup {
         uint256 amount = 100e6;
         _depositToUA(ua, amount);
 
-        // Expect Start event with full routing information
-        vm.expectEmit(address(ua));
-        emit UniversalAddress.Start(
-            ZERO_SALT,
-            amount,
-            ALEX,
-            PayRoute({toChainId: DEST_CHAIN_ID, toCoin: IERC20(address(usdc)), toAddr: ALEX, refundAddr: ALICE})
-        );
-
+        // Expect revert because start() cannot be called on destination chain
+        vm.expectRevert("UA: on destination chain");
         ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
 
-        // Funds should have been delivered to beneficiary
-        assertEq(usdc.balanceOf(ALEX), amount);
-        assertEq(usdc.balanceOf(address(ua)), 0);
+        // UA balance should remain unchanged
+        assertEq(usdc.balanceOf(address(ua)), amount);
 
         // reset chain id for other tests
         vm.chainId(origChain);

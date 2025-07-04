@@ -143,11 +143,12 @@ contract DaimoPayTest is Test {
         });
 
         // Initialize Across bridger
-        spokePool = new DummySpokePool(
-            address(_fromToken),
-            address(_toToken),
-            ACROSS_INTENT_ADDR
-        );
+        spokePool = new DummySpokePool({
+            _expectedInputToken: address(_fromToken),
+            _expectedOutputToken: address(_toToken),
+            _expectedDepositor: ACROSS_INTENT_ADDR, // Refund to the intent address if the bridge fails
+            _expectedRecipient: ACROSS_INTENT_ADDR
+        });
 
         uint256[] memory acrossChainIds = new uint256[](1);
         DaimoPayAcrossBridger.AcrossBridgeRoute[]

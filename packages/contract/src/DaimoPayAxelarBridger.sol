@@ -191,7 +191,6 @@ contract DaimoPayAxelarBridger is
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
-        address refundAddress,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPAxB: same chain");
@@ -212,11 +211,6 @@ contract DaimoPayAxelarBridger is
         ExtraData memory extra;
         extra = abi.decode(extraData, (ExtraData));
 
-        // Use gasRefundAddress from ExtraData, fallback to refundAddress parameter
-        address gasRefundAddr = extra.gasRefundAddress != address(0)
-            ? extra.gasRefundAddress
-            : refundAddress;
-
         // Move input token from caller to this contract
         IERC20(inToken).safeTransferFrom({
             from: msg.sender,
@@ -235,7 +229,7 @@ contract DaimoPayAxelarBridger is
                 abi.encode(toAddress),
                 outTokenSymbol,
                 outAmount,
-                gasRefundAddr
+                extra.gasRefundAddress
             );
         } else {
             axelarGasService.payNativeGasForContractCallWithToken{
@@ -247,7 +241,7 @@ contract DaimoPayAxelarBridger is
                 abi.encode(toAddress),
                 outTokenSymbol,
                 outAmount,
-                gasRefundAddr
+                extra.gasRefundAddress
             );
         }
 

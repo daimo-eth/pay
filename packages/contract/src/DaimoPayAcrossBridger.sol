@@ -152,7 +152,6 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
-        address refundAddress,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPAB: same chain");
@@ -185,7 +184,7 @@ contract DaimoPayAcrossBridger is IDaimoPayBridger {
         });
 
         spokePool.depositV3({
-            depositor: refundAddress,
+            depositor: toAddress, // Refund to the intent address if the bridge fails
             recipient: toAddress,
             inputToken: inToken,
             outputToken: outToken,

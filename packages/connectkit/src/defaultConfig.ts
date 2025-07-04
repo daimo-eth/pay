@@ -3,7 +3,6 @@ import { CreateConnectorFn, http } from "wagmi";
 import {
   arbitrum,
   base,
-  baseSepolia,
   bsc,
   celo,
   Chain,
@@ -47,7 +46,6 @@ export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
   linea,
   bsc,
   sepolia,
-  baseSepolia,
   worldchain,
   mantle,
   celo,

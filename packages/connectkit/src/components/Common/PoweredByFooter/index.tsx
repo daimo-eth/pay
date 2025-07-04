@@ -4,16 +4,26 @@ import styled from "../../../styles/styled";
 import { rozoPayVersion } from "../../../utils/exports";
 import IntercomInitializer from "../Intercom";
 import { usePayContext } from "../../../hooks/usePayContext";
+import RozoTextLogo from "../../../assets/rozo-text";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 
 const PoweredByFooter = ({ preFilledMessage, showSupport = true }: { preFilledMessage?: string, showSupport?: boolean } = {}) => {
   const context = usePayContext();
+  const pay = useRozoPay();
+  console.log(pay)
 
   const handleContactClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
 
     if (typeof window.Intercom === 'function') {
       context.setOpen(false);
-      window.Intercom('showNewMessage', preFilledMessage || 'Hi, I need help with my payment. \n\nVersion: ' + rozoPayVersion);
+      window.Intercom('showNewMessage', [
+        'Hi, I need help with my payment.',
+        '',
+        `Version: ${rozoPayVersion}`,
+        `Order ID: ${pay.order?.id?.toString()}`,
+        preFilledMessage
+      ].filter(Boolean).join('\n'));
     } else {
       window.open(globalThis.__SUPPORTURL__ || `https://pay.rozo.ai?ref=sdk-v${rozoPayVersion}`);
     }
@@ -26,12 +36,13 @@ const PoweredByFooter = ({ preFilledMessage, showSupport = true }: { preFilledMe
         <TextButton
           onClick={() => {
             window.open(
-              'https://github.com/RozoAI/intent-pay',
+              'http://rozo.ai/',
               "_blank"
             );
           }}
         >
-          <span>Powered by {globalThis.__POWEREDBY__ || "Rozo Pay"}</span>
+          <span>Powered by</span>
+          <RozoTextLogo height={16} style={{ position: 'relative', top: 2 }} />
         </TextButton>
         {showSupport && (
           <TextButton onClick={handleContactClick}>
@@ -65,7 +76,6 @@ const TextButton = styled(motion.button)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   height: 32px;
   padding: 0 8px;
   border-radius: 6px;
@@ -76,12 +86,18 @@ const TextButton = styled(motion.button)`
   line-height: 16px;
   font-weight: 500;
 
-  transition:
-    color 200ms ease,
-    transform 100ms ease;
+  svg {
+   fill: var(--ck-body-color-muted);
+  }
+
+  transition: color 200ms ease, transform 100ms ease;
+
   &:hover {
     color: var(--ck-body-color-muted-hover);
     text-decoration-color: var(--ck-body-color-muted-hover);
+    svg {
+      fill: var(--ck-body-color-muted-hover);
+    }
   }
   &:active {
     transform: scale(0.96);

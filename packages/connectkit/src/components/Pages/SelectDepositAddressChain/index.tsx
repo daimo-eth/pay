@@ -71,7 +71,7 @@ const SelectDepositAddressChain: React.FC = () => {
           }) ?? []
         }
       />
-      <PoweredByFooter preFilledMessage={"Help"} />
+      <PoweredByFooter />
     </PageContent>
   );
 };

@@ -8,7 +8,6 @@ import { AlertIcon } from "../../../assets/icons";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import PoweredByFooter from "../../Common/PoweredByFooter";
-import { rozoPayVersion } from "../../../utils/exports";
 import { useMemo } from "react";
 
 export default function ErrorPage() {
@@ -38,7 +37,7 @@ export default function ErrorPage() {
             <strong>{errorBody}</strong>
           </ErrorBody>
         </CenterContainer>
-        <PoweredByFooter preFilledMessage={`Order ID: ${pay.order?.id}\nError: ${errorBody}\nVersion: ${rozoPayVersion}\n\nTell us how we can help`} showSupport />
+        <PoweredByFooter preFilledMessage={`Error: ${errorBody}`} showSupport />
       </ModalContent>
     </PageContent>
   );

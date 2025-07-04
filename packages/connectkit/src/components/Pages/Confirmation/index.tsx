@@ -19,7 +19,6 @@ import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
 import PoweredByFooter from "../../Common/PoweredByFooter";
-import { rozoPayVersion } from "../../../utils/exports";
 
 const Confirmation: React.FC = () => {
   const { confirmationMessage, onSuccess, debugMode, log } = usePayContext();
@@ -95,7 +94,7 @@ const Confirmation: React.FC = () => {
 
         <PoweredByFooter
           showSupport={!done}
-          preFilledMessage={`Transaction: ${txURL}\nVersion: ${rozoPayVersion}\n\nTell us how we can help`}
+          preFilledMessage={`Transaction: ${txURL}`}
         />
       </ModalContent>
     </PageContent>

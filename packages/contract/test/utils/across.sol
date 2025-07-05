@@ -9,6 +9,7 @@ import "../../vendor/across/V3SpokePoolInterface.sol";
 contract DummySpokePool is V3SpokePoolInterface, Test {
     address public immutable expectedInputToken;
     address public immutable expectedOutputToken;
+    address public immutable expectedDepositor;
     address public immutable expectedRecipient;
     uint256 public totalInputAmount;
     uint256 public totalOutputAmount;
@@ -16,17 +17,19 @@ contract DummySpokePool is V3SpokePoolInterface, Test {
     constructor(
         address _expectedInputToken,
         address _expectedOutputToken,
+        address _expectedDepositor,
         address _expectedRecipient
     ) {
         expectedInputToken = _expectedInputToken;
         expectedOutputToken = _expectedOutputToken;
+        expectedDepositor = _expectedDepositor;
         expectedRecipient = _expectedRecipient;
         totalInputAmount = 0;
         totalOutputAmount = 0;
     }
 
     function depositV3(
-        address /* depositor */,
+        address depositor,
         address recipient,
         address inputToken,
         address outputToken,
@@ -39,6 +42,7 @@ contract DummySpokePool is V3SpokePoolInterface, Test {
         uint32 exclusivityDeadline,
         bytes calldata message
     ) external payable {
+        assertEq(depositor, expectedDepositor, "incorrect depositor");
         assertEq(recipient, expectedRecipient, "incorrect recipient");
         assertEq(inputToken, expectedInputToken, "incorrect input token");
         assertEq(outputToken, expectedOutputToken, "incorrect output token");

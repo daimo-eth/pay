@@ -48,7 +48,7 @@
     "crypto"
   ],
   "dependencies": {
-    "@rozoai/intent-common": "^0.0.1",
+    "@rozoai/intent-common": "^0.0.2",
     "@rollup/plugin-typescript": "^12.1.2",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const RozoDark = ({ width = 429, height = 348, ...props }) => {
+const RozoDark = ({ width = 429, height = 348, ...props }: React.SVGProps<SVGSVGElement> & { width?: number | string; height?: number | string }) => {
   return (
     <svg viewBox="0 0 429 348" width={width} height={height} {...props}>
       <path

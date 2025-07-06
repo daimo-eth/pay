@@ -3,6 +3,7 @@ export enum ROUTES {
   SELECT_TOKEN = "rozoPaySelectToken",
   SELECT_AMOUNT = "rozoPaySelectAmount",
   SELECT_EXTERNAL_AMOUNT = "rozoPaySelectExternalAmount",
+  SELECT_EXCHANGE = "rozoPaySelectExchange",
   SELECT_DEPOSIT_ADDRESS_AMOUNT = "rozoPaySelectDepositAddressAmount",
   SELECT_WALLET_AMOUNT = "rozoPaySelectWalletAmount",
   SELECT_ZKP2P = "rozoPaySelectZKP2P",

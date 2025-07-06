@@ -43,7 +43,7 @@ import {
   useWallet,
   WALLET_ID_MOBILE_WALLETS,
 } from "../../../wallets/useWallets";
-import { useThemeContext } from "../../RozoPayThemeProvider/RozoPayThemeProvider";
+import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (

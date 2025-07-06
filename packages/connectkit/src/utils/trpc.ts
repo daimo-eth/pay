@@ -16,7 +16,7 @@ export function createTrpcClient(
         url: apiUrl,
         headers: {
           // TODO: The version here must use the latest version of @daimo/pay, so that the API can function for the payment confirmation flow.
-          "x-pay-version": "1.11.6",
+          "x-pay-version": "1.12.1",
           "x-session-id": sessionId,
         },
       }),

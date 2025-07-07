@@ -1,5 +1,5 @@
 import { supportedChains, WalletPaymentOption } from "@daimo/pay-common";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
 /** Wallet payment options. User picks one. */
@@ -27,6 +27,26 @@ export function useWalletPaymentOptions({
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Memoize array dependencies to prevent unnecessary re-fetches
+  // TODO: this is an ugly way to handle polling/refresh
+  // Notice the load-bearing JSON.stringify() to prevent a visible infinite
+  // refresh glitch on the SelectMethod screen. Replace this useEffect().
+  const memoizedPreferredChains = useMemo(
+    () => preferredChains,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(preferredChains)],
+  );
+  const memoizedPreferredTokens = useMemo(
+    () => preferredTokens,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(preferredTokens)],
+  );
+  const memoizedEvmChains = useMemo(
+    () => evmChains,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(evmChains)],
+  );
+
   useEffect(() => {
     const refreshWalletPaymentOptions = async () => {
       if (address == null || usdRequired == null || destChainId == null) return;
@@ -39,9 +59,9 @@ export function useWalletPaymentOptions({
           // API expects undefined for deposit flow.
           usdRequired: isDepositFlow ? undefined : usdRequired,
           destChainId,
-          preferredChains,
-          preferredTokens,
-          evmChains,
+          preferredChains: memoizedPreferredChains,
+          preferredTokens: memoizedPreferredTokens,
+          evmChains: memoizedEvmChains,
         });
 
         // Filter out chains we don't support yet.
@@ -71,9 +91,9 @@ export function useWalletPaymentOptions({
     usdRequired,
     destChainId,
     isDepositFlow,
-    preferredChains,
-    preferredTokens,
-    evmChains,
+    memoizedPreferredChains,
+    memoizedPreferredTokens,
+    memoizedEvmChains,
   ]);
 
   return {

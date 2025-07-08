@@ -14,7 +14,6 @@ export enum ROUTES {
   WAITING_DEPOSIT_ADDRESS = "daimoPayWaitingDepositAddress",
   PAY_WITH_TOKEN = "daimoPayPayWithToken",
   CONFIRMATION = "daimoPayConfirmation",
-  SOLANA_CONNECT = "daimoPaySolanaConnect",
   SOLANA_CONNECTOR = "daimoPaySolanaConnector",
   SOLANA_SELECT_AMOUNT = "daimoPaySolanaSelectAmount",
   SOLANA_PAY_WITH_TOKEN = "daimoPaySolanaPayWithToken",

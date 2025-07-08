@@ -104,9 +104,15 @@ const ConnectorItem = ({
 
   const onClick = () => {
     // Desktop multi-chain wallet flow: prompt for chain selection.
-    if (wallet.solanaConnectorName && !isMobile) {
+    if (wallet.solanaConnectorName && wallet.connector?.name && !isMobile) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_CHAIN);
+      return;
+    }
+
+    if (wallet.solanaConnectorName && !wallet.connector?.name && !isMobile) {
+      context.setSolanaConnector(wallet.solanaConnectorName);
+      context.setRoute(ROUTES.SOLANA_CONNECTOR);
       return;
     }
 

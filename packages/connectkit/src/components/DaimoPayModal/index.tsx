@@ -30,7 +30,6 @@ import SelectWalletAmount from "../Pages/SelectWalletAmount";
 import SelectWalletChain from "../Pages/SelectWalletChain";
 import SelectZKP from "../Pages/SelectZKP";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
-import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
@@ -189,7 +188,6 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.CONFIRMATION]: <Confirmation />,
     [ROUTES.ERROR]: <ErrorPage />,
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
-    [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,
     [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,
     [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
     [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,

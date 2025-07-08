@@ -341,8 +341,6 @@ const Modal: React.FC<ModalProps> = ({
         } else {
           return walletInfo?.name;
         }
-      case ROUTES.SOLANA_CONNECT:
-        return "Connect Solana Wallet";
       case ROUTES.SOLANA_CONNECTOR:
         return context.solanaConnector ?? "Solana Wallet";
       case ROUTES.CONNECTORS:

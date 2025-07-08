@@ -6,6 +6,7 @@ import Logos, { SquircleIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
+import { SolanaWalletName } from "../provider/SolanaContextProvider";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -19,7 +20,7 @@ export type WalletProps = {
   connector?: Connector;
   isInstalled?: boolean;
   /** Name of the matching Solana wallet adapter (if any) */
-  solanaConnectorName?: string;
+  solanaConnectorName?: SolanaWalletName;
 } & WalletConfigProps;
 
 export const useWallet = (id: string): WalletProps | null => {

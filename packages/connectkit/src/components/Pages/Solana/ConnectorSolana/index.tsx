@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
 import styled from "../../../../styles/styled";
+import { walletConfigs } from "../../../../wallets/walletConfigs";
 import SquircleSpinner from "../../../Spinners/SquircleSpinner";
 
 const ConnectSolana: React.FC = () => {
@@ -24,6 +25,33 @@ const ConnectSolana: React.FC = () => {
   const selectedWallet = solanaWallets.wallets.find(
     (wallet) => wallet.adapter.name === solanaConnector,
   );
+
+  // Prefer icon from walletConfigs if available
+  const getWalletIcon = () => {
+    if (!selectedWallet) return null;
+
+    const matchedConfig = Object.values(walletConfigs).find((cfg) => {
+      if (!cfg.name) return false;
+      const cfgName = cfg.name.toLowerCase();
+      const walletName = selectedWallet.adapter.name.toLowerCase();
+      return cfgName.includes(walletName) || walletName.includes(cfgName);
+    });
+
+    if (matchedConfig?.icon) {
+      return typeof matchedConfig.icon === "string" ? (
+        <img src={matchedConfig.icon} alt={matchedConfig.name} />
+      ) : (
+        (matchedConfig.icon as JSX.Element)
+      );
+    }
+
+    return (
+      <img
+        src={selectedWallet.adapter.icon}
+        alt={selectedWallet.adapter.name}
+      />
+    );
+  };
 
   useEffect(() => {
     if (!solanaConnector) return;
@@ -55,10 +83,7 @@ const ConnectSolana: React.FC = () => {
             <SquircleSpinner
               logo={
                 <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
-                  <img
-                    src={selectedWallet?.adapter.icon}
-                    alt={selectedWallet?.adapter.name}
-                  />
+                  {getWalletIcon()}
                 </div>
               }
               loading={true}

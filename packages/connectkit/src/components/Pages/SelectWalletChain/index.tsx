@@ -7,6 +7,7 @@ import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 
 import { Ethereum, Solana } from "../../../assets/chains";
 import { ROUTES } from "../../../constants/routes";
+import { WalletProps } from "../../../wallets/useWallets";
 import { OptionsList } from "../../Common/OptionsList";
 
 const SelectWalletChain: React.FC = () => {
@@ -18,19 +19,20 @@ const SelectWalletChain: React.FC = () => {
     return <PageContent></PageContent>;
   }
 
-  const walletAny = selectedWallet as any;
+  // Narrow the wallet type to include solanaConnectorName.
+  const wallet = selectedWallet as WalletProps;
 
   // If wallet only supports one chain, skip this page (fallback safety)
-  if (!walletAny.solanaConnectorName) {
+  if (!wallet.solanaConnectorName) {
     return <PageContent></PageContent>;
   }
 
   function handleSelect(chain: "evm" | "solana") {
     if (chain === "evm") {
-      setPendingConnectorId(walletAny.id);
+      setPendingConnectorId(wallet.id);
       setRoute(ROUTES.CONNECT);
     } else {
-      setSolanaConnector(walletAny.solanaConnectorName);
+      setSolanaConnector(wallet.solanaConnectorName);
       setRoute(ROUTES.SOLANA_CONNECTOR);
     }
   }

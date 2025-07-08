@@ -244,7 +244,7 @@ export const walletConfigs: {
     name: "Trust Wallet",
     shortName: "Trust",
     icon: <Logos.Trust />,
-    iconConnector: <Logos.Trust background />,
+    iconConnector: <Logos.Trust />,
     downloadUrls: {
       download: "https://connect.family.co/v0/download/trust",
       android:

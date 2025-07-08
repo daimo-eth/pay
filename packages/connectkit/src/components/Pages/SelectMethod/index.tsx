@@ -9,13 +9,15 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
 import {
-  Coinbase,
+  MetaMask,
   Phantom,
+  Rabby,
   Rainbow,
   Trust,
   WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
+import { walletConfigs } from "../../../wallets/walletConfigs";
 import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
@@ -39,6 +41,7 @@ export default function SelectMethod() {
   } = useWallet();
   const { setRoute, paymentState, log, disableMobileInjector } =
     usePayContext();
+  const { showSolanaPaymentMethod } = paymentState;
   const { disconnectAsync } = useDisconnect();
 
   const { externalPaymentOptions, senderEnsName } = paymentState;
@@ -52,7 +55,8 @@ export default function SelectMethod() {
     isSolanaConnected && (!isMobile || !disableMobileInjector);
 
   const getConnectedWalletOptions = () => {
-    const showChainLogo = isEthConnected && isSolanaConnected;
+    const showChainLogo =
+      isEthConnected && isSolanaConnected && showSolanaPaymentMethod;
 
     const connectedOptions: Option[] = [];
 
@@ -60,8 +64,25 @@ export default function SelectMethod() {
       const ethWalletDisplayName =
         senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
 
+      // Prefer icon from walletConfigs if there's a name match, otherwise fall back
+      // to the connector-provided icon, and finally to the generic WalletIcon.
       let walletIcon: JSX.Element;
-      if (connector?.icon) {
+
+      const matchedConfig = Object.values(walletConfigs).find((cfg) => {
+        if (!cfg.name || !connector?.name) return false;
+        const cfgName = cfg.name.toLowerCase();
+        const connName = connector.name.toLowerCase();
+        return cfgName.includes(connName) || connName.includes(cfgName);
+      });
+
+      if (matchedConfig?.icon) {
+        walletIcon =
+          typeof matchedConfig.icon === "string" ? (
+            <img src={matchedConfig.icon} alt={matchedConfig.name} />
+          ) : (
+            (matchedConfig.icon as JSX.Element)
+          );
+      } else if (connector?.icon) {
         walletIcon = (
           <div style={{ borderRadius: "22.5%", overflow: "hidden" }}>
             <img src={connector.icon} alt={connector.name} />
@@ -95,31 +116,44 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (showConnectedSolana) {
+    if (showConnectedSolana && showSolanaPaymentMethod) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );
 
+      // Prefer icon from walletConfigs if available
+      let solWalletIcon: React.ReactNode;
+      const solMatchedConfig = Object.values(walletConfigs).find((cfg) => {
+        if (!cfg.name) return false;
+        const cfgName = cfg.name.toLowerCase();
+        const solName = solanaWallet?.adapter.name.toLowerCase() || "";
+        return cfgName.includes(solName) || solName.includes(cfgName);
+      });
+
+      if (solMatchedConfig?.icon) {
+        solWalletIcon =
+          typeof solMatchedConfig.icon === "string" ? (
+            <img src={solMatchedConfig.icon} alt={solMatchedConfig.name} />
+          ) : (
+            (solMatchedConfig.icon as JSX.Element)
+          );
+      } else if (solanaWallet?.adapter.icon) {
+        solWalletIcon = solanaWallet.adapter.icon;
+      } else {
+        solWalletIcon = <Solana />;
+      }
+
       const connectedSolWalletOption = {
         id: "connectedSolanaWallet",
         title: `Pay with ${solWalletDisplayName}`,
-        icons: solanaWallet?.adapter.icon
-          ? [
-              <WalletChainLogo
-                key="sol-wallet"
-                walletIcon={solanaWallet.adapter.icon}
-                walletName={solanaWallet.adapter.name}
-                chainLogo={showChainLogo && <Solana />}
-              />,
-            ]
-          : [
-              <WalletChainLogo
-                key="sol-wallet"
-                walletIcon={<Solana />}
-                walletName="Default wallet icon"
-                chainLogo={null}
-              />,
-            ],
+        icons: [
+          <WalletChainLogo
+            key="sol-wallet"
+            walletIcon={solWalletIcon}
+            walletName={solanaWallet?.adapter.name || "Wallet"}
+            chainLogo={showChainLogo && <Solana />}
+          />,
+        ],
         onClick: () => {
           paymentState.setTokenMode("solana");
           setRoute(ROUTES.SELECT_TOKEN, {
@@ -229,22 +263,24 @@ function getBestUnconnectedWalletIcons(
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isRainbow, isTrust, isPhantom, isCoinbase] = [
+  const [isRainbow, isTrust, isPhantom, isCoinbase, isMetamask, isRabby] = [
     strippedId?.includes("rainbow"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),
     strippedId?.includes("coinbase"),
+    strippedId?.includes("metamask"),
+    strippedId?.includes("rabby"),
   ];
 
   if (isMobile) {
     if (!isTrust) icons.push(<Trust background />);
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
-    if (!isCoinbase && icons.length < 3) icons.push(<Coinbase />);
   } else {
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
-    if (!isCoinbase) icons.push(<Coinbase />);
+    if (!isRabby) icons.push(<Rabby />);
+    if (!isMetamask && icons.length < 3) icons.push(<MetaMask />);
   }
 
   return icons;

@@ -22,14 +22,10 @@ import { formatUsd } from "../../../utils/format";
 /** Shows payment amount. */
 export const OrderHeader = ({
   minified = false,
-  showEth = false,
-  showSolana = false,
-  showZKP2P = false,
+  show = "all",
 }: {
   minified?: boolean;
-  showEth?: boolean;
-  showSolana?: boolean;
-  showZKP2P?: boolean;
+  show?: "evm" | "solana" | "zkp2p" | "all";
 }) => {
   const { paymentState, route } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();
@@ -95,10 +91,18 @@ export const OrderHeader = ({
 
   if (minified) {
     if (titleAmountContent != null) {
+      if (show === "zkp2p") {
+        return (
+          <MinifiedContainer>
+            <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
+          </MinifiedContainer>
+        );
+      }
+
       return (
         <MinifiedContainer>
           <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
-          {showEth && isEthConnected && (
+          {show === "evm" && isEthConnected && (
             <>
               <SubtitleContainer>
                 <Subtitle>{ethWalletDisplayName}</Subtitle>
@@ -106,7 +110,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {showSolana && isSolanaConnected && (
+          {show === "solana" && isSolanaConnected && (
             <>
               <SubtitleContainer>
                 <Subtitle>{solWalletDisplayName}</Subtitle>
@@ -114,7 +118,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {!showEth && !showSolana && !showZKP2P && (
+          {show === "all" && (
             <>
               <CoinLogos $size={32} />
             </>

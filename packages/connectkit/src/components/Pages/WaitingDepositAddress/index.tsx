@@ -13,6 +13,7 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
+import { Address } from "viem";
 import { WarningIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -52,6 +53,10 @@ export default function WaitingDepositAddress() {
   const { triggerResize, paymentState } = context;
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
   const { order } = useDaimoPay();
+
+  // TODO: get universal address from the order
+  const universalAddr: Address | null =
+    "0x1234567890123456789012345678901234567890";
 
   const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);

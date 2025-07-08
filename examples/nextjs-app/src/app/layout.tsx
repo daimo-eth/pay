@@ -3,7 +3,6 @@ import { type ReactNode } from "react";
 import { StyledComponentsRegistry } from "../styles/StyledComponentsRegistry";
 import "../styles/tailwind.css";
 import { LayoutWrapper } from "./layout-wrapper";
-import { Global } from "./global";
 
 export const metadata: Metadata = {
   title: "Rozo Pay Demo",
@@ -14,7 +13,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-white min-h-screen">
-        <Global />
         <StyledComponentsRegistry>
           <LayoutWrapper>{children}</LayoutWrapper>
         </StyledComponentsRegistry>

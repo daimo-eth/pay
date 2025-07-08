@@ -387,6 +387,8 @@ const Modal: React.FC<ModalProps> = ({
         return "Payment Successful";
       case ROUTES.ERROR:
         return "Error";
+      case ROUTES.SELECT_WALLET_CHAIN:
+        return "Select Chain";
     }
   }
 

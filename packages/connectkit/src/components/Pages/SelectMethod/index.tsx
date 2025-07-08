@@ -5,7 +5,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import { PageContent } from "../../Common/Modal/styles";
 
 import { getAddressContraction } from "@daimo/pay-common";
-import { useWallet, Wallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
 import {
@@ -41,12 +41,7 @@ export default function SelectMethod() {
     usePayContext();
   const { disconnectAsync } = useDisconnect();
 
-  const {
-    setSelectedExternalOption,
-    externalPaymentOptions,
-    showSolanaPaymentMethod,
-    senderEnsName,
-  } = paymentState;
+  const { externalPaymentOptions, senderEnsName } = paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
   // Desktop: Always show connected wallets when available
@@ -54,9 +49,7 @@ export default function SelectMethod() {
   const showConnectedEth =
     isEthConnected && (!isMobile || !disableMobileInjector);
   const showConnectedSolana =
-    isSolanaConnected &&
-    showSolanaPaymentMethod &&
-    (!isMobile || !disableMobileInjector);
+    isSolanaConnected && (!isMobile || !disableMobileInjector);
 
   const getConnectedWalletOptions = () => {
     const showChainLogo = isEthConnected && isSolanaConnected;
@@ -154,6 +147,7 @@ export default function SelectMethod() {
     icons: getBestUnconnectedWalletIcons(connector, isMobile),
     onClick: async () => {
       await disconnectAsync();
+      await disconnectSolana();
       setRoute(ROUTES.CONNECTORS);
     },
   };
@@ -174,19 +168,6 @@ export default function SelectMethod() {
       externalPaymentOptions.options,
     )}`,
   );
-
-  if (showSolanaPaymentMethod) {
-    const solanaOption = getSolanaOption(
-      isIOS,
-      isAndroid,
-      solanaWallets,
-      disconnectSolana,
-      setRoute,
-    );
-    if (solanaOption) {
-      options.push(solanaOption);
-    }
-  }
 
   // Pay with Exchange
   const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
@@ -267,32 +248,6 @@ function getBestUnconnectedWalletIcons(
   }
 
   return icons;
-}
-
-function getSolanaOption(
-  isIOS: boolean,
-  isAndroid: boolean,
-  solanaWallets: Wallet[],
-  disconnectSolana: () => Promise<void>,
-  setRoute: (route: ROUTES, data?: Record<string, any>) => void,
-) {
-  // If we're on iOS and there are no wallets, we don't need to show the Solana option
-  // If we're on Android and there are less than 2 wallets, we don't need to show the Solana option because there is always a default wallet called Mobile Wallet Adapter that is not useful
-  if (
-    (isIOS && solanaWallets.length === 0) ||
-    (isAndroid && solanaWallets.length < 2)
-  )
-    return null;
-
-  return {
-    id: "solana",
-    title: "Pay on Solana",
-    icons: [<Solana key="solana" />],
-    onClick: async () => {
-      await disconnectSolana();
-      setRoute(ROUTES.SOLANA_CONNECT);
-    },
-  };
 }
 
 function getDepositAddressOption(

@@ -1,7 +1,8 @@
 import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
-import Logos from "../assets/logos";
+import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
+import Logos, { SquircleIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
@@ -17,6 +18,8 @@ export type WalletProps = {
   id: string;
   connector?: Connector;
   isInstalled?: boolean;
+  /** Name of the matching Solana wallet adapter (if any) */
+  solanaConnectorName?: string;
 } & WalletConfigProps;
 
 export const useWallet = (id: string): WalletProps | null => {
@@ -30,6 +33,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
   const context = usePayContext();
   const { disableMobileInjector } = context;
+  // Solana wallets available in the session (desktop & mobile)
+  const solanaWallet = useSolanaWalletAdapter();
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
@@ -173,6 +178,38 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         <MobileWithLogos />
       </div>
     ),
+  });
+
+  const solanaAdapters = solanaWallet.wallets ?? [];
+
+  // Merge by fuzzy name matching (includes comparison)
+  wallets.forEach((w) => {
+    const match = solanaAdapters.find((sw) => {
+      const evm = (w.name ?? "").toLowerCase();
+      const sol = sw.adapter.name.toLowerCase();
+      return evm.includes(sol) || sol.includes(evm);
+    });
+    if (match) {
+      w.solanaConnectorName = match.adapter.name;
+    }
+  });
+
+  const unmatched = solanaAdapters.filter(
+    (sw) => !wallets.find((w) => w.solanaConnectorName === sw.adapter.name),
+  );
+
+  unmatched.forEach((sw) => {
+    wallets.push({
+      id: `solana-${sw.adapter.name}`,
+      name: sw.adapter.name,
+      shortName: sw.adapter.name,
+      icon: <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />,
+      iconConnector: (
+        <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />
+      ),
+      iconShape: "squircle",
+      solanaConnectorName: sw.adapter.name,
+    });
   });
 
   return (

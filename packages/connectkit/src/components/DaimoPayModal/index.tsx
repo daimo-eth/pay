@@ -27,9 +27,9 @@ import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
 import SelectWalletAmount from "../Pages/SelectWalletAmount";
+import SelectWalletChain from "../Pages/SelectWalletChain";
 import SelectZKP from "../Pages/SelectZKP";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
-import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
@@ -141,8 +141,12 @@ export const RozoPayModal: React.FC<{
         context.setRoute(ROUTES.CONNECTORS, meta);
       } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
         if (isDepositFlow) {
-          generatePreviewOrder();
-          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
+          if (paymentState.selectedDepositAddressOption === undefined) {
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+          } else {
+            generatePreviewOrder();
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
+          }
         } else {
           setSelectedDepositAddressOption(undefined);
           context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
@@ -179,6 +183,7 @@ export const RozoPayModal: React.FC<{
       [ROUTES.SELECT_EXCHANGE]: <SelectExchange />,
       [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: <SelectDepositAddressAmount />,
       [ROUTES.SELECT_WALLET_AMOUNT]: <SelectWalletAmount />,
+      [ROUTES.SELECT_WALLET_CHAIN]: <SelectWalletChain />,
       [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
       [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
       [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,
@@ -187,7 +192,6 @@ export const RozoPayModal: React.FC<{
       [ROUTES.CONFIRMATION]: <Confirmation />,
       [ROUTES.ERROR]: <ErrorPage />,
       [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
-      [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,
       [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,
       [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
       [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,

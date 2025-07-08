@@ -138,7 +138,7 @@ async function pollFindPayments(
     key,
     intervalMs: 1_000,
     pollFn: () => trpc.findOrderPayments.query({ orderId: orderId.toString() }),
-    onResult: (order) => {
+    onResult: (order: any) => {
       const state = store.getState();
       if (state.type !== "payment_unpaid") {
         stopPolling();
@@ -163,7 +163,7 @@ async function pollRefreshOrder(
     key,
     intervalMs: 300,
     pollFn: () => trpc.getOrder.query({ id: orderId.toString() }),
-    onResult: (res) => {
+    onResult: (res: any) => {
       const state = store.getState();
       // Check that we're still in the payment_started state
       if (state.type !== "payment_started") {

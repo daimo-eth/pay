@@ -103,15 +103,31 @@ const ConnectorItem = ({
     isCoinbaseWalletConnector(wallet.connector?.id);
 
   const onClick = () => {
+    const meta = { event: "connector-list-click", walletId: wallet.id };
+
+    // Desktop multi-chain wallet flow: prompt for chain selection.
+    if (wallet.solanaConnectorName && !isMobile) {
+      const supportsEvm = wallet.connector?.name != null;
+      if (supportsEvm) {
+        context.paymentState.setSelectedWallet(wallet);
+        context.setRoute(ROUTES.SELECT_WALLET_CHAIN, meta);
+        return;
+      } else {
+        context.setSolanaConnector(wallet.solanaConnectorName);
+        context.setRoute(ROUTES.SOLANA_CONNECTOR, meta);
+        return;
+      }
+    }
+
     if (redirectToMoreWallets) {
-      context.setRoute(ROUTES.MOBILECONNECTORS);
+      context.setRoute(ROUTES.MOBILECONNECTORS, meta);
     } else if (redirectToMobileWallets) {
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
-        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
         context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
-        context.setRoute(ROUTES.CONNECT);
+        context.setRoute(ROUTES.CONNECT, meta);
       }
     } else if (
       context.paymentState.isDepositFlow &&
@@ -119,7 +135,7 @@ const ConnectorItem = ({
       !wallet.connector
     ) {
       context.paymentState.setSelectedWallet(wallet);
-      context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+      context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
     } else if (
       isMobile &&
       wallet.getRozoPayDeeplink != null &&
@@ -131,7 +147,7 @@ const ConnectorItem = ({
         connect({ connector: wallet.connector! });
       }
       context.setPendingConnectorId(wallet.id);
-      context.setRoute(ROUTES.CONNECT);
+      context.setRoute(ROUTES.CONNECT, meta);
     }
   };
 

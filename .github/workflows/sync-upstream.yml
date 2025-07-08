@@ -22,7 +22,7 @@ jobs:
 
       - name: Add upstream remote and rebase
         run: |
-          git remote add upstream https://github.com/daimo-eth/pay.git
+          git remote add upstream https://github.com/RozoAI/intent-pay.git
           git fetch upstream
           
           # Store current branch name

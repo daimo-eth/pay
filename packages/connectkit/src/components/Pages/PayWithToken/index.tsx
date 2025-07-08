@@ -4,6 +4,7 @@ import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import {
   Link,
@@ -23,12 +24,21 @@ enum PayState {
 }
 
 const PayWithToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute, log } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
   const { order } = useRozoPay();
-  const [payState, setPayState] = useState<PayState>(
+  const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const setPayState = (state: PayState) => {
+    if (state === payState) return;
+    setPayStateInner(state);
+    log(`[PayWithToken] payState: ${state}`);
+    (trpc as TrpcClient).nav.mutate({
+      action: "pay-with-token-state",
+      data: { state },
+    });
+  };
   const [txURL, setTxURL] = useState<string | undefined>();
 
   const walletChainId = useChainId();

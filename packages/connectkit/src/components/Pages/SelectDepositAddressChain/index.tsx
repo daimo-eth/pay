@@ -45,7 +45,7 @@ const SelectDepositAddressChain: React.FC = () => {
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
         options={
-          //TODO: Hide Tron and Ethereum from the deposit address options
+
           depositAddressOptions.options?.filter(option =>
             !option.id.toLowerCase().includes("tron") &&
             !option.id.toLowerCase().includes("ethereum")

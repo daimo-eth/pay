@@ -6,6 +6,7 @@ export enum ROUTES {
   SELECT_EXCHANGE = "rozoPaySelectExchange",
   SELECT_DEPOSIT_ADDRESS_AMOUNT = "rozoPaySelectDepositAddressAmount",
   SELECT_WALLET_AMOUNT = "rozoPaySelectWalletAmount",
+  SELECT_WALLET_CHAIN = "rozoPaySelectWalletChain",
   SELECT_ZKP2P = "rozoPaySelectZKP2P",
   WAITING_EXTERNAL = "rozoPayWaitingExternal",
   WAITING_WALLET = "rozoPayWaitingWallet",
@@ -13,12 +14,10 @@ export enum ROUTES {
   WAITING_DEPOSIT_ADDRESS = "rozoPayWaitingDepositAddress",
   PAY_WITH_TOKEN = "rozoPayPayWithToken",
   CONFIRMATION = "rozoPayConfirmation",
-  SOLANA_CONNECT = "rozoPaySolanaConnect",
   SOLANA_CONNECTOR = "rozoPaySolanaConnector",
   SOLANA_SELECT_AMOUNT = "rozoPaySolanaSelectAmount",
   SOLANA_PAY_WITH_TOKEN = "rozoPaySolanaPayWithToken",
   ERROR = "rozoPayError",
-
   // Unused routes. Kept to minimize connectkit merge conflicts.
   ONBOARDING = "onboarding",
   ABOUT = "about",

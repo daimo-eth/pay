@@ -30,7 +30,7 @@ export default function SelectToken() {
 
   return (
     <PageContent>
-      <OrderHeader minified showEth={true} />
+      <OrderHeader minified show={tokenMode} />
       <OptionsList
         requiredSkeletons={4}
         isLoading={isLoading}
@@ -71,7 +71,11 @@ function InsufficientBalance() {
 function ConnectButton() {
   const { connect } = useConnect();
   const solanaWallets = useWallet();
-  const hasSolanaWallet = solanaWallets.wallets.length > 0;
+  // On Android, filter out the Android Intent deeplink fake wallet.
+  const filteredWallets = solanaWallets.wallets.filter(
+    (w) => w.adapter.name !== "Mobile Wallet Adapter",
+  );
+  const hasSolanaWallet = filteredWallets.length > 0;
 
   const icons = [<Ethereum key="ethereum" />];
   if (hasSolanaWallet) {
@@ -92,7 +96,7 @@ function ConnectButton() {
 
   const connectOption = {
     id: "connect-wallet",
-    title: `Connect Wallet`,
+    title: "Connect Wallet",
     icons,
     onClick,
   };

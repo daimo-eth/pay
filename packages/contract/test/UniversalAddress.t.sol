@@ -16,6 +16,7 @@ import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {TestUSDT} from "./utils/DummyUSDT.sol";
 import {TestDAI} from "./utils/DummyDAI.sol";
 import {DummyBridger} from "./utils/DummyBridger.sol";
+import {UniversalAddressBridger} from "../src/UniversalAddressBridger.sol";
 
 /// @notice Abstract contract that bootstraps a full Universal Address stack for tests.
 abstract contract UA_Setup is Test {
@@ -28,7 +29,8 @@ abstract contract UA_Setup is Test {
     SharedConfig internal cfg;
     UniversalAddressFactory internal factory;
     UpgradeableBeacon internal beacon;
-    DummyBridger internal bridger;
+    DummyBridger internal adapter;
+    UniversalAddressBridger internal bridger;
 
     // Tokens
     TestUSDC internal usdc;
@@ -55,8 +57,19 @@ abstract contract UA_Setup is Test {
         cfg.setWhitelistedStable(address(usdc), true);
         cfg.setWhitelistedStable(address(usdt), true);
 
-        // 3. Deploy DummyBridger and write to config
-        bridger = new DummyBridger();
+        // 3. Deploy DummyBridger adapter and UniversalAddressBridger wrapper
+        adapter = new DummyBridger();
+
+        uint256[] memory chains = new uint256[](1);
+        chains[0] = DEST_CHAIN_ID;
+        IDaimoPayBridger[] memory adapters = new IDaimoPayBridger[](1);
+        adapters[0] = IDaimoPayBridger(address(adapter));
+        address[] memory outs = new address[](1);
+        outs[0] = address(usdc);
+
+        bridger = new UniversalAddressBridger(chains, adapters, outs);
+
+        // Register the wrapper in config
         cfg.setAddr(BRIDGER_KEY, address(bridger));
 
         // 4. Deploy beacon and factory
@@ -169,12 +182,12 @@ contract UniversalAddressStartTest is UA_Setup {
         calls[1] = Call({to: address(swapper), value: 0, data: callData});
 
         // expect DummyBridger events
-        vm.expectEmit(address(bridger));
+        vm.expectEmit(address(adapter));
         emit DummyBridger.Send(DEST_CHAIN_ID, expectedReceiver, address(usdc), amount, "");
 
-        vm.expectEmit(address(bridger));
+        vm.expectEmit(address(adapter));
         emit IDaimoPayBridger.BridgeInitiated({
-            fromAddress: address(ua),
+            fromAddress: address(bridger),
             fromToken: address(usdc),
             fromAmount: amount,
             toChainId: DEST_CHAIN_ID,
@@ -185,8 +198,11 @@ contract UniversalAddressStartTest is UA_Setup {
 
         ua.start(usdc, amount, ZERO_SALT, calls, "");
 
-        // DummyBridger does not pull tokens, so UA keeps its USDC. Ensure it still holds at least the original deposit.
-        assertGe(usdc.balanceOf(address(ua)), amount);
+        // After bridging:
+        // • UA still holds the original deposit (pulled deficit) → `amount`.
+        // • Wrapper holds the routed funds → `amount`.
+        assertEq(usdc.balanceOf(address(ua)), amount);
+        assertEq(usdc.balanceOf(address(bridger)), amount);
     }
 
     function _computeReceiver(address uaAddr, bytes32 salt) internal view returns (address) {
@@ -285,9 +301,10 @@ contract UniversalAddressEdgeTest is UA_Setup {
         ua.start(usdc, amount, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
-        // UA should now hold the original deposit *plus* delivered & deficit (2x).
+        // Total locked funds (UA + wrapper) should equal original deposit plus delivered & deficit (2x).
         uint256 expectedBal = amount * 2;
-        assertEq(usdc.balanceOf(address(ua)), expectedBal);
+        uint256 totalHeld = usdc.balanceOf(address(ua)) + usdc.balanceOf(address(bridger));
+        assertEq(totalHeld, expectedBal);
         assertEq(balBefore - balAfter, amount - delivered);
     }
 

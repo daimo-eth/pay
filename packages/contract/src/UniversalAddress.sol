@@ -10,7 +10,7 @@ import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "./SharedConfig.sol";
 import "./TokenUtils.sol";
 import {DaimoPayExecutor, Call} from "./DaimoPayExecutor.sol";
-import {IDaimoPayBridger, TokenAmount} from "./interfaces/IDaimoPayBridger.sol";
+import {IUniversalAddressBridger} from "./interfaces/IUniversalAddressBridger.sol";
 
 
 /// @notice Describes the routing parameters for a payment initiated via a
@@ -138,24 +138,27 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
         _swapViaExecutor(inputToken, amount, swapCalls, usdc, amount, payable(msg.sender));
 
-        // Prepare bridge parameters (single-token option).
-        TokenAmount[] memory outOpts = new TokenAmount[](1);
-        outOpts[0] = TokenAmount({token: usdc, amount: amount});
-
-        // Retrieve bridger and sanity-check.
-        address bridgerAddr = cfg.addr(BRIDGER_KEY);
-        require(bridgerAddr != address(0), "UA: bridger missing");
-
         // Deterministic BridgeReceiver address.
         bytes32 recvSalt = _receiverSalt(userSalt, amount);
         address receiverAddr = _computeReceiverAddress(recvSalt);
 
-        IDaimoPayBridger(bridgerAddr).sendToChain({
-            toChainId: route.toChainId,
-            toAddress: receiverAddr,
-            bridgeTokenOutOptions: outOpts,
-            extraData: bridgeExtra
-        });
+        // Look up the UniversalAddressBridger wrapper.
+        IUniversalAddressBridger bridger =
+            IUniversalAddressBridger(cfg.addr(BRIDGER_KEY));
+        require(address(bridger) != address(0), "UA: bridger missing");
+
+        // Determine the required input asset and quantity for the bridge.
+        (address tokenIn, uint256 exactIn) = bridger.quoteIn(route.toChainId, amount);
+
+        // Ensure the UA holds enough of the required token.
+        require(
+            TokenUtils.getBalanceOf(IERC20(tokenIn), address(this)) >= exactIn,
+            "UA: insufficient bridger input"
+        );
+
+        // Approve once and perform the bridge.
+        IERC20(tokenIn).forceApprove(address(bridger), exactIn);
+        bridger.bridge(route.toChainId, receiverAddr, exactIn, amount, bridgeExtra);
 
         emit Start(recvSalt, amount, receiverAddr, route);
     }

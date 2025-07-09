@@ -51,10 +51,6 @@ const WaitingExternal: React.FC = () => {
       // portrait mode in the center of the screen
       let width = 500;
       let height = 700;
-      // if (isPaymentApp) {
-      //   height = 800;
-      //   width = 800;
-      // }
       const left = Math.max(
         0,
         Math.floor((window.innerWidth - width) / 2) + window.screenX,

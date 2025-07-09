@@ -56,11 +56,7 @@ const SelectDepositAddressChain: React.FC = () => {
               onClick: () => {
                 setSelectedDepositAddressOption(option);
                 const meta = { event: "click-option", option: option.id };
-                if (isDepositFlow) {
-                  setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
-                } else {
-                  setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, meta);
-                }
+                setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, meta);
               },
             };
           }) ?? []

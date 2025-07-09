@@ -145,7 +145,7 @@ contract UniversalAddressStartTest is UA_Setup {
 
         // Expect revert because start() cannot be called on destination chain
         vm.expectRevert("UA: on destination chain");
-        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
 
         // UA balance should remain unchanged
         assertEq(usdc.balanceOf(address(ua)), amount);
@@ -196,12 +196,11 @@ contract UniversalAddressStartTest is UA_Setup {
             toAmount: amount
         });
 
-        ua.start(usdc, amount, ZERO_SALT, calls, "");
+        ua.start(usdc, amount, amount, ZERO_SALT, calls, "");
 
-        // After bridging:
-        // • UA still holds the original deposit (pulled deficit) → `amount`.
-        // • Wrapper holds the routed funds → `amount`.
-        assertEq(usdc.balanceOf(address(ua)), amount);
+        // After bridging the UA has transferred its tokens to the wrapper, so
+        // its balance is zero. The wrapper holds the bridged funds.
+        assertEq(usdc.balanceOf(address(ua)), 0);
         assertEq(usdc.balanceOf(address(bridger)), amount);
     }
 
@@ -230,7 +229,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         dai.transfer(address(ua), amount);
         // Expect revert because DAI is not on the whitelist
         vm.expectRevert("UA: token not whitelisted");
-        ua.start(dai, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(dai, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartPaused() public {
@@ -241,13 +240,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Pause all UAs via SharedConfig
         cfg.setPaused(true);
         vm.expectRevert("UA: paused");
-        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartNoBalance() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         vm.expectRevert("UA: no balance");
-        ua.start(usdc, 0, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, 0, 0, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartBridgerMissing() public {
@@ -264,7 +263,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Remove bridger address from config
         cfg.setAddr(BRIDGER_KEY, address(0));
         vm.expectRevert("UA: bridger missing");
-        ua.start(usdc, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     /*──────────────────────────────────────────────────────────────────────────
@@ -298,14 +297,17 @@ contract UniversalAddressEdgeTest is UA_Setup {
         calls[1] = Call({to: address(swapper), value: 0, data: callData});
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, amount, ZERO_SALT, calls, "");
+        ua.start(usdc, amount, amount, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
-        // Total locked funds (UA + wrapper) should equal original deposit plus delivered & deficit (2x).
-        uint256 expectedBal = amount * 2;
+        // UA balance should be zero after it forwards tokens to the wrapper.
+        // Wrapper holds exactly the requiredAmount.
         uint256 totalHeld = usdc.balanceOf(address(ua)) + usdc.balanceOf(address(bridger));
-        assertEq(totalHeld, expectedBal);
-        assertEq(balBefore - balAfter, amount - delivered);
+        assertEq(usdc.balanceOf(address(ua)), 0);
+        assertEq(totalHeld, amount);
+
+        // Surplus (delivered - (requiredAmount - inputAmount)) is refunded to this contract.
+        assertEq(balAfter - balBefore, delivered);
     }
 
     function testSwapSurplusRefunded() public {
@@ -329,11 +331,12 @@ contract UniversalAddressEdgeTest is UA_Setup {
         calls[2] = Call(address(swapper), 0, call2);
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, required, ZERO_SALT, calls, "");
+        ua.start(usdc, required, required, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
-        // Surplus should be refunded to msg.sender (this contract)
-        assertEq(balAfter - balBefore, surplus);
+        // The executor returns the original input back to the UA, which then
+        // refunds everything above `required` (i.e. `required + surplus - required = surplus + requiredInput`).
+        assertEq(balAfter - balBefore, required + surplus);
     }
 
     /*──────────────────────────────────────────────────────────────────────────
@@ -398,7 +401,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         vm.prank(ALICE);
         usdc.transfer(receiverAddr, bridged);
 
-        ua.claim(bridged, ZERO_SALT);
+        ua.claim(bridged, bridged, ZERO_SALT);
 
         // Beneficiary got the funds
         assertEq(usdc.balanceOf(ALEX), bridged);
@@ -422,7 +425,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         usdc.transfer(receiverAddr, bridged);
 
         uint256 relayerBefore = usdc.balanceOf(RELAYER);
-        ua.claim(bridged, ZERO_SALT);
+        ua.claim(bridged, bridged, ZERO_SALT);
         uint256 relayerAfter = usdc.balanceOf(RELAYER);
 
         assertEq(relayerAfter - relayerBefore, bridged);

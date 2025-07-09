@@ -106,8 +106,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
     /// @notice Begin a cross-chain transfer. Executed on the SOURCE chain.
     /// @param inputToken  Token deposited by user (must be whitelisted).
-    /// @param amount      Portion of the UA's balance to bridge. Must satisfy
-    ///                    `amount >= min(cfg.num(MIN_START_USDC_KEY), balance)`.
+    /// @param payOut           Amount that the beneficiary should ultimately
+    ///                         receive on the destination chain.
+    /// @param minBridgeOut     Minimum amount the canonical bridge must mint on
+    ///                         the destination chain (bridger `minOut`).
+    ///                         Must satisfy `payOut >= minBridgeOut`.
     /// @param userSalt    User-chosen randomness component for receiver
     ///                    address derivation.
     /// @param swapCalls   Sequence of on-chain calls that convert
@@ -115,7 +118,8 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// @param bridgeExtra Extra data passed straight to `DaimoPayBridger`.
     function start(
         IERC20 inputToken,
-        uint256 amount,
+        uint256 payOut,
+        uint256 minBridgeOut,
         bytes32 userSalt,
         Call[] calldata swapCalls,
         bytes calldata bridgeExtra
@@ -124,22 +128,25 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
         uint256 balance = inputToken.balanceOf(address(this));
         require(balance > 0, "UA: no balance");
-        require(amount > 0 && amount <= balance, "UA: invalid amount");
+        require(payOut > 0 && payOut <= balance, "UA: invalid payOut");
+
+        // Ensure caller-specified constraints are coherent.
+        require(payOut >= minBridgeOut, "UA: payOut < minBridgeOut");
 
         // Enforce minimum chunk size to avoid griefing with tiny transfers.
         uint256 minAmt = balance < cfg.num(MIN_START_USDC_KEY) ? balance : cfg.num(MIN_START_USDC_KEY);
-        require(amount >= minAmt, "UA: amount below minimum");
+        require(payOut >= minAmt, "UA: payOut below minimum");
 
         // Only allow start on non-destination chains; same-chain transfers
         // should be handled via `claim()` for cleaner event semantics.
         require(block.chainid != route.toChainId, "UA: on destination chain");
 
-        // Convert `amount` of `inputToken` to canonical USDC.
+        // Convert `payOut` of `inputToken` to canonical USDC.
         IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-        _swapViaExecutor(inputToken, amount, swapCalls, usdc, amount, payable(msg.sender));
+        _swapViaExecutor(inputToken, payOut, swapCalls, usdc, payOut, payable(msg.sender));
 
         // Deterministic BridgeReceiver address.
-        bytes32 recvSalt = _receiverSalt(userSalt, amount);
+        bytes32 recvSalt = _receiverSalt(userSalt, payOut);
         address receiverAddr = _computeReceiverAddress(recvSalt);
 
         // Look up the UniversalAddressBridger wrapper.
@@ -148,7 +155,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         require(address(bridger) != address(0), "UA: bridger missing");
 
         // Determine the required input asset and quantity for the bridge.
-        (address tokenIn, uint256 exactIn) = bridger.quoteIn(route.toChainId, amount);
+        (address tokenIn, uint256 exactIn) = bridger.quoteIn(route.toChainId, minBridgeOut);
 
         // Ensure the UA holds enough of the required token.
         require(
@@ -158,9 +165,9 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
         // Approve once and perform the bridge.
         IERC20(tokenIn).forceApprove(address(bridger), exactIn);
-        bridger.bridge(route.toChainId, receiverAddr, exactIn, amount, bridgeExtra);
+        bridger.bridge(route.toChainId, receiverAddr, minBridgeOut, bridgeExtra);
 
-        emit Start(recvSalt, amount, receiverAddr, route);
+        emit Start(recvSalt, payOut, minBridgeOut, receiverAddr, route);
     }
 
     /// @notice Relayer-only function on DESTINATION chain: deliver funds early
@@ -192,11 +199,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     }
 
     /// @notice Complete the intent after the canonical bridge lands.
-    function claim(uint256 bridgedAmount, bytes32 userSalt) external nonReentrant whenNotPaused {
+    function claim(uint256 payOut, uint256 minBridgeOut, bytes32 userSalt) external nonReentrant whenNotPaused {
         require(block.chainid == route.toChainId, "UA: wrong chain");
 
         IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-        bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount);
+        bytes32 recvSalt = _receiverSalt(userSalt, payOut);
         address filler = receiverFiller[recvSalt];
         require(filler != ADDR_MAX, "UA: already claimed");
 
@@ -208,17 +215,21 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
             new BridgeReceiver{salt: recvSalt}(usdc);
         }
 
+        // Determine how much actually arrived via the canonical bridge.
+        uint256 bridged = usdc.balanceOf(address(this));
+        require(bridged >= minBridgeOut, "UA: underflow");
+
         // Distribute funds based on fast-finish status.
         if (filler == address(0)) {
             // No fastFinish; deliver to beneficiary.
-            TokenUtils.transfer({token: usdc, recipient: payable(route.toAddr), amount: bridgedAmount});
+            TokenUtils.transfer({token: usdc, recipient: payable(route.toAddr), amount: bridged});
         } else {
             // Repay the relayer.
-            TokenUtils.transfer({token: usdc, recipient: payable(filler), amount: bridgedAmount});
+            TokenUtils.transfer({token: usdc, recipient: payable(filler), amount: bridged});
         }
 
         receiverFiller[recvSalt] = ADDR_MAX;
-        emit Claim(recvSalt, bridgedAmount, bridgedAmount);
+        emit Claim(recvSalt, bridged, bridged);
     }
 
     /// @notice Sweep any non-whitelisted tokens back to user's refund address.
@@ -299,20 +310,17 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         exec.execute(calls, expected, payable(address(this)), swapFunder);
 
         uint256 afterBal = TokenUtils.getBalanceOf(requiredToken, address(this));
-        uint256 produced = afterBal - beforeBal;
 
-        // If the swap produced less than the required amount, pull the
-        // shortfall from the funder (msg.sender in start/fastFinish).
-        if (produced < requiredAmount) {
-            uint256 deficit = requiredAmount - produced;
+        if (afterBal < requiredAmount) {
+            // Pull just enough to meet the requirement.
+            uint256 deficit = requiredAmount - afterBal;
             requiredToken.safeTransferFrom(swapFunder, address(this), deficit);
-            afterBal += deficit;
-        }
-
-        // Return any surplus to the funder.
-        uint256 surplus = afterBal - beforeBal - requiredAmount;
-        if (surplus > 0) {
-            TokenUtils.transfer({token: requiredToken, recipient: swapFunder, amount: surplus});
+        } else {
+            // Refund any excess.
+            uint256 surplus = afterBal - requiredAmount;
+            if (surplus > 0) {
+                TokenUtils.transfer({token: requiredToken, recipient: swapFunder, amount: surplus});
+            }
         }
     }
 
@@ -320,7 +328,7 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // Events
     // ───────────────────────────────────────────────────────────────────────────
 
-    event Start(bytes32 indexed salt, uint256 amountUSDC, address receiver, PayRoute route);
+    event Start(bytes32 indexed salt, uint256 payOutUSDC, uint256 minBridgeOut, address receiver, PayRoute route);
     event FastFinish(bytes32 indexed salt, uint256 amountDestTok, address indexed relayer);
     event Claim(bytes32 indexed salt, uint256 bridgedUSDC, uint256 repaidUSDC);
     event Refund(address indexed token, uint256 amount, address indexed refundAddr);

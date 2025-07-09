@@ -18,13 +18,11 @@ interface IUniversalAddressBridger {
     ///         minOut units of the destination stablecoin.
     /// @param toChainId   Destination chain id
     /// @param toAddress   Recipient address on the destination chain
-    /// @param amountIn    Amount of tokenIn (returned by quoteIn) that the caller approved
     /// @param minOut      Minimal amount of stablecoin that must arrive on the destination
     /// @param extra       Adapter-specific calldata forwarded verbatim
     function bridge(
         uint256 toChainId,
         address toAddress,
-        uint256 amountIn,
         uint256 minOut,
         bytes calldata extra
     ) external;

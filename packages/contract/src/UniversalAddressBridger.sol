@@ -19,8 +19,8 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // Immutable routing data (set once in the constructor)
     // ---------------------------------------------------------------------
 
-    mapping(uint256 => IDaimoPayBridger) public bridgerForChain;
-    mapping(uint256 => address) public stableOutForChain;
+    mapping(uint256 => IDaimoPayBridger) public chainIdToBridger;
+    mapping(uint256 => address) public chainIdToStableOut;
 
     constructor(
         uint256[] memory chains,
@@ -30,8 +30,8 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         uint256 n = chains.length;
         require(n == bridgers.length && n == usdOut.length, "UA: length mismatch");
         for (uint256 i; i < n; ++i) {
-            bridgerForChain[chains[i]] = bridgers[i];
-            stableOutForChain[chains[i]] = usdOut[i];
+            chainIdToBridger[chains[i]] = bridgers[i];
+            chainIdToStableOut[chains[i]] = usdOut[i];
         }
     }
 
@@ -44,13 +44,13 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         uint256 toChainId,
         uint256 desiredOut
     ) external view returns (address tokenIn, uint256 exactIn) {
-        IDaimoPayBridger adapter = bridgerForChain[toChainId];
+        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
         require(address(adapter) != address(0), "UA: unknown chain");
 
         // Build a single-element TokenAmount[] expected by the adapter
         TokenAmount[] memory opts = new TokenAmount[](1);
         opts[0] = TokenAmount({
-            token: IERC20(stableOutForChain[toChainId]),
+            token: IERC20(chainIdToStableOut[toChainId]),
             amount: desiredOut
         });
 
@@ -65,12 +65,11 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     function bridge(
         uint256 toChainId,
         address toAddress,
-        uint256 amountIn,
         uint256 minOut,
         bytes calldata extra
     ) external {
-        IDaimoPayBridger adapter = bridgerForChain[toChainId];
-        address stableOut = stableOutForChain[toChainId];
+        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
+        address stableOut = chainIdToStableOut[toChainId];
         require(address(adapter) != address(0), "UA: unknown chain");
 
         // Build one-element array for the legacy adapter call ensuring
@@ -79,8 +78,7 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         opts[0] = TokenAmount({token: IERC20(stableOut), amount: minOut});
 
         // Determine the required input asset and quantity for the requested bridge.
-        (address tokenIn, uint256 requiredIn) = adapter.getBridgeTokenIn(toChainId, opts);
-        require(amountIn == requiredIn, "UA: incorrect amountIn");
+        (address tokenIn, uint256 amountIn) = adapter.getBridgeTokenIn(toChainId, opts);
         require(tokenIn != address(0), "UA: native tokens not supported");
 
         // Pull tokens from caller into this contract once.

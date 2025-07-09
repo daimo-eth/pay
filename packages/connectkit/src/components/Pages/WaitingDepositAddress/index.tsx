@@ -62,13 +62,15 @@ export default function WaitingDepositAddress() {
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
   const { order } = useDaimoPay();
 
-  // Detect Tron USDT underpayment (USDT0 on Optimism)
+  // Detect Optimism USDT0 under-payment: the order has received some funds
+  // but less than required.
   const tronUnderpay =
-    order &&
+    order != null &&
     isHydrated(order) &&
     order.sourceTokenAmount != null &&
     order.sourceTokenAmount.token.chainId === 10 &&
-    order.sourceTokenAmount.token.symbol.toUpperCase() === "USDT0";
+    order.sourceTokenAmount.token.symbol.toUpperCase() === "USDT0" &&
+    Number(order.sourceTokenAmount.usd) < order.usdValue;
 
   const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);
@@ -90,6 +92,7 @@ export default function WaitingDepositAddress() {
         10 ** taPaid.token.decimals
       ).toFixed(dispDecimals);
 
+      // (Removed duplicate tronUnderpay calculation now handled at top-level)
       // Hack to always show a <= 60 minute countdown
       let expirationS = (order.createdAt ?? 0) + 59.5 * 60;
       if (

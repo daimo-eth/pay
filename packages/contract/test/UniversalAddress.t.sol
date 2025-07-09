@@ -145,7 +145,7 @@ contract UniversalAddressStartTest is UA_Setup {
 
         // Expect revert because start() cannot be called on destination chain
         vm.expectRevert("UA: on destination chain");
-        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, usdc, amount, amount, ZERO_SALT, new Call[](0), "");
 
         // UA balance should remain unchanged
         assertEq(usdc.balanceOf(address(ua)), amount);
@@ -160,7 +160,8 @@ contract UniversalAddressStartTest is UA_Setup {
         uint256 amount = 200e6;
         _depositToUA(ua, amount);
 
-        bytes32 expectedSalt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, amount));
+        bytes32 expectedSalt =
+            keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, amount, IERC20(address(usdc))));
         address expectedReceiver = _computeReceiver(address(ua), expectedSalt);
 
         // ------------------------------------------------------------------
@@ -196,7 +197,7 @@ contract UniversalAddressStartTest is UA_Setup {
             toAmount: amount
         });
 
-        ua.start(usdc, amount, amount, ZERO_SALT, calls, "");
+        ua.start(usdc, usdc, amount, amount, ZERO_SALT, calls, "");
 
         // After bridging the UA has transferred its tokens to the wrapper, so
         // its balance is zero. The wrapper holds the bridged funds.
@@ -229,7 +230,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         dai.transfer(address(ua), amount);
         // Expect revert because DAI is not on the whitelist
         vm.expectRevert("UA: token not whitelisted");
-        ua.start(dai, amount, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(dai, usdc, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartPaused() public {
@@ -240,13 +241,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Pause all UAs via SharedConfig
         cfg.setPaused(true);
         vm.expectRevert("UA: paused");
-        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, usdc, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartNoBalance() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         vm.expectRevert("UA: no balance");
-        ua.start(usdc, 0, 0, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, usdc, 0, 0, ZERO_SALT, new Call[](0), "");
     }
 
     function testStartBridgerMissing() public {
@@ -263,7 +264,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Remove bridger address from config
         cfg.setAddr(BRIDGER_KEY, address(0));
         vm.expectRevert("UA: bridger missing");
-        ua.start(usdc, amount, amount, ZERO_SALT, new Call[](0), "");
+        ua.start(usdc, usdc, amount, amount, ZERO_SALT, new Call[](0), "");
     }
 
     /*──────────────────────────────────────────────────────────────────────────
@@ -297,7 +298,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         calls[1] = Call({to: address(swapper), value: 0, data: callData});
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, amount, amount, ZERO_SALT, calls, "");
+        ua.start(usdc, usdc, amount, amount, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
         // UA balance should be zero after it forwards tokens to the wrapper.
@@ -331,7 +332,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         calls[2] = Call(address(swapper), 0, call2);
 
         uint256 balBefore = usdc.balanceOf(address(this));
-        ua.start(usdc, required, required, ZERO_SALT, calls, "");
+        ua.start(usdc, usdc, required, required, ZERO_SALT, calls, "");
         uint256 balAfter = usdc.balanceOf(address(this));
 
         // The executor returns the original input back to the UA, which then
@@ -347,32 +348,44 @@ contract UniversalAddressEdgeTest is UA_Setup {
         // Deploy UA on source chain, then switch to dest chain
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         uint256 bridged = 200e6;
+
+        // Prefund UA and initiate start to register bridgedCoin mapping
+        vm.prank(ALICE);
+        usdc.transfer(address(ua), bridged);
+        ua.start(usdc, usdc, bridged, bridged, ZERO_SALT, new Call[](0), "");
+
         vm.chainId(DEST_CHAIN_ID);
 
         // Relayer provides liquidity
         vm.startPrank(RELAYER);
         usdc.approve(address(ua), bridged * 2);
-        ua.fastFinish(bridged, ZERO_SALT, new Call[](0));
+        ua.fastFinish(bridged, ZERO_SALT, usdc, new Call[](0));
         vm.stopPrank();
 
         // Beneficiary received funds
         assertEq(usdc.balanceOf(ALEX), bridged);
 
         // Mapping recorded relayer
-        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged));
+        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged, IERC20(address(usdc))));
         assertEq(ua.receiverFiller(salt), RELAYER);
     }
 
     function testFastFinishAlreadyFinishedReverts() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         uint256 bridged = 50e6;
+
+        // Register mapping via start
+        vm.prank(ALICE);
+        usdc.transfer(address(ua), bridged);
+        ua.start(usdc, usdc, bridged, bridged, ZERO_SALT, new Call[](0), "");
+
         vm.chainId(DEST_CHAIN_ID);
         vm.startPrank(RELAYER);
         usdc.approve(address(ua), bridged * 2);
-        ua.fastFinish(bridged, ZERO_SALT, new Call[](0));
+        ua.fastFinish(bridged, ZERO_SALT, usdc, new Call[](0));
         // second call should revert
         vm.expectRevert("UA: already finished");
-        ua.fastFinish(bridged, ZERO_SALT, new Call[](0));
+        ua.fastFinish(bridged, ZERO_SALT, usdc, new Call[](0));
         vm.stopPrank();
     }
 
@@ -392,7 +405,13 @@ contract UniversalAddressEdgeTest is UA_Setup {
 
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         uint256 bridged = 120e6;
-        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged));
+
+        // Register mapping via start on source chain
+        vm.prank(ALICE);
+        usdc.transfer(address(ua), bridged);
+        ua.start(usdc, usdc, bridged, bridged, ZERO_SALT, new Call[](0), "");
+
+        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged, IERC20(address(usdc))));
         address receiverAddr = _computeReceiver(address(ua), salt);
 
         // Switch to destination chain first, then have ALICE fund receiver
@@ -401,7 +420,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         vm.prank(ALICE);
         usdc.transfer(receiverAddr, bridged);
 
-        ua.claim(bridged, bridged, ZERO_SALT);
+        ua.claim(bridged, bridged, ZERO_SALT, usdc, new Call[](0));
 
         // Beneficiary got the funds
         assertEq(usdc.balanceOf(ALEX), bridged);
@@ -410,14 +429,20 @@ contract UniversalAddressEdgeTest is UA_Setup {
     function testClaimWithFastFinishRepaysRelayer() public {
         UniversalAddress ua = _deployUniversalAddress(ALEX, ALICE);
         uint256 bridged = 90e6;
-        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged));
+
+        // Register mapping via start
+        vm.prank(ALICE);
+        usdc.transfer(address(ua), bridged);
+        ua.start(usdc, usdc, bridged, bridged, ZERO_SALT, new Call[](0), "");
+
+        bytes32 salt = keccak256(abi.encodePacked("receiver", address(ua), ZERO_SALT, bridged, IERC20(address(usdc))));
         address receiverAddr = _computeReceiver(address(ua), salt);
 
         // -------- fastFinish beforehand ----------
         vm.chainId(DEST_CHAIN_ID);
         vm.startPrank(RELAYER);
         usdc.approve(address(ua), bridged * 2);
-        ua.fastFinish(bridged, ZERO_SALT, new Call[](0));
+        ua.fastFinish(bridged, ZERO_SALT, usdc, new Call[](0));
         vm.stopPrank();
 
         // Simulate bridge arrival via ALICE transfer
@@ -425,7 +450,7 @@ contract UniversalAddressEdgeTest is UA_Setup {
         usdc.transfer(receiverAddr, bridged);
 
         uint256 relayerBefore = usdc.balanceOf(RELAYER);
-        ua.claim(bridged, bridged, ZERO_SALT);
+        ua.claim(bridged, bridged, ZERO_SALT, usdc, new Call[](0));
         uint256 relayerAfter = usdc.balanceOf(RELAYER);
 
         assertEq(relayerAfter - relayerBefore, bridged);

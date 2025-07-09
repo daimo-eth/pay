@@ -12,16 +12,15 @@ import "./TokenUtils.sol";
 import {DaimoPayExecutor, Call} from "./DaimoPayExecutor.sol";
 import {IUniversalAddressBridger} from "./interfaces/IUniversalAddressBridger.sol";
 
-
 /// @notice Describes the routing parameters for a payment initiated via a
 ///         UniversalAddress.  Encodes the final destination chain/token and
 ///         the beneficiary+refund addrs so that indexers can recover the full
 ///         context from a single log.
 struct PayRoute {
-    uint256 toChainId;      // Destination chain where funds will settle.
-    IERC20 toCoin;          // Destination token (eg native USDC on dest).
-    address toAddr;         // Beneficiary wallet on the destination chain.
-    address refundAddr;     // Address that will receive unsupported tokens.
+    uint256 toChainId; // Destination chain where funds will settle.
+    IERC20 toCoin; // Destination token (eg native USDC on dest).
+    address toAddr; // Beneficiary wallet on the destination chain.
+    address refundAddr; // Address that will receive unsupported tokens.
 }
 
 /// @author Daimo, Inc
@@ -46,7 +45,6 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     bytes32 public constant BRIDGER_KEY = keccak256("BRIDGER_KEY");
     bytes32 public constant MIN_START_USDC_KEY = keccak256("MIN_START_USDC");
 
-
     // ───────────────────────────────────────────────────────────────────────────
     // Storage
     // ───────────────────────────────────────────────────────────────────────────
@@ -61,6 +59,9 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// when already claimed, 0x0 when open.
     mapping(bytes32 => address) public receiverFiller;
 
+    /// Map receiverSalt ⇒ coin chosen as bridge asset for this transfer
+    mapping(bytes32 => IERC20) public bridgedCoin;
+
     /// Sandbox contract used to execute arbitrary swap calls. Deployed once per
     /// UA and immutable thereafter. All untrusted calls happen from within this
     /// contract so that malicious approvals cannot be set on the UA itself.
@@ -74,21 +75,13 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
 
     /// @dev Called once by factory-deployed BeaconProxy.
-    function initialize(
-        SharedConfig _cfg,
-        uint256 _toChainId,
-        IERC20 _toCoin,
-        address _toAddr,
-        address _refundAddr
-    ) external initializer {
+    function initialize(SharedConfig _cfg, uint256 _toChainId, IERC20 _toCoin, address _toAddr, address _refundAddr)
+        external
+        initializer
+    {
         __ReentrancyGuard_init();
         cfg = _cfg;
-        route = PayRoute({
-            toChainId: _toChainId,
-            toCoin: _toCoin,
-            toAddr: _toAddr,
-            refundAddr: _refundAddr
-        });
+        route = PayRoute({toChainId: _toChainId, toCoin: _toCoin, toAddr: _toAddr, refundAddr: _refundAddr});
     }
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -113,17 +106,19 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     ///                         Must satisfy `payOut >= minBridgeOut`.
     /// @param userSalt    User-chosen randomness component for receiver
     ///                    address derivation.
-    /// @param swapCalls   Sequence of on-chain calls that convert
-    ///                    `inputToken → native USDC` (1:1 bridge medium).
+    /// @param swapCallsIn   Sequence of on-chain calls that convert `inputToken → bridgeCoin`
     /// @param bridgeExtra Extra data passed straight to `DaimoPayBridger`.
     function start(
         IERC20 inputToken,
+        IERC20 bridgeCoin,
         uint256 payOut,
         uint256 minBridgeOut,
         bytes32 userSalt,
-        Call[] calldata swapCalls,
+        Call[] calldata swapCallsIn,
         bytes calldata bridgeExtra
     ) external nonReentrant whenNotPaused {
+        // Ensure the chosen bridge coin is whitelisted
+        require(cfg.whitelistedStable(address(bridgeCoin)), "UA: coin not whitelisted");
         require(cfg.whitelistedStable(address(inputToken)), "UA: token not whitelisted");
 
         uint256 balance = inputToken.balanceOf(address(this));
@@ -141,55 +136,50 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         // should be handled via `claim()` for cleaner event semantics.
         require(block.chainid != route.toChainId, "UA: on destination chain");
 
-        // Convert `payOut` of `inputToken` to canonical USDC.
-        IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-        _swapViaExecutor(inputToken, payOut, swapCalls, usdc, payOut, payable(msg.sender));
+        // Convert `payOut` of `inputToken` to the caller-specified bridge coin.
+        _swapViaExecutor(inputToken, payOut, swapCallsIn, bridgeCoin, payOut, payable(msg.sender));
 
         // Deterministic BridgeReceiver address.
-        bytes32 recvSalt = _receiverSalt(userSalt, payOut);
-        address receiverAddr = _computeReceiverAddress(recvSalt);
+        bytes32 recvSalt = _receiverSalt(userSalt, payOut, bridgeCoin);
+        bridgedCoin[recvSalt] = bridgeCoin;
+        address receiverAddr = _computeReceiverAddress(recvSalt, bridgeCoin);
 
         // Look up the UniversalAddressBridger wrapper.
-        IUniversalAddressBridger bridger =
-            IUniversalAddressBridger(cfg.addr(BRIDGER_KEY));
+        IUniversalAddressBridger bridger = IUniversalAddressBridger(cfg.addr(BRIDGER_KEY));
         require(address(bridger) != address(0), "UA: bridger missing");
 
         // Determine the required input asset and quantity for the bridge.
-        (address tokenIn, uint256 exactIn) = bridger.quoteIn(route.toChainId, minBridgeOut);
+        (address tokenIn, uint256 exactIn) = bridger.quoteIn(route.toChainId, bridgeCoin, minBridgeOut);
 
         // Ensure the UA holds enough of the required token.
-        require(
-            TokenUtils.getBalanceOf(IERC20(tokenIn), address(this)) >= exactIn,
-            "UA: insufficient bridger input"
-        );
+        require(TokenUtils.getBalanceOf(IERC20(tokenIn), address(this)) >= exactIn, "UA: insufficient bridger input");
 
         // Approve once and perform the bridge.
         IERC20(tokenIn).forceApprove(address(bridger), exactIn);
-        bridger.bridge(route.toChainId, receiverAddr, minBridgeOut, bridgeExtra);
+        bridger.bridge(route.toChainId, receiverAddr, bridgeCoin, minBridgeOut, bridgeExtra);
 
-        emit Start(recvSalt, payOut, minBridgeOut, receiverAddr, route);
+        emit Start(recvSalt, bridgeCoin, payOut, minBridgeOut, receiverAddr, route);
     }
 
     /// @notice Relayer-only function on DESTINATION chain: deliver funds early
     ///         and record entitlement to bridged USDC when it arrives.
-    function fastFinish(uint256 bridgedAmount, bytes32 userSalt, Call[] calldata swapCalls)
+    function fastFinish(uint256 bridgedAmount, bytes32 userSalt, IERC20 coin, Call[] calldata swapCalls)
         external
         nonReentrant
         whenNotPaused
     {
         require(block.chainid == route.toChainId, "UA: wrong chain");
 
-        IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-
         // Determine receiverSalt & ensure not already finished/claimed.
-        bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount);
+        bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount, coin);
+        require(bridgedCoin[recvSalt] == coin, "UA: unknown transfer");
         require(receiverFiller[recvSalt] == address(0), "UA: already finished");
 
-        // Pull USDC from relayer to fund the swap / instant payout.
-        usdc.safeTransferFrom(msg.sender, address(this), bridgedAmount);
+        // Pull the bridged coin from the relayer to fund the swap / instant payout.
+        coin.safeTransferFrom(msg.sender, address(this), bridgedAmount);
 
         // Swap to final token if needed and deliver to beneficiary.
-        _swapViaExecutor(IERC20(usdc), bridgedAmount, swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
+        _swapViaExecutor(coin, bridgedAmount, swapCalls, route.toCoin, bridgedAmount, payable(msg.sender));
         TokenUtils.transfer({token: route.toCoin, recipient: payable(route.toAddr), amount: bridgedAmount});
 
         // Record relayer as filler.
@@ -199,37 +189,44 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     }
 
     /// @notice Complete the intent after the canonical bridge lands.
-    function claim(uint256 payOut, uint256 minBridgeOut, bytes32 userSalt) external nonReentrant whenNotPaused {
+    function claim(uint256 payOut, uint256 minBridgeOut, bytes32 userSalt, IERC20 coin, Call[] calldata swapCallsDest)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         require(block.chainid == route.toChainId, "UA: wrong chain");
 
-        IERC20 usdc = IERC20(cfg.addr(USDC_KEY));
-        bytes32 recvSalt = _receiverSalt(userSalt, payOut);
+        bytes32 recvSalt = _receiverSalt(userSalt, payOut, coin);
+        require(bridgedCoin[recvSalt] == coin, "UA: unknown transfer");
         address filler = receiverFiller[recvSalt];
         require(filler != ADDR_MAX, "UA: already claimed");
 
         // Deploy BridgeReceiver deterministically if not yet deployed, then
         // sweep USDC into this contract.
-        address payable receiverAddr = _computeReceiverAddress(recvSalt);
+        address payable receiverAddr = _computeReceiverAddress(recvSalt, coin);
         if (receiverAddr.code.length == 0) {
             // Deploy minimal proxy that forwards tokens.
-            new BridgeReceiver{salt: recvSalt}(usdc);
+            new BridgeReceiver{salt: recvSalt}(coin);
         }
 
         // Determine how much actually arrived via the canonical bridge.
-        uint256 bridged = usdc.balanceOf(address(this));
+        uint256 bridged = coin.balanceOf(address(this));
         require(bridged >= minBridgeOut, "UA: underflow");
 
         // Distribute funds based on fast-finish status.
         if (filler == address(0)) {
-            // No fastFinish; deliver to beneficiary.
-            TokenUtils.transfer({token: usdc, recipient: payable(route.toAddr), amount: bridged});
+            // No fastFinish; swap to final token if needed and deliver to beneficiary.
+            if (address(coin) != address(route.toCoin)) {
+                _swapViaExecutor(coin, bridged, swapCallsDest, route.toCoin, bridged, payable(msg.sender));
+            }
+            TokenUtils.transfer({token: route.toCoin, recipient: payable(route.toAddr), amount: bridged});
         } else {
-            // Repay the relayer.
-            TokenUtils.transfer({token: usdc, recipient: payable(filler), amount: bridged});
+            // Repay the relayer with the bridged coin.
+            TokenUtils.transfer({token: coin, recipient: payable(filler), amount: bridged});
         }
 
         receiverFiller[recvSalt] = ADDR_MAX;
-        emit Claim(recvSalt, bridged, bridged);
+        emit Claim(recvSalt, coin, bridged, bridged);
     }
 
     /// @notice Sweep any non-whitelisted tokens back to user's refund address.
@@ -251,17 +248,15 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// @param userSalt The salt to use for the CREATE2 deployment.
     /// @param amount The amount of the token to check the balance of.
     /// @return salt The salt for the BridgeReceiver.
-    function _receiverSalt(bytes32 userSalt, uint256 amount) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked("receiver", address(this), userSalt, amount));
+    function _receiverSalt(bytes32 userSalt, uint256 amount, IERC20 coin) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked("receiver", address(this), userSalt, amount, coin));
     }
 
     /// @notice Computes the deterministic address of the BridgeReceiver that will be deployed via CREATE2 using `salt`.
     /// @param salt The salt to use for the CREATE2 deployment.
     /// @return addr The address of the BridgeReceiver.
-    function _computeReceiverAddress(bytes32 salt) internal view returns (address payable addr) {
-        // Constructor arg is always the canonical USDC on this chain.
-        bytes memory initCode =
-            abi.encodePacked(type(BridgeReceiver).creationCode, abi.encode(IERC20(cfg.addr(USDC_KEY))));
+    function _computeReceiverAddress(bytes32 salt, IERC20 coin) internal view returns (address payable addr) {
+        bytes memory initCode = abi.encodePacked(type(BridgeReceiver).creationCode, abi.encode(coin));
 
         addr = payable(Create2.computeAddress(salt, keccak256(initCode)));
     }
@@ -292,14 +287,9 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
             executor = exec;
         }
 
-        uint256 beforeBal = TokenUtils.getBalanceOf(requiredToken, address(this));
-
         // Ensure sufficient balance and transfer **only** `inputAmount` to the
         // executor so that it can perform the swap.
-        require(
-            TokenUtils.getBalanceOf(inputToken, address(this)) >= inputAmount,
-            "UA: insufficient input bal"
-        );
+        require(TokenUtils.getBalanceOf(inputToken, address(this)) >= inputAmount, "UA: insufficient input bal");
         TokenUtils.transfer({token: inputToken, recipient: payable(address(exec)), amount: inputAmount});
 
         // Prepare the expected output array.
@@ -328,9 +318,11 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     // Events
     // ───────────────────────────────────────────────────────────────────────────
 
-    event Start(bytes32 indexed salt, uint256 payOutUSDC, uint256 minBridgeOut, address receiver, PayRoute route);
+    event Start(
+        bytes32 indexed salt, IERC20 coin, uint256 payOutCoin, uint256 minBridgeOut, address receiver, PayRoute route
+    );
     event FastFinish(bytes32 indexed salt, uint256 amountDestTok, address indexed relayer);
-    event Claim(bytes32 indexed salt, uint256 bridgedUSDC, uint256 repaidUSDC);
+    event Claim(bytes32 indexed salt, IERC20 coin, uint256 bridgedCoinAmt, uint256 repaidCoinAmt);
     event Refund(address indexed token, uint256 amount, address indexed refundAddr);
 }
 

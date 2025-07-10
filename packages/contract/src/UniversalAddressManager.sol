@@ -24,7 +24,7 @@ contract UniversalAddressManager is ReentrancyGuard {
     // Constants & Immutables
     // ---------------------------------------------------------------------
 
-    /// Sentinel value signalling "claimed" status in intentToRecipient.
+    /// Sentinel value used by receiverFiller to mark a transfer claimed.
     address public constant ADDR_MAX = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
     /// Factory responsible for deploying deterministic UAIntent proxies.
@@ -33,7 +33,7 @@ contract UniversalAddressManager is ReentrancyGuard {
     /// Dedicated executor that performs swap / contract calls on behalf of the manager.
     DaimoPayExecutor public immutable executor;
 
-    /// Thin wrapper around legacy IDaimoPayBridger adapters.
+    /// Multiplexer around IDaimoPayBridger adapters.
     IUniversalAddressBridger public immutable bridger;
 
     /// Global per-chain configuration (pause switch, whitelists, etc.)
@@ -48,9 +48,6 @@ contract UniversalAddressManager is ReentrancyGuard {
 
     /// On the source chain, record intents that have been started.
     mapping(address intentAddr => bool) public intentSent;
-
-    /// On the destination chain, record status (0=open, relayer=fastFinished, ADDR_MAX=claimed).
-    mapping(address intentAddr => address) public intentToRecipient;
 
     /// Map receiverSalt ⇒ relayer that performed fastFinish (0 = open, ADDR_MAX = claimed)
     mapping(bytes32 => address) public receiverFiller;
@@ -98,12 +95,8 @@ contract UniversalAddressManager is ReentrancyGuard {
     ) external nonReentrant {
         require(block.chainid != intent.toChainId, "UAM: on destination chain");
 
-        // Pull tokens from the intent vault into this manager.
         UAIntentContract intentContract = intentFactory.createIntent(intent, address(this));
 
-        // Mark as sent (this transfer), reject duplicates.
-        require(!intentSent[address(intentContract)], "UAM: already sent");
-        require(intentToRecipient[address(intentContract)] != ADDR_MAX, "UAM: already claimed");
         intentSent[address(intentContract)] = true;
 
         IERC20[] memory single = _wrap(inputToken);
@@ -125,6 +118,7 @@ contract UniversalAddressManager is ReentrancyGuard {
 
         // Deterministic BridgeReceiver address
         bytes32 recvSalt = _receiverSalt(address(intentContract), userSalt, payOut, bridgeCoin);
+        require(address(bridgedCoin[recvSalt]) == address(0), "UAM: transfer exists");
         bridgedCoin[recvSalt] = bridgeCoin;
         address receiverAddr = _computeReceiverAddress(recvSalt, bridgeCoin);
 
@@ -143,11 +137,14 @@ contract UniversalAddressManager is ReentrancyGuard {
         UAIntentContract intentContract = intentFactory.createIntent(intent, address(this));
         address intentAddr = address(intentContract);
 
-        if (intent.toChainId == block.chainid) {
-            bool claimed = intentToRecipient[intentAddr] == ADDR_MAX;
-            require(claimed, "UAM: not claimable");
-        } else {
+        if (intent.toChainId != block.chainid) {
             require(intentSent[intentAddr], "UAM: not started");
+        }
+
+        // Disallow refunding whitelisted coins.
+        uint256 n = tokens.length;
+        for (uint256 i = 0; i < n; ++i) {
+            require(!cfg.whitelistedStable(address(tokens[i])), "UAM: can't refund whitelisted coin");
         }
 
         uint256[] memory amounts =
@@ -224,8 +221,9 @@ contract UniversalAddressManager is ReentrancyGuard {
 
         receiverFiller[recvSalt] = ADDR_MAX;
         UAIntentContract intentContract = intentFactory.createIntent(intent, address(this));
+        address intentAddr = address(intentContract);
         address finalRec = filler == address(0) ? intent.toAddress : filler;
-        emit Claim(address(intentContract), finalRec);
+        emit Claim(intentAddr, finalRec);
     }
 
     // ---------------------------------------------------------------------

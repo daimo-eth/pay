@@ -1,10 +1,12 @@
 import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
-import Logos from "../assets/logos";
+import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
+import Logos, { SquircleIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
+import { SolanaWalletName } from "../provider/SolanaContextProvider";
 import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -17,6 +19,8 @@ export type WalletProps = {
   id: string;
   connector?: Connector;
   isInstalled?: boolean;
+  /** Name of the matching Solana wallet adapter (if any) */
+  solanaConnectorName?: SolanaWalletName;
 } & WalletConfigProps;
 
 export const useWallet = (id: string): WalletProps | null => {
@@ -29,7 +33,10 @@ export const useWallet = (id: string): WalletProps | null => {
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
   const context = usePayContext();
+  const { showSolanaPaymentMethod } = context.paymentState;
   const { disableMobileInjector } = context;
+  // Solana wallets available in the session (desktop & mobile)
+  const solanaWallet = useSolanaWalletAdapter();
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
@@ -88,15 +95,26 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       return !connector.name?.toLowerCase().includes("walletconnect");
     })
     .map((connector): WalletProps => {
-      // use overrides
-      const walletId = Object.keys(walletConfigs).find(
-        // where id is comma seperated list
+      // First, attempt to find a config by matching connector.id (existing logic).
+      let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
         (id) =>
           id
             .split(",")
             .map((i) => i.trim())
             .includes(connector.id),
       );
+
+      // If not found by id, attempt a fuzzy match on connector.name.
+      if (!walletConfigKey && connector.name) {
+        walletConfigKey = Object.keys(walletConfigs).find((key) => {
+          const cfgName = walletConfigs[key].name?.toLowerCase();
+          const connName = connector.name!.toLowerCase();
+          return (
+            cfgName &&
+            (cfgName.includes(connName) || connName.includes(cfgName))
+          );
+        });
+      }
 
       const c: WalletProps = {
         id: connector.id,
@@ -118,8 +136,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           isCoinbaseWalletConnector(connector.id),
       };
 
-      if (walletId) {
-        const wallet = walletConfigs[walletId];
+      if (walletConfigKey) {
+        const wallet = walletConfigs[walletConfigKey];
         return {
           ...c,
           iconConnector: connector.icon ? (
@@ -174,6 +192,44 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       </div>
     ),
   });
+
+  if (showSolanaPaymentMethod) {
+    const solanaAdapters = solanaWallet.wallets ?? [];
+
+    // Merge by fuzzy name matching (includes comparison)
+    wallets.forEach((w) => {
+      // Skip wallets without a usable name to avoid matching everything
+      if (!w.name) return;
+
+      const evm = w.name.toLowerCase();
+      const match = solanaAdapters.find((sw) => {
+        const sol = sw.adapter.name.toLowerCase();
+        return evm.includes(sol) || sol.includes(evm);
+      });
+
+      if (match) {
+        w.solanaConnectorName = match.adapter.name;
+      }
+    });
+
+    const unmatched = solanaAdapters.filter(
+      (sw) => !wallets.find((w) => w.solanaConnectorName === sw.adapter.name),
+    );
+
+    unmatched.forEach((sw) => {
+      wallets.push({
+        id: `solana-${sw.adapter.name}`,
+        name: sw.adapter.name,
+        shortName: sw.adapter.name,
+        icon: <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />,
+        iconConnector: (
+          <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />
+        ),
+        iconShape: "squircle",
+        solanaConnectorName: sw.adapter.name,
+      });
+    });
+  }
 
   return (
     wallets

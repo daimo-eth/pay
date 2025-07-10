@@ -103,6 +103,20 @@ const ConnectorItem = ({
     isCoinbaseWalletConnector(wallet.connector?.id);
 
   const onClick = () => {
+    // Desktop multi-chain wallet flow: prompt for chain selection.
+    if (wallet.solanaConnectorName && !isMobile) {
+      const supportsEvm = wallet.connector?.name != null;
+      if (supportsEvm) {
+        context.paymentState.setSelectedWallet(wallet);
+        context.setRoute(ROUTES.SELECT_WALLET_CHAIN);
+        return;
+      } else {
+        context.setSolanaConnector(wallet.solanaConnectorName);
+        context.setRoute(ROUTES.SOLANA_CONNECTOR);
+        return;
+      }
+    }
+
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS);
     } else if (redirectToMobileWallets) {

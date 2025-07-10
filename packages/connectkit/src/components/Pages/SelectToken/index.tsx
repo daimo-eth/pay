@@ -30,7 +30,7 @@ export default function SelectToken() {
 
   return (
     <PageContent>
-      <OrderHeader minified showEth={true} />
+      <OrderHeader minified show={tokenMode} />
       <OptionsList
         requiredSkeletons={4}
         isLoading={isLoading}

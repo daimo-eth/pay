@@ -59,9 +59,6 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
     /// when already claimed, 0x0 when open.
     mapping(bytes32 => address) public receiverFiller;
 
-    /// Map receiverSalt ⇒ coin chosen as bridge asset for this transfer
-    mapping(bytes32 => IERC20) public bridgedCoin;
-
     /// Sandbox contract used to execute arbitrary swap calls. Deployed once per
     /// UA and immutable thereafter. All untrusted calls happen from within this
     /// contract so that malicious approvals cannot be set on the UA itself.
@@ -141,7 +138,6 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
         // Deterministic BridgeReceiver address.
         bytes32 recvSalt = _receiverSalt(userSalt, payOut, bridgeCoin);
-        bridgedCoin[recvSalt] = bridgeCoin;
         address receiverAddr = _computeReceiverAddress(recvSalt, bridgeCoin);
 
         // Look up the UniversalAddressBridger wrapper.
@@ -172,7 +168,6 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
 
         // Determine receiverSalt & ensure not already finished/claimed.
         bytes32 recvSalt = _receiverSalt(userSalt, bridgedAmount, coin);
-        require(bridgedCoin[recvSalt] == coin, "UA: unknown transfer");
         require(receiverFiller[recvSalt] == address(0), "UA: already finished");
 
         // Pull the bridged coin from the relayer to fund the swap / instant payout.
@@ -197,7 +192,6 @@ contract UniversalAddress is Initializable, ReentrancyGuardUpgradeable {
         require(block.chainid == route.toChainId, "UA: wrong chain");
 
         bytes32 recvSalt = _receiverSalt(userSalt, payOut, coin);
-        require(bridgedCoin[recvSalt] == coin, "UA: unknown transfer");
         address filler = receiverFiller[recvSalt];
         require(filler != ADDR_MAX, "UA: already claimed");
 

@@ -52,9 +52,6 @@ contract UniversalAddressManager is ReentrancyGuard {
     /// Map receiverSalt ⇒ relayer that performed fastFinish (0 = open, ADDR_MAX = claimed)
     mapping(bytes32 => address) public receiverFiller;
 
-    /// Map receiverSalt ⇒ coin chosen as bridge asset for this transfer
-    mapping(bytes32 => IERC20) public bridgedCoin;
-
     // ---------------------------------------------------------------------
     // Events
     // ---------------------------------------------------------------------
@@ -118,8 +115,6 @@ contract UniversalAddressManager is ReentrancyGuard {
 
         // Deterministic BridgeReceiver address
         bytes32 recvSalt = _receiverSalt(address(intentContract), userSalt, payOut, bridgeCoin);
-        require(address(bridgedCoin[recvSalt]) == address(0), "UAM: transfer exists");
-        bridgedCoin[recvSalt] = bridgeCoin;
         address receiverAddr = _computeReceiverAddress(recvSalt, bridgeCoin);
 
         // Quote bridge input requirements.
@@ -168,7 +163,6 @@ contract UniversalAddressManager is ReentrancyGuard {
 
         bytes32 recvSalt =
             _receiverSalt(intentFactory.getIntentAddress(intent, address(this)), userSalt, bridgedAmount, coin);
-        require(bridgedCoin[recvSalt] == coin, "UAM: unknown transfer");
         require(receiverFiller[recvSalt] == address(0), "UAM: already finished");
 
         // Pull bridged coins from relayer.
@@ -195,7 +189,6 @@ contract UniversalAddressManager is ReentrancyGuard {
         require(block.chainid == intent.toChainId, "UAM: wrong chain");
 
         bytes32 recvSalt = _receiverSalt(intentFactory.getIntentAddress(intent, address(this)), userSalt, payOut, coin);
-        require(bridgedCoin[recvSalt] == coin, "UAM: unknown transfer");
         address filler = receiverFiller[recvSalt];
         require(filler != ADDR_MAX, "UAM: already claimed");
 

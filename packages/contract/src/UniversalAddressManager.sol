@@ -82,13 +82,13 @@ contract UniversalAddressManager is ReentrancyGuard {
     /// @notice Begin a cross-chain transfer on the SOURCE chain.
     function startIntent(
         UAIntent calldata intent,
-        IERC20 inputToken,
-        IERC20 bridgeCoin,
-        uint256 payOut,
-        uint256 minBridgeOut,
+        IERC20 paymentToken,
+        IERC20 bridgeToken,
+        uint256 swapAmountOut,
+        uint256 bridgeAmountOut,
         bytes32 userSalt,
-        Call[] calldata swapCallsIn,
-        bytes calldata bridgeExtra
+        Call[] calldata calls,
+        bytes calldata bridgeExtraData
     ) external nonReentrant {
         require(block.chainid != intent.toChainId, "UAM: on destination chain");
 
@@ -96,33 +96,33 @@ contract UniversalAddressManager is ReentrancyGuard {
 
         intentSent[address(intentContract)] = true;
 
-        IERC20[] memory single = _wrap(inputToken);
+        IERC20[] memory single = _wrap(paymentToken);
         intentContract.sendTokens({intent: intent, tokens: single, recipient: payable(address(this))});
 
-        require(cfg.whitelistedStable(address(inputToken)), "UAM: token not whitelisted");
-        require(cfg.whitelistedStable(address(bridgeCoin)), "UAM: coin not whitelisted");
+        require(cfg.whitelistedStable(address(paymentToken)), "UAM: token not whitelisted");
+        require(cfg.whitelistedStable(address(bridgeToken)), "UAM: coin not whitelisted");
 
-        uint256 balance = inputToken.balanceOf(address(this));
+        uint256 balance = paymentToken.balanceOf(address(this));
         require(balance > 0, "UAM: no balance");
-        require(payOut > 0 && payOut <= balance, "UAM: invalid payOut");
-        require(payOut >= minBridgeOut, "UAM: payOut < minBridgeOut");
+        require(swapAmountOut > 0 && swapAmountOut <= balance, "UAM: invalid swapAmountOut");
+        require(swapAmountOut >= bridgeAmountOut, "UAM: swapAmountOut < bridgeAmountOut");
 
         uint256 minAmt = balance < cfg.num(MIN_START_USDC_KEY) ? balance : cfg.num(MIN_START_USDC_KEY);
-        require(payOut >= minAmt, "UAM: payOut below minimum");
+        require(swapAmountOut >= minAmt, "UAM: swapAmountOut below minimum");
 
         // Convert inputToken→bridgeCoin
-        _swapViaExecutor(inputToken, payOut, swapCallsIn, bridgeCoin, payOut, payable(msg.sender));
+        _swapViaExecutor(paymentToken, swapAmountOut, calls, bridgeToken, swapAmountOut, payable(msg.sender));
 
         // Deterministic BridgeReceiver address
-        bytes32 recvSalt = _receiverSalt(address(intentContract), userSalt, payOut, bridgeCoin);
-        address receiverAddr = _computeReceiverAddress(recvSalt, bridgeCoin);
+        bytes32 recvSalt = _receiverSalt(address(intentContract), userSalt, swapAmountOut, bridgeToken);
+        address receiverAddr = _computeReceiverAddress(recvSalt, bridgeToken);
 
         // Quote bridge input requirements.
-        (address tokenIn, uint256 exactIn) = bridger.quoteIn(intent.toChainId, bridgeCoin, minBridgeOut);
+        (address tokenIn, uint256 exactIn) = bridger.quoteIn(intent.toChainId, bridgeToken, bridgeAmountOut);
         require(TokenUtils.getBalanceOf(IERC20(tokenIn), address(this)) >= exactIn, "UAM: insufficient bridger input");
 
         IERC20(tokenIn).forceApprove(address(bridger), exactIn);
-        bridger.bridge(intent.toChainId, receiverAddr, bridgeCoin, minBridgeOut, bridgeExtra);
+        bridger.bridge(intent.toChainId, receiverAddr, bridgeToken, bridgeAmountOut, bridgeExtraData);
 
         emit Start(address(intentContract), intent);
     }
@@ -180,36 +180,36 @@ contract UniversalAddressManager is ReentrancyGuard {
     /// Complete after slow bridge lands
     function claimIntent(
         UAIntent calldata intent,
-        uint256 payOut,
-        uint256 minBridgeOut,
+        uint256 swapAmountOut,
+        uint256 bridgeAmountOut,
         bytes32 userSalt,
-        IERC20 coin,
-        Call[] calldata swapCallsDest
+        IERC20 bridgeToken,
+        Call[] calldata calls
     ) external nonReentrant {
         require(block.chainid == intent.toChainId, "UAM: wrong chain");
 
-        bytes32 recvSalt = _receiverSalt(intentFactory.getIntentAddress(intent, address(this)), userSalt, payOut, coin);
+        bytes32 recvSalt = _receiverSalt(intentFactory.getIntentAddress(intent, address(this)), userSalt, swapAmountOut, bridgeToken);
         address filler = receiverFiller[recvSalt];
         require(filler != ADDR_MAX, "UAM: already claimed");
 
         // Deploy BridgeReceiver if necessary then sweep tokens.
-        address payable receiverAddr = _computeReceiverAddress(recvSalt, coin);
+        address payable receiverAddr = _computeReceiverAddress(recvSalt, bridgeToken);
         if (receiverAddr.code.length == 0) {
-            new BridgeReceiver{salt: recvSalt}(coin);
+            new BridgeReceiver{salt: recvSalt}(bridgeToken);
         }
 
-        uint256 bridged = coin.balanceOf(address(this));
-        require(bridged >= minBridgeOut, "UAM: underflow");
+        uint256 bridged = bridgeToken.balanceOf(address(this));
+        require(bridged >= bridgeAmountOut, "UAM: underflow");
 
         if (filler == address(0)) {
             // Normal path – no fast finish.
-            if (address(coin) != address(intent.toToken)) {
-                _swapViaExecutor(coin, bridged, swapCallsDest, intent.toToken, bridged, payable(msg.sender));
+            if (address(bridgeToken) != address(intent.toToken)) {
+                _swapViaExecutor(bridgeToken, bridged, calls, intent.toToken, bridged, payable(msg.sender));
             }
             TokenUtils.transfer({token: intent.toToken, recipient: payable(intent.toAddress), amount: bridged});
         } else {
             // Repay relayer.
-            TokenUtils.transfer({token: coin, recipient: payable(filler), amount: bridged});
+            TokenUtils.transfer({token: bridgeToken, recipient: payable(filler), amount: bridged});
         }
 
         receiverFiller[recvSalt] = ADDR_MAX;

@@ -13,7 +13,7 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useMemo, useState } from "react";
 import { keyframes } from "styled-components";
-import { WarningIcon } from "../../../assets/icons";
+import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -30,6 +30,15 @@ import {
 } from "../../Common/Modal/styles";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
+
+// Centered container for icon + text in Tron underpay screen
+const CenterContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  max-width: 100%;
+`;
 
 type DepositAddr = {
   displayToken: Token | null;
@@ -53,6 +62,16 @@ export default function WaitingDepositAddress() {
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
   const { order } = useDaimoPay();
 
+  // Detect Optimism USDT0 under-payment: the order has received some funds
+  // but less than required.
+  const tronUnderpay =
+    order != null &&
+    isHydrated(order) &&
+    order.sourceTokenAmount != null &&
+    order.sourceTokenAmount.token.chainId === 10 &&
+    order.sourceTokenAmount.token.symbol.toUpperCase() === "USDT0" &&
+    Number(order.sourceTokenAmount.usd) < order.usdValue;
+
   const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);
 
@@ -73,6 +92,7 @@ export default function WaitingDepositAddress() {
         10 ** taPaid.token.decimals
       ).toFixed(dispDecimals);
 
+      // (Removed duplicate tronUnderpay calculation now handled at top-level)
       // Hack to always show a <= 60 minute countdown
       let expirationS = (order.createdAt ?? 0) + 59.5 * 60;
       if (
@@ -124,18 +144,60 @@ export default function WaitingDepositAddress() {
 
   return (
     <PageContent>
-      {failed
-        ? selectedDepositAddressOption && (
-            <DepositFailed name={selectedDepositAddressOption.id} />
-          )
-        : depAddr && (
-            <DepositAddressInfo
-              depAddr={depAddr}
-              refresh={generateDepositAddress}
-              triggerResize={triggerResize}
-            />
-          )}
+      {tronUnderpay ? (
+        <TronUnderpayContent orderId={order?.id?.toString()} />
+      ) : failed ? (
+        selectedDepositAddressOption && (
+          <DepositFailed name={selectedDepositAddressOption.id} />
+        )
+      ) : (
+        depAddr && (
+          <DepositAddressInfo
+            depAddr={depAddr}
+            refresh={generateDepositAddress}
+            triggerResize={triggerResize}
+          />
+        )
+      )}
     </PageContent>
+  );
+}
+
+function TronUnderpayContent({ orderId }: { orderId?: string }) {
+  return (
+    <ModalContent
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingBottom: 0,
+        position: "relative",
+      }}
+    >
+      <CenterContainer>
+        <FailIcon />
+        <ModalH1 style={{ textAlign: "center", marginTop: 16 }}>
+          USDT Tron Payment Was Too Low
+        </ModalH1>
+        <div style={{ height: 16 }} />
+        <ModalBody style={{ textAlign: "center" }}>
+          Your funds are safe.
+          <br />
+          Email support@daimo.com for a refund.
+        </ModalBody>
+        <Button
+          onClick={() =>
+            window.open(
+              `mailto:support@daimo.com?subject=Underpaid%20USDT%20Tron%20payment%20for%20order%20${orderId}`,
+              "_blank",
+            )
+          }
+          style={{ marginTop: 16, width: 200 }}
+        >
+          Contact Support
+        </Button>
+      </CenterContainer>
+    </ModalContent>
   );
 }
 
@@ -266,6 +328,7 @@ function CopyableInfo({
 }
 
 function UnderpaymentInfo({ underpayment }: { underpayment: Underpayment }) {
+  // Default message
   return (
     <UnderpaymentWrapper>
       <UnderpaymentHeader>
@@ -307,6 +370,14 @@ const CopyableInfoWrapper = styled.div`
 const CountdownWrap = styled.div`
   margin-top: 24px;
   height: 16px;
+`;
+
+const FailIcon = styled(AlertIcon)`
+  color: var(--ck-body-color-alert);
+  width: 32px;
+  height: 32px;
+  margin-top: auto;
+  margin-bottom: 16px;
 `;
 
 function useCountdown(expirationS?: number) {

@@ -39,9 +39,8 @@ const PayWithSolanaToken: React.FC = () => {
     PayState.RequestingPayment,
   );
   const setPayState = (state: PayState) => {
-    if (state === payState) return;
     setPayStateInner(state);
-    log(`[PayWithSolanaToken] payState: ${state}`);
+    log(`[PAY SOLANA TOKEN] payState: ${state}`);
     (trpc as TrpcClient).nav.mutate({
       action: "pay-with-solana-token-state",
       data: { state },

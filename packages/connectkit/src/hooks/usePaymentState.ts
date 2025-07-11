@@ -20,7 +20,14 @@ import {
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useState } from "react";
-import { erc20Abi, getAddress, Hex, hexToBytes, zeroAddress } from "viem";
+import {
+  erc20Abi,
+  getAddress,
+  Hex,
+  hexToBytes,
+  isHex,
+  zeroAddress,
+} from "viem";
 import {
   useAccount,
   useEnsName,
@@ -96,7 +103,7 @@ export interface PaymentState {
   setChosenUsd: (usd: number) => void;
   payWithToken: (
     walletOption: WalletPaymentOption,
-  ) => Promise<{ txHash: Hex; success: boolean }>;
+  ) => Promise<{ txHash?: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
@@ -225,7 +232,7 @@ export function usePaymentState({
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
     walletOption: WalletPaymentOption,
-  ): Promise<{ txHash: Hex; success: boolean }> => {
+  ): Promise<{ txHash?: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
       `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
@@ -279,6 +286,15 @@ export function usePaymentState({
         throw e;
       }
     })();
+
+    // Special case. Handle Rabby bug, where it returns the *Safe signature*
+    // instead of a txHash for a queued, unsubmitted Safe transaction.
+    if (!isHex(paymentTxHash) || paymentTxHash.length !== 66) {
+      log(
+        `[PAY TOKEN] wallet bug detected. ignoring invalid payment txHash: ${paymentTxHash}`,
+      );
+      return { success: true };
+    }
 
     try {
       await pay.payEthSource({

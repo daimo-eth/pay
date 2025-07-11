@@ -32,9 +32,8 @@ const PayWithToken: React.FC = () => {
     PayState.RequestingPayment,
   );
   const setPayState = (state: PayState) => {
-    if (state === payState) return;
     setPayStateInner(state);
-    log(`[PayWithToken] payState: ${state}`);
+    log(`[PAY TOKEN] payState: ${state}`);
     (trpc as TrpcClient).nav.mutate({
       action: "pay-with-token-state",
       data: { state },
@@ -83,6 +82,10 @@ const PayWithToken: React.FC = () => {
     setPayState(PayState.RequestingPayment);
     try {
       const result = await payWithToken(option);
+      if (!result.txHash) {
+        // Transaction not submitted yet. Do nothing, just keep polling.
+        return;
+      }
       setTxURL(
         getChainExplorerTxUrl(option.required.token.chainId, result.txHash),
       );
@@ -96,13 +99,18 @@ const PayWithToken: React.FC = () => {
       }
     } catch (e: any) {
       if (e?.name === "ConnectorChainMismatchError") {
-        // Workaround for Rainbow wallet bug -- user is able to switch chain without
-        // the wallet updating the chain ID for wagmi.
+        // Workaround for Rainbow wallet bug -- user is able to switch chain
+        // without the wallet updating the chain ID for wagmi.
         log("Chain mismatch detected, attempting to switch and retry");
         const switchSuccessful = await trySwitchingChain(option, true);
         if (switchSuccessful) {
+          setPayState(PayState.RequestingPayment);
           try {
             const retryResult = await payWithToken(option);
+            if (!retryResult.txHash) {
+              // Transaction not submitted yet. Do nothing, just keep polling.
+              return;
+            }
             setTxURL(
               getChainExplorerTxUrl(
                 option.required.token.chainId,

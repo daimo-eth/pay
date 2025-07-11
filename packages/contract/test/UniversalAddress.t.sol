@@ -316,4 +316,104 @@ contract UniversalAddressTest is Test {
         // Alice should have received the 50 USDC surplus back
         assertEq(usdc.balanceOf(ALICE), aliceBalBefore + 50e6);
     }
+
+    // ---------------------------------------------------------------------
+    // 11. claimIntent swap path – executor already holds requiredToken
+    // ---------------------------------------------------------------------
+    function testClaimIntent_SwapEqual() public {
+        // Deploy alternate stablecoin USDT and whitelist
+        TestUSDC usdt = new TestUSDC();
+        cfg.setWhitelistedStable(address(usdt), true);
+
+        // 1) Source chain startIntent: pay in USDC, will bridge USDC, final token USDT
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = UAIntent({toChainId: DST_CHAIN_ID, toToken: usdt, toAddress: ALEX, refundAddress: ALICE});
+        address intentAddr = intentFactory.getIntentAddress(intent, address(mgr));
+
+        // Alice deposits USDC into her UA vault
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        // Prefund executor with USDT so the destination-chain swap succeeds
+        vm.prank(ALICE);
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+
+        // 2) Destination chain – place bridged USDC at deterministic receiver
+        vm.chainId(DST_CHAIN_ID);
+        bytes32 saltR = keccak256(abi.encodePacked("receiver", intentAddr, USER_SALT, AMOUNT, usdc));
+        bytes memory init = abi.encodePacked(type(BridgeReceiver).creationCode, abi.encode(usdc));
+        address receiver = Create2.computeAddress(saltR, keccak256(init));
+        vm.prank(ALICE);
+        usdc.transfer(receiver, AMOUNT);
+
+        // Prefund the executor with the required USDT so checkBalance passes (exact amount)
+        DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
+        usdt.transfer(address(exec), AMOUNT);
+        // Approve manager to pull if it sees a deficit (should be none here)
+        usdt.approve(address(mgr), type(uint256).max);
+
+        uint256 callerBalBefore = usdt.balanceOf(address(this));
+
+        // Trigger claimIntent from the test contract itself
+        mgr.claimIntent(intent, AMOUNT, AMOUNT, USER_SALT, usdc, new Call[](0));
+
+        // Beneficiary got USDT
+        assertEq(usdt.balanceOf(ALEX), AMOUNT);
+        // Manager has zero balances after transfer
+        assertEq(usdt.balanceOf(address(mgr)), 0);
+
+        // Caller balance unchanged (no deficit pull)
+        assertEq(usdt.balanceOf(address(this)), callerBalBefore);
+    }
+
+    // ---------------------------------------------------------------------
+    // 12. claimIntent swap path – manager pulls deficit from relayer
+    // ---------------------------------------------------------------------
+    function testClaimIntent_SwapDeficitPull() public {
+        // Alternate stablecoin (pretend USDT) and whitelist
+        TestUSDC usdt = new TestUSDC();
+        cfg.setWhitelistedStable(address(usdt), true);
+
+        // Fund relayer with plenty of USDT and approve manager for deficit pull
+        usdt.transfer(RELAYER, 500_000e6);
+        vm.prank(RELAYER);
+        usdt.approve(address(mgr), type(uint256).max);
+
+        // 1) Source chain – Alice starts an intent to receive USDT on dst chain
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = UAIntent({toChainId: DST_CHAIN_ID, toToken: usdt, toAddress: ALEX, refundAddress: ALICE});
+        address intentAddr = intentFactory.getIntentAddress(intent, address(mgr));
+
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+
+        // 2) Destination chain – place bridged USDC at deterministic receiver
+        vm.chainId(DST_CHAIN_ID);
+        bytes32 saltR = keccak256(abi.encodePacked("receiver", intentAddr, USER_SALT, AMOUNT, usdc));
+        bytes memory init = abi.encodePacked(type(BridgeReceiver).creationCode, abi.encode(usdc));
+        address receiver = Create2.computeAddress(saltR, keccak256(init));
+        vm.prank(ALICE);
+        usdc.transfer(receiver, AMOUNT);
+
+        // Prefund executor with only 60 USDT (< required 100) so manager will pull deficit
+        DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
+        usdt.transfer(address(exec), 60e6);
+
+        uint256 relayerBalBefore = usdt.balanceOf(RELAYER);
+
+        // Relayer triggers claimIntent and will cover deficit (40 USDT)
+        vm.prank(RELAYER);
+        mgr.claimIntent(intent, AMOUNT, AMOUNT, USER_SALT, usdc, new Call[](0));
+
+        // Beneficiary received the full 100 USDT
+        assertEq(usdt.balanceOf(ALEX), AMOUNT);
+
+        // Relayer paid exactly the deficit (40 USDT)
+        assertEq(usdt.balanceOf(RELAYER), relayerBalBefore - 40e6);
+
+        // Manager ends with zero USDT balance
+        assertEq(usdt.balanceOf(address(mgr)), 0);
+    }
 }

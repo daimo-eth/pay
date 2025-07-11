@@ -251,9 +251,9 @@ contract UniversalAddressManager is ReentrancyGuard {
         TokenUtils.transfer({token: inputToken, recipient: payable(address(executor)), amount: inputAmount});
 
         TokenAmount[] memory expected = new TokenAmount[](1);
-        expected[0] = TokenAmount({token: requiredToken, amount: requiredAmount});
+        expected[0] = TokenAmount({token: requiredToken, amount: 1});
 
-        executor.execute(calls, expected, payable(address(this)), swapFunder);
+        executor.execute(calls, expected, payable(address(this)), payable(address(this)));
 
         uint256 afterBal = TokenUtils.getBalanceOf(requiredToken, address(this));
         if (afterBal < requiredAmount) {

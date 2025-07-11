@@ -43,6 +43,16 @@ contract UniversalAddressManager is ReentrancyGuard {
     bytes32 public constant MIN_START_USDC_KEY = keccak256("MIN_START_USDC");
 
     // ---------------------------------------------------------------------
+    // Modifiers
+    // ---------------------------------------------------------------------
+
+    /// @dev Reverts when the global pause switch in SharedConfig is enabled.
+    modifier notPaused() {
+        require(!cfg.paused(), "UAM: paused");
+        _;
+    }
+
+    // ---------------------------------------------------------------------
     // Storage
     // ---------------------------------------------------------------------
 
@@ -89,7 +99,7 @@ contract UniversalAddressManager is ReentrancyGuard {
         bytes32 userSalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
-    ) external nonReentrant {
+    ) external nonReentrant notPaused {
         require(block.chainid != intent.toChainId, "UAM: on destination chain");
 
         UAIntentContract intentContract = intentFactory.createIntent(intent, address(this));
@@ -128,7 +138,7 @@ contract UniversalAddressManager is ReentrancyGuard {
     }
 
     /// @notice Refund stray or double-paid tokens.
-    function refundIntent(UAIntent calldata intent, IERC20[] calldata tokens) external nonReentrant {
+    function refundIntent(UAIntent calldata intent, IERC20[] calldata tokens) external nonReentrant notPaused {
         UAIntentContract intentContract = intentFactory.createIntent(intent, address(this));
         address intentAddr = address(intentContract);
 
@@ -158,7 +168,7 @@ contract UniversalAddressManager is ReentrancyGuard {
         bytes32 userSalt,
         IERC20 coin,
         Call[] calldata swapCalls
-    ) external nonReentrant {
+    ) external nonReentrant notPaused {
         require(block.chainid == intent.toChainId, "UAM: wrong chain");
 
         bytes32 recvSalt =
@@ -185,7 +195,7 @@ contract UniversalAddressManager is ReentrancyGuard {
         bytes32 userSalt,
         IERC20 bridgeToken,
         Call[] calldata calls
-    ) external nonReentrant {
+    ) external nonReentrant notPaused {
         require(block.chainid == intent.toChainId, "UAM: wrong chain");
 
         bytes32 recvSalt = _receiverSalt(intentFactory.getIntentAddress(intent, address(this)), userSalt, swapAmountOut, bridgeToken);

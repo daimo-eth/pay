@@ -15,6 +15,11 @@ import {DaimoPayExecutor} from "../src/DaimoPayExecutor.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {DummyUniversalBridger} from "./utils/DummyUniversalBridger.sol";
 import {BridgeReceiver} from "../src/UniversalAddressManager.sol";
+import {UniversalAddressBridger} from "../src/UniversalAddressBridger.sol";
+import {IDaimoPayBridger} from "../src/interfaces/IDaimoPayBridger.sol";
+import {DummyBridger} from "./utils/DummyBridger.sol";
+import {UAIntentContract} from "../src/UAIntent.sol";
+import {ReentrantToken} from "./utils/ReentrantToken.sol";
 
 contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
@@ -415,5 +420,296 @@ contract UniversalAddressTest is Test {
 
         // Manager ends with zero USDT balance
         assertEq(usdt.balanceOf(address(mgr)), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // 13. startIntent deficit pull – executor returns < requiredAmount
+    // ---------------------------------------------------------------------
+    function testStartIntent_DeficitPull() public {
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        // Alice funds her UA vault with 100 USDC
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        uint256 aliceBalBefore = usdc.balanceOf(ALICE);
+
+        // Craft swap call that moves 90 USDC from executor to dummy address,
+        // leaving only 10 USDC so the manager must top-up 90 from Alice.
+        Call[] memory swapCalls = new Call[](1);
+        swapCalls[0] = Call({
+            to: address(usdc),
+            value: 0,
+            data: abi.encodeWithSelector(IERC20.transfer.selector, address(0xdead), 90e6)
+        });
+
+        // Execute startIntent. Alice (msg.sender) will act as swapFunder.
+        vm.prank(ALICE);
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, swapCalls, "");
+
+        uint256 aliceBalAfter = usdc.balanceOf(ALICE);
+
+        // Alice should have paid the 90 USDC deficit.
+        assertEq(aliceBalBefore - aliceBalAfter, 90e6);
+
+        // Manager should hold exactly requiredAmount (100 USDC) for bridging (subsequently spent).
+        assertEq(usdc.balanceOf(address(mgr)), 0);
+
+        // intentSent flag must be set
+        assertTrue(mgr.intentSent(intentAddr));
+    }
+
+    // ---------------------------------------------------------------------
+    // 14. startIntent insufficient-output revert – executor returns 0 of requiredToken
+    // ---------------------------------------------------------------------
+    function testStartIntent_InsufficientOutput_Reverts() public {
+        // Deploy alternate stable-coin (pretend USDT) and whitelist it
+        TestUSDC usdt = new TestUSDC();
+        cfg.setWhitelistedStable(address(usdt), true);
+
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = UAIntent({toChainId: DST_CHAIN_ID, toToken: usdt, toAddress: ALEX, refundAddress: ALICE});
+        address intentAddr = intentFactory.getIntentAddress(intent, address(mgr));
+
+        // Alice deposits USDC into her UA vault
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        // Expect the call to revert because executor will return zero USDT,
+        // triggering "DPCE: insufficient output" inside DaimoPayExecutor.
+        vm.prank(ALICE);
+        vm.expectRevert(bytes("DPCE: insufficient output"));
+        mgr.startIntent(intent, usdc, usdt, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+    }
+
+    // ---------------------------------------------------------------------
+    // 15. UniversalAddressBridger token mismatch should revert on quoteIn and bridge
+    // ---------------------------------------------------------------------
+    function testUniversalAddressBridger_TokenMismatch_Reverts() public {
+        // Prepare tokens
+        TestUSDC usdt = new TestUSDC();
+        // Dummy adapter implementing IDaimoPayBridger
+        DummyBridger adapter = new DummyBridger();
+
+        uint256[] memory chains = new uint256[](1);
+        chains[0] = DST_CHAIN_ID;
+        IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](1);
+        bridgers[0] = adapter;
+        address[] memory usdOut = new address[](1);
+        usdOut[0] = address(usdc); // Configure USDC as stableOut for the chain
+        
+        UniversalAddressBridger ub = new UniversalAddressBridger(chains, bridgers, usdOut);
+
+        // quoteIn with a different token (usdt) should revert
+        vm.expectRevert(bytes("UA: token mismatch"));
+        ub.quoteIn(DST_CHAIN_ID, IERC20(address(usdt)), AMOUNT);
+
+        // bridge with mismatched token should also revert
+        vm.expectRevert(bytes("UA: token mismatch"));
+        ub.bridge(DST_CHAIN_ID, ALEX, IERC20(address(usdt)), AMOUNT, "");
+    }
+
+    // ---------------------------------------------------------------------
+    // 16. claimIntent called before bridged funds arrive should revert (underflow)
+    // ---------------------------------------------------------------------
+    function testClaimIntent_Underflow_Reverts() public {
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        // Alice funds her UA vault
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+
+        // Switch to destination chain but do NOT pre-place additional bridged funds.
+        vm.chainId(DST_CHAIN_ID);
+
+        // Pass bridgeAmountOut larger than what will be swept (AMOUNT+1) to force underflow.
+        vm.expectRevert(bytes("UAM: underflow"));
+        mgr.claimIntent(intent, AMOUNT, AMOUNT + 1, USER_SALT, usdc, new Call[](0));
+    }
+
+    // ---------------------------------------------------------------------
+    // 17. startIntent invoked on destination chain should revert
+    // ---------------------------------------------------------------------
+    function testStartIntent_OnDestinationChain_Reverts() public {
+        vm.chainId(DST_CHAIN_ID); // Same as intent.toChainId
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        vm.expectRevert(bytes("UAM: on destination chain"));
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+    }
+
+    // ---------------------------------------------------------------------
+    // 18. refundIntent with whitelisted stable-coin should revert
+    // ---------------------------------------------------------------------
+    function testRefundIntent_WhitelistedToken_Reverts() public {
+        vm.chainId(DST_CHAIN_ID); // Destination chain bypasses intentSent requirement
+        UAIntent memory intent = _intent();
+
+        IERC20[] memory toks = new IERC20[](1);
+        toks[0] = usdc; // whitelisted by default
+
+        vm.expectRevert(bytes("UAM: can't refund whitelisted coin"));
+        mgr.refundIntent(intent, toks);
+    }
+
+    // ---------------------------------------------------------------------
+    // 19. refundIntent sweeping multiple arbitrary tokens succeeds
+    // ---------------------------------------------------------------------
+    function testRefundIntent_MultipleTokens() public {
+        vm.chainId(DST_CHAIN_ID); // skip intentSent check
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        // Deploy two non-whitelisted ERC-20s and pre-fund the vault
+        TestUSDC tok1 = new TestUSDC();
+        TestUSDC tok2 = new TestUSDC();
+
+        uint256 amt1 = 70e6;
+        uint256 amt2 = 30e6;
+
+        tok1.transfer(intentAddr, amt1);
+        tok2.transfer(intentAddr, amt2);
+
+        // Prepare token list for refund
+        IERC20[] memory toks = new IERC20[](2);
+        toks[0] = IERC20(address(tok1));
+        toks[1] = IERC20(address(tok2));
+
+        uint256 aliceTok1Before = tok1.balanceOf(ALICE);
+        uint256 aliceTok2Before = tok2.balanceOf(ALICE);
+
+        mgr.refundIntent(intent, toks);
+
+        // Alice should now hold the swept amounts
+        assertEq(tok1.balanceOf(ALICE), aliceTok1Before + amt1);
+        assertEq(tok2.balanceOf(ALICE), aliceTok2Before + amt2);
+    }
+
+    // ---------------------------------------------------------------------
+    // 20. refundIntent on source chain before intentSent should revert
+    // ---------------------------------------------------------------------
+    function testRefundIntent_NotStarted_Reverts() public {
+        vm.chainId(SRC_CHAIN_ID); // Source chain – intentSent is required
+        UAIntent memory intent = _intent();
+
+        // Use non-whitelisted token to avoid earlier revert
+        TestUSDC other = new TestUSDC();
+        IERC20[] memory toks = new IERC20[](1);
+        toks[0] = IERC20(address(other));
+
+        vm.expectRevert(bytes("UAM: not started"));
+        mgr.refundIntent(intent, toks);
+    }
+
+    // ---------------------------------------------------------------------
+    // 21. refundIntent success on source chain after startIntent (intentSent == true)
+    // ---------------------------------------------------------------------
+    function testRefundIntent_SourceChain_Succeeds() public {
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        // Step 1: Alice funds UA vault with USDC and starts the intent
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+
+        // Step 2: Deposit a non-whitelisted token into the vault AFTER startIntent
+        TestUSDC stray = new TestUSDC();
+        uint256 strayAmt = 42e6;
+        stray.transfer(intentAddr, strayAmt);
+
+        // Step 3: Call refundIntent to sweep the stray token back to refundAddress (ALICE)
+        IERC20[] memory toks = new IERC20[](1);
+        toks[0] = IERC20(address(stray));
+
+        uint256 aliceBalBefore = stray.balanceOf(ALICE);
+        mgr.refundIntent(intent, toks);
+        assertEq(stray.balanceOf(ALICE), aliceBalBefore + strayAmt);
+    }
+
+    // ---------------------------------------------------------------------
+    // 22. refundIntent with empty token list should be a no-op (no revert)
+    // ---------------------------------------------------------------------
+    function testRefundIntent_EmptyArray_NoOp() public {
+        vm.chainId(DST_CHAIN_ID); // destination chain avoids intentSent check
+        UAIntent memory intent = _intent();
+
+        uint256 aliceBalBefore = usdc.balanceOf(ALICE);
+        IERC20[] memory emptyTokens = new IERC20[](0);
+        mgr.refundIntent(intent, emptyTokens);
+        // No balance changes expected
+        assertEq(usdc.balanceOf(ALICE), aliceBalBefore);
+    }
+
+    // ---------------------------------------------------------------------
+    // 23. Global pause switch – all mutating calls should revert
+    // ---------------------------------------------------------------------
+    function testGlobalPause_Reverts() public {
+        // Pause via SharedConfig
+        cfg.setPaused(true);
+
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = _intent();
+        address intentAddr = _intentAddr(intent);
+
+        // Fund UA vault
+        vm.prank(ALICE);
+        usdc.transfer(intentAddr, AMOUNT);
+
+        // Any state-changing call (e.g. startIntent) should now revert
+        vm.expectRevert(bytes("UAM: paused"));
+        mgr.startIntent(intent, usdc, usdc, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
+    }
+
+    // ---------------------------------------------------------------------
+    // 24. UAIntentContract cannot be initialised twice
+    // ---------------------------------------------------------------------
+    function testUAIntent_Reinitialise_Reverts() public {
+        UAIntent memory intent = _intent();
+        // Deploy proxy via factory
+        UAIntentContract vault = UAIntentContract(intentFactory.createIntent(intent, address(mgr)));
+
+        // Attempt to call initialize again – should revert (already initialised)
+        bytes32 hash = keccak256(abi.encode(intent));
+        vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
+        vault.initialize(hash, address(this));
+    }
+
+    // ---------------------------------------------------------------------
+    // 25. Reentrancy attack against startIntent should be blocked by ReentrancyGuard
+    // ---------------------------------------------------------------------
+    function testStartIntent_ReentrancyBlocked() public {
+        // Deploy malicious re-entrant token that will attempt a nested call
+        ReentrantToken evil = new ReentrantToken(payable(address(mgr)));
+        cfg.setWhitelistedStable(address(evil), true);
+
+        // Give Alice plenty of the token & approve manager
+        evil.transfer(ALICE, 1_000_000e6);
+        vm.prank(ALICE);
+        evil.approve(address(mgr), type(uint256).max);
+
+        vm.chainId(SRC_CHAIN_ID);
+        UAIntent memory intent = UAIntent({toChainId: DST_CHAIN_ID, toToken: evil, toAddress: ALEX, refundAddress: ALICE});
+        address intentAddr = intentFactory.getIntentAddress(intent, address(mgr));
+
+        // Alice deposits funds into her UA vault
+        vm.prank(ALICE);
+        evil.transfer(intentAddr, AMOUNT);
+
+        // Expect the nested call in token.transfer to trigger ReentrancyGuard revert
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSignature("ReentrancyGuardReentrantCall()"));
+        mgr.startIntent(intent, evil, evil, AMOUNT, AMOUNT, USER_SALT, new Call[](0), "");
     }
 }

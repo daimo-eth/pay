@@ -5,6 +5,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {IUniversalAddressBridger} from "../../src/interfaces/IUniversalAddressBridger.sol";
+import {TokenAmount} from "../../src/TokenUtils.sol";
 
 /// @title DummyUniversalBridger
 /// @notice Minimal in-memory implementation of the IUniversalAddressBridger used exclusively in Foundry tests.
@@ -19,24 +20,23 @@ contract DummyUniversalBridger is IUniversalAddressBridger {
     // IUniversalAddressBridger
     // ---------------------------------------------------------------------
 
-    function quoteIn(uint256 toChainId, IERC20 outToken, uint256 desiredOut)
+    function getBridgeTokenIn(uint256 /*toChainId*/, TokenAmount calldata bridgeTokenOut)
         external
-        view
+        pure
         override
-        returns (address tokenIn, uint256 exactIn)
+        returns (address bridgeTokenIn, uint256 inAmount)
     {
-        // For testing we pretend the bridge asset equals the destination asset
-        // and exactIn == desiredOut.
-        tokenIn = address(outToken);
-        exactIn = desiredOut;
+        bridgeTokenIn = address(bridgeTokenOut.token);
+        inAmount = bridgeTokenOut.amount;
     }
 
-    function bridge(uint256 toChainId, address toAddress, IERC20 outToken, uint256 minOut, bytes calldata)
-        external
-        override
-    {
-        // Pull funds from caller (typically the UniversalAddressManager which has pre-approved us).
-        outToken.safeTransferFrom(msg.sender, toAddress, minOut);
-        emit BridgeExecuted(toChainId, toAddress, address(outToken), minOut);
+    function sendToChain(
+        uint256 toChainId,
+        address toAddress,
+        TokenAmount calldata bridgeTokenOut,
+        bytes calldata /*extraData*/
+    ) external override {
+        bridgeTokenOut.token.safeTransferFrom(msg.sender, toAddress, bridgeTokenOut.amount);
+        emit BridgeExecuted(toChainId, toAddress, address(bridgeTokenOut.token), bridgeTokenOut.amount);
     }
 }

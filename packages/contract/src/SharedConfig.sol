@@ -34,6 +34,12 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// our use case here is slightly different and this way is cleaner.
     bool public paused;
 
+    /// Chain-specific fixed fee (denominated in the canonical stable-coin's
+    /// smallest unit, e.g. USDC 6-decimals) that can be charged to cover gas
+    /// costs on each destination chain.
+    /// @dev Keys are destination chain IDs (block.chainid on that chain).
+    mapping(uint256 => uint256) public chainFee;
+
     // ───────────────────────────────────────────────────────────────────────────
     // Initializer
     // ───────────────────────────────────────────────────────────────────────────
@@ -76,7 +82,10 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// @notice Set whether a stablecoin is whitelisted.
     /// @param token The stablecoin address.
     /// @param whitelisted Whether the stablecoin is whitelisted.
-    function setWhitelistedStable(address token, bool whitelisted) external onlyOwner {
+    function setWhitelistedStable(
+        address token,
+        bool whitelisted
+    ) external onlyOwner {
         whitelistedStable[token] = whitelisted;
         emit WhitelistedStableSet(token, whitelisted);
     }
@@ -93,6 +102,20 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
+    // Chain fee management
+    // ───────────────────────────────────────────────────────────────────────────
+
+    /// @notice Set the per-chain fee that will be deducted from bridged amount
+    ///         to cover gas costs.
+    /// @param chainId Destination chain identifier (EVM chainId).
+    /// @param fee     Fee amount denominated in the canonical stable-coin’s
+    ///                smallest unit (e.g. 1e6 == 1 USDC).
+    function setChainFee(uint256 chainId, uint256 fee) external onlyOwner {
+        chainFee[chainId] = fee;
+        emit ChainFeeSet(chainId, fee);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
     // Events
     // ───────────────────────────────────────────────────────────────────────────
 
@@ -100,6 +123,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     event NumSet(bytes32 indexed key, uint256 value);
     event WhitelistedStableSet(address indexed token, bool whitelisted);
     event PausedSet(bool paused);
+    event ChainFeeSet(uint256 indexed chainId, uint256 fee);
 
     // ───────────────────────────────────────────────────────────────────────────
     // Storage gap for upgradeability

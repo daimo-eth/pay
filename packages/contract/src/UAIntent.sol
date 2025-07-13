@@ -25,7 +25,7 @@ function calcIntentHash(UAIntent calldata intent) pure returns (bytes32) {
 }
 
 /// @author Daimo, Inc
-/// @notice Minimal vault that escrows funds for a single UAIntent. It holds no
+/// @notice Minimal vault that holds funds for a single UAIntent. It holds no
 ///         mutable state beyond the fixed intent hash, so it can be deployed
 ///         cheaply via a proxy clone and reused across chains.
 contract UAIntentContract is Initializable, ReentrancyGuard {
@@ -37,9 +37,7 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
 
     /// @dev Cheap single-slot storage – keccak256(UAIntent).
     bytes32 public intentHash;
-    // Unlike one-use PayIntent where there's no risk of permissionless withdrawals,
-    // the Universal Address can receive funds many times, so we need to gatekeep
-    // withdrawal functionality to a single manager.
+    // Gatekeep withdrawal functionality to a single manager. All calls are made through this contract.
     address public escrow;
 
     // ---------------------------------------------------------------------
@@ -51,7 +49,10 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
     }
 
     /// @param _intentHash keccak256(UAIntent) committed by the factory.
-    function initialize(bytes32 _intentHash, address _escrow) public initializer {
+    function initialize(
+        bytes32 _intentHash,
+        address _escrow
+    ) public initializer {
         intentHash = _intentHash;
         escrow = _escrow;
     }
@@ -60,19 +61,37 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
     // Escrow helpers – only callable by the escrow/manager
     // ---------------------------------------------------------------------
 
-    /// @notice Sweep specified tokens out of the vault.
-    /// @return amounts Array of amounts transferred (parallel to `tokens`).
-    function sendTokens(UAIntent calldata intent, IERC20[] calldata tokens, address payable recipient)
-        public
-        nonReentrant
-        returns (uint256[] memory amounts)
-    {
+    /// @notice Sweep specified token amount out of the vault.
+    function sendAmount(
+        UAIntent calldata intent,
+        TokenAmount calldata tokenAmount,
+        address payable recipient
+    ) public nonReentrant {
+        require(calcIntentHash(intent) == intentHash, "UAI: intent mismatch");
+        require(msg.sender == escrow, "UAI: only escrow");
+        TokenUtils.transfer({
+            token: tokenAmount.token,
+            recipient: recipient,
+            amount: tokenAmount.amount
+        });
+    }
+
+    /// @notice Sweep the full balance of specified tokens out of the vault.
+    /// @return amounts Amounts transferred (parallel to `tokens`).
+    function sendBalances(
+        UAIntent calldata intent,
+        IERC20[] calldata tokens,
+        address payable recipient
+    ) public nonReentrant returns (uint256[] memory amounts) {
         require(calcIntentHash(intent) == intentHash, "UAI: intent mismatch");
         require(msg.sender == escrow, "UAI: only escrow");
         uint256 n = tokens.length;
         amounts = new uint256[](n);
         for (uint256 i; i < n; ++i) {
-            amounts[i] = TokenUtils.transferBalance({token: tokens[i], recipient: recipient});
+            amounts[i] = TokenUtils.transferBalance({
+                token: tokens[i],
+                recipient: recipient
+            });
         }
     }
 

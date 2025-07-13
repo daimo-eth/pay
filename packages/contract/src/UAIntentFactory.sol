@@ -18,7 +18,10 @@ contract UAIntentFactory {
     }
 
     /// @dev Deploy proxy for the given intent (or return existing one).
-    function createIntent(UAIntent calldata intent, address escrow) public returns (UAIntentContract ret) {
+    function createIntent(
+        UAIntent calldata intent,
+        address escrow
+    ) public returns (UAIntentContract ret) {
         address intentAddr = getIntentAddress(intent, escrow);
         if (intentAddr.code.length > 0) {
             // Already deployed – reuse to save gas.
@@ -29,7 +32,10 @@ contract UAIntentFactory {
                 address(
                     new ERC1967Proxy{salt: bytes32(0)}(
                         address(intentImpl),
-                        abi.encodeCall(UAIntentContract.initialize, (calcIntentHash(intent), escrow))
+                        abi.encodeCall(
+                            UAIntentContract.initialize,
+                            (calcIntentHash(intent), escrow)
+                        )
                     )
                 )
             )
@@ -37,18 +43,25 @@ contract UAIntentFactory {
     }
 
     /// @notice Pure view helper: compute CREATE2 address for an intent.
-    function getIntentAddress(UAIntent calldata intent, address escrow) public view returns (address) {
-        return Create2.computeAddress(
-            0,
-            keccak256(
-                abi.encodePacked(
-                    type(ERC1967Proxy).creationCode,
-                    abi.encode(
-                        address(intentImpl),
-                        abi.encodeCall(UAIntentContract.initialize, (calcIntentHash(intent), escrow))
+    function getIntentAddress(
+        UAIntent calldata intent,
+        address escrow
+    ) public view returns (address) {
+        return
+            Create2.computeAddress(
+                0,
+                keccak256(
+                    abi.encodePacked(
+                        type(ERC1967Proxy).creationCode,
+                        abi.encode(
+                            address(intentImpl),
+                            abi.encodeCall(
+                                UAIntentContract.initialize,
+                                (calcIntentHash(intent), escrow)
+                            )
+                        )
                     )
                 )
-            )
-        );
+            );
     }
 }

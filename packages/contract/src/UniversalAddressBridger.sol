@@ -9,7 +9,7 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "./interfaces/IUniversalAddressBridger.sol";
 
 /// @author Daimo, Inc
-/// @notice Thin wrapper that exposes a minimal ABI for bridging through the
+/// @notice Thin wrapper that exposes a minimal API for bridging through the
 ///         existing DaimoPay adapter ecosystem.  Eliminates the TokenAmount[]
 ///         argument surface for callers while preserving full adapter logic.
 contract UniversalAddressBridger is IUniversalAddressBridger {
@@ -19,15 +19,23 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // Immutable routing data (set once in the constructor)
     // ---------------------------------------------------------------------
 
-    mapping(uint256 => IDaimoPayBridger) public chainIdToBridger;
-    mapping(uint256 => address) public chainIdToStableOut;
+    mapping(uint256 chainId => IDaimoPayBridger adapter)
+        public chainIdToBridger;
+    mapping(uint256 chainId => address stableOut) public chainIdToStableOut;
 
-    constructor(uint256[] memory chains, IDaimoPayBridger[] memory bridgers, address[] memory usdOut) {
-        uint256 n = chains.length;
-        require(n == bridgers.length && n == usdOut.length, "UA: length mismatch");
+    constructor(
+        uint256[] memory toChainIds,
+        IDaimoPayBridger[] memory bridgers,
+        address[] memory stableOut
+    ) {
+        uint256 n = toChainIds.length;
+        require(
+            n == bridgers.length && n == stableOut.length,
+            "UAB: length mismatch"
+        );
         for (uint256 i; i < n; ++i) {
-            chainIdToBridger[chains[i]] = bridgers[i];
-            chainIdToStableOut[chains[i]] = usdOut[i];
+            chainIdToBridger[toChainIds[i]] = bridgers[i];
+            chainIdToStableOut[toChainIds[i]] = stableOut[i];
         }
     }
 
@@ -36,22 +44,26 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // ---------------------------------------------------------------------
 
     /// @inheritdoc IUniversalAddressBridger
-    function quoteIn(uint256 toChainId, IERC20 outToken, uint256 desiredOut)
-        external
-        view
-        returns (address tokenIn, uint256 exactIn)
-    {
-        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
-        require(address(adapter) != address(0), "UA: unknown chain");
+    function getBridgeTokenIn(
+        uint256 toChainId,
+        TokenAmount calldata bridgeTokenOut
+    ) external view returns (address bridgeTokenIn, uint256 inAmount) {
+        require(toChainId != block.chainid, "UAB: same chain");
 
-        // Ensure the requested outToken matches configured stablecoin for this chain.
-        require(address(outToken) == chainIdToStableOut[toChainId], "UA: token mismatch");
+        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
+        require(address(adapter) != address(0), "UAB: unknown chain");
+
+        // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
+        require(
+            address(bridgeTokenOut.token) == chainIdToStableOut[toChainId],
+            "UAB: token mismatch"
+        );
 
         // Build a single-element TokenAmount[] expected by the adapter
         TokenAmount[] memory opts = new TokenAmount[](1);
-        opts[0] = TokenAmount({token: outToken, amount: desiredOut});
+        opts[0] = bridgeTokenOut;
 
-        (tokenIn, exactIn) = adapter.getBridgeTokenIn(toChainId, opts);
+        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn(toChainId, opts);
     }
 
     // ---------------------------------------------------------------------
@@ -59,29 +71,51 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // ---------------------------------------------------------------------
 
     /// @inheritdoc IUniversalAddressBridger
-    function bridge(uint256 toChainId, address toAddress, IERC20 outToken, uint256 minOut, bytes calldata extra)
-        external
-    {
-        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
-        address stableOut = chainIdToStableOut[toChainId];
-        require(address(adapter) != address(0), "UA: unknown chain");
-        require(address(outToken) == stableOut, "UA: token mismatch");
+    function sendToChain(
+        uint256 toChainId,
+        address toAddress,
+        TokenAmount calldata bridgeTokenOut,
+        bytes calldata extraData
+    ) external {
+        require(toChainId != block.chainid, "UAB: same chain");
 
-        // Build one-element array for the legacy adapter call ensuring
-        // it satisfies the adapter's min-out check.
+        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
+        require(address(adapter) != address(0), "UAB: unknown chain");
+
+        // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
+        require(
+            address(bridgeTokenOut.token) == chainIdToStableOut[toChainId],
+            "UAB: token mismatch"
+        );
+
+        // Build a single-element TokenAmount[] expected by the adapter
         TokenAmount[] memory opts = new TokenAmount[](1);
-        opts[0] = TokenAmount({token: outToken, amount: minOut});
+        opts[0] = bridgeTokenOut;
 
         // Determine the required input asset and quantity for the requested bridge.
-        (address tokenIn, uint256 amountIn) = adapter.getBridgeTokenIn(toChainId, opts);
-        require(tokenIn != address(0), "UA: native tokens not supported");
+        (address bridgeTokenIn, uint256 inAmount) = adapter.getBridgeTokenIn({
+            toChainId: toChainId,
+            bridgeTokenOutOptions: opts
+        });
 
-        // Pull tokens from caller into this contract once.
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+        // Pull tokens from caller into this contract.
+        IERC20(bridgeTokenIn).safeTransferFrom({
+            from: msg.sender,
+            to: address(this),
+            value: inAmount
+        });
 
         // Approve the adapter to spend and forward the call.
-        IERC20(tokenIn).forceApprove(address(adapter), amountIn);
+        IERC20(bridgeTokenIn).forceApprove({
+            spender: address(adapter),
+            value: inAmount
+        });
 
-        adapter.sendToChain(toChainId, toAddress, opts, extra);
+        adapter.sendToChain({
+            toChainId: toChainId,
+            toAddress: toAddress,
+            bridgeTokenOutOptions: opts,
+            extraData: extraData
+        });
     }
 }

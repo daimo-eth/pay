@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
+import "../UAIntent.sol";
+import "../interfaces/IUniversalAddressManager.sol";
 
 /// @author Daimo, Inc
 /// @notice Reference relayer contract. This is a private, untrusted relayer.
@@ -398,6 +400,66 @@ contract DaimoPayRelayer is AccessControl {
         }
 
         approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    function UAFastFinish(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UAIntent calldata intent,
+        TokenAmount calldata tokenIn,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        Call[] calldata calls,
+        uint256 sourceChainId
+    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        // Execute any pre-calls provided by the relayer. These can be used
+        // to perform swaps or other setup before finishing the UA intent.
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        bool isNative = address(tokenIn.token) == address(0);
+
+        if (isNative) {
+            // Ensure the caller supplied the correct native value
+            require(msg.value == tokenIn.amount, "DPR: wrong msg.value");
+        } else {
+            // ERC20 path – approve the manager for the token amount
+            TokenUtils.approve({
+                token: tokenIn.token,
+                spender: address(manager),
+                amount: tokenIn.amount
+            });
+        }
+
+        // Transfer the input tokens to the manager so that it can immediately
+        // forward them to the executor inside fastFinishIntent.
+        TokenUtils.transfer({
+            token: tokenIn.token,
+            recipient: payable(address(manager)),
+            amount: tokenIn.amount
+        });
+
+        // Call fastFinishIntent on the UniversalAddressManager.
+        manager.fastFinishIntent({
+            intent: intent,
+            calls: calls,
+            token: tokenIn.token,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: sourceChainId
+        });
+
+        // Reset the allowance back to zero for cleanliness/security.
+        if (!isNative) {
+            TokenUtils.approve({
+                token: tokenIn.token,
+                spender: address(manager),
+                amount: 0
+            });
+        }
     }
 
     receive() external payable {}

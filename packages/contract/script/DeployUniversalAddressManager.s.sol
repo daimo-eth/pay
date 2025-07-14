@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 
 import "../src/UniversalAddressManager.sol";
 import "../src/UniversalAddressBridger.sol";
-import "../src/UAIntentFactory.sol";
+import "../src/UniversalAddressFactory.sol";
 import "../src/SharedConfig.sol";
 import "./constants/Constants.s.sol";
 import "../src/interfaces/IUniversalAddressBridger.sol";
@@ -24,8 +24,8 @@ import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 // CREATE3 factory instance (declared in Constants.s.sol)
 // CREATE3Factory constant CREATE3;
 
-bytes32 constant DEPLOY_SALT_UA_INTENT_FACTORY = keccak256(
-    "UAIntentFactory-deploy1"
+bytes32 constant DEPLOY_SALT_UA_FACTORY = keccak256(
+    "UniversalAddressFactory-deploy1"
 );
 bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
     "UniversalAddressBridger-deploy1"
@@ -37,7 +37,7 @@ bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
 
 /// @title DeployUniversalAddressManager
 /// @notice Foundry script that deploys:
-///         1. UAIntentFactory (deterministic via CREATE3)
+///         1. UniversalAddressFactory (deterministic via CREATE3)
 ///         2. UniversalAddressBridger (wraps the already-deployed DaimoPayBridger)
 ///         3. SharedConfig (upgrade-ready, but deployed inline + initialized)
 ///         4. UniversalAddressManager (core escrow contract)
@@ -62,12 +62,12 @@ contract DeployUniversalAddressManager is Script {
         //////////////////////////////////////////////////////////////
         vm.startBroadcast();
 
-        // 1. UAIntentFactory – deterministic, no constructor args.
-        address uaIntentFactory = CREATE3.deploy(
-            DEPLOY_SALT_UA_INTENT_FACTORY,
-            abi.encodePacked(type(UAIntentFactory).creationCode, abi.encode())
+        // 1. UniversalAddressFactory – deterministic, no constructor args.
+        address uaFactory = CREATE3.deploy(
+            DEPLOY_SALT_UA_FACTORY,
+            abi.encodePacked(type(UniversalAddressFactory).creationCode, abi.encode())
         );
-        console.log("UAIntentFactory deployed at", uaIntentFactory);
+        console.log("UniversalAddressFactory deployed at", uaFactory);
 
         // 2. UniversalAddressBridger
         (
@@ -104,7 +104,7 @@ contract DeployUniversalAddressManager is Script {
             abi.encodePacked(
                 type(UniversalAddressManager).creationCode,
                 abi.encode(
-                    UAIntentFactory(uaIntentFactory),
+                    UniversalAddressFactory(uaFactory),
                     IUniversalAddressBridger(universalBridger),
                     SharedConfig(sharedConfig)
                 )

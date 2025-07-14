@@ -8,8 +8,8 @@ import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import "./SharedConfig.sol";
-import "./UAIntentFactory.sol";
-import "./UAIntent.sol";
+import "./UniversalAddressFactory.sol";
+import "./UniversalAddress.sol";
 import "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IUniversalAddressBridger.sol";
@@ -30,8 +30,8 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     address public constant ADDR_MAX =
         0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
-    /// Factory responsible for deploying deterministic UAIntent intent addresses.
-    UAIntentFactory public immutable intentFactory;
+    /// Factory responsible for deploying deterministic Universal Addresses.
+    UniversalAddressFactory public immutable universalAddressFactory;
 
     /// Dedicated contract that performs swap / contract calls on behalf of the manager.
     DaimoPayExecutor public immutable executor;
@@ -43,10 +43,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     SharedConfig public immutable cfg;
 
     /// Keys for SharedConfig
-    /// @dev Minimum amount of USDC required to start an intent.
-    bytes32 public constant MIN_START_USDC_KEY = keccak256("MIN_START_USDC");
-    /// @dev USDC decimals
-    bytes32 public constant USDC_DECIMALS_KEY = keccak256("USDC_DECIMALS");
+    /// @dev Minimum amount of the bridge-out token required to start an intent.
+    bytes32 public constant MIN_START_TOKEN_OUT_KEY =
+        keccak256("MIN_START_TOKEN_OUT");
+
+    /// @dev IMPORTANT: For this version of the protocol, all bridge-out tokens
+    ///      are assumed to have 6 decimals. This will be made configurable
+    ///      in a future release.
+    uint256 public constant TOKEN_OUT_DECIMALS = 6;
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -76,24 +80,30 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     // ---------------------------------------------------------------------
 
     event Start(
-        address indexed intentAddr,
+        address indexed universalAddress,
         address indexed receiverAddr,
-        UAIntent intent
+        UniversalAddressRoute route
     );
-    event FastFinish(address indexed intentAddr, address indexed newRecipient);
-    event Claim(address indexed intentAddr, address indexed finalRecipient);
+    event FastFinish(
+        address indexed universalAddress,
+        address indexed newRecipient
+    );
+    event Claim(
+        address indexed universalAddress,
+        address indexed finalRecipient
+    );
     event IntentFinished(
-        address indexed intentAddr,
+        address indexed universalAddress,
         address destinationAddr,
         bool success,
-        UAIntent intent
+        UniversalAddressRoute route
     );
     event IntentRefunded(
-        address indexed intentAddr,
+        address indexed universalAddress,
         address refundAddr,
-        IERC20[] tokens,
-        uint256[] amounts,
-        UAIntent intent
+        IERC20 token,
+        uint256 amount,
+        UniversalAddressRoute route
     );
 
     // ---------------------------------------------------------------------
@@ -101,11 +111,11 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     // ---------------------------------------------------------------------
 
     constructor(
-        UAIntentFactory _intentFactory,
+        UniversalAddressFactory _universalAddressFactory,
         IUniversalAddressBridger _bridger,
         SharedConfig _cfg
     ) {
-        intentFactory = _intentFactory;
+        universalAddressFactory = _universalAddressFactory;
         bridger = _bridger;
         cfg = _cfg;
         executor = new DaimoPayExecutor(address(this));
@@ -117,36 +127,31 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
     /// @notice Begin a cross-chain transfer on the SOURCE chain.
     function startIntent(
-        UAIntent calldata intent,
+        UniversalAddressRoute calldata route,
         IERC20 paymentToken,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) external nonReentrant notPaused {
-        require(block.chainid != intent.toChainId, "UAM: start on dest chain");
-        require(
-            cfg.whitelistedStable(address(paymentToken)),
-            "UAM: token not whitelisted"
-        );
-        require(
-            bridgeTokenOut.amount >= cfg.num(MIN_START_USDC_KEY),
-            "UAM: amount below min"
-        );
-        require(
-            bridgeTokenOut.amount >= cfg.chainFee(block.chainid),
-            "UAM: amount below fee"
-        );
+        require(block.chainid != route.toChainId, "UAM: start on dest chain");
+        require(cfg.whitelistedStable(address(paymentToken)), "UAM: whitelist");
+        require(route.escrow == address(this), "UAM: wrong escrow");
 
-        UAIntentContract intentContract = intentFactory.createIntent(
-            intent,
-            address(this)
+        uint256 outAmount = bridgeTokenOut.amount;
+        require(
+            outAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
+            "UAM: amount < min"
         );
+        require(outAmount >= cfg.chainFee(block.chainid), "UAM: amount < fee");
+
+        UniversalAddress intentContract = universalAddressFactory
+            .createUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: address(intentContract),
+            universalAddress: address(intentContract),
             relaySalt: relaySalt,
             relayer: msg.sender,
-            bridgeAmountOut: bridgeTokenOut.amount,
+            bridgeAmountOut: outAmount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: block.chainid
         });
@@ -160,20 +165,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         // Send payment token to executor
         intentContract.sendAmount({
-            intent: intent,
-            tokenAmount: TokenAmount({
-                token: paymentToken,
-                amount: _computeRequiredPaymentAmount(
-                    paymentToken,
-                    bridgeTokenOut.amount
-                )
-            }),
+            route: route,
+            tokenAmount: _computeRequiredPaymentAmount(paymentToken, outAmount),
             recipient: payable(address(executor))
         });
 
         // Quote bridge input requirements.
         (address bridgeTokenIn, uint256 inAmount) = bridger.getBridgeTokenIn({
-            toChainId: intent.toChainId,
+            toChainId: route.toChainId,
             bridgeTokenOut: bridgeTokenOut
         });
 
@@ -200,53 +199,49 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             value: inAmount
         });
         bridger.sendToChain({
-            toChainId: intent.toChainId,
+            toChainId: route.toChainId,
             toAddress: receiverAddr,
             bridgeTokenOut: bridgeTokenOut,
             extraData: bridgeExtraData
         });
 
         emit Start({
-            intentAddr: address(intentContract),
+            universalAddress: address(intentContract),
             receiverAddr: receiverAddr,
-            intent: intent
+            route: route
         });
     }
 
-    /// @notice Refund stray or double-paid tokens.
+    /// @notice Refund unsupported tokens.
     function refundIntent(
-        UAIntent calldata intent,
-        IERC20[] calldata tokens
+        UniversalAddressRoute calldata route,
+        IERC20 token
     ) external nonReentrant notPaused {
-        UAIntentContract intentContract = intentFactory.createIntent(
-            intent,
-            address(this)
-        );
-        address intentAddr = address(intentContract);
+        require(route.escrow == address(this), "UAM: wrong escrow");
 
-        // Disallow refunding whitelisted coins above the minimum bridge amount.
-        uint256 n = tokens.length;
-        for (uint256 i = 0; i < n; ++i) {
-            require(
-                !cfg.whitelistedStable(address(tokens[i])) ||
-                    tokens[i].balanceOf(address(intentAddr)) <
-                    cfg.num(MIN_START_USDC_KEY),
-                "UAM: refund balance not above min"
-            );
-        }
+        UniversalAddress intentContract = universalAddressFactory
+            .createUniversalAddress(route);
+        address universalAddress = address(intentContract);
 
-        uint256[] memory amounts = intentContract.sendBalances({
-            intent: intent,
-            tokens: tokens,
-            recipient: payable(intent.refundAddress)
+        // Disallow refunding whitelisted coins
+        require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
+
+        uint256 amount = TokenUtils.getBalanceOf(token, universalAddress);
+        require(amount > 0, "UAM: no balance");
+
+        intentContract.sendAmount({
+            route: route,
+            tokenAmount: TokenAmount({token: token, amount: amount}),
+            recipient: payable(route.refundAddress)
         });
-        emit IntentRefunded(
-            intentAddr,
-            intent.refundAddress,
-            tokens,
-            amounts,
-            intent
-        );
+
+        emit IntentRefunded({
+            universalAddress: universalAddress,
+            refundAddr: route.refundAddress,
+            token: token,
+            amount: amount,
+            route: route
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -255,7 +250,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
     /// Relayer-only DESTINATION-chain function: deliver funds early and record filling.
     function fastFinishIntent(
-        UAIntent calldata intent,
+        UniversalAddressRoute calldata route,
         Call[] calldata calls,
         IERC20 token,
         TokenAmount calldata bridgeTokenOut,
@@ -263,15 +258,15 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         uint256 sourceChainId
     ) external nonReentrant notPaused {
         require(sourceChainId != block.chainid, "UAM: same chain finish");
-        require(intent.toChainId == block.chainid, "UAM: wrong chain");
+        require(route.toChainId == block.chainid, "UAM: wrong chain");
+        require(route.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(this)
+        address universalAddress = universalAddressFactory.getUniversalAddress(
+            route
         );
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: intentAddr,
+            universalAddress: universalAddress,
             relaySalt: relaySalt,
             relayer: msg.sender,
             bridgeAmountOut: bridgeTokenOut.amount,
@@ -294,37 +289,40 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         // Finish the intent and return any leftover tokens to the caller
         _finishIntent({
-            intentAddr: intentAddr,
-            intent: intent,
+            universalAddress: universalAddress,
+            route: route,
             calls: calls,
             toAmount: bridgeTokenOut.amount,
             sourceChainId: sourceChainId
         });
 
-        emit FastFinish({intentAddr: intentAddr, newRecipient: msg.sender});
+        emit FastFinish({
+            universalAddress: universalAddress,
+            newRecipient: msg.sender
+        });
     }
 
     /// Complete after slow bridge lands
     function claimIntent(
-        UAIntent calldata intent,
+        UniversalAddressRoute calldata route,
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         address relayer,
         uint256 sourceChainId
     ) external nonReentrant notPaused {
-        require(intent.toChainId == block.chainid, "UAM: wrong chain");
+        require(route.toChainId == block.chainid, "UAM: wrong chain");
+        require(route.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(this)
+        address universalAddress = universalAddressFactory.getUniversalAddress(
+            route
         );
         // Pass in the relayer address as a parameter instead of msg.sender
         // to allow permissionless claims. This prevents funds from being
         // locked in the receiver contract.
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: intentAddr,
+            universalAddress: universalAddress,
             relaySalt: relaySalt,
             relayer: relayer,
             bridgeAmountOut: bridgeTokenOut.amount,
@@ -356,7 +354,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         if (recipient == address(0)) {
             // No relayer showed up, so just complete the intent. Update the recipient to the intent recipient.
-            recipient = intent.toAddress;
+            recipient = route.toAddress;
 
             // Send tokens to the executor contract to run relayer-provided
             // calls in _finishIntent.
@@ -368,8 +366,8 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
             // Complete the intent and return any leftover tokens to the caller
             _finishIntent({
-                intentAddr: intentAddr,
-                intent: intent,
+                universalAddress: universalAddress,
+                route: route,
                 calls: calls,
                 toAmount: bridgedAmount,
                 sourceChainId: sourceChainId
@@ -383,7 +381,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             });
         }
 
-        emit Claim({intentAddr: intentAddr, finalRecipient: recipient});
+        emit Claim({
+            universalAddress: universalAddress,
+            finalRecipient: recipient
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -391,7 +392,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     // ---------------------------------------------------------------------
 
     function _receiverSalt(
-        address uaAddr,
+        address universalAddress,
         bytes32 relaySalt,
         address relayer,
         uint256 bridgeAmountOut,
@@ -402,7 +403,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             keccak256(
                 abi.encodePacked(
                     "receiver",
-                    uaAddr,
+                    universalAddress,
                     relaySalt,
                     relayer,
                     bridgeAmountOut,
@@ -422,33 +423,33 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     function _computeRequiredPaymentAmount(
         IERC20 paymentToken,
         uint256 bridgeAmountOut
-    ) internal view returns (uint256) {
-        // Get USDC decimals from the shared config
-        uint256 usdcDecimals = cfg.num(USDC_DECIMALS_KEY);
-        require(usdcDecimals > 0, "UAM: no USDC decimals");
-
+    ) internal view returns (TokenAmount memory) {
         // Get payment token decimals using IERC20Metadata
         uint256 paymentTokenDecimals = IERC20Metadata(address(paymentToken))
             .decimals();
 
-        // Convert bridgeAmountOut (USDC) to payment token amount
-        // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^usdcDecimals)
-        if (paymentTokenDecimals >= usdcDecimals) {
-            // Payment token has more or equal decimals than USDC
-            uint256 decimalDiff = paymentTokenDecimals - usdcDecimals;
-            return bridgeAmountOut * (10 ** decimalDiff);
+        // Convert bridgeAmountOut to payment token amount.
+        // The amount is provided in the bridge-out token's base units, so we
+        // adjust for any decimal differences between it and the payment token.
+        // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^tokenOutDecimals)
+        uint256 amount;
+        if (paymentTokenDecimals >= TOKEN_OUT_DECIMALS) {
+            // Payment token has more or equal decimals than bridge-out token
+            uint256 decimalDiff = paymentTokenDecimals - TOKEN_OUT_DECIMALS;
+            amount = bridgeAmountOut * (10 ** decimalDiff);
         } else {
-            // Payment token has fewer decimals than USDC
+            // Payment token has fewer decimals than bridge-out token
             // Use ceiling division to ensure we pull enough tokens
-            uint256 decimalDiff = usdcDecimals - paymentTokenDecimals;
+            uint256 decimalDiff = TOKEN_OUT_DECIMALS - paymentTokenDecimals;
             uint256 divisor = 10 ** decimalDiff;
-            return (bridgeAmountOut + divisor - 1) / divisor;
+            amount = (bridgeAmountOut + divisor - 1) / divisor;
         }
+        return TokenAmount({token: paymentToken, amount: amount});
     }
 
     function _finishIntent(
-        address intentAddr,
-        UAIntent calldata intent,
+        address universalAddress,
+        UniversalAddressRoute calldata route,
         Call[] calldata calls,
         uint256 toAmount,
         uint256 sourceChainId
@@ -458,7 +459,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         // are given to the caller.
         TokenAmount[] memory expectedOutput = new TokenAmount[](1);
         expectedOutput[0] = TokenAmount({
-            token: intent.toToken,
+            token: route.toToken,
             amount: toAmount
         });
         executor.execute({
@@ -477,15 +478,15 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         // Transfer the net amount to the intent recipient.
         bool success = TokenUtils.tryTransfer({
-            token: intent.toToken,
-            recipient: intent.toAddress,
+            token: route.toToken,
+            recipient: route.toAddress,
             amount: netAmount
         });
 
         // Pay the fee to the caller (relayer / claimer) if any.
         if (fee > 0) {
             TokenUtils.transfer({
-                token: intent.toToken,
+                token: route.toToken,
                 recipient: payable(msg.sender),
                 amount: fee
             });
@@ -493,15 +494,15 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         // Transfer any excess to the refund address.
         TokenUtils.transferBalance({
-            token: intent.toToken,
-            recipient: payable(intent.refundAddress)
+            token: route.toToken,
+            recipient: payable(route.refundAddress)
         });
 
         emit IntentFinished({
-            intentAddr: intentAddr,
-            destinationAddr: intent.toAddress,
+            universalAddress: universalAddress,
+            destinationAddr: route.toAddress,
             success: success,
-            intent: intent
+            route: route
         });
     }
 

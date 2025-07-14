@@ -41,9 +41,6 @@ contract UniversalAddressTest is Test {
     uint256 private constant AMOUNT = 100e6; // 100 USDC (6-decimals)
     bytes32 private constant USER_SALT = bytes32(uint256(123));
 
-    uint256 private constant SRC_FEE = 1e6; // 1 USDC fee for gas
-    uint256 private constant DST_FEE = 10e6; // 10 USDC fee for gas
-
     // ---------------------------------------------------------------------
     // Deployed contracts
     // ---------------------------------------------------------------------
@@ -67,10 +64,6 @@ contract UniversalAddressTest is Test {
         cfg.initialize(address(this));
         cfg.setWhitelistedStable(address(usdc), true);
 
-        // Configure chain-specific fee for destination chain
-        cfg.setChainFee(SRC_CHAIN_ID, SRC_FEE);
-        cfg.setChainFee(DST_CHAIN_ID, DST_FEE);
-
         // Core components
         intentFactory = new UniversalAddressFactory();
         bridger = new DummyUniversalBridger();
@@ -86,7 +79,11 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
-    function _route() internal view returns (UniversalAddressRoute memory route) {
+    function _route()
+        internal
+        view
+        returns (UniversalAddressRoute memory route)
+    {
         route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdc,
@@ -96,13 +93,14 @@ contract UniversalAddressTest is Test {
         });
     }
 
-    function _universalAddress(UniversalAddressRoute memory route) internal view returns (address) {
+    function _universalAddress(
+        UniversalAddressRoute memory route
+    ) internal view returns (address) {
         return intentFactory.getUniversalAddress(route);
     }
 
     function _receiverSalt(
-        address universalAddress,
-        address relayer
+        address universalAddress
     ) internal view returns (bytes32) {
         return
             keccak256(
@@ -110,7 +108,6 @@ contract UniversalAddressTest is Test {
                     "receiver",
                     universalAddress,
                     USER_SALT,
-                    relayer,
                     AMOUNT,
                     usdc,
                     SRC_CHAIN_ID
@@ -144,7 +141,7 @@ contract UniversalAddressTest is Test {
         vm.prank(RELAYER);
         mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
 
-        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress);
         assertTrue(mgr.saltUsed(salt));
     }
 
@@ -171,7 +168,7 @@ contract UniversalAddressTest is Test {
             SRC_CHAIN_ID
         );
 
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
     }
 
     // ---------------------------------------------------------------------
@@ -217,77 +214,9 @@ contract UniversalAddressTest is Test {
         );
 
         // Beneficiary should have received the funds minus fee
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
         // Relayer contract should retain the fee
-        assertEq(usdc.balanceOf(address(relayerContract)), SRC_FEE);
-    }
-
-    // ---------------------------------------------------------------------
-    // 2c. Destination-chain fastFinishIntent with chain fee deduction
-    // ---------------------------------------------------------------------
-    function testFastFinishIntent_WithChainFee() public {
-        // 1) Source chain start
-        vm.chainId(SRC_CHAIN_ID);
-        UniversalAddressRoute memory route = _route();
-        address universalAddress = _universalAddress(route);
-
-        // Alice funds her UA vault.
-        vm.prank(ALICE);
-        usdc.transfer(universalAddress, AMOUNT);
-
-        // Start intent
-        TokenAmount memory bridgeOut = TokenAmount({
-            token: IERC20(address(usdc)),
-            amount: AMOUNT
-        });
-        vm.prank(RELAYER);
-        mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
-
-        // 2) Destination chain – relayer performs fast-fill
-        vm.chainId(DST_CHAIN_ID);
-        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
-
-        // Relayer transfers bridged funds to manager before invoking fastFinishIntent
-        vm.prank(RELAYER);
-        usdc.transfer(address(mgr), AMOUNT);
-
-        vm.prank(RELAYER);
-        mgr.fastFinishIntent(
-            route,
-            new Call[](0),
-            usdc,
-            bridgeOut,
-            USER_SALT,
-            SRC_CHAIN_ID
-        );
-
-        // Alex receives amount minus fee
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
-        // Relayer balance decreased by (AMOUNT - SRC_FEE)
-        assertEq(usdc.balanceOf(RELAYER), relayerStartBal - (AMOUNT - SRC_FEE));
-
-        // 3) Simulate slow bridge landing
-        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
-        bytes memory init = type(BridgeReceiver).creationCode;
-        address receiver = Create2.computeAddress(salt, keccak256(init));
-        vm.prank(ALICE);
-        usdc.transfer(receiver, AMOUNT);
-
-        // 4) Claim intent – reimburse relayer
-        vm.prank(address(0xdead));
-        mgr.claimIntent(
-            route,
-            new Call[](0),
-            bridgeOut,
-            USER_SALT,
-            RELAYER,
-            SRC_CHAIN_ID
-        );
-
-        // Relayer should now have original balance plus the fee
-        assertEq(usdc.balanceOf(RELAYER), relayerStartBal + SRC_FEE);
-        // Alex balance remains unchanged (no double pay)
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(address(relayerContract)), 0);
     }
 
     // ---------------------------------------------------------------------
@@ -299,7 +228,7 @@ contract UniversalAddressTest is Test {
         // Pre-place bridged funds at the deterministic BridgeReceiver address.
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
-        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE);
@@ -314,60 +243,10 @@ contract UniversalAddressTest is Test {
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
-            RELAYER,
             SRC_CHAIN_ID
         );
 
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
-    }
-
-    // ---------------------------------------------------------------------
-    // 3b. Claim flow without fast-finish but with chain fee
-    // ---------------------------------------------------------------------
-    function testClaimIntent_NoFastFinish_WithChainFee() public {
-        // Start intent on source chain
-        vm.chainId(SRC_CHAIN_ID);
-        UniversalAddressRoute memory route = _route();
-        address universalAddress = _universalAddress(route);
-
-        // Alice deposits funds
-        vm.prank(ALICE);
-        usdc.transfer(universalAddress, AMOUNT);
-
-        vm.prank(RELAYER);
-        mgr.startIntent(
-            route,
-            usdc,
-            TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
-            USER_SALT,
-            new Call[](0),
-            ""
-        );
-
-        // Pre-place bridged funds
-        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
-        bytes memory init = type(BridgeReceiver).creationCode;
-        address receiver = Create2.computeAddress(salt, keccak256(init));
-        vm.prank(ALICE);
-        usdc.transfer(receiver, AMOUNT);
-
-        // Destination chain claim by arbitrary caller
-        vm.chainId(DST_CHAIN_ID);
-        uint256 callerStartBal = usdc.balanceOf(address(this));
-
-        mgr.claimIntent(
-            route,
-            new Call[](0),
-            TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
-            USER_SALT,
-            RELAYER,
-            SRC_CHAIN_ID
-        );
-
-        // Alex balance: amount minus fee
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
-        // Caller received the fee
-        assertEq(usdc.balanceOf(address(this)), callerStartBal + SRC_FEE);
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
     }
 
     // ---------------------------------------------------------------------
@@ -410,12 +289,12 @@ contract UniversalAddressTest is Test {
         );
 
         // Beneficiary should have already received the funds minus fee
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
         // Relayer paid the amount upfront
-        assertEq(usdc.balanceOf(RELAYER), relayerStartBal - (AMOUNT - SRC_FEE));
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal - AMOUNT);
 
         // 3) Simulate slow bridge landing at deterministic BridgeReceiver
-        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE); // any account can transfer, acts as the bridge contract
@@ -428,14 +307,13 @@ contract UniversalAddressTest is Test {
             new Call[](0),
             bridgeOut,
             USER_SALT,
-            RELAYER,
             SRC_CHAIN_ID
         );
 
         // Relayer balance should be restored plus fee
-        assertEq(usdc.balanceOf(RELAYER), relayerStartBal + SRC_FEE);
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
         // Beneficiary balance remains unchanged (no double-pay)
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
     }
 
     // ---------------------------------------------------------------------
@@ -589,7 +467,7 @@ contract UniversalAddressTest is Test {
         assertLt(usdt.balanceOf(address(mgr)), 1);
 
         // Bridged funds should now sit at the deterministic BridgeReceiver addr on the *source* chain
-        bytes32 salt = _receiverSalt(universalAddress, ALICE);
+        bytes32 salt = _receiverSalt(universalAddress);
         // Bridged funds should now sit at the deterministic receiver address. Balance may be zero in the mocked environment, so we skip strict assertions.
 
         // intentSent flag set
@@ -665,7 +543,7 @@ contract UniversalAddressTest is Test {
 
         // 2) Destination chain – place bridged USDC at deterministic receiver
         vm.chainId(DST_CHAIN_ID);
-        bytes32 saltR = _receiverSalt(universalAddress, ALICE);
+        bytes32 saltR = _receiverSalt(universalAddress);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(
             saltR,
@@ -690,7 +568,6 @@ contract UniversalAddressTest is Test {
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
-            ALICE,
             SRC_CHAIN_ID
         );
 
@@ -739,7 +616,7 @@ contract UniversalAddressTest is Test {
 
         // 2) Destination chain – place bridged USDC at deterministic receiver
         vm.chainId(DST_CHAIN_ID);
-        bytes32 saltR = _receiverSalt(universalAddress, RELAYER);
+        bytes32 saltR = _receiverSalt(universalAddress);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(
             saltR,
@@ -763,7 +640,6 @@ contract UniversalAddressTest is Test {
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
-            RELAYER,
             SRC_CHAIN_ID
         );
         assertEq(usdt.balanceOf(RELAYER), relayerBalBefore);
@@ -874,7 +750,6 @@ contract UniversalAddressTest is Test {
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT + 1}),
             USER_SALT,
-            RELAYER,
             SRC_CHAIN_ID
         );
     }
@@ -1071,14 +946,7 @@ contract UniversalAddressTest is Test {
         usdc.transfer(executorAddr, bridgeAmount);
 
         vm.prank(RELAYER);
-        mgr.startIntent(
-            route,
-            token2,
-            bridgeOut,
-            USER_SALT,
-            new Call[](0),
-            ""
-        );
+        mgr.startIntent(route, token2, bridgeOut, USER_SALT, new Call[](0), "");
 
         // Check that the correct amount was transferred to executor
         // Expected: ceiling(1,234,567 / 10,000) = ceiling(123.4567) = 124 token2
@@ -1091,7 +959,10 @@ contract UniversalAddressTest is Test {
         );
 
         // Check that the expected amount was pulled from the intent
-        assertEq(token2.balanceOf(universalAddress), vaultBalance - expectedAmount);
+        assertEq(
+            token2.balanceOf(universalAddress),
+            vaultBalance - expectedAmount
+        );
 
         // Verify salt was used
         bytes32 salt = keccak256(
@@ -1099,7 +970,6 @@ contract UniversalAddressTest is Test {
                 "receiver",
                 universalAddress,
                 USER_SALT,
-                RELAYER,
                 bridgeAmount,
                 usdc,
                 SRC_CHAIN_ID
@@ -1150,7 +1020,10 @@ contract UniversalAddressTest is Test {
         );
 
         // Check that the expected amount was pulled from the intent
-        assertEq(dai.balanceOf(universalAddress), vaultBalance - expectedAmount);
+        assertEq(
+            dai.balanceOf(universalAddress),
+            vaultBalance - expectedAmount
+        );
 
         // Verify salt was used
         bytes32 salt = keccak256(
@@ -1158,7 +1031,6 @@ contract UniversalAddressTest is Test {
                 "receiver",
                 universalAddress,
                 USER_SALT,
-                RELAYER,
                 bridgeAmount,
                 usdc,
                 SRC_CHAIN_ID

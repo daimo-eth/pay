@@ -143,14 +143,12 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             outAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
             "UAM: amount < min"
         );
-        require(outAmount >= cfg.chainFee(block.chainid), "UAM: amount < fee");
 
         UniversalAddress intentContract = universalAddressFactory
             .createUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
             universalAddress: address(intentContract),
             relaySalt: relaySalt,
-            relayer: msg.sender,
             bridgeAmountOut: outAmount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: block.chainid
@@ -311,7 +309,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         }
 
         TokenAmount[] memory expectedOutput = new TokenAmount[](1);
-        expectedOutput[0] = TokenAmount({token: route.toToken, amount: minToAmount});
+        expectedOutput[0] = TokenAmount({
+            token: route.toToken,
+            amount: minToAmount
+        });
         executor.execute({
             calls: calls,
             expectedOutput: expectedOutput,
@@ -363,7 +364,6 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         bytes32 recvSalt = _receiverSalt({
             universalAddress: universalAddress,
             relaySalt: relaySalt,
-            relayer: msg.sender,
             bridgeAmountOut: bridgeTokenOut.amount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: sourceChainId
@@ -387,8 +387,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             universalAddress: universalAddress,
             route: route,
             calls: calls,
-            toAmount: bridgeTokenOut.amount,
-            sourceChainId: sourceChainId
+            toAmount: bridgeTokenOut.amount
         });
 
         emit FastFinish({
@@ -403,7 +402,6 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
-        address relayer,
         uint256 sourceChainId
     ) external nonReentrant notPaused {
         require(route.toChainId == block.chainid, "UAM: wrong chain");
@@ -419,7 +417,6 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         bytes32 recvSalt = _receiverSalt({
             universalAddress: universalAddress,
             relaySalt: relaySalt,
-            relayer: relayer,
             bridgeAmountOut: bridgeTokenOut.amount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: sourceChainId
@@ -464,8 +461,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
                 universalAddress: universalAddress,
                 route: route,
                 calls: calls,
-                toAmount: bridgedAmount,
-                sourceChainId: sourceChainId
+                toAmount: bridgedAmount
             });
         } else {
             // Otherwise, the relayer fastFinished the intent. Repay them.
@@ -489,7 +485,6 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     function _receiverSalt(
         address universalAddress,
         bytes32 relaySalt,
-        address relayer,
         uint256 bridgeAmountOut,
         IERC20 bridgeToken,
         uint256 sourceChainId
@@ -500,7 +495,6 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
                     "receiver",
                     universalAddress,
                     relaySalt,
-                    relayer,
                     bridgeAmountOut,
                     bridgeToken,
                     sourceChainId
@@ -546,8 +540,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         address universalAddress,
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
-        uint256 toAmount,
-        uint256 sourceChainId
+        uint256 toAmount
     ) internal {
         // Run arbitrary calls provided by the relayer. These will generally
         // approve the swap contract and swap if necessary. Any surplus tokens
@@ -564,28 +557,12 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             surplusRecipient: payable(msg.sender)
         });
 
-        // Deduct chain-specific fee (if configured) and pay it to the caller to
-        // offset execution gas costs.
-        uint256 fee = cfg.chainFee(sourceChainId);
-        require(toAmount > fee, "UAM: fee exceeds amount");
-
-        uint256 netAmount = toAmount - fee;
-
-        // Transfer the net amount to the intent recipient.
+        // Forward the entire amount to the final beneficiary.
         bool success = TokenUtils.tryTransfer({
             token: route.toToken,
             recipient: route.toAddress,
-            amount: netAmount
+            amount: toAmount
         });
-
-        // Pay the fee to the caller (relayer / claimer) if any.
-        if (fee > 0) {
-            TokenUtils.transfer({
-                token: route.toToken,
-                recipient: payable(msg.sender),
-                amount: fee
-            });
-        }
 
         // Transfer any excess to the refund address.
         TokenUtils.transferBalance({

@@ -28,7 +28,6 @@ interface IUniversalAddressManager {
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
-        address relayer,
         uint256 sourceChainId
     ) external;
 

@@ -30,12 +30,6 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// @dev We use custom logic instead of OpenZeppelin's Pausable for simplicity
     bool public paused;
 
-    /// Chain-specific fixed fee (denominated in the canonical stablecoin's
-    /// smallest unit, e.g. USDC's 6 decimals) that can be charged to cover gas
-    /// costs on each destination chain.
-    /// @dev Keys are destination chain IDs (block.chainid on that chain).
-    mapping(uint256 => uint256) public chainFee;
-
     // ───────────────────────────────────────────────────────────────────────────
     // Initializer
     // ───────────────────────────────────────────────────────────────────────────
@@ -89,17 +83,6 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
-    // Chain fee management
-    // ───────────────────────────────────────────────────────────────────────────
-
-    /// @notice Set the per-chain fee, denominated in the canonical stablecoin's // TODO: which?
-    ///         units, that will be deducted from bridged amount to cover gas.
-    function setChainFee(uint256 chainId, uint256 fee) external onlyOwner {
-        chainFee[chainId] = fee;
-        emit ChainFeeSet(chainId, fee);
-    }
-
-    // ───────────────────────────────────────────────────────────────────────────
     // Events
     // ───────────────────────────────────────────────────────────────────────────
 
@@ -107,7 +90,6 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     event NumSet(bytes32 indexed key, uint256 value);
     event WhitelistedStableSet(address indexed token, bool whitelisted);
     event PausedSet(bool paused);
-    event ChainFeeSet(uint256 indexed chainId, uint256 fee);
 
     // ───────────────────────────────────────────────────────────────────────────
     // Storage gap for upgradeability

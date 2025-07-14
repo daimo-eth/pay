@@ -14,7 +14,7 @@ import "./TokenUtils.sol";
 ///      can be appended later by reserving slots in the hash recipe.
 struct UAIntent {
     uint256 toChainId; // Destination chain where funds will settle
-    IERC20 toToken; // Canonical stable-coin on destination chain
+    IERC20 toToken; // Canonical stablecoin on destination chain
     address toAddress; // Beneficiary wallet on destination chain
     address refundAddress; // Sweep target for stray / unsupported assets
 }

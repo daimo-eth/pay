@@ -34,7 +34,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// our use case here is slightly different and this way is cleaner.
     bool public paused;
 
-    /// Chain-specific fixed fee (denominated in the canonical stable-coin's
+    /// Chain-specific fixed fee (denominated in the canonical stablecoin's
     /// smallest unit, e.g. USDC 6-decimals) that can be charged to cover gas
     /// costs on each destination chain.
     /// @dev Keys are destination chain IDs (block.chainid on that chain).
@@ -76,7 +76,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
-    // Stable-coin whitelist management
+    // Stablecoin whitelist management
     // ───────────────────────────────────────────────────────────────────────────
 
     /// @notice Set whether a stablecoin is whitelisted.
@@ -108,7 +108,7 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// @notice Set the per-chain fee that will be deducted from bridged amount
     ///         to cover gas costs.
     /// @param chainId Destination chain identifier (EVM chainId).
-    /// @param fee     Fee amount denominated in the canonical stable-coin’s
+    /// @param fee     Fee amount denominated in the canonical stablecoin’s
     ///                smallest unit (e.g. 1e6 == 1 USDC).
     function setChainFee(uint256 chainId, uint256 fee) external onlyOwner {
         chainFee[chainId] = fee;

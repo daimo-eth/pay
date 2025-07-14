@@ -462,5 +462,28 @@ contract DaimoPayRelayer is AccessControl {
         }
     }
 
+    function uaSameChainFinish(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        Call[] calldata calls,
+        Call[] calldata postCalls
+    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        manager.sameChainFinishIntent(route, paymentToken, calls);
+
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata call = postCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: postCall failed");
+        }
+    }
+
     receive() external payable {}
 }

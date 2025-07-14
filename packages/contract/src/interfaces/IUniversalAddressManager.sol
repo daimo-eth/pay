@@ -9,13 +9,11 @@ import {TokenAmount} from "../TokenUtils.sol";
 
 /// @notice Minimal interface for UniversalAddressManager used by relayers and other contracts.
 interface IUniversalAddressManager {
-    /// @notice Fast-finish a Universal Address' bridging operation on the destination chain.
-    /// @param route           The route parameters (destination chain, token, recipient, etc.)
-    /// @param calls           Arbitrary calls executed by the manager (e.g., swaps)
-    /// @param token           The token being provided by the relayer
-    /// @param bridgeTokenOut  The stablecoin and amount that will eventually be bridged in
-    /// @param relaySalt       Unique salt provided by the relayer to avoid replay attacks
-    /// @param sourceChainId   The chain ID the bridging operation was started on
+    function refundIntent(
+        UniversalAddressRoute calldata route,
+        IERC20 token
+    ) external;
+
     function fastFinishIntent(
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
@@ -23,5 +21,20 @@ interface IUniversalAddressManager {
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         uint256 sourceChainId
+    ) external;
+
+    function claimIntent(
+        UniversalAddressRoute calldata route,
+        Call[] calldata calls,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        address relayer,
+        uint256 sourceChainId
+    ) external;
+
+    function sameChainFinishIntent(
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        Call[] calldata calls
     ) external;
 }

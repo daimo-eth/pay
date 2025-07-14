@@ -1191,19 +1191,15 @@ contract UniversalAddressTest is Test {
         vm.prank(ALICE);
         usdc.transfer(universalAddress, AMOUNT);
 
-        // Prepare sweepTokens array with USDC.
-        IERC20[] memory sweep = new IERC20[](1);
-        sweep[0] = IERC20(address(usdc));
-
         uint256 relayerStartBal = usdc.balanceOf(RELAYER);
 
-        // 3) Relayer finalises via finishVaultIntent.
+        // 3) Relayer finalises via sameChainFinishIntent.
         vm.prank(RELAYER);
-        mgr.finishVaultIntent(route, new Call[](0), sweep, AMOUNT, SRC_CHAIN_ID);
+        mgr.sameChainFinishIntent(route, usdc, new Call[](0));
 
-        // 4) Assertions – beneficiary receives amount minus fee; relayer gets fee.
-        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
-        assertEq(usdc.balanceOf(RELAYER), relayerStartBal + SRC_FEE);
+        // 4) Assertions – beneficiary receives amount; relayer gets fee.
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
         // UA vault should now be empty on destination chain.
         assertEq(usdc.balanceOf(universalAddress), 0);
     }

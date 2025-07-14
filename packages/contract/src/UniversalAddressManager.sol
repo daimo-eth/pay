@@ -258,22 +258,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     ///         chain-fee rebate.
     ///
     /// @param route            The UniversalAddressRoute for the intent.
+    /// @param paymentToken     Token to be used to pay the chain fee.
     /// @param calls            Arbitrary swap calls to be executed by the
     ///                         executor. Can be empty when assets are already
     ///                         `toToken`.
-    /// @param sweepTokens      List of tokens to pull from the UA vault.
-    /// @param minToAmount      Minimum amount of `toToken` that must be
-    ///                         delivered for the txn to succeed (slippage
-    ///                         guard).
-    /// @param sourceChainId    ID of the chain where the intent originated –
-    ///                         used for fee calculation (same semantics as
-    ///                         fastFinishIntent / claimIntent).
-    function finishVaultIntent(
+    function sameChainFinishIntent(
         UniversalAddressRoute calldata route,
-        Call[] calldata calls,
-        IERC20[] calldata sweepTokens,
-        uint256 minToAmount,
-        uint256 sourceChainId
+        IERC20 paymentToken,
+        Call[] calldata calls
     ) external nonReentrant notPaused {
         // Must be executed on the destination chain
         require(route.toChainId == block.chainid, "UAM: wrong chain");
@@ -284,31 +276,42 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             .createUniversalAddress(route);
         address universalAddress = address(intentContract);
 
-        uint256 tokensLength = sweepTokens.length;
-        require(tokensLength > 0, "UAM: no sweep tokens");
-
         // Pull specified token balances from the UA vault into the executor.
-        for (uint256 i = 0; i < tokensLength; ++i) {
-            IERC20 tkn = sweepTokens[i];
-            uint256 bal = TokenUtils.getBalanceOf({
-                token: tkn,
-                addr: universalAddress
+        uint256 bal = TokenUtils.getBalanceOf({
+            token: paymentToken,
+            addr: universalAddress
+        });
+        if (bal > 0) {
+            intentContract.sendAmount({
+                route: route,
+                tokenAmount: TokenAmount({token: paymentToken, amount: bal}),
+                recipient: payable(address(executor))
             });
-            if (bal > 0) {
-                intentContract.sendAmount({
-                    route: route,
-                    tokenAmount: TokenAmount({token: tkn, amount: bal}),
-                    recipient: payable(address(executor))
-                });
-            }
         }
 
         // Execute optional swap logic so that we end up with route.toToken.
-        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
-        expectedOutput[0] = TokenAmount({
-            token: route.toToken,
-            amount: minToAmount
+        // Calculate minimum expected output in route.toToken units. We assume
+        // stable-coins are roughly pegged 1:1, so we simply scale balances to
+        // the destination token’s decimals.
+        uint256 minToAmount = 0;
+        uint8 destDecimals = IERC20Metadata(address(route.toToken)).decimals();
+        uint256 bal2 = TokenUtils.getBalanceOf({
+            token: paymentToken,
+            addr: address(executor)
         });
+        if (paymentToken == route.toToken) {
+            minToAmount += bal2;
+        } else if (bal2 > 0) {
+            uint8 srcDec = IERC20Metadata(address(paymentToken)).decimals();
+            if (srcDec >= destDecimals) {
+                minToAmount += bal2 * (10 ** (srcDec - destDecimals));
+            } else {
+                minToAmount += bal2 / (10 ** (destDecimals - srcDec));
+            }
+        }
+
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = TokenAmount({token: route.toToken, amount: minToAmount});
         executor.execute({
             calls: calls,
             expectedOutput: expectedOutput,
@@ -319,28 +322,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         uint256 toAmount = route.toToken.balanceOf(address(this));
         require(toAmount >= minToAmount, "UAM: insufficient toToken");
 
-        // Deduct chain-specific fee (based on source chain) and pay caller.
-        uint256 fee = cfg.chainFee(sourceChainId);
-        require(toAmount > fee, "UAM: fee exceeds amount");
-        uint256 netAmount = toAmount - fee;
-
-        // Transfer net amount to final beneficiary.
+        // Transfer to final beneficiary.
         bool success = TokenUtils.tryTransfer({
             token: route.toToken,
             recipient: route.toAddress,
-            amount: netAmount
+            amount: toAmount
         });
 
-        // Pay execution fee to caller.
-        if (fee > 0) {
-            TokenUtils.transfer({
-                token: route.toToken,
-                recipient: payable(msg.sender),
-                amount: fee
-            });
-        }
-
-        // Refund any leftover balance to refundAddress.
+        // Refund any leftover balance to refund address.
         TokenUtils.transferBalance({
             token: route.toToken,
             recipient: payable(route.refundAddress)

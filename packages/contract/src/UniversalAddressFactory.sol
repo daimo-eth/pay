@@ -13,7 +13,10 @@ contract UniversalAddressFactory {
     /// Singleton implementation that all minimal proxies delegate to.
     UniversalAddress public immutable universalAddressImpl;
 
-    event UniversalAddressDeployed(address indexed universalAddress, UniversalAddressRoute route);
+    event UniversalAddressDeployed(
+        address indexed universalAddress,
+        UniversalAddressRoute route
+    );
 
     constructor() {
         universalAddressImpl = new UniversalAddress();

@@ -19,7 +19,9 @@ struct UniversalAddressRoute {
 }
 
 /// @notice Calculate the deterministic hash committed to by the Universal Address.
-function calcRouteHash(UniversalAddressRoute calldata route) pure returns (bytes32) {
+function calcRouteHash(
+    UniversalAddressRoute calldata route
+) pure returns (bytes32) {
     return keccak256(abi.encode(route));
 }
 

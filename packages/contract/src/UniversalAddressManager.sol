@@ -43,10 +43,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     SharedConfig public immutable cfg;
 
     /// Keys for SharedConfig
-    /// @dev Minimum amount of USDC required to start an intent.
-    bytes32 public constant MIN_START_USDC_KEY = keccak256("MIN_START_USDC");
-    /// @dev USDC decimals
-    bytes32 public constant USDC_DECIMALS_KEY = keccak256("USDC_DECIMALS");
+    /// @dev Minimum amount of the bridge-out token required to start an intent.
+    bytes32 public constant MIN_START_TOKEN_OUT_KEY =
+        keccak256("MIN_START_TOKEN_OUT");
+
+    /// @dev IMPORTANT: For this version of the protocol, all bridge-out tokens
+    ///      are assumed to have 6 decimals. This will be made configurable
+    ///      in a future release.
+    uint256 public constant TOKEN_OUT_DECIMALS = 6;
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -80,8 +84,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         address indexed receiverAddr,
         UniversalAddressRoute route
     );
-    event FastFinish(address indexed universalAddress, address indexed newRecipient);
-    event Claim(address indexed universalAddress, address indexed finalRecipient);
+    event FastFinish(
+        address indexed universalAddress,
+        address indexed newRecipient
+    );
+    event Claim(
+        address indexed universalAddress,
+        address indexed finalRecipient
+    );
     event IntentFinished(
         address indexed universalAddress,
         address destinationAddr,
@@ -129,10 +139,14 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         require(route.escrow == address(this), "UAM: wrong escrow");
 
         uint256 outAmount = bridgeTokenOut.amount;
-        require(outAmount >= cfg.num(MIN_START_USDC_KEY), "UAM: amount < min");
+        require(
+            outAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
+            "UAM: amount < min"
+        );
         require(outAmount >= cfg.chainFee(block.chainid), "UAM: amount < fee");
 
-        UniversalAddress intentContract = universalAddressFactory.createUniversalAddress(route);
+        UniversalAddress intentContract = universalAddressFactory
+            .createUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
             universalAddress: address(intentContract),
             relaySalt: relaySalt,
@@ -205,7 +219,8 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     ) external nonReentrant notPaused {
         require(route.escrow == address(this), "UAM: wrong escrow");
 
-        UniversalAddress intentContract = universalAddressFactory.createUniversalAddress(route);
+        UniversalAddress intentContract = universalAddressFactory
+            .createUniversalAddress(route);
         address universalAddress = address(intentContract);
 
         // Disallow refunding whitelisted coins
@@ -247,7 +262,9 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         require(route.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address universalAddress = universalAddressFactory.getUniversalAddress(route);
+        address universalAddress = universalAddressFactory.getUniversalAddress(
+            route
+        );
         bytes32 recvSalt = _receiverSalt({
             universalAddress: universalAddress,
             relaySalt: relaySalt,
@@ -279,7 +296,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             sourceChainId: sourceChainId
         });
 
-        emit FastFinish({universalAddress: universalAddress, newRecipient: msg.sender});
+        emit FastFinish({
+            universalAddress: universalAddress,
+            newRecipient: msg.sender
+        });
     }
 
     /// Complete after slow bridge lands
@@ -295,7 +315,9 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         require(route.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address universalAddress = universalAddressFactory.getUniversalAddress(route);
+        address universalAddress = universalAddressFactory.getUniversalAddress(
+            route
+        );
         // Pass in the relayer address as a parameter instead of msg.sender
         // to allow permissionless claims. This prevents funds from being
         // locked in the receiver contract.
@@ -359,7 +381,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             });
         }
 
-        emit Claim({universalAddress: universalAddress, finalRecipient: recipient});
+        emit Claim({
+            universalAddress: universalAddress,
+            finalRecipient: recipient
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -399,25 +424,23 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         IERC20 paymentToken,
         uint256 bridgeAmountOut
     ) internal view returns (TokenAmount memory) {
-        // Get USDC decimals from the shared config
-        uint256 usdcDecimals = cfg.num(USDC_DECIMALS_KEY);
-        require(usdcDecimals > 0, "UAM: no USDC decimals");
-
         // Get payment token decimals using IERC20Metadata
         uint256 paymentTokenDecimals = IERC20Metadata(address(paymentToken))
             .decimals();
 
-        // Convert bridgeAmountOut (USDC) to payment token amount
-        // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^usdcDecimals)
+        // Convert bridgeAmountOut to payment token amount.
+        // The amount is provided in the bridge-out token's base units, so we
+        // adjust for any decimal differences between it and the payment token.
+        // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^tokenOutDecimals)
         uint256 amount;
-        if (paymentTokenDecimals >= usdcDecimals) {
-            // Payment token has more or equal decimals than USDC
-            uint256 decimalDiff = paymentTokenDecimals - usdcDecimals;
+        if (paymentTokenDecimals >= TOKEN_OUT_DECIMALS) {
+            // Payment token has more or equal decimals than bridge-out token
+            uint256 decimalDiff = paymentTokenDecimals - TOKEN_OUT_DECIMALS;
             amount = bridgeAmountOut * (10 ** decimalDiff);
         } else {
-            // Payment token has fewer decimals than USDC
+            // Payment token has fewer decimals than bridge-out token
             // Use ceiling division to ensure we pull enough tokens
-            uint256 decimalDiff = usdcDecimals - paymentTokenDecimals;
+            uint256 decimalDiff = TOKEN_OUT_DECIMALS - paymentTokenDecimals;
             uint256 divisor = 10 ** decimalDiff;
             amount = (bridgeAmountOut + divisor - 1) / divisor;
         }

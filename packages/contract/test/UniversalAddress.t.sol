@@ -66,7 +66,6 @@ contract UniversalAddressTest is Test {
         cfg = new SharedConfig();
         cfg.initialize(address(this));
         cfg.setWhitelistedStable(address(usdc), true);
-        cfg.setNum(keccak256("USDC_DECIMALS"), 6);
 
         // Configure chain-specific fee for destination chain
         cfg.setChainFee(SRC_CHAIN_ID, SRC_FEE);
@@ -522,11 +521,11 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // startIntent below MIN_START_USDC should revert
+    // startIntent below MIN_START_TOKEN_OUT should revert
     // ---------------------------------------------------------------------
     function testStartIntent_BelowMinimum_Reverts() public {
         // Increase the minimum so that 100 USDC is below the threshold
-        bytes32 minKey = keccak256("MIN_START_USDC");
+        bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
         cfg.setNum(minKey, 150e6); // 150 USDC minimum
 
         vm.chainId(SRC_CHAIN_ID);
@@ -910,15 +909,15 @@ contract UniversalAddressTest is Test {
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
 
-        // Set minimum start USDC to 50 USDC
-        bytes32 minKey = keccak256("MIN_START_USDC");
+        // Set minimum start token out to 50 USDC
+        bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
         cfg.setNum(minKey, 50e6);
 
         // Transfer 51 USDC to manager (above 50 USDC threshold)
         vm.prank(ALICE);
         usdc.transfer(universalAddress, 51e6);
 
-        // This should fail because balance (51e6) >= MIN_START_USDC (50e6)
+        // This should fail because balance (51e6) >= MIN_START_TOKEN_OUT (50e6)
         vm.expectRevert(bytes("UAM: whitelisted"));
         mgr.refundIntent(route, usdc);
     }

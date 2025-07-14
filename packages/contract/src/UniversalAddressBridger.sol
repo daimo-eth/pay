@@ -51,7 +51,7 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
             toChainId: toChainId,
             bridgeTokenOut: bridgeTokenOut
-    });
+        });
         (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn(toChainId, opts);
     }
 

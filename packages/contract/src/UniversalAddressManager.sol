@@ -134,7 +134,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         UniversalAddress intentContract = universalAddressFactory.createUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: address(intentContract),
+            universalAddress: address(intentContract),
             relaySalt: relaySalt,
             relayer: msg.sender,
             bridgeAmountOut: outAmount,
@@ -249,7 +249,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         // Calculate salt for this bridge transfer.
         address universalAddress = universalAddressFactory.getUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: universalAddress,
+            universalAddress: universalAddress,
             relaySalt: relaySalt,
             relayer: msg.sender,
             bridgeAmountOut: bridgeTokenOut.amount,
@@ -300,7 +300,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         // to allow permissionless claims. This prevents funds from being
         // locked in the receiver contract.
         bytes32 recvSalt = _receiverSalt({
-            uaAddr: universalAddress,
+            universalAddress: universalAddress,
             relaySalt: relaySalt,
             relayer: relayer,
             bridgeAmountOut: bridgeTokenOut.amount,
@@ -367,7 +367,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     // ---------------------------------------------------------------------
 
     function _receiverSalt(
-        address uaAddr,
+        address universalAddress,
         bytes32 relaySalt,
         address relayer,
         uint256 bridgeAmountOut,
@@ -378,7 +378,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             keccak256(
                 abi.encodePacked(
                     "receiver",
-                    uaAddr,
+                    universalAddress,
                     relaySalt,
                     relayer,
                     bridgeAmountOut,

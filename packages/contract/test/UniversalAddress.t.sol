@@ -102,14 +102,14 @@ contract UniversalAddressTest is Test {
     }
 
     function _receiverSalt(
-        address uaAddr,
+        address universalAddress,
         address relayer
     ) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
                     "receiver",
-                    uaAddr,
+                    universalAddress,
                     USER_SALT,
                     relayer,
                     AMOUNT,
@@ -299,8 +299,8 @@ contract UniversalAddressTest is Test {
 
         // Pre-place bridged funds at the deterministic BridgeReceiver address.
         UniversalAddressRoute memory route = _route();
-        address uaAddr = _universalAddress(route);
-        bytes32 salt = _receiverSalt(uaAddr, RELAYER);
+        address universalAddress = _universalAddress(route);
+        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE);

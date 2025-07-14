@@ -68,12 +68,6 @@ contract UniversalAddressTest is Test {
         intentFactory = new UniversalAddressFactory();
         bridger = new DummyUniversalBridger();
         mgr = new UniversalAddressManager(intentFactory, bridger, cfg);
-
-        // Approvals so mgr can pull funds when needed
-        vm.prank(ALICE);
-        usdc.approve(address(mgr), type(uint256).max);
-        vm.prank(RELAYER);
-        usdc.approve(address(mgr), type(uint256).max);
     }
 
     // ---------------------------------------------------------------------
@@ -213,9 +207,8 @@ contract UniversalAddressTest is Test {
             SRC_CHAIN_ID
         );
 
-        // Beneficiary should have received the funds minus fee
+        // Beneficiary should have received the funds
         assertEq(usdc.balanceOf(ALEX), AMOUNT);
-        // Relayer contract should retain the fee
         assertEq(usdc.balanceOf(address(relayerContract)), 0);
     }
 
@@ -288,7 +281,7 @@ contract UniversalAddressTest is Test {
             SRC_CHAIN_ID
         );
 
-        // Beneficiary should have already received the funds minus fee
+        // Beneficiary should have already received the funds
         assertEq(usdc.balanceOf(ALEX), AMOUNT);
         // Relayer paid the amount upfront
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal - AMOUNT);
@@ -310,7 +303,7 @@ contract UniversalAddressTest is Test {
             SRC_CHAIN_ID
         );
 
-        // Relayer balance should be restored plus fee
+        // Relayer balance should be restored
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
         // Beneficiary balance remains unchanged (no double-pay)
         assertEq(usdc.balanceOf(ALEX), AMOUNT);
@@ -324,11 +317,6 @@ contract UniversalAddressTest is Test {
         TestUSDC other = new TestUSDC();
         other.transfer(ALICE, 1_000e6);
 
-        // Give approvals so manager can pull funds
-        vm.prank(ALICE);
-        other.approve(address(mgr), type(uint256).max);
-
-        vm.chainId(SRC_CHAIN_ID);
         UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: other,
@@ -339,6 +327,7 @@ contract UniversalAddressTest is Test {
         address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice funds her UA vault with the un-whitelisted token
+        vm.chainId(SRC_CHAIN_ID);
         vm.prank(ALICE);
         other.transfer(universalAddress, AMOUNT);
 
@@ -556,8 +545,6 @@ contract UniversalAddressTest is Test {
         // Prefund the executor with the required USDT so checkBalance passes (exact amount)
         DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
         usdt.transfer(address(exec), AMOUNT);
-        // Approve manager to pull if it sees a deficit (should be none here)
-        usdt.approve(address(mgr), type(uint256).max);
 
         uint256 callerBalBefore = usdt.balanceOf(address(this));
 
@@ -585,10 +572,8 @@ contract UniversalAddressTest is Test {
         TestUSDC usdt = new TestUSDC();
         cfg.setWhitelistedStable(address(usdt), true);
 
-        // Fund relayer with plenty of USDT and approve manager for deficit pull
+        // Fund relayer with plenty of USDT
         usdt.transfer(RELAYER, 500_000e6);
-        vm.prank(RELAYER);
-        usdt.approve(address(mgr), type(uint256).max);
 
         // 1) Source chain – Alice starts an intent to receive USDT on dst chain
         vm.chainId(SRC_CHAIN_ID);
@@ -879,10 +864,8 @@ contract UniversalAddressTest is Test {
         ReentrantToken evil = new ReentrantToken(payable(address(mgr)));
         cfg.setWhitelistedStable(address(evil), true);
 
-        // Give Alice plenty of the token & approve manager
+        // Give Alice plenty of the token
         evil.transfer(ALICE, 1_000_000e6);
-        vm.prank(ALICE);
-        evil.approve(address(mgr), type(uint256).max);
 
         vm.chainId(SRC_CHAIN_ID);
         UniversalAddressRoute memory route = UniversalAddressRoute({
@@ -911,10 +894,159 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // Same-chain intent can be completed
+    // Finishing a same-chain intent with a non-whitelisted token should revert
     // ---------------------------------------------------------------------
-    function testSameChainIntent_NoFastFinish() public {
-        // TODO
+    function testSameChainIntent_NonWhitelistedToken_Reverts() public {
+        // Deploy a second USDC-like token that is NOT whitelisted in cfg
+        TestUSDC other = new TestUSDC();
+        other.transfer(ALICE, 1_000e6);
+
+        UniversalAddressRoute memory route = UniversalAddressRoute({
+            toChainId: DST_CHAIN_ID,
+            toToken: other,
+            toAddress: ALEX,
+            refundAddress: ALICE,
+            escrow: address(mgr)
+        });
+        address universalAddress = intentFactory.getUniversalAddress(route);
+
+        // Alice funds her UA vault with the un-whitelisted token
+        vm.chainId(DST_CHAIN_ID);
+        vm.prank(ALICE);
+        other.transfer(universalAddress, AMOUNT);
+
+        // Expect revert because token is not whitelisted
+        vm.prank(RELAYER);
+        vm.expectRevert(bytes("UAM: whitelist"));
+        mgr.sameChainFinishIntent(route, other, AMOUNT, new Call[](0));
+    }
+
+    // ---------------------------------------------------------------------
+    // Same-chain intent can be completed with no swap, using full UA balance
+    // ---------------------------------------------------------------------
+    function testSameChainIntent_NoSwap_FullBalance() public {
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // 1) Destination chain – Alice sends USDC to UA vault directly
+        vm.chainId(DST_CHAIN_ID);
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, AMOUNT);
+
+        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
+
+        // 2) Relayer finalises via sameChainFinishIntent.
+        vm.prank(RELAYER);
+        mgr.sameChainFinishIntent(route, usdc, AMOUNT, new Call[](0));
+
+        // 4) Assertions – beneficiary receives amount
+        assertEq(usdc.balanceOf(ALEX), AMOUNT);
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
+        // UA vault should now be empty on destination chain.
+        assertEq(usdc.balanceOf(universalAddress), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // Same-chain intent finish reverts if toAmount is less than min
+    // ---------------------------------------------------------------------
+    function testSameChainIntent_ToAmountLessThanMin_Reverts() public {
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // Set minimum start token out to 10 USDC
+        bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
+        cfg.setNum(minKey, 10e6);
+
+        // 1) Destination chain – Alice sends USDC to UA vault directly
+        vm.chainId(DST_CHAIN_ID);
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, AMOUNT);
+
+        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
+
+        // 2) Relayer finalises via sameChainFinishIntent.
+        vm.prank(RELAYER);
+        vm.expectRevert(bytes("UAM: amount < min"));
+        // 9 USDC is less than the minimum start token out of 10 USDC, so it should revert
+        mgr.sameChainFinishIntent(route, usdc, 9e6, new Call[](0));
+
+        // 4) Assertions – no changes to balances.
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
+        assertEq(usdc.balanceOf(universalAddress), AMOUNT);
+    }
+
+    // ---------------------------------------------------------------------
+    // Same-chain intent finish reverts if output less than toAmount
+    // ---------------------------------------------------------------------
+    function testSameChainIntent_OutputLessThanToAmount_Reverts() public {
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // 1) Destination chain – Alice sends USDC to UA vault directly
+        vm.chainId(DST_CHAIN_ID);
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, AMOUNT - 1);
+
+        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
+
+        // 2) Relayer finalises via sameChainFinishIntent.
+        vm.prank(RELAYER);
+        vm.expectRevert();
+        mgr.sameChainFinishIntent(route, usdc, AMOUNT, new Call[](0));
+
+        // 4) Assertions – no changes to balances.
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
+        assertEq(usdc.balanceOf(universalAddress), AMOUNT - 1);
+    }
+
+    // ---------------------------------------------------------------------
+    // Same-chain intent finish reverts if output less than toAmount
+    // ---------------------------------------------------------------------
+    function testSameChainIntent_PaymentTokenFewerDecimals() public {
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // Create a token with 2 decimals (fewer than USDC's 6)
+        TestToken2Decimals token2 = new TestToken2Decimals();
+        cfg.setWhitelistedStable(address(token2), true);
+
+        // toAmount: 1.234567 USDC = 1,234,567 units (6 decimals)
+        uint256 toAmount = 1234567;
+
+        // 1) Destination chain – Alice sends USDC to UA vault directly
+        vm.chainId(DST_CHAIN_ID);
+        // Fund UA vault with 2 token2
+        uint256 paymentAmount = 2e2;
+        token2.transfer(universalAddress, paymentAmount);
+
+        // 2) Relayer finalises via sameChainFinishIntent.
+        // Prefund executor with toAmount USDC to simulate swap
+        address executorAddr = address(mgr.executor());
+        vm.prank(ALICE);
+        usdc.transfer(executorAddr, toAmount);
+
+        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
+
+        vm.prank(RELAYER);
+        mgr.sameChainFinishIntent(route, token2, toAmount, new Call[](0));
+
+        // 4) Assertions – beneficiary receives amount
+        assertEq(usdc.balanceOf(ALEX), toAmount);
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
+        // Check that the correct amount was transferred to executor
+        // Expected: ceiling(1,234,567 / 10,000) = ceiling(123.4567) = 124 token2
+        uint256 expectedAmount = 124; // ceiling division result (raw units)
+        uint256 actualBalance = token2.balanceOf(executorAddr);
+        assertEq(
+            actualBalance,
+            expectedAmount,
+            "Should use ceiling division for fewer decimals"
+        );
+        // Check that the expected amount was pulled from the intent
+        assertEq(
+            token2.balanceOf(universalAddress),
+            paymentAmount - expectedAmount
+        );
     }
 
     // ---------------------------------------------------------------------
@@ -1067,9 +1199,9 @@ contract UniversalAddressTest is Test {
 
         // 3) Relayer finalises via sameChainFinishIntent.
         vm.prank(RELAYER);
-        mgr.sameChainFinishIntent(route, usdc, new Call[](0));
+        mgr.sameChainFinishIntent(route, usdc, AMOUNT, new Call[](0));
 
-        // 4) Assertions – beneficiary receives amount; relayer gets fee.
+        // 4) Assertions – beneficiary receives amount
         assertEq(usdc.balanceOf(ALEX), AMOUNT);
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
         // UA vault should now be empty on destination chain.

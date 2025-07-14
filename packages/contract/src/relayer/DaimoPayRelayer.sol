@@ -467,6 +467,7 @@ contract DaimoPayRelayer is AccessControl {
         IUniversalAddressManager manager,
         UniversalAddressRoute calldata route,
         IERC20 paymentToken,
+        uint256 toAmount,
         Call[] calldata calls,
         Call[] calldata postCalls
     ) public payable onlyRole(RELAYER_EOA_ROLE) {
@@ -476,7 +477,12 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        manager.sameChainFinishIntent(route, paymentToken, calls);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: paymentToken,
+            toAmount: toAmount,
+            calls: calls
+        });
 
         for (uint256 i = 0; i < postCalls.length; ++i) {
             Call calldata call = postCalls[i];

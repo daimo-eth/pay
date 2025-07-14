@@ -14,6 +14,13 @@ interface IUniversalAddressManager {
         IERC20 token
     ) external;
 
+    function sameChainFinishIntent(
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        uint256 toAmount,
+        Call[] calldata calls
+    ) external;
+
     function fastFinishIntent(
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
@@ -29,11 +36,5 @@ interface IUniversalAddressManager {
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         uint256 sourceChainId
-    ) external;
-
-    function sameChainFinishIntent(
-        UniversalAddressRoute calldata route,
-        IERC20 paymentToken,
-        Call[] calldata calls
     ) external;
 }

@@ -188,7 +188,11 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         // Send payment token to executor
         intentContract.sendAmount({
             route: route,
-            tokenAmount: _computeRequiredPaymentAmount(paymentToken, outAmount),
+            tokenAmount: _computeRequiredPaymentAmount({
+                paymentToken: paymentToken,
+                toTokenAmount: outAmount,
+                toTokenDecimals: TOKEN_OUT_DECIMALS
+            }),
             recipient: payable(address(executor))
         });
 
@@ -287,84 +291,45 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
     function sameChainFinishIntent(
         UniversalAddressRoute calldata route,
         IERC20 paymentToken,
+        uint256 toAmount,
         Call[] calldata calls
     ) external nonReentrant notPaused {
         // Must be executed on the destination chain
         require(route.toChainId == block.chainid, "UAM: wrong chain");
+        require(cfg.whitelistedStable(address(paymentToken)), "UAM: whitelist");
         require(route.escrow == address(this), "UAM: wrong escrow");
+        require(
+            toAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
+            "UAM: amount < min"
+        );
 
         // Deploy (or fetch) the Universal Address for this route.
         UniversalAddress intentContract = universalAddressFactory
             .createUniversalAddress(route);
         address universalAddress = address(intentContract);
 
-        // Pull specified token balances from the UA vault into the executor.
-        uint256 bal = TokenUtils.getBalanceOf({
-            token: paymentToken,
-            addr: universalAddress
-        });
-        if (bal > 0) {
-            intentContract.sendAmount({
-                route: route,
-                tokenAmount: TokenAmount({token: paymentToken, amount: bal}),
-                recipient: payable(address(executor))
+        // Compute the required amount of paymentToken to pay for the toAmount
+        TokenAmount
+            memory requiredPaymentAmount = _computeRequiredPaymentAmount({
+                paymentToken: paymentToken,
+                toTokenAmount: toAmount,
+                toTokenDecimals: IERC20Metadata(address(route.toToken))
+                    .decimals()
             });
-        }
 
-        // Execute optional swap logic so that we end up with route.toToken.
-        // Calculate minimum expected output in route.toToken units. We assume
-        // stable-coins are roughly pegged 1:1, so we simply scale balances to
-        // the destination token’s decimals.
-        uint256 minToAmount = 0;
-        uint8 destDecimals = IERC20Metadata(address(route.toToken)).decimals();
-        uint256 bal2 = TokenUtils.getBalanceOf({
-            token: paymentToken,
-            addr: address(executor)
-        });
-        if (paymentToken == route.toToken) {
-            minToAmount += bal2;
-        } else if (bal2 > 0) {
-            uint8 srcDec = IERC20Metadata(address(paymentToken)).decimals();
-            if (srcDec >= destDecimals) {
-                minToAmount += bal2 * (10 ** (srcDec - destDecimals));
-            } else {
-                minToAmount += bal2 / (10 ** (destDecimals - srcDec));
-            }
-        }
-
-        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
-        expectedOutput[0] = TokenAmount({
-            token: route.toToken,
-            amount: minToAmount
-        });
-        executor.execute({
-            calls: calls,
-            expectedOutput: expectedOutput,
-            recipient: payable(address(this)),
-            surplusRecipient: payable(msg.sender)
+        // Pull specified token balances from the UA vault into the executor.
+        intentContract.sendAmount({
+            route: route,
+            tokenAmount: requiredPaymentAmount,
+            recipient: payable(address(executor))
         });
 
-        uint256 toAmount = route.toToken.balanceOf(address(this));
-        require(toAmount >= minToAmount, "UAM: insufficient toToken");
-
-        // Transfer to final beneficiary.
-        bool success = TokenUtils.tryTransfer({
-            token: route.toToken,
-            recipient: route.toAddress,
-            amount: toAmount
-        });
-
-        // Refund any leftover balance to refund address.
-        TokenUtils.transferBalance({
-            token: route.toToken,
-            recipient: payable(route.refundAddress)
-        });
-
-        emit IntentFinished({
+        // Finish the intent and return any leftover tokens to the caller
+        _finishIntent({
             universalAddress: universalAddress,
-            destinationAddr: route.toAddress,
-            success: success,
-            route: route
+            route: route,
+            calls: calls,
+            toAmount: toAmount
         });
     }
 
@@ -480,7 +445,7 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
                 amount: bridgedAmount
             });
 
-            // Complete the intent and return any leftover tokens to the caller
+            // Finish the intent and return any leftover tokens to the caller
             _finishIntent({
                 universalAddress: universalAddress,
                 route: route,
@@ -533,29 +498,38 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
     }
 
+    /// @notice Computes the required amount of payment token needed to cover a specified target token amount.
+    /// @dev This function assumes the payment token and target token have equal value (1:1 ratio) but may have
+    ///      different decimal places. It performs decimal adjustment to ensure the correct amount is calculated.
+    ///      When the payment token has fewer decimals, ceiling division is used to prevent underpayment.
+    /// @param paymentToken The ERC20 token used for payment
+    /// @param toTokenAmount The target amount in the target token's base units
+    /// @param toTokenDecimals The number of decimal places for the target token
+    /// @return TokenAmount struct containing the payment token and the calculated required amount
     function _computeRequiredPaymentAmount(
         IERC20 paymentToken,
-        uint256 bridgeAmountOut
+        uint256 toTokenAmount,
+        uint256 toTokenDecimals
     ) internal view returns (TokenAmount memory) {
         // Get payment token decimals using IERC20Metadata
         uint256 paymentTokenDecimals = IERC20Metadata(address(paymentToken))
             .decimals();
 
-        // Convert bridgeAmountOut to payment token amount.
+        // Convert toTokenAmount to payment token amount.
         // The amount is provided in the bridge-out token's base units, so we
         // adjust for any decimal differences between it and the payment token.
-        // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^tokenOutDecimals)
+        // Formula: paymentTokenAmount = toTokenAmount * (10^paymentTokenDecimals) / (10^toTokenDecimals)
         uint256 amount;
-        if (paymentTokenDecimals >= TOKEN_OUT_DECIMALS) {
-            // Payment token has more or equal decimals than bridge-out token
-            uint256 decimalDiff = paymentTokenDecimals - TOKEN_OUT_DECIMALS;
-            amount = bridgeAmountOut * (10 ** decimalDiff);
+        if (paymentTokenDecimals >= toTokenDecimals) {
+            // Payment token has more or equal decimals than toToken
+            uint256 decimalDiff = paymentTokenDecimals - toTokenDecimals;
+            amount = toTokenAmount * (10 ** decimalDiff);
         } else {
-            // Payment token has fewer decimals than bridge-out token
+            // Payment token has fewer decimals than toToken
             // Use ceiling division to ensure we pull enough tokens
-            uint256 decimalDiff = TOKEN_OUT_DECIMALS - paymentTokenDecimals;
+            uint256 decimalDiff = toTokenDecimals - paymentTokenDecimals;
             uint256 divisor = 10 ** decimalDiff;
-            amount = (bridgeAmountOut + divisor - 1) / divisor;
+            amount = (toTokenAmount + divisor - 1) / divisor;
         }
         return TokenAmount({token: paymentToken, amount: amount});
     }

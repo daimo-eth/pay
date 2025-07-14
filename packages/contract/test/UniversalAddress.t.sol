@@ -1166,4 +1166,45 @@ contract UniversalAddressTest is Test {
         );
         assertTrue(mgr.saltUsed(salt));
     }
+
+    function testFinishVaultIntent() public {
+        // 1) Source chain – start the intent.
+        vm.chainId(SRC_CHAIN_ID);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // Alice funds her UA vault on source chain.
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, AMOUNT);
+
+        // Start the intent (no swap, same coin in/out).
+        TokenAmount memory bridgeOut = TokenAmount({
+            token: IERC20(address(usdc)),
+            amount: AMOUNT
+        });
+        vm.prank(RELAYER);
+        mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
+
+        // 2) Destination chain – tokens end up in UA vault directly (instead of BridgeReceiver).
+        vm.chainId(DST_CHAIN_ID);
+        // Transfer bridged funds directly to the UA address on the destination chain.
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, AMOUNT);
+
+        // Prepare sweepTokens array with USDC.
+        IERC20[] memory sweep = new IERC20[](1);
+        sweep[0] = IERC20(address(usdc));
+
+        uint256 relayerStartBal = usdc.balanceOf(RELAYER);
+
+        // 3) Relayer finalises via finishVaultIntent.
+        vm.prank(RELAYER);
+        mgr.finishVaultIntent(route, new Call[](0), sweep, AMOUNT, SRC_CHAIN_ID);
+
+        // 4) Assertions – beneficiary receives amount minus fee; relayer gets fee.
+        assertEq(usdc.balanceOf(ALEX), AMOUNT - SRC_FEE);
+        assertEq(usdc.balanceOf(RELAYER), relayerStartBal + SRC_FEE);
+        // UA vault should now be empty on destination chain.
+        assertEq(usdc.balanceOf(universalAddress), 0);
+    }
 }

@@ -248,6 +248,112 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     // Relayer & claim flows
     // ---------------------------------------------------------------------
 
+    /// @notice Complete an intent by sweeping funds that are already held by
+    ///         the Universal Address on the destination chain (e.g. tokens
+    ///         were bridged directly to the UA instead of the BridgeReceiver).
+    ///         The caller (typically a relayer) may provide optional swap
+    ///         calls so that the swept assets end up as `route.toToken`.
+    ///         Any surplus after delivering the required `toToken` amount is
+    ///         sent to the caller, and the caller also receives the standard
+    ///         chain-fee rebate.
+    ///
+    /// @param route            The UniversalAddressRoute for the intent.
+    /// @param calls            Arbitrary swap calls to be executed by the
+    ///                         executor. Can be empty when assets are already
+    ///                         `toToken`.
+    /// @param sweepTokens      List of tokens to pull from the UA vault.
+    /// @param minToAmount      Minimum amount of `toToken` that must be
+    ///                         delivered for the txn to succeed (slippage
+    ///                         guard).
+    /// @param sourceChainId    ID of the chain where the intent originated –
+    ///                         used for fee calculation (same semantics as
+    ///                         fastFinishIntent / claimIntent).
+    function finishVaultIntent(
+        UniversalAddressRoute calldata route,
+        Call[] calldata calls,
+        IERC20[] calldata sweepTokens,
+        uint256 minToAmount,
+        uint256 sourceChainId
+    ) external nonReentrant notPaused {
+        // Must be executed on the destination chain
+        require(route.toChainId == block.chainid, "UAM: wrong chain");
+        require(route.escrow == address(this), "UAM: wrong escrow");
+
+        // Deploy (or fetch) the Universal Address for this route.
+        UniversalAddress intentContract = universalAddressFactory
+            .createUniversalAddress(route);
+        address universalAddress = address(intentContract);
+
+        uint256 tokensLength = sweepTokens.length;
+        require(tokensLength > 0, "UAM: no sweep tokens");
+
+        // Pull specified token balances from the UA vault into the executor.
+        for (uint256 i = 0; i < tokensLength; ++i) {
+            IERC20 tkn = sweepTokens[i];
+            uint256 bal = TokenUtils.getBalanceOf({
+                token: tkn,
+                addr: universalAddress
+            });
+            if (bal > 0) {
+                intentContract.sendAmount({
+                    route: route,
+                    tokenAmount: TokenAmount({token: tkn, amount: bal}),
+                    recipient: payable(address(executor))
+                });
+            }
+        }
+
+        // Execute optional swap logic so that we end up with route.toToken.
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = TokenAmount({
+            token: route.toToken,
+            amount: minToAmount
+        });
+        executor.execute({
+            calls: calls,
+            expectedOutput: expectedOutput,
+            recipient: payable(address(this)),
+            surplusRecipient: payable(msg.sender)
+        });
+
+        uint256 toAmount = route.toToken.balanceOf(address(this));
+        require(toAmount >= minToAmount, "UAM: insufficient toToken");
+
+        // Deduct chain-specific fee (based on source chain) and pay caller.
+        uint256 fee = cfg.chainFee(sourceChainId);
+        require(toAmount > fee, "UAM: fee exceeds amount");
+        uint256 netAmount = toAmount - fee;
+
+        // Transfer net amount to final beneficiary.
+        bool success = TokenUtils.tryTransfer({
+            token: route.toToken,
+            recipient: route.toAddress,
+            amount: netAmount
+        });
+
+        // Pay execution fee to caller.
+        if (fee > 0) {
+            TokenUtils.transfer({
+                token: route.toToken,
+                recipient: payable(msg.sender),
+                amount: fee
+            });
+        }
+
+        // Refund any leftover balance to refundAddress.
+        TokenUtils.transferBalance({
+            token: route.toToken,
+            recipient: payable(route.refundAddress)
+        });
+
+        emit IntentFinished({
+            universalAddress: universalAddress,
+            destinationAddr: route.toAddress,
+            success: success,
+            route: route
+        });
+    }
+
     /// Relayer-only DESTINATION-chain function: deliver funds early and record filling.
     function fastFinishIntent(
         UniversalAddressRoute calldata route,

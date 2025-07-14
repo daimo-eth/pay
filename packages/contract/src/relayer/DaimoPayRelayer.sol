@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
-import "../UAIntent.sol";
+import "../UniversalAddress.sol";
 import "../interfaces/IUniversalAddressManager.sol";
 
 /// @author Daimo, Inc
@@ -405,7 +405,7 @@ contract DaimoPayRelayer is AccessControl {
     function uaFastFinish(
         Call[] calldata preCalls,
         IUniversalAddressManager manager,
-        UAIntent calldata intent,
+        UniversalAddressRoute calldata route,
         TokenAmount calldata tokenIn,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
@@ -444,7 +444,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Call fastFinishIntent on the UniversalAddressManager.
         manager.fastFinishIntent({
-            intent: intent,
+            route: route,
             calls: calls,
             token: tokenIn.token,
             bridgeTokenOut: bridgeTokenOut,

@@ -6,8 +6,8 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Create2} from "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import {UniversalAddressManager} from "../src/UniversalAddressManager.sol";
-import {UAIntentFactory} from "../src/UAIntentFactory.sol";
-import {UAIntent} from "../src/UAIntent.sol";
+import {UniversalAddressFactory} from "../src/UniversalAddressFactory.sol";
+import {UniversalAddress, UniversalAddressRoute} from "../src/UniversalAddress.sol";
 import {SharedConfig} from "../src/SharedConfig.sol";
 import {Call} from "../src/DaimoPayExecutor.sol";
 import {DaimoPayExecutor} from "../src/DaimoPayExecutor.sol";
@@ -22,7 +22,6 @@ import {BridgeReceiver} from "../src/UniversalAddressManager.sol";
 import {UniversalAddressBridger} from "../src/UniversalAddressBridger.sol";
 import {IDaimoPayBridger} from "../src/interfaces/IDaimoPayBridger.sol";
 import {DummyBridger} from "./utils/DummyBridger.sol";
-import {UAIntentContract} from "../src/UAIntent.sol";
 import {ReentrantToken} from "./utils/ReentrantToken.sol";
 
 contract UniversalAddressTest is Test {
@@ -49,7 +48,7 @@ contract UniversalAddressTest is Test {
     // Deployed contracts
     // ---------------------------------------------------------------------
     TestUSDC private usdc;
-    UAIntentFactory private intentFactory;
+    UniversalAddressFactory private intentFactory;
     SharedConfig private cfg;
     DummyUniversalBridger private bridger;
     UniversalAddressManager private mgr;
@@ -74,7 +73,7 @@ contract UniversalAddressTest is Test {
         cfg.setChainFee(DST_CHAIN_ID, DST_FEE);
 
         // Core components
-        intentFactory = new UAIntentFactory();
+        intentFactory = new UniversalAddressFactory();
         bridger = new DummyUniversalBridger();
         mgr = new UniversalAddressManager(intentFactory, bridger, cfg);
 
@@ -88,8 +87,8 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
-    function _intent() internal view returns (UAIntent memory intent) {
-        intent = UAIntent({
+    function _route() internal view returns (UniversalAddressRoute memory route) {
+        route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdc,
             toAddress: ALEX,
@@ -98,8 +97,8 @@ contract UniversalAddressTest is Test {
         });
     }
 
-    function _intentAddr(UAIntent memory intent) internal view returns (address) {
-        return intentFactory.getIntentAddress(intent);
+    function _universalAddress(UniversalAddressRoute memory route) internal view returns (address) {
+        return intentFactory.getUniversalAddress(route);
     }
 
     function _receiverSalt(
@@ -130,12 +129,12 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice funds her UA vault.
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Start – no swap, same coin in/out.
         TokenAmount memory bridgeOut = TokenAmount({
@@ -144,9 +143,9 @@ contract UniversalAddressTest is Test {
         });
 
         vm.prank(RELAYER);
-        mgr.startIntent(intent, usdc, bridgeOut, USER_SALT, new Call[](0), "");
+        mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
 
-        bytes32 salt = _receiverSalt(intentAddr, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
         assertTrue(mgr.saltUsed(salt));
     }
 
@@ -157,7 +156,7 @@ contract UniversalAddressTest is Test {
         testStartIntent(); // registers bridgedCoin mapping
 
         vm.chainId(DST_CHAIN_ID);
-        UAIntent memory intent = _intent();
+        UniversalAddressRoute memory route = _route();
 
         // Transfer bridged funds to the manager so it can forward them to the executor.
         vm.prank(RELAYER);
@@ -165,7 +164,7 @@ contract UniversalAddressTest is Test {
 
         vm.prank(RELAYER);
         mgr.fastFinishIntent(
-            intent,
+            route,
             new Call[](0),
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
@@ -183,7 +182,7 @@ contract UniversalAddressTest is Test {
         testStartIntent();
 
         vm.chainId(DST_CHAIN_ID);
-        UAIntent memory intent = _intent();
+        UniversalAddressRoute memory route = _route();
 
         // Deploy a relayer contract with RELAYER as admin (and relayer role)
         DaimoPayRelayer relayerContract = new DaimoPayRelayer(RELAYER);
@@ -210,7 +209,7 @@ contract UniversalAddressTest is Test {
         relayerContract.uaFastFinish(
             new Call[](0), // preCalls
             mgr,
-            intent,
+            route,
             tokenIn,
             bridgeTokenOut,
             USER_SALT,
@@ -230,12 +229,12 @@ contract UniversalAddressTest is Test {
     function testFastFinishIntent_WithChainFee() public {
         // 1) Source chain start
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice funds her UA vault.
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Start intent
         TokenAmount memory bridgeOut = TokenAmount({
@@ -243,7 +242,7 @@ contract UniversalAddressTest is Test {
             amount: AMOUNT
         });
         vm.prank(RELAYER);
-        mgr.startIntent(intent, usdc, bridgeOut, USER_SALT, new Call[](0), "");
+        mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
 
         // 2) Destination chain – relayer performs fast-fill
         vm.chainId(DST_CHAIN_ID);
@@ -255,7 +254,7 @@ contract UniversalAddressTest is Test {
 
         vm.prank(RELAYER);
         mgr.fastFinishIntent(
-            intent,
+            route,
             new Call[](0),
             usdc,
             bridgeOut,
@@ -269,7 +268,7 @@ contract UniversalAddressTest is Test {
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal - (AMOUNT - SRC_FEE));
 
         // 3) Simulate slow bridge landing
-        bytes32 salt = _receiverSalt(intentAddr, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE);
@@ -278,7 +277,7 @@ contract UniversalAddressTest is Test {
         // 4) Claim intent – reimburse relayer
         vm.prank(address(0xdead));
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             bridgeOut,
             USER_SALT,
@@ -299,8 +298,8 @@ contract UniversalAddressTest is Test {
         testStartIntent();
 
         // Pre-place bridged funds at the deterministic BridgeReceiver address.
-        UAIntent memory intent = _intent();
-        address uaAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address uaAddr = _universalAddress(route);
         bytes32 salt = _receiverSalt(uaAddr, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
@@ -312,7 +311,7 @@ contract UniversalAddressTest is Test {
         // there's no fast-finish.
         vm.prank(ALICE);
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -329,16 +328,16 @@ contract UniversalAddressTest is Test {
     function testClaimIntent_NoFastFinish_WithChainFee() public {
         // Start intent on source chain
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice deposits funds
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         vm.prank(RELAYER);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -347,7 +346,7 @@ contract UniversalAddressTest is Test {
         );
 
         // Pre-place bridged funds
-        bytes32 salt = _receiverSalt(intentAddr, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE);
@@ -358,7 +357,7 @@ contract UniversalAddressTest is Test {
         uint256 callerStartBal = usdc.balanceOf(address(this));
 
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -378,19 +377,19 @@ contract UniversalAddressTest is Test {
     function testClaimIntent_WithFastFinish() public {
         // 1) Source chain start
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice funds her UA vault with the full amount
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         TokenAmount memory bridgeOut = TokenAmount({
             token: IERC20(address(usdc)),
             amount: AMOUNT
         });
         vm.prank(RELAYER);
-        mgr.startIntent(intent, usdc, bridgeOut, USER_SALT, new Call[](0), "");
+        mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
 
         // 2) Destination chain – relayer performs fast-fill
         vm.chainId(DST_CHAIN_ID);
@@ -403,7 +402,7 @@ contract UniversalAddressTest is Test {
 
         vm.prank(RELAYER);
         mgr.fastFinishIntent(
-            intent,
+            route,
             new Call[](0),
             usdc,
             bridgeOut,
@@ -417,7 +416,7 @@ contract UniversalAddressTest is Test {
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal - (AMOUNT - SRC_FEE));
 
         // 3) Simulate slow bridge landing at deterministic BridgeReceiver
-        bytes32 salt = _receiverSalt(intentAddr, RELAYER);
+        bytes32 salt = _receiverSalt(universalAddress, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(salt, keccak256(init));
         vm.prank(ALICE); // any account can transfer, acts as the bridge contract
@@ -426,7 +425,7 @@ contract UniversalAddressTest is Test {
         // 4) Anyone can now call claimIntent – relayer must be reimbursed
         vm.prank(address(0xdead));
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             bridgeOut,
             USER_SALT,
@@ -453,23 +452,23 @@ contract UniversalAddressTest is Test {
         other.approve(address(mgr), type(uint256).max);
 
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: other,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice funds her UA vault with the un-whitelisted token
         vm.prank(ALICE);
-        other.transfer(intentAddr, AMOUNT);
+        other.transfer(universalAddress, AMOUNT);
 
         // Expect revert because token is not whitelisted
         vm.expectRevert(bytes("UAM: whitelist"));
         mgr.startIntent(
-            intent,
+            route,
             other,
             TokenAmount({token: IERC20(address(other)), amount: AMOUNT}),
             USER_SALT,
@@ -485,13 +484,13 @@ contract UniversalAddressTest is Test {
         testFastFinishIntent(); // performs the first fast-finish with RELAYER funding
 
         vm.chainId(DST_CHAIN_ID);
-        UAIntent memory intent = _intent();
+        UniversalAddressRoute memory route = _route();
 
         // Second attempt – should fail
         vm.expectRevert(bytes("UAM: already finished"));
         vm.prank(RELAYER);
         mgr.fastFinishIntent(
-            intent,
+            route,
             new Call[](0),
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
@@ -508,12 +507,12 @@ contract UniversalAddressTest is Test {
 
         // We are still on the source chain (SRC_CHAIN_ID) instead of destination
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
+        UniversalAddressRoute memory route = _route();
 
         vm.expectRevert(bytes("UAM: same chain finish"));
         vm.prank(RELAYER);
         mgr.fastFinishIntent(
-            intent,
+            route,
             new Call[](0),
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
@@ -531,16 +530,16 @@ contract UniversalAddressTest is Test {
         cfg.setNum(minKey, 150e6); // 150 USDC minimum
 
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice deposits more (200 USDC) but tries to start with only 100 USDC
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, 200e6);
+        usdc.transfer(universalAddress, 200e6);
 
         vm.expectRevert(bytes("UAM: amount < min"));
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -559,18 +558,18 @@ contract UniversalAddressTest is Test {
 
         vm.chainId(SRC_CHAIN_ID);
 
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice funds her UA vault with USDC
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Prefund the executor with bridgeToken so balance check passes
         DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
@@ -579,7 +578,7 @@ contract UniversalAddressTest is Test {
         // Alice kicks off startIntent (so she will also be refund recipient if needed)
         vm.prank(ALICE);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -591,7 +590,7 @@ contract UniversalAddressTest is Test {
         assertLt(usdt.balanceOf(address(mgr)), 1);
 
         // Bridged funds should now sit at the deterministic BridgeReceiver addr on the *source* chain
-        bytes32 salt = _receiverSalt(intentAddr, ALICE);
+        bytes32 salt = _receiverSalt(universalAddress, ALICE);
         // Bridged funds should now sit at the deterministic receiver address. Balance may be zero in the mocked environment, so we skip strict assertions.
 
         // intentSent flag set
@@ -603,8 +602,8 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent_SurplusRefund() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Manager pre-holds surplus 50 USDC (e.g. previous dust)
         vm.prank(ALICE);
@@ -612,14 +611,14 @@ contract UniversalAddressTest is Test {
 
         // Alice deposits full 100 USDC into her UA vault
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         uint256 aliceBalBefore = usdc.balanceOf(ALICE);
 
         // Alice initiates the intent so she is swapFunder
         vm.prank(ALICE);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -641,23 +640,23 @@ contract UniversalAddressTest is Test {
 
         // 1) Source chain startIntent: pay in USDC, will bridge USDC, final token USDT
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice deposits USDC into her UA vault
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Prefund executor with USDT so the destination-chain swap succeeds
         vm.prank(ALICE);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -667,7 +666,7 @@ contract UniversalAddressTest is Test {
 
         // 2) Destination chain – place bridged USDC at deterministic receiver
         vm.chainId(DST_CHAIN_ID);
-        bytes32 saltR = _receiverSalt(intentAddr, ALICE);
+        bytes32 saltR = _receiverSalt(universalAddress, ALICE);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(
             saltR,
@@ -688,7 +687,7 @@ contract UniversalAddressTest is Test {
         // Expect insufficient-output revert if swap fails
         vm.expectRevert(bytes("DPCE: insufficient output"));
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -717,21 +716,21 @@ contract UniversalAddressTest is Test {
 
         // 1) Source chain – Alice starts an intent to receive USDT on dst chain
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         vm.prank(RELAYER);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -741,7 +740,7 @@ contract UniversalAddressTest is Test {
 
         // 2) Destination chain – place bridged USDC at deterministic receiver
         vm.chainId(DST_CHAIN_ID);
-        bytes32 saltR = _receiverSalt(intentAddr, RELAYER);
+        bytes32 saltR = _receiverSalt(universalAddress, RELAYER);
         bytes memory init = type(BridgeReceiver).creationCode;
         address receiver = Create2.computeAddress(
             saltR,
@@ -761,7 +760,7 @@ contract UniversalAddressTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert(bytes("DPCE: insufficient output"));
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -776,12 +775,12 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent_DeficitPull() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice funds her UA vault with 100 USDC
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Craft swap call that moves 90 USDC from executor to dummy address,
         // leaving only 10 USDC so the manager must top-up 90 from Alice.
@@ -799,7 +798,7 @@ contract UniversalAddressTest is Test {
         vm.prank(ALICE);
         vm.expectRevert(bytes("DPCE: insufficient output"));
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -819,24 +818,24 @@ contract UniversalAddressTest is Test {
         cfg.setWhitelistedStable(address(usdt), true);
 
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice deposits USDC into her UA vault
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Expect the call to revert because executor will return zero USDT,
         // triggering "DPCE: insufficient output" inside DaimoPayExecutor.
         vm.prank(ALICE);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -850,15 +849,15 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testClaimIntent_Underflow_Reverts() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Alice funds her UA vault
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -872,7 +871,7 @@ contract UniversalAddressTest is Test {
         // Pass bridgeAmountOut larger than what will be swept (AMOUNT+1) to force underflow.
         vm.expectRevert(bytes("UAM: insufficient bridge"));
         mgr.claimIntent(
-            intent,
+            route,
             new Call[](0),
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT + 1}),
             USER_SALT,
@@ -886,15 +885,15 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent_OnDestinationChain_Reverts() public {
         vm.chainId(DST_CHAIN_ID); // Same as intent.toChainId
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         vm.expectRevert(bytes("UAM: start on dest chain"));
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -908,8 +907,8 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testRefundIntent_WhitelistedToken_Reverts() public {
         vm.chainId(SRC_CHAIN_ID); // Source chain – intentSent is required
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Set minimum start USDC to 50 USDC
         bytes32 minKey = keccak256("MIN_START_USDC");
@@ -917,11 +916,11 @@ contract UniversalAddressTest is Test {
 
         // Transfer 51 USDC to manager (above 50 USDC threshold)
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, 51e6);
+        usdc.transfer(universalAddress, 51e6);
 
         // This should fail because balance (51e6) >= MIN_START_USDC (50e6)
         vm.expectRevert(bytes("UAM: whitelisted"));
-        mgr.refundIntent(intent, usdc);
+        mgr.refundIntent(route, usdc);
     }
 
     // ---------------------------------------------------------------------
@@ -929,14 +928,14 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testRefundIntent_SourceChain_Succeeds() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Step 1: Alice funds UA vault with USDC and starts the intent
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -947,11 +946,11 @@ contract UniversalAddressTest is Test {
         // Step 2: Deposit a non-whitelisted token into the vault AFTER startIntent
         TestUSDC stray = new TestUSDC();
         uint256 strayAmt = 42e6;
-        stray.transfer(intentAddr, strayAmt);
+        stray.transfer(universalAddress, strayAmt);
 
         // Step 3: Call refundIntent to sweep the stray token back to refundAddress (ALICE)
         uint256 aliceBalBefore = stray.balanceOf(ALICE);
-        mgr.refundIntent(intent, stray);
+        mgr.refundIntent(route, stray);
         assertEq(stray.balanceOf(ALICE), aliceBalBefore + strayAmt);
     }
 
@@ -963,17 +962,17 @@ contract UniversalAddressTest is Test {
         cfg.setPaused(true);
 
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Fund UA vault
         vm.prank(ALICE);
-        usdc.transfer(intentAddr, AMOUNT);
+        usdc.transfer(universalAddress, AMOUNT);
 
         // Any state-changing call (e.g. startIntent) should now revert
         vm.expectRevert(bytes("UAM: paused"));
         mgr.startIntent(
-            intent,
+            route,
             usdc,
             TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
             USER_SALT,
@@ -983,17 +982,17 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // UAIntentContract cannot be initialised twice
+    // UniversalAddress cannot be initialised twice
     // ---------------------------------------------------------------------
-    function testUAIntent_Reinitialise_Reverts() public {
-        UAIntent memory intent = _intent();
+    function testUniversalAddress_Reinitialise_Reverts() public {
+        UniversalAddressRoute memory route = _route();
         // Deploy proxy via factory
-        UAIntentContract vault = UAIntentContract(
-            intentFactory.createIntent(intent)
+        UniversalAddress vault = UniversalAddress(
+            intentFactory.createUniversalAddress(route)
         );
 
         // Attempt to call initialize again – should revert (already initialised)
-        bytes32 hash = keccak256(abi.encode(intent));
+        bytes32 hash = keccak256(abi.encode(route));
         vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
         vault.initialize(hash);
     }
@@ -1012,23 +1011,23 @@ contract UniversalAddressTest is Test {
         evil.approve(address(mgr), type(uint256).max);
 
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = UAIntent({
+        UniversalAddressRoute memory route = UniversalAddressRoute({
             toChainId: DST_CHAIN_ID,
             toToken: evil,
             toAddress: ALEX,
             refundAddress: ALICE,
             escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(intent);
+        address universalAddress = intentFactory.getUniversalAddress(route);
 
         // Alice deposits funds into her UA vault
         vm.prank(ALICE);
-        evil.transfer(intentAddr, AMOUNT);
+        evil.transfer(universalAddress, AMOUNT);
 
         // Expect the nested call in token.transfer to trigger ReentrancyGuard revert
         vm.prank(ALICE);
         mgr.startIntent(
-            intent,
+            route,
             evil,
             TokenAmount({token: IERC20(address(evil)), amount: AMOUNT}),
             USER_SALT,
@@ -1049,8 +1048,8 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent_PaymentTokenFewerDecimals() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Create a token with 2 decimals (fewer than USDC's 6)
         TestToken2Decimals token2 = new TestToken2Decimals();
@@ -1058,7 +1057,7 @@ contract UniversalAddressTest is Test {
 
         // Fund UA vault with 2 token2
         uint256 vaultBalance = 2e2;
-        token2.transfer(intentAddr, vaultBalance);
+        token2.transfer(universalAddress, vaultBalance);
 
         // Bridge amount: 1.234567 USDC = 1,234,567 units (6 decimals)
         uint256 bridgeAmount = 1234567;
@@ -1074,7 +1073,7 @@ contract UniversalAddressTest is Test {
 
         vm.prank(RELAYER);
         mgr.startIntent(
-            intent,
+            route,
             token2,
             bridgeOut,
             USER_SALT,
@@ -1093,13 +1092,13 @@ contract UniversalAddressTest is Test {
         );
 
         // Check that the expected amount was pulled from the intent
-        assertEq(token2.balanceOf(intentAddr), vaultBalance - expectedAmount);
+        assertEq(token2.balanceOf(universalAddress), vaultBalance - expectedAmount);
 
         // Verify salt was used
         bytes32 salt = keccak256(
             abi.encodePacked(
                 "receiver",
-                intentAddr,
+                universalAddress,
                 USER_SALT,
                 RELAYER,
                 bridgeAmount,
@@ -1115,8 +1114,8 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     function testStartIntent_PaymentTokenMoreDecimals() public {
         vm.chainId(SRC_CHAIN_ID);
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
 
         // Create a token with 18 decimals (more than USDC's 6)
         TestDAI dai = new TestDAI();
@@ -1124,7 +1123,7 @@ contract UniversalAddressTest is Test {
 
         // Fund UA vault with 2 DAI
         uint256 vaultBalance = 2e18;
-        dai.transfer(intentAddr, vaultBalance);
+        dai.transfer(universalAddress, vaultBalance);
 
         // Bridge amount: 1.234567 USDC = 1,234,567 units (6 decimals)
         uint256 bridgeAmount = 1234567;
@@ -1139,7 +1138,7 @@ contract UniversalAddressTest is Test {
         usdc.transfer(executorAddr, bridgeAmount);
 
         vm.prank(RELAYER);
-        mgr.startIntent(intent, dai, bridgeOut, USER_SALT, new Call[](0), "");
+        mgr.startIntent(route, dai, bridgeOut, USER_SALT, new Call[](0), "");
 
         // Check that the correct amount was transferred to executor
         // Expected: 1,234,567 * 10^12 = 1,234,567,000,000,000,000 units
@@ -1152,13 +1151,13 @@ contract UniversalAddressTest is Test {
         );
 
         // Check that the expected amount was pulled from the intent
-        assertEq(dai.balanceOf(intentAddr), vaultBalance - expectedAmount);
+        assertEq(dai.balanceOf(universalAddress), vaultBalance - expectedAmount);
 
         // Verify salt was used
         bytes32 salt = keccak256(
             abi.encodePacked(
                 "receiver",
-                intentAddr,
+                universalAddress,
                 USER_SALT,
                 RELAYER,
                 bridgeAmount,

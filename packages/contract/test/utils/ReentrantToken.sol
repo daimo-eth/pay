@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import {UniversalAddressManager} from "../../src/UniversalAddressManager.sol";
-import {UAIntent} from "../../src/UAIntent.sol";
+import {UniversalAddressRoute} from "../../src/UniversalAddress.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /// @notice ERC-20 that attempts to re-enter a UniversalAddressManager call
@@ -31,7 +31,7 @@ contract ReentrantToken is ERC20 {
             inAttack = true;
             // Craft dummy intent (all zeros) – will immediately fail due to
             // ReentrancyGuard before any deeper logic executes.
-            UAIntent memory dummy;
+            UniversalAddressRoute memory dummy;
             // We expect this to revert; propagate the revert to the caller so
             // the test can detect the ReentrancyGuard message.
             mgr.refundIntent(dummy, IERC20(address(0)));

@@ -91,8 +91,8 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     event IntentRefunded(
         address indexed intentAddr,
         address refundAddr,
-        IERC20[] tokens,
-        uint256[] amounts,
+        IERC20 token,
+        uint256 amount,
         UAIntent intent
     );
 
@@ -125,28 +125,19 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         bytes calldata bridgeExtraData
     ) external nonReentrant notPaused {
         require(block.chainid != intent.toChainId, "UAM: start on dest chain");
-        require(
-            cfg.whitelistedStable(address(paymentToken)),
-            "UAM: token not whitelisted"
-        );
-        require(
-            bridgeTokenOut.amount >= cfg.num(MIN_START_USDC_KEY),
-            "UAM: amount below min"
-        );
-        require(
-            bridgeTokenOut.amount >= cfg.chainFee(block.chainid),
-            "UAM: amount below fee"
-        );
+        require(cfg.whitelistedStable(address(paymentToken)), "UAM: whitelist");
+        require(intent.escrow == address(this), "UAM: wrong escrow");
 
-        UAIntentContract intentContract = intentFactory.createIntent(
-            intent,
-            address(this)
-        );
+        uint256 outAmount = bridgeTokenOut.amount;
+        require(outAmount >= cfg.num(MIN_START_USDC_KEY), "UAM: amount < min");
+        require(outAmount >= cfg.chainFee(block.chainid), "UAM: amount < fee");
+
+        UAIntentContract intentContract = intentFactory.createIntent(intent);
         bytes32 recvSalt = _receiverSalt({
             uaAddr: address(intentContract),
             relaySalt: relaySalt,
             relayer: msg.sender,
-            bridgeAmountOut: bridgeTokenOut.amount,
+            bridgeAmountOut: outAmount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: block.chainid
         });
@@ -161,13 +152,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         // Send payment token to executor
         intentContract.sendAmount({
             intent: intent,
-            tokenAmount: TokenAmount({
-                token: paymentToken,
-                amount: _computeRequiredPaymentAmount(
-                    paymentToken,
-                    bridgeTokenOut.amount
-                )
-            }),
+            tokenAmount: _computeRequiredPaymentAmount(paymentToken, outAmount),
             recipient: payable(address(executor))
         });
 
@@ -213,40 +198,35 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         });
     }
 
-    /// @notice Refund stray or double-paid tokens.
+    /// @notice Refund unsupported tokens.
     function refundIntent(
         UAIntent calldata intent,
-        IERC20[] calldata tokens
+        IERC20 token
     ) external nonReentrant notPaused {
-        UAIntentContract intentContract = intentFactory.createIntent(
-            intent,
-            address(this)
-        );
+        require(intent.escrow == address(this), "UAM: wrong escrow");
+
+        UAIntentContract intentContract = intentFactory.createIntent(intent);
         address intentAddr = address(intentContract);
 
-        // Disallow refunding whitelisted coins above the minimum bridge amount.
-        uint256 n = tokens.length;
-        for (uint256 i = 0; i < n; ++i) {
-            require(
-                !cfg.whitelistedStable(address(tokens[i])) ||
-                    tokens[i].balanceOf(address(intentAddr)) <
-                    cfg.num(MIN_START_USDC_KEY),
-                "UAM: refund balance not above min"
-            );
-        }
+        // Disallow refunding whitelisted coins
+        require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
 
-        uint256[] memory amounts = intentContract.sendBalances({
+        uint256 amount = TokenUtils.getBalanceOf(token, intentAddr);
+        require(amount > 0, "UAM: no balance");
+
+        intentContract.sendAmount({
             intent: intent,
-            tokens: tokens,
+            tokenAmount: TokenAmount({token: token, amount: amount}),
             recipient: payable(intent.refundAddress)
         });
-        emit IntentRefunded(
-            intentAddr,
-            intent.refundAddress,
-            tokens,
-            amounts,
-            intent
-        );
+
+        emit IntentRefunded({
+            intentAddr: intentAddr,
+            refundAddr: intent.refundAddress,
+            token: token,
+            amount: amount,
+            intent: intent
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -264,12 +244,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     ) external nonReentrant notPaused {
         require(sourceChainId != block.chainid, "UAM: same chain finish");
         require(intent.toChainId == block.chainid, "UAM: wrong chain");
+        require(intent.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(this)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
         bytes32 recvSalt = _receiverSalt({
             uaAddr: intentAddr,
             relaySalt: relaySalt,
@@ -314,12 +292,10 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         uint256 sourceChainId
     ) external nonReentrant notPaused {
         require(intent.toChainId == block.chainid, "UAM: wrong chain");
+        require(intent.escrow == address(this), "UAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(this)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
         // Pass in the relayer address as a parameter instead of msg.sender
         // to allow permissionless claims. This prevents funds from being
         // locked in the receiver contract.
@@ -422,7 +398,7 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     function _computeRequiredPaymentAmount(
         IERC20 paymentToken,
         uint256 bridgeAmountOut
-    ) internal view returns (uint256) {
+    ) internal view returns (TokenAmount memory) {
         // Get USDC decimals from the shared config
         uint256 usdcDecimals = cfg.num(USDC_DECIMALS_KEY);
         require(usdcDecimals > 0, "UAM: no USDC decimals");
@@ -433,17 +409,19 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
 
         // Convert bridgeAmountOut (USDC) to payment token amount
         // Formula: paymentTokenAmount = bridgeAmountOut * (10^paymentTokenDecimals) / (10^usdcDecimals)
+        uint256 amount;
         if (paymentTokenDecimals >= usdcDecimals) {
             // Payment token has more or equal decimals than USDC
             uint256 decimalDiff = paymentTokenDecimals - usdcDecimals;
-            return bridgeAmountOut * (10 ** decimalDiff);
+            amount = bridgeAmountOut * (10 ** decimalDiff);
         } else {
             // Payment token has fewer decimals than USDC
             // Use ceiling division to ensure we pull enough tokens
             uint256 decimalDiff = usdcDecimals - paymentTokenDecimals;
             uint256 divisor = 10 ** decimalDiff;
-            return (bridgeAmountOut + divisor - 1) / divisor;
+            amount = (bridgeAmountOut + divisor - 1) / divisor;
         }
+        return TokenAmount({token: paymentToken, amount: amount});
     }
 
     function _finishIntent(

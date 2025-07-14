@@ -47,23 +47,34 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount calldata bridgeTokenOut
-    ) external view returns (address bridgeTokenIn, uint256 inAmount) {
+    ) public view returns (address bridgeTokenIn, uint256 inAmount) {
+        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
+            toChainId: toChainId,
+            bridgeTokenOut: bridgeTokenOut
+    });
+        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn(toChainId, opts);
+    }
+
+    function _getAdapter(
+        uint256 toChainId,
+        TokenAmount calldata bridgeTokenOut
+    )
+        private
+        view
+        returns (IDaimoPayBridger adapter, TokenAmount[] memory opts)
+    {
         require(toChainId != block.chainid, "UAB: same chain");
 
-        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
+        adapter = chainIdToBridger[toChainId];
         require(address(adapter) != address(0), "UAB: unknown chain");
 
         // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
-        require(
-            address(bridgeTokenOut.token) == chainIdToStableOut[toChainId],
-            "UAB: token mismatch"
-        );
+        address tokOut = chainIdToStableOut[toChainId];
+        require(address(bridgeTokenOut.token) == tokOut, "UAB: token mismatch");
 
         // Build a single-element TokenAmount[] expected by the adapter
-        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts = new TokenAmount[](1);
         opts[0] = bridgeTokenOut;
-
-        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn(toChainId, opts);
     }
 
     // ---------------------------------------------------------------------
@@ -77,22 +88,11 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         TokenAmount calldata bridgeTokenOut,
         bytes calldata extraData
     ) external {
-        require(toChainId != block.chainid, "UAB: same chain");
-
-        IDaimoPayBridger adapter = chainIdToBridger[toChainId];
-        require(address(adapter) != address(0), "UAB: unknown chain");
-
-        // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
-        require(
-            address(bridgeTokenOut.token) == chainIdToStableOut[toChainId],
-            "UAB: token mismatch"
-        );
-
-        // Build a single-element TokenAmount[] expected by the adapter
-        TokenAmount[] memory opts = new TokenAmount[](1);
-        opts[0] = bridgeTokenOut;
-
         // Determine the required input asset and quantity for the requested bridge.
+        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
+            toChainId: toChainId,
+            bridgeTokenOut: bridgeTokenOut
+        });
         (address bridgeTokenIn, uint256 inAmount) = adapter.getBridgeTokenIn({
             toChainId: toChainId,
             bridgeTokenOutOptions: opts

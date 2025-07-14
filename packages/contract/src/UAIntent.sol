@@ -9,14 +9,15 @@ import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {Call} from "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
 
-/// @notice Parameters that uniquely identify a Universal-Address intent.
-/// @dev Keep the struct intentionally minimal – additional hooks (e.g. finalCall)
-///      can be appended later by reserving slots in the hash recipe.
+/// @notice Parameters that uniquely identify a Universal Address intent.
+/// Each time a relayer bridges funds accumulated in a UA, it creates a new
+/// intent for that transfer. Each one can be fast-finished and claimed.
 struct UAIntent {
-    uint256 toChainId; // Destination chain where funds will settle
-    IERC20 toToken; // Canonical stable-coin on destination chain
+    uint256 toChainId; // Destination chain
+    IERC20 toToken; // Destination stablecoin
     address toAddress; // Beneficiary wallet on destination chain
-    address refundAddress; // Sweep target for stray / unsupported assets
+    address refundAddress; // Recipient for unsupported assets on any chain
+    address escrow; // IUniversalAddressManager escrow contract
 }
 
 /// @notice Calculate the deterministic hash committed to by the intent vault.
@@ -37,8 +38,6 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
 
     /// @dev Cheap single-slot storage – keccak256(UAIntent).
     bytes32 public intentHash;
-    // Gatekeep withdrawal functionality to a single manager. All calls are made through this contract.
-    address public escrow;
 
     // ---------------------------------------------------------------------
     // Constructor / Initializer
@@ -49,12 +48,8 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
     }
 
     /// @param _intentHash keccak256(UAIntent) committed by the factory.
-    function initialize(
-        bytes32 _intentHash,
-        address _escrow
-    ) public initializer {
+    function initialize(bytes32 _intentHash) public initializer {
         intentHash = _intentHash;
-        escrow = _escrow;
     }
 
     // ---------------------------------------------------------------------
@@ -68,31 +63,12 @@ contract UAIntentContract is Initializable, ReentrancyGuard {
         address payable recipient
     ) public nonReentrant {
         require(calcIntentHash(intent) == intentHash, "UAI: intent mismatch");
-        require(msg.sender == escrow, "UAI: only escrow");
+        require(msg.sender == intent.escrow, "UAI: only escrow");
         TokenUtils.transfer({
             token: tokenAmount.token,
             recipient: recipient,
             amount: tokenAmount.amount
         });
-    }
-
-    /// @notice Sweep the full balance of specified tokens out of the vault.
-    /// @return amounts Amounts transferred (parallel to `tokens`).
-    function sendBalances(
-        UAIntent calldata intent,
-        IERC20[] calldata tokens,
-        address payable recipient
-    ) public nonReentrant returns (uint256[] memory amounts) {
-        require(calcIntentHash(intent) == intentHash, "UAI: intent mismatch");
-        require(msg.sender == escrow, "UAI: only escrow");
-        uint256 n = tokens.length;
-        amounts = new uint256[](n);
-        for (uint256 i; i < n; ++i) {
-            amounts[i] = TokenUtils.transferBalance({
-                token: tokens[i],
-                recipient: recipient
-            });
-        }
     }
 
     /// Accept native chain asset (e.g. ETH) deposits

@@ -32,10 +32,9 @@ contract ReentrantToken is ERC20 {
             // Craft dummy intent (all zeros) – will immediately fail due to
             // ReentrancyGuard before any deeper logic executes.
             UAIntent memory dummy;
-            IERC20[] memory empty = new IERC20[](0);
             // We expect this to revert; propagate the revert to the caller so
             // the test can detect the ReentrancyGuard message.
-            mgr.refundIntent(dummy, empty);
+            mgr.refundIntent(dummy, IERC20(address(0)));
         }
 
         return ok;

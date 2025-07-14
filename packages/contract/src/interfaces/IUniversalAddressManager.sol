@@ -13,7 +13,7 @@ interface IUniversalAddressManager {
     /// @param intent          The intent parameters (destination chain, token, recipient, etc.)
     /// @param calls           Arbitrary calls executed by the manager (e.g., swaps)
     /// @param token           The token being provided by the relayer
-    /// @param bridgeTokenOut  The stable-coin and amount that will eventually be bridged in
+    /// @param bridgeTokenOut  The stablecoin and amount that will eventually be bridged in
     /// @param relaySalt       Unique salt provided by the relayer to avoid replay attacks
     /// @param sourceChainId   The chain ID the intent was started on
     function fastFinishIntent(

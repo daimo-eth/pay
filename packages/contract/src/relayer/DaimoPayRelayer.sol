@@ -402,7 +402,7 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    function UAFastFinish(
+    function uaFastFinish(
         Call[] calldata preCalls,
         IUniversalAddressManager manager,
         UAIntent calldata intent,

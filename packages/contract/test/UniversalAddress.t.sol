@@ -93,14 +93,13 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: usdc,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
     }
 
-    function _intentAddr(
-        UAIntent memory intent
-    ) internal view returns (address) {
-        return intentFactory.getIntentAddress(intent, address(mgr));
+    function _intentAddr(UAIntent memory intent) internal view returns (address) {
+        return intentFactory.getIntentAddress(intent);
     }
 
     function _receiverSalt(
@@ -127,7 +126,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 1. Source-chain startIntent
+    // Source-chain startIntent
     // ---------------------------------------------------------------------
     function testStartIntent() public {
         vm.chainId(SRC_CHAIN_ID);
@@ -152,7 +151,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 2. Destination-chain fastFinishIntent
+    // Destination-chain fastFinishIntent
     // ---------------------------------------------------------------------
     function testFastFinishIntent() public {
         testStartIntent(); // registers bridgedCoin mapping
@@ -208,7 +207,7 @@ contract UniversalAddressTest is Test {
 
         // RELAYER triggers fast-finish via the relayer contract
         vm.prank(RELAYER);
-        relayerContract.UAFastFinish(
+        relayerContract.uaFastFinish(
             new Call[](0), // preCalls
             mgr,
             intent,
@@ -294,7 +293,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 3. Claim flow without fast-finish
+    // Claim flow without fast-finish
     // ---------------------------------------------------------------------
     function testClaimIntent_NoFastFinish() public {
         testStartIntent();
@@ -374,7 +373,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 4. Claim flow WITH fast-finish (relayer reimbursement)
+    // Claim flow WITH fast-finish (relayer reimbursement)
     // ---------------------------------------------------------------------
     function testClaimIntent_WithFastFinish() public {
         // 1) Source chain start
@@ -442,7 +441,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 5. startIntent with non-whitelisted token should revert
+    // startIntent with non-whitelisted token should revert
     // ---------------------------------------------------------------------
     function testStartIntent_NonWhitelistedToken_Reverts() public {
         // Deploy a second USDC-like token that is NOT whitelisted in cfg
@@ -458,19 +457,17 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: other,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         // Alice funds her UA vault with the un-whitelisted token
         vm.prank(ALICE);
         other.transfer(intentAddr, AMOUNT);
 
         // Expect revert because token is not whitelisted
-        vm.expectRevert(bytes("UAM: token not whitelisted"));
+        vm.expectRevert(bytes("UAM: whitelist"));
         mgr.startIntent(
             intent,
             other,
@@ -482,7 +479,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 6. Duplicate fastFinishIntent should revert (salt already used)
+    // Duplicate fastFinishIntent should revert (salt already used)
     // ---------------------------------------------------------------------
     function testFastFinishIntent_Duplicate_Reverts() public {
         testFastFinishIntent(); // performs the first fast-finish with RELAYER funding
@@ -504,7 +501,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 7. fastFinishIntent on the wrong chain should revert
+    // fastFinishIntent on the wrong chain should revert
     // ---------------------------------------------------------------------
     function testFastFinishIntent_WrongChain_Reverts() public {
         testStartIntent();
@@ -526,7 +523,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 8. startIntent below MIN_START_USDC should revert
+    // startIntent below MIN_START_USDC should revert
     // ---------------------------------------------------------------------
     function testStartIntent_BelowMinimum_Reverts() public {
         // Increase the minimum so that 100 USDC is below the threshold
@@ -541,7 +538,7 @@ contract UniversalAddressTest is Test {
         vm.prank(ALICE);
         usdc.transfer(intentAddr, 200e6);
 
-        vm.expectRevert(bytes("UAM: amount below min"));
+        vm.expectRevert(bytes("UAM: amount < min"));
         mgr.startIntent(
             intent,
             usdc,
@@ -553,7 +550,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 9. startIntent with paymentToken != bridgeToken (swap path via executor)
+    // startIntent with paymentToken != bridgeToken (swap path via executor)
     // ---------------------------------------------------------------------
     function testStartIntent_SwapPath() public {
         // Deploy second stable-coin (pretend USDT)
@@ -566,12 +563,10 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         // Alice funds her UA vault with USDC
         vm.prank(ALICE);
@@ -604,7 +599,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 10. Surplus refund path – manager held extra requiredToken before swap
+    // Surplus refund path – manager held extra requiredToken before swap
     // ---------------------------------------------------------------------
     function testStartIntent_SurplusRefund() public {
         vm.chainId(SRC_CHAIN_ID);
@@ -637,7 +632,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 11. claimIntent swap path – executor already holds requiredToken
+    // claimIntent swap path – executor already holds requiredToken
     // ---------------------------------------------------------------------
     function testClaimIntent_SwapEqual() public {
         // Deploy alternate stablecoin USDT and whitelist
@@ -650,12 +645,10 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         // Alice deposits USDC into her UA vault
         vm.prank(ALICE);
@@ -710,7 +703,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 12. claimIntent swap path – manager pulls deficit from relayer
+    // claimIntent swap path – manager pulls deficit from relayer
     // ---------------------------------------------------------------------
     function testClaimIntent_SwapDeficitPull() public {
         // Alternate stablecoin (pretend USDT) and whitelist
@@ -728,12 +721,10 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         vm.prank(ALICE);
         usdc.transfer(intentAddr, AMOUNT);
@@ -781,7 +772,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 13. startIntent deficit pull – executor returns < requiredAmount
+    // startIntent deficit pull – executor returns < requiredAmount
     // ---------------------------------------------------------------------
     function testStartIntent_DeficitPull() public {
         vm.chainId(SRC_CHAIN_ID);
@@ -820,7 +811,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 14. startIntent insufficient-output revert – executor returns 0 of requiredToken
+    // startIntent insufficient-output revert – executor returns 0 of requiredToken
     // ---------------------------------------------------------------------
     function testStartIntent_InsufficientOutput_Reverts() public {
         // Deploy alternate stable-coin (pretend USDT) and whitelist it
@@ -832,12 +823,10 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: usdt,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         // Alice deposits USDC into her UA vault
         vm.prank(ALICE);
@@ -857,7 +846,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 16. claimIntent called before bridged funds arrive should revert (underflow)
+    // claimIntent called before bridged funds arrive should revert (underflow)
     // ---------------------------------------------------------------------
     function testClaimIntent_Underflow_Reverts() public {
         vm.chainId(SRC_CHAIN_ID);
@@ -893,7 +882,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 17. startIntent invoked on destination chain should revert
+    // startIntent invoked on destination chain should revert
     // ---------------------------------------------------------------------
     function testStartIntent_OnDestinationChain_Reverts() public {
         vm.chainId(DST_CHAIN_ID); // Same as intent.toChainId
@@ -915,7 +904,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 18. refundIntent with whitelisted stable-coin should revert if balance is above minStartUsdc
+    // refundIntent with whitelisted stable-coin should revert
     // ---------------------------------------------------------------------
     function testRefundIntent_WhitelistedToken_Reverts() public {
         vm.chainId(SRC_CHAIN_ID); // Source chain – intentSent is required
@@ -930,77 +919,13 @@ contract UniversalAddressTest is Test {
         vm.prank(ALICE);
         usdc.transfer(intentAddr, 51e6);
 
-        IERC20[] memory toks = new IERC20[](1);
-        toks[0] = usdc; // whitelisted token
-
         // This should fail because balance (51e6) >= MIN_START_USDC (50e6)
-        vm.expectRevert(bytes("UAM: refund balance not above min"));
-        mgr.refundIntent(intent, toks);
+        vm.expectRevert(bytes("UAM: whitelisted"));
+        mgr.refundIntent(intent, usdc);
     }
 
     // ---------------------------------------------------------------------
-    // 19. refundIntent sweeping multiple non-whitelisted tokens succeeds
-    // ---------------------------------------------------------------------
-    function testRefundIntent_MultipleTokens() public {
-        vm.chainId(DST_CHAIN_ID); // skip intentSent check
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
-
-        // Deploy two non-whitelisted ERC-20s and pre-fund the vault
-        TestUSDC tok1 = new TestUSDC();
-        TestUSDC tok2 = new TestUSDC();
-
-        uint256 amt1 = 70e6;
-        uint256 amt2 = 30e6;
-
-        tok1.transfer(intentAddr, amt1);
-        tok2.transfer(intentAddr, amt2);
-
-        // Prepare token list for refund
-        IERC20[] memory toks = new IERC20[](2);
-        toks[0] = IERC20(address(tok1));
-        toks[1] = IERC20(address(tok2));
-
-        uint256 aliceTok1Before = tok1.balanceOf(ALICE);
-        uint256 aliceTok2Before = tok2.balanceOf(ALICE);
-
-        mgr.refundIntent(intent, toks);
-
-        // Alice should now hold the swept amounts
-        assertEq(tok1.balanceOf(ALICE), aliceTok1Before + amt1);
-        assertEq(tok2.balanceOf(ALICE), aliceTok2Before + amt2);
-    }
-
-    // ---------------------------------------------------------------------
-    // 20. refundIntent with whitelisted token succeeds if balance is below minStartUsdc
-    // ---------------------------------------------------------------------
-    function testRefundIntent_WhitelistedToken_BelowMinStartUsdc() public {
-        vm.chainId(SRC_CHAIN_ID); // Source chain – intentSent is required
-        UAIntent memory intent = _intent();
-        address intentAddr = _intentAddr(intent);
-
-        // Set minimum start USDC to 50 USDC
-        bytes32 minKey = keccak256("MIN_START_USDC");
-        cfg.setNum(minKey, 50e6);
-
-        // Transfer 49 USDC to manager (below 50 USDC threshold)
-        vm.prank(ALICE);
-        usdc.transfer(intentAddr, 49e6);
-
-        IERC20[] memory toks = new IERC20[](1);
-        toks[0] = usdc; // whitelisted token
-
-        uint256 aliceBalBefore = usdc.balanceOf(ALICE);
-
-        // This should succeed because balance (49e6) < MIN_START_USDC (50e6)
-        mgr.refundIntent(intent, toks);
-
-        // Verify the refund happened (Alice should have received the 49 USDC)
-        assertEq(usdc.balanceOf(ALICE), aliceBalBefore + 49e6);
-    }
-
-    // ---------------------------------------------------------------------
-    // 21. refundIntent success on source chain after startIntent (intentSent == true)
+    // refundIntent success on source chain after startIntent (intentSent == true)
     // ---------------------------------------------------------------------
     function testRefundIntent_SourceChain_Succeeds() public {
         vm.chainId(SRC_CHAIN_ID);
@@ -1025,30 +950,13 @@ contract UniversalAddressTest is Test {
         stray.transfer(intentAddr, strayAmt);
 
         // Step 3: Call refundIntent to sweep the stray token back to refundAddress (ALICE)
-        IERC20[] memory toks = new IERC20[](1);
-        toks[0] = IERC20(address(stray));
-
         uint256 aliceBalBefore = stray.balanceOf(ALICE);
-        mgr.refundIntent(intent, toks);
+        mgr.refundIntent(intent, stray);
         assertEq(stray.balanceOf(ALICE), aliceBalBefore + strayAmt);
     }
 
     // ---------------------------------------------------------------------
-    // 22. refundIntent with empty token list should be a no-op (no revert)
-    // ---------------------------------------------------------------------
-    function testRefundIntent_EmptyArray_NoOp() public {
-        vm.chainId(DST_CHAIN_ID); // destination chain avoids intentSent check
-        UAIntent memory intent = _intent();
-
-        uint256 aliceBalBefore = usdc.balanceOf(ALICE);
-        IERC20[] memory emptyTokens = new IERC20[](0);
-        mgr.refundIntent(intent, emptyTokens);
-        // No balance changes expected
-        assertEq(usdc.balanceOf(ALICE), aliceBalBefore);
-    }
-
-    // ---------------------------------------------------------------------
-    // 23. Global pause switch – all mutating calls should revert
+    // Global pause switch – all mutating calls should revert
     // ---------------------------------------------------------------------
     function testGlobalPause_Reverts() public {
         // Pause via SharedConfig
@@ -1075,23 +983,23 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 24. UAIntentContract cannot be initialised twice
+    // UAIntentContract cannot be initialised twice
     // ---------------------------------------------------------------------
     function testUAIntent_Reinitialise_Reverts() public {
         UAIntent memory intent = _intent();
         // Deploy proxy via factory
         UAIntentContract vault = UAIntentContract(
-            intentFactory.createIntent(intent, address(mgr))
+            intentFactory.createIntent(intent)
         );
 
         // Attempt to call initialize again – should revert (already initialised)
         bytes32 hash = keccak256(abi.encode(intent));
         vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
-        vault.initialize(hash, address(this));
+        vault.initialize(hash);
     }
 
     // ---------------------------------------------------------------------
-    // 25. Reentrancy attack against startIntent should be blocked by ReentrancyGuard
+    // Reentrancy attack against startIntent should be blocked by ReentrancyGuard
     // ---------------------------------------------------------------------
     function testStartIntent_ReentrancyBlocked() public {
         // Deploy malicious re-entrant token that will attempt a nested call
@@ -1108,12 +1016,10 @@ contract UniversalAddressTest is Test {
             toChainId: DST_CHAIN_ID,
             toToken: evil,
             toAddress: ALEX,
-            refundAddress: ALICE
+            refundAddress: ALICE,
+            escrow: address(mgr)
         });
-        address intentAddr = intentFactory.getIntentAddress(
-            intent,
-            address(mgr)
-        );
+        address intentAddr = intentFactory.getIntentAddress(intent);
 
         // Alice deposits funds into her UA vault
         vm.prank(ALICE);
@@ -1132,7 +1038,7 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // 26. Same-chain intent can be completed
+    // Same-chain intent can be completed
     // ---------------------------------------------------------------------
     function testSameChainIntent_NoFastFinish() public {
         // TODO

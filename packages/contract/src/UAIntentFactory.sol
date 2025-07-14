@@ -13,16 +13,17 @@ contract UAIntentFactory {
     /// Singleton implementation that all minimal proxies delegate to.
     UAIntentContract public immutable intentImpl;
 
+    event UniversalAddressDeployed(address indexed intentAddr, UAIntent intent);
+
     constructor() {
         intentImpl = new UAIntentContract();
     }
 
     /// @dev Deploy proxy for the given intent (or return existing one).
     function createIntent(
-        UAIntent calldata intent,
-        address escrow
+        UAIntent calldata intent
     ) public returns (UAIntentContract ret) {
-        address intentAddr = getIntentAddress(intent, escrow);
+        address intentAddr = getIntentAddress(intent);
         if (intentAddr.code.length > 0) {
             // Already deployed – reuse to save gas.
             return UAIntentContract(payable(intentAddr));
@@ -34,18 +35,18 @@ contract UAIntentFactory {
                         address(intentImpl),
                         abi.encodeCall(
                             UAIntentContract.initialize,
-                            (calcIntentHash(intent), escrow)
+                            calcIntentHash(intent)
                         )
                     )
                 )
             )
         );
+        emit UniversalAddressDeployed(intentAddr, intent);
     }
 
     /// @notice Pure view helper: compute CREATE2 address for an intent.
     function getIntentAddress(
-        UAIntent calldata intent,
-        address escrow
+        UAIntent calldata intent
     ) public view returns (address) {
         return
             Create2.computeAddress(
@@ -57,7 +58,7 @@ contract UAIntentFactory {
                             address(intentImpl),
                             abi.encodeCall(
                                 UAIntentContract.initialize,
-                                (calcIntentHash(intent), escrow)
+                                calcIntentHash(intent)
                             )
                         )
                     )

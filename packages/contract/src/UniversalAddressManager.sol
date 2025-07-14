@@ -4,7 +4,10 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import "./SharedConfig.sol";
@@ -19,7 +22,7 @@ import "./interfaces/IUniversalAddressManager.sol";
 /// @custom:security-contact security@daimo.com
 /// @notice Escrow contract that manages Universal Addresses,
 ///         acting as a single source of truth for all UA intents.
-contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
+contract UniversalAddressManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable, IUniversalAddressManager {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -31,16 +34,16 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
         0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
     /// Factory responsible for deploying deterministic Universal Addresses.
-    UniversalAddressFactory public immutable universalAddressFactory;
+    UniversalAddressFactory public universalAddressFactory;
 
     /// Dedicated contract that performs swap / contract calls on behalf of the manager.
-    DaimoPayExecutor public immutable executor;
+    DaimoPayExecutor public executor;
 
     /// Multiplexer around IDaimoPayBridger adapters.
-    IUniversalAddressBridger public immutable bridger;
+    IUniversalAddressBridger public bridger;
 
     /// Global per-chain configuration (pause switch, whitelists, etc.)
-    SharedConfig public immutable cfg;
+    SharedConfig public cfg;
 
     /// Keys for SharedConfig
     /// @dev Minimum amount of the bridge-out token required to start an intent.
@@ -107,19 +110,40 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
     );
 
     // ---------------------------------------------------------------------
-    // Constructor
+    // Constructor & Initializer
     // ---------------------------------------------------------------------
 
-    constructor(
+    /// @dev Disable initializers on the implementation contract.
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initialize the contract.
+    function initialize(
         UniversalAddressFactory _universalAddressFactory,
         IUniversalAddressBridger _bridger,
         SharedConfig _cfg
-    ) {
+    ) public initializer {
+        __ReentrancyGuard_init();
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+
         universalAddressFactory = _universalAddressFactory;
         bridger = _bridger;
         cfg = _cfg;
         executor = new DaimoPayExecutor(address(this));
     }
+
+    // ---------------------------------------------------------------------
+    // UUPS upgrade authorization
+    // ---------------------------------------------------------------------
+
+    /// @dev Restrict upgrades to the contract owner.
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
 
     // ---------------------------------------------------------------------
     // External user / relayer entrypoints
@@ -577,6 +601,12 @@ contract UniversalAddressManager is ReentrancyGuard, IUniversalAddressManager {
             route: route
         });
     }
+
+    // ---------------------------------------------------------------------
+    // Storage gap for upgradeability
+    // ---------------------------------------------------------------------
+
+    uint256[50] private __gap;
 
     // Accept native asset deposits (for swaps).
     receive() external payable {}

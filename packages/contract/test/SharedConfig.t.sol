@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "forge-std/Test.sol";
 import {SharedConfig} from "../src/SharedConfig.sol";
+import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 
 contract SharedConfigTest is Test {
@@ -14,8 +15,10 @@ contract SharedConfigTest is Test {
     bytes32 internal constant SAMPLE_KEY = keccak256("SAMPLE");
 
     function setUp() public {
-        cfg = new SharedConfig();
-        cfg.initialize(address(this));
+        SharedConfig impl = new SharedConfig();
+        bytes memory initData = abi.encodeCall(SharedConfig.initialize, (address(this)));
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        cfg = SharedConfig(payable(address(proxy)));
         usdc = new TestUSDC();
     }
 

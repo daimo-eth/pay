@@ -6,6 +6,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Create2} from "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import {UniversalAddressManager} from "../src/UniversalAddressManager.sol";
+import {ERC1967Proxy} from "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {UniversalAddressFactory} from "../src/UniversalAddressFactory.sol";
 import {UniversalAddress, UniversalAddressRoute} from "../src/UniversalAddress.sol";
 import {SharedConfig} from "../src/SharedConfig.sol";
@@ -60,14 +61,24 @@ contract UniversalAddressTest is Test {
         usdc.transfer(RELAYER, 500_000e6);
 
         // Config
-        cfg = new SharedConfig();
-        cfg.initialize(address(this));
+        SharedConfig implCfg = new SharedConfig();
+        bytes memory cfgData = abi.encodeCall(SharedConfig.initialize, (address(this)));
+        ERC1967Proxy cfgProxy = new ERC1967Proxy(address(implCfg), cfgData);
+        cfg = SharedConfig(payable(address(cfgProxy)));
         cfg.setWhitelistedStable(address(usdc), true);
 
         // Core components
         intentFactory = new UniversalAddressFactory();
         bridger = new DummyUniversalBridger();
-        mgr = new UniversalAddressManager(intentFactory, bridger, cfg);
+
+        // Deploy upgradeable UniversalAddressManager via ERC1967Proxy
+        UniversalAddressManager impl = new UniversalAddressManager();
+        bytes memory initData = abi.encodeCall(
+            UniversalAddressManager.initialize,
+            (intentFactory, bridger, cfg)
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        mgr = UniversalAddressManager(payable(address(proxy)));
 
         // Approvals so mgr can pull funds when needed
         vm.prank(ALICE);

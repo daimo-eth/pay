@@ -3,13 +3,14 @@ pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Global configuration registry for the Universal Address protocol.
 /// @dev Upgradeable through a proxy (e.g. Transparent or UUPS) managed by
 ///      Daimo governance. A storage gap is reserved for future variables.
-contract SharedConfig is Initializable, OwnableUpgradeable {
+contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
     // Storage
     // ───────────────────────────────────────────────────────────────────────────
@@ -37,7 +38,24 @@ contract SharedConfig is Initializable, OwnableUpgradeable {
     /// @notice Initialize the contract, setting the given owner.
     function initialize(address _owner) public initializer {
         __Ownable_init(_owner);
+        __UUPSUpgradeable_init();
     }
+
+    /// @dev Disable direct initialization on the implementation.
+    constructor() {
+        _disableInitializers();
+    }
+
+    // ---------------------------------------------------------------------
+    // UUPS upgrade authorization
+    // ---------------------------------------------------------------------
+
+    /// @dev Restrict upgrades to the contract owner.
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
 
     // ───────────────────────────────────────────────────────────────────────────
     // Address registry management

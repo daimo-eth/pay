@@ -8,12 +8,11 @@ import "../src/UniversalAddressBridger.sol";
 import "../src/UniversalAddressFactory.sol";
 import "../src/SharedConfig.sol";
 import "./constants/Constants.s.sol";
-import "../src/interfaces/IUniversalAddressBridger.sol";
-import "../src/interfaces/IDaimoPayBridger.sol";
 import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
+import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
@@ -31,8 +30,12 @@ bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
     "UniversalAddressBridger-deploy1"
 );
 bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy1");
+bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256("SharedConfig-impl-deploy1");
 bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
     "UniversalAddressManager-deploy1"
+);
+bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
+    "UniversalAddressManager-impl-deploy1"
 );
 
 /// @title DeployUniversalAddressManager
@@ -90,27 +93,45 @@ contract DeployUniversalAddressManager is Script {
         );
         console.log("UniversalAddressBridger deployed at", universalBridger);
 
-        // 3. SharedConfig – deploy & initialize (owner = msg.sender)
-        address sharedConfig = CREATE3.deploy(
-            DEPLOY_SALT_SHARED_CONFIG,
+        // 3. SharedConfig – implementation & proxy
+        address sharedConfigImpl = CREATE3.deploy(
+            DEPLOY_SALT_SHARED_CONFIG_IMPL,
             abi.encodePacked(type(SharedConfig).creationCode, abi.encode())
         );
-        SharedConfig(sharedConfig).initialize(msg.sender);
-        console.log("SharedConfig deployed at", sharedConfig);
+        console.log("SharedConfig implementation deployed at", sharedConfigImpl);
 
-        // 4. UniversalAddressManager – core escrow
+        bytes memory sharedInit = abi.encodeCall(SharedConfig.initialize, (msg.sender));
+        address sharedConfig = CREATE3.deploy(
+            DEPLOY_SALT_SHARED_CONFIG,
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(sharedConfigImpl, sharedInit))
+        );
+        console.log("SharedConfig proxy deployed at", sharedConfig);
+
+        // 4. UniversalAddressManager – implementation & proxy
+        address uaManagerImpl = CREATE3.deploy(
+            DEPLOY_SALT_UA_MANAGER_IMPL,
+            abi.encodePacked(type(UniversalAddressManager).creationCode, abi.encode())
+        );
+        console.log("UniversalAddressManager implementation deployed at", uaManagerImpl);
+
+        // Prepare initializer calldata for the proxy
+        bytes memory initData = abi.encodeCall(
+            UniversalAddressManager.initialize,
+            (
+                UniversalAddressFactory(uaFactory),
+                IUniversalAddressBridger(universalBridger),
+                SharedConfig(sharedConfig)
+            )
+        );
+
         address uaManager = CREATE3.deploy(
             DEPLOY_SALT_UA_MANAGER,
             abi.encodePacked(
-                type(UniversalAddressManager).creationCode,
-                abi.encode(
-                    UniversalAddressFactory(uaFactory),
-                    IUniversalAddressBridger(universalBridger),
-                    SharedConfig(sharedConfig)
-                )
+                type(ERC1967Proxy).creationCode,
+                abi.encode(uaManagerImpl, initData)
             )
         );
-        console.log("UniversalAddressManager deployed at", uaManager);
+        console.log("UniversalAddressManager proxy deployed at", uaManager);
 
         vm.stopBroadcast();
     }

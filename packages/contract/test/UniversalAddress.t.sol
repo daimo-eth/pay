@@ -1044,7 +1044,7 @@ contract UniversalAddressTest is Test {
     // ---------------------------------------------------------------------
     // Same-chain intent finish reverts if toAmount is less than min
     // ---------------------------------------------------------------------
-    function testSameChainIntent_ToAmountLessThanMinNoRevert() public {
+    function testSameChainIntent_ToAmountLessThanMin_Reverts() public {
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
 

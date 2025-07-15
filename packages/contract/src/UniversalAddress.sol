@@ -18,6 +18,15 @@ struct UniversalAddressRoute {
     address escrow; // IUniversalAddressManager escrow contract
 }
 
+/// @notice Parameters that uniquely identify a single intent (cross-chain transfer) for a UA.
+struct UABridgeIntent {
+    address universalAddress;   // The Universal Address contract for this intent
+    bytes32 relaySalt;          // Unique salt provided by the relayer
+    uint256 bridgeAmountOut;    // Amount of tokens being bridged
+    IERC20 bridgeToken;         // Token being bridged to the destination chain
+    uint256 sourceChainId;      // Chain ID where the bridge transfer originated
+}
+
 /// @notice Calculate the deterministic hash committed to by the Universal
 ///         Address.
 function calcRouteHash(

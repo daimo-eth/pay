@@ -52,7 +52,7 @@ library TokenUtils {
     /// Sends an ERC20 or ETH transfer. Returns true if successful.
     function tryTransfer(
         IERC20 token,
-        address recipient,
+        address payable recipient,
         uint256 amount
     ) internal returns (bool) {
         if (address(token) != address(0)) {

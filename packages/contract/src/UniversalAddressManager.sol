@@ -23,7 +23,7 @@ import "./interfaces/IUniversalAddressManager.sol";
 /// @notice Central escrow contract that orchestrates cross-chain Universal
 ///         Address intents, managing the complete lifecycle.
 /// @dev Coordinates with Universal Address vault contracts and bridgers to
-///      enable seamless cross-chain transfers. Supports relayer-based
+///      enable seamless cross-chain stablecoin transfers. Supports relayer
 ///      optimistic fast-finish with later settlement when bridge transfers
 ///      arrive. Creates deterministic receiver addresses to prevent
 ///      double-spending attacks. Assumes all whitelisted payment tokens,
@@ -41,7 +41,7 @@ contract UniversalAddressManager is
     // Constants & Immutables
     // ---------------------------------------------------------------------
 
-    /// Sentinel value used by receiverFiller to mark a transfer claimed.
+    /// Sentinel value used to mark a transfer claimed.
     address public constant ADDR_MAX =
         0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
@@ -58,14 +58,15 @@ contract UniversalAddressManager is
     /// Global per-chain configuration (pause switch, whitelists, etc.)
     SharedConfig public cfg;
 
-    /// Keys for SharedConfig
-    /// @dev Minimum amount of the bridge-out token required to start an intent.
+    /// Config key: min amount of the bridge-out token required to start an
+    /// intent; may be set to eg. $1. This prevents griefing attacks where a
+    /// relayer starts many tiny intents on chain A which cannot be claimed
+    /// on more-expensive destination chain B.
     bytes32 public constant MIN_START_TOKEN_OUT_KEY =
         keccak256("MIN_START_TOKEN_OUT");
 
-    /// @dev IMPORTANT: For this version of the protocol, all bridge-out tokens
-    ///      are assumed to have 6 decimals. This will be made configurable
-    ///      in a future release.
+    /// IMPORTANT: For this version of the protocol, all bridge-out tokens
+    ///            are required to have 6 decimals.
     uint256 public constant TOKEN_OUT_DECIMALS = 6;
 
     // ---------------------------------------------------------------------
@@ -83,13 +84,13 @@ contract UniversalAddressManager is
     // ---------------------------------------------------------------------
 
     /// On the source chain, record receiver addresses that have been used.
-    mapping(bytes32 salt => bool used) public saltUsed;
+    mapping(address receiver => bool used) public receiverUsed;
 
     /// On the destination chain, map receiver address to status:
     /// - address(0) = not finished.
     /// - Relayer address = fast-finished, awaiting claim to repay relayer.
     /// - ADDR_MAX = claimed. any additional funds received are refunded.
-    mapping(bytes32 salt => address recipient) public saltToRecipient;
+    mapping(address receiver => address recipient) public receiverToRecipient;
 
     // ---------------------------------------------------------------------
     // Events
@@ -97,29 +98,38 @@ contract UniversalAddressManager is
 
     event Start(
         address indexed universalAddress,
-        address indexed receiverAddr,
-        UniversalAddressRoute route
+        address indexed receiverAddress,
+        UniversalAddressRoute route,
+        UABridgeIntent intent,
+        address paymentToken,
+        uint256 paymentAmount
     );
     event FastFinish(
         address indexed universalAddress,
-        address indexed newRecipient
+        address indexed receiverAddress,
+        address indexed newRecipient,
+        UniversalAddressRoute route,
+        UABridgeIntent intent
     );
     event Claim(
         address indexed universalAddress,
-        address indexed finalRecipient
+        address indexed receiverAddress,
+        address indexed finalRecipient,
+        UniversalAddressRoute route,
+        UABridgeIntent intent
     );
-    event IntentFinished(
+    event SameChainFinish(
         address indexed universalAddress,
-        address destinationAddr,
-        bool success,
-        UniversalAddressRoute route
+        UniversalAddressRoute route,
+        address paymentToken,
+        uint256 paymentAmount,
+        uint256 toAmount
     );
-    event IntentRefunded(
+    event Refund(
         address indexed universalAddress,
-        address refundAddr,
-        IERC20 token,
-        uint256 amount,
-        UniversalAddressRoute route
+        UniversalAddressRoute route,
+        address refundToken,
+        uint256 refundAmount
     );
 
     // ---------------------------------------------------------------------
@@ -198,30 +208,30 @@ contract UniversalAddressManager is
 
         UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
-        bytes32 recvSalt = _receiverSalt({
+        UABridgeIntent memory intent = UABridgeIntent({
             universalAddress: address(uaContract),
             relaySalt: relaySalt,
             bridgeAmountOut: outAmount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: block.chainid
         });
+        (address receiverAddress, ) = computeReceiverAddress(intent);
 
-        // A salt is used to generate a unique receiver address for each bridge
-        // transfer. The receiver address is a CREATE2 address that encodes the
-        // bridging parameters. Without this check, a malicious relayer could
-        // reuse the same receiver address to claim multiple bridge transfers,
-        // effectively double-paying themselves.
-        require(!saltUsed[recvSalt], "UAM: salt used");
-        saltUsed[recvSalt] = true;
+        // Generate a unique receiver address for each bridge transfer. Without
+        // this check, a malicious relayer could reuse the same receiver address
+        // to claim multiple bridge transfers, double-paying themselves.
+        require(!receiverUsed[receiverAddress], "UAM: receiver used");
+        receiverUsed[receiverAddress] = true;
 
         // Send payment token to executor
+        TokenAmount memory payTokenAmount = _convertStablecoinAmount({
+            token: paymentToken,
+            otherAmount: outAmount,
+            otherDecimals: TOKEN_OUT_DECIMALS
+        });
         uaContract.sendAmount({
             route: route,
-            tokenAmount: _computeRequiredPaymentAmount({
-                paymentToken: paymentToken,
-                toTokenAmount: outAmount,
-                toTokenDecimals: TOKEN_OUT_DECIMALS
-            }),
+            tokenAmount: payTokenAmount,
             recipient: payable(address(executor))
         });
 
@@ -234,7 +244,7 @@ contract UniversalAddressManager is
         // Run arbitrary calls provided by the relayer. These will generally
         // approve the swap contract and swap if necessary.
         // The executor contract checks that the output is sufficient. Any
-        // surplus tokens are given to the caller.
+        // surplus tokens are given to the relayer.
         TokenAmount[] memory expectedOutput = new TokenAmount[](1);
         expectedOutput[0] = TokenAmount({
             token: IERC20(bridgeTokenIn),
@@ -248,72 +258,64 @@ contract UniversalAddressManager is
         });
 
         // Approve bridger and initiate bridging
-        address receiverAddr = _computeReceiverAddress(recvSalt);
         IERC20(bridgeTokenIn).forceApprove({
             spender: address(bridger),
             value: inAmount
         });
         bridger.sendToChain({
             toChainId: route.toChainId,
-            toAddress: receiverAddr,
+            toAddress: receiverAddress,
             bridgeTokenOut: bridgeTokenOut,
             extraData: bridgeExtraData
         });
 
         emit Start({
             universalAddress: address(uaContract),
-            receiverAddr: receiverAddr,
-            route: route
+            receiverAddress: receiverAddress,
+            route: route,
+            intent: intent,
+            paymentToken: address(paymentToken),
+            paymentAmount: payTokenAmount.amount
         });
     }
 
-    /// @notice Refunds tokens from a Universal Address vault to the designated
-    ///         refund address.
-    /// @dev Only refunds tokens that are not whitelisted. Sends the entire
-    ///      token balance to the refund address specified in the route.
+    /// @notice Refunds unsupported tokens from a Universal Address vault to its
+    ///         designated refund address.
     /// @param route The Universal Address route containing the refund address
     /// @param token The non-whitelisted token to refund from the vault
     function refundIntent(
         UniversalAddressRoute calldata route,
         IERC20 token
     ) external nonReentrant notPaused {
+        // Disallow refunding whitelisted coins
+        require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
         require(route.escrow == address(this), "UAM: wrong escrow");
 
+        // Get refundable balance
         UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
         address universalAddress = address(uaContract);
-
-        // Disallow refunding whitelisted coins
-        require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
-
         uint256 amount = TokenUtils.getBalanceOf(token, universalAddress);
         require(amount > 0, "UAM: no balance");
 
+        // Send refund
         uaContract.sendAmount({
             route: route,
             tokenAmount: TokenAmount({token: token, amount: amount}),
             recipient: payable(route.refundAddress)
         });
 
-        emit IntentRefunded({
+        emit Refund({
             universalAddress: universalAddress,
-            refundAddr: route.refundAddress,
-            token: token,
-            amount: amount,
-            route: route
+            route: route,
+            refundToken: address(token),
+            refundAmount: amount
         });
     }
 
-    // ---------------------------------------------------------------------
-    // Relayer & claim flows
-    // ---------------------------------------------------------------------
-
-    /// @notice Complete an intent by sweeping funds that are already held by
-    ///         the Universal Address on the destination chain.
-    /// @dev The caller (typically a relayer) may provide optional swap calls
-    ///      so that the swept assets end up as `route.toToken`. Any surplus
-    ///      after delivering the required `toToken` amount is sent to the
-    ///      caller.
+    /// @notice Send funds that are already on the destination chain.
+    /// @dev The relayer can provide optional swap calls to convert assets
+    ///      to `route.toToken`, 1:1. Any surplus is sent to the caller.
     ///
     /// @param route        The UniversalAddressRoute for the intent
     /// @param paymentToken Token to be used to pay the intent
@@ -341,39 +343,43 @@ contract UniversalAddressManager is
         address universalAddress = address(uaContract);
 
         // Compute the required amount of paymentToken to pay for the toAmount
-        TokenAmount
-            memory requiredPaymentAmount = _computeRequiredPaymentAmount({
-                paymentToken: paymentToken,
-                toTokenAmount: toAmount,
-                toTokenDecimals: IERC20Metadata(address(route.toToken))
-                    .decimals()
-            });
+        TokenAmount memory reqPaymentAmount = _convertStablecoinAmount({
+            token: paymentToken,
+            otherAmount: toAmount,
+            otherDecimals: IERC20Metadata(address(route.toToken)).decimals()
+        });
 
         // Pull specified token balances from the UA vault into the executor.
         uaContract.sendAmount({
             route: route,
-            tokenAmount: requiredPaymentAmount,
+            tokenAmount: reqPaymentAmount,
             recipient: payable(address(executor))
         });
 
         // Finish the intent and return any leftover tokens to the caller
         _finishIntent({
-            universalAddress: universalAddress,
             route: route,
             calls: calls,
+            toAmount: toAmount
+        });
+
+        emit SameChainFinish({
+            universalAddress: universalAddress,
+            route: route,
+            paymentToken: address(paymentToken),
+            paymentAmount: reqPaymentAmount.amount,
             toAmount: toAmount
         });
     }
 
     /// @notice Allows a relayer to deliver funds early on the destination chain
-    ///         before the bridge transfer completes, recording them for later
-    ///         repayment when the bridged tokens arrive.
-    /// @dev Must be called on the destination chain. The relayer provides their
-    ///      own funds to complete the intent immediately and is recorded as the
-    ///      recipient for the eventual bridged tokens.
+    ///         before the bridge transfer completes.
+    /// @dev Must be called on the destination chain. The relayer sends their
+    ///      own funds to complete the intent atomically before calling fastFinish,
+    ///      and is recorded as the recipient for the eventual bridged tokens.
     /// @param route           The UniversalAddressRoute for the intent
     /// @param calls           Arbitrary swap calls to be executed by the executor
-    /// @param token           The token being provided by the relayer
+    /// @param token           The token sent by the relayer
     /// @param bridgeTokenOut  The token and amount expected from the bridge
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
@@ -393,48 +399,52 @@ contract UniversalAddressManager is
         address universalAddress = universalAddressFactory.getUniversalAddress(
             route
         );
-        bytes32 recvSalt = _receiverSalt({
+        UABridgeIntent memory intent = UABridgeIntent({
             universalAddress: universalAddress,
             relaySalt: relaySalt,
             bridgeAmountOut: bridgeTokenOut.amount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: sourceChainId
         });
+        (address receiverAddress, ) = computeReceiverAddress(intent);
 
         // Check that the salt hasn't already been fast finished or claimed.
         require(
-            saltToRecipient[recvSalt] == address(0),
+            receiverToRecipient[receiverAddress] == address(0),
             "UAM: already finished"
         );
         // Record relayer as new recipient when the bridged tokens arrive
-        saltToRecipient[recvSalt] = msg.sender;
+        receiverToRecipient[receiverAddress] = msg.sender;
 
+        // Finish the intent and return any leftover tokens to the caller
         TokenUtils.transferBalance({
             token: token,
             recipient: payable(address(executor))
         });
-
-        // Finish the intent and return any leftover tokens to the caller
+        TokenAmount memory toTokenAmount = _convertStablecoinAmount({
+            token: route.toToken,
+            otherAmount: bridgeTokenOut.amount,
+            otherDecimals: TOKEN_OUT_DECIMALS
+        });
         _finishIntent({
-            universalAddress: universalAddress,
             route: route,
             calls: calls,
-            toAmount: bridgeTokenOut.amount
+            toAmount: toTokenAmount.amount
         });
 
         emit FastFinish({
             universalAddress: universalAddress,
-            newRecipient: msg.sender
+            receiverAddress: receiverAddress,
+            newRecipient: msg.sender,
+            route: route,
+            intent: intent
         });
     }
 
     /// @notice Completes an intent after bridged tokens arrive on the destination
     ///         chain, either repaying a relayer or fulfilling the intent directly.
-    /// @dev Must be called on the destination chain. If a relayer fast-finished
-    ///      the intent, they are repaid with the bridged tokens. Otherwise, the
-    ///      intent is completed normally for the recipient.
     /// @param route           The UniversalAddressRoute for the intent
-    /// @param calls           Arbitrary swap calls to be executed by the executor
+    /// @param calls           Arbitrary swap from bridgeTokenOut to toToken
     /// @param bridgeTokenOut  The token and amount that was bridged
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
@@ -452,34 +462,36 @@ contract UniversalAddressManager is
         address universalAddress = universalAddressFactory.getUniversalAddress(
             route
         );
-        // Pass in the relayer address as a parameter instead of msg.sender
-        // to allow permissionless claims. This prevents funds from being
-        // locked in the receiver contract.
-        bytes32 recvSalt = _receiverSalt({
+        UABridgeIntent memory intent = UABridgeIntent({
             universalAddress: universalAddress,
             relaySalt: relaySalt,
             bridgeAmountOut: bridgeTokenOut.amount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: sourceChainId
         });
+        (address receiverAddress, bytes32 recvSalt) = computeReceiverAddress(
+            intent
+        );
 
         // Check the recipient for this intent.
-        address recipient = saltToRecipient[recvSalt];
+        address recipient = receiverToRecipient[receiverAddress];
         require(recipient != ADDR_MAX, "UAM: already claimed");
         // Mark intent as claimed
-        saltToRecipient[recvSalt] = ADDR_MAX;
+        receiverToRecipient[receiverAddress] = ADDR_MAX;
 
         // Deploy BridgeReceiver if necessary then sweep tokens.
-        address payable receiverAddr = _computeReceiverAddress(recvSalt);
-        if (receiverAddr.code.length == 0) {
-            new BridgeReceiver{salt: recvSalt}();
+        BridgeReceiver receiver;
+        if (receiverAddress.code.length == 0) {
+            receiver = new BridgeReceiver{salt: recvSalt}();
+            require(receiverAddress == address(receiver), "UAM: receiver");
+        } else {
+            receiver = BridgeReceiver(payable(receiverAddress));
         }
 
         // Pull bridged tokens from the deterministic receiver into this contract.
-        BridgeReceiver(receiverAddr).pull(bridgeTokenOut.token);
+        uint256 bridgedAmount = receiver.pull(bridgeTokenOut.token);
 
         // Check that sufficient amount was bridged.
-        uint256 bridgedAmount = bridgeTokenOut.token.balanceOf(address(this));
         require(
             bridgedAmount >= bridgeTokenOut.amount,
             "UAM: insufficient bridge"
@@ -499,10 +511,13 @@ contract UniversalAddressManager is
 
             // Finish the intent and return any leftover tokens to the caller
             _finishIntent({
-                universalAddress: universalAddress,
                 route: route,
                 calls: calls,
-                toAmount: bridgedAmount
+                toAmount: _convertStablecoinAmount({
+                    token: route.toToken,
+                    otherAmount: bridgedAmount,
+                    otherDecimals: TOKEN_OUT_DECIMALS
+                }).amount
             });
         } else {
             // Otherwise, the relayer fastFinished the intent. Repay them.
@@ -515,102 +530,64 @@ contract UniversalAddressManager is
 
         emit Claim({
             universalAddress: universalAddress,
-            finalRecipient: recipient
+            receiverAddress: receiverAddress,
+            finalRecipient: recipient,
+            route: route,
+            intent: intent
         });
+    }
+
+    /// @notice Computes a deterministic BridgeReceiver address.
+    /// @param intent The bridge intent
+    /// @return addr The computed address for the BridgeReceiver contract
+    /// @return recvSalt The CREATE2 salt used to deploy the BridgeReceiver
+    function computeReceiverAddress(
+        UABridgeIntent memory intent
+    ) public view returns (address payable addr, bytes32 recvSalt) {
+        recvSalt = keccak256(abi.encode(intent));
+        bytes memory initCode = type(BridgeReceiver).creationCode;
+        addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
     }
 
     // ---------------------------------------------------------------------
     // Internal helpers
     // ---------------------------------------------------------------------
 
-    /// @notice Generates a deterministic salt for creating a unique receiver
-    ///         address for each bridge transfer.
-    /// @dev The salt encodes all bridge transfer parameters to ensure each
-    ///      transfer gets a unique receiver address, preventing the relayer
-    ///      from claiming the intent multiple times.
-    /// @param universalAddress The Universal Address contract for this intent
-    /// @param relaySalt        Unique salt provided by the relayer
-    /// @param bridgeAmountOut  Amount of tokens being bridged
-    /// @param bridgeToken      Token being bridged to the destination chain
-    /// @param sourceChainId    Chain ID where the bridge transfer originated
-    /// @return Salt for CREATE2 deployment of the receiver contract
-    function _receiverSalt(
-        address universalAddress,
-        bytes32 relaySalt,
-        uint256 bridgeAmountOut,
-        IERC20 bridgeToken,
-        uint256 sourceChainId
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    "receiver",
-                    universalAddress,
-                    relaySalt,
-                    bridgeAmountOut,
-                    bridgeToken,
-                    sourceChainId
-                )
-            );
-    }
-
-    /// @notice Computes the deterministic address where a BridgeReceiver
-    ///         contract will be deployed using CREATE2.
-    /// @dev Uses the receiver salt to calculate the CREATE2 address without
-    ///      actually deploying the contract.
-    /// @param recvSalt The salt generated by _receiverSalt function
-    /// @return addr The computed CREATE2 address for the BridgeReceiver contract
-    function _computeReceiverAddress(
-        bytes32 recvSalt
-    ) internal view returns (address payable addr) {
-        bytes memory initCode = type(BridgeReceiver).creationCode;
-        addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
-    }
-
-    /// @notice Computes the required amount of payment token needed to cover a
-    ///         specified target token amount.
-    /// @dev This function assumes the payment token and target token have
-    ///      equal value (1:1 ratio) but may have different decimal places. It
-    ///      performs decimal adjustment to ensure the correct amount is
-    ///      calculated. When the payment token has fewer decimals, ceiling
-    ///      division is used to prevent underpayment.
-    /// @param paymentToken    The ERC20 token used for payment
-    /// @param toTokenAmount   The target amount in the target token's base
-    ///                        units
-    /// @param toTokenDecimals The number of decimal places for the target token
-    /// @return TokenAmount    struct containing the payment token and the
-    ///                        calculated required amount
-    function _computeRequiredPaymentAmount(
-        IERC20 paymentToken,
-        uint256 toTokenAmount,
-        uint256 toTokenDecimals
+    /// @dev Computes an equivalent, 1:1 stablecoin amount. Converts decimals.
+    ///      Rounds up, so if the other token is $1.23456 but the payment
+    ///      token has just two decimals, then it returns $1.24.
+    /// @param token The token to convert the amount to
+    /// @param otherAmount The amount of the other token
+    /// @param otherDecimals The decimals of the other token
+    /// @return The converted amount
+    function _convertStablecoinAmount(
+        IERC20 token,
+        uint256 otherAmount,
+        uint256 otherDecimals
     ) internal view returns (TokenAmount memory) {
         // Get payment token decimals using IERC20Metadata
-        uint256 paymentTokenDecimals = IERC20Metadata(address(paymentToken))
-            .decimals();
+        uint256 decimals = IERC20Metadata(address(token)).decimals();
 
-        // Convert toTokenAmount to payment token amount.
-        // The amount is provided in the bridge-out token's base units, so we
-        // adjust for any decimal differences between it and the payment token.
-        // Formula: paymentTokenAmount = toTokenAmount * (10^paymentTokenDecimals) / (10^toTokenDecimals)
+        // Convert otherAmount to payment token amount.
+        // Formula: tokenAmount = otherAmount * (10^decimals) / (10^otherDecimals)
         uint256 amount;
-        if (paymentTokenDecimals >= toTokenDecimals) {
+        if (decimals >= otherDecimals) {
             // Payment token has more or equal decimals than toToken
-            uint256 decimalDiff = paymentTokenDecimals - toTokenDecimals;
-            amount = toTokenAmount * (10 ** decimalDiff);
+            uint256 decimalDiff = decimals - otherDecimals;
+            amount = otherAmount * (10 ** decimalDiff);
         } else {
             // Payment token has fewer decimals than toToken
-            // Use ceiling division to ensure we pull enough tokens
-            uint256 decimalDiff = toTokenDecimals - paymentTokenDecimals;
+            // Use ceiling division to round up.
+            uint256 decimalDiff = otherDecimals - decimals;
             uint256 divisor = 10 ** decimalDiff;
-            amount = (toTokenAmount + divisor - 1) / divisor;
+            amount = (otherAmount + divisor - 1) / divisor;
         }
-        return TokenAmount({token: paymentToken, amount: amount});
+        return TokenAmount({token: token, amount: amount});
     }
 
-    /// @notice Internal helper that completes an intent by executing swaps,
-    ///         delivering tokens to the recipient, and handling any surplus.
-    /// @param universalAddress The Universal Address contract for this intent
+    /// @dev Internal helper that completes an intent by executing swaps,
+    ///      delivering toToken to the recipient, and handling any surplus.
+    ///      Precondition: input tokens must already be in PayExecutor.
     /// @param route            The UniversalAddressRoute containing
     ///                         recipient details
     /// @param calls            Arbitrary swap calls to be executed by the
@@ -618,19 +595,14 @@ contract UniversalAddressManager is
     /// @param toAmount         The amount of target token to deliver to the
     ///                         recipient
     function _finishIntent(
-        address universalAddress,
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
         uint256 toAmount
     ) internal {
-        // Run arbitrary calls provided by the relayer. These will generally
-        // approve the swap contract and swap if necessary. Any surplus tokens
-        // are given to the caller.
+        // Run arbitrary calls provided by the relayer to create toToken.
+        IERC20 toToken = route.toToken;
         TokenAmount[] memory expectedOutput = new TokenAmount[](1);
-        expectedOutput[0] = TokenAmount({
-            token: route.toToken,
-            amount: toAmount
-        });
+        expectedOutput[0] = TokenAmount({token: toToken, amount: toAmount});
         executor.execute({
             calls: calls,
             expectedOutput: expectedOutput,
@@ -639,23 +611,16 @@ contract UniversalAddressManager is
         });
 
         // Forward the entire amount to the final beneficiary.
-        bool success = TokenUtils.tryTransfer({
-            token: route.toToken,
-            recipient: route.toAddress,
-            amount: toAmount
+        TokenUtils.transfer({
+            token: toToken,
+            amount: toAmount,
+            recipient: payable(route.toAddress)
         });
 
         // Transfer any excess to the refund address.
         TokenUtils.transferBalance({
-            token: route.toToken,
+            token: toToken,
             recipient: payable(route.refundAddress)
-        });
-
-        emit IntentFinished({
-            universalAddress: universalAddress,
-            destinationAddr: route.toAddress,
-            success: success,
-            route: route
         });
     }
 
@@ -692,9 +657,10 @@ contract BridgeReceiver {
 
     /// @notice Sweep entire balance of `token` (ERC20 or native when
     ///         token == IERC20(address(0))) to the deployer address.
-    function pull(IERC20 token) external {
+    /// @return amount The amount of tokens pulled
+    function pull(IERC20 token) external returns (uint256) {
         require(msg.sender == ua, "BR: not authorized");
-        TokenUtils.transferBalance({token: token, recipient: ua});
+        return TokenUtils.transferBalance({token: token, recipient: ua});
     }
 
     // Accept native asset deposits.

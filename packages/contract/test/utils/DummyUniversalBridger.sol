@@ -14,18 +14,21 @@ import {TokenAmount} from "../../src/TokenUtils.sol";
 contract DummyUniversalBridger is IUniversalAddressBridger {
     using SafeERC20 for IERC20;
 
-    event BridgeExecuted(uint256 toChainId, address toAddr, address token, uint256 amount);
+    event BridgeExecuted(
+        uint256 toChainId,
+        address toAddress,
+        address token,
+        uint256 amount
+    );
 
     // ---------------------------------------------------------------------
     // IUniversalAddressBridger
     // ---------------------------------------------------------------------
 
-    function getBridgeTokenIn(uint256 /*toChainId*/, TokenAmount calldata bridgeTokenOut)
-        external
-        pure
-        override
-        returns (address bridgeTokenIn, uint256 inAmount)
-    {
+    function getBridgeTokenIn(
+        uint256 /*toChainId*/,
+        TokenAmount calldata bridgeTokenOut
+    ) external pure override returns (address bridgeTokenIn, uint256 inAmount) {
         bridgeTokenIn = address(bridgeTokenOut.token);
         inAmount = bridgeTokenOut.amount;
     }
@@ -36,7 +39,17 @@ contract DummyUniversalBridger is IUniversalAddressBridger {
         TokenAmount calldata bridgeTokenOut,
         bytes calldata /*extraData*/
     ) external override {
-        bridgeTokenOut.token.safeTransferFrom(msg.sender, toAddress, bridgeTokenOut.amount);
-        emit BridgeExecuted(toChainId, toAddress, address(bridgeTokenOut.token), bridgeTokenOut.amount);
+        // Burn the tokens, simulating a slow bridge
+        bridgeTokenOut.token.safeTransferFrom(
+            msg.sender,
+            address(0xdead),
+            bridgeTokenOut.amount
+        );
+        emit BridgeExecuted(
+            toChainId,
+            toAddress,
+            address(bridgeTokenOut.token),
+            bridgeTokenOut.amount
+        );
     }
 }

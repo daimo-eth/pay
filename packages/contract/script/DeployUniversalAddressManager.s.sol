@@ -24,20 +24,20 @@ import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 // CREATE3Factory constant CREATE3;
 
 bytes32 constant DEPLOY_SALT_UA_FACTORY = keccak256(
-    "UniversalAddressFactory-deploy1"
+    "UniversalAddressFactory-deploy5"
 );
 bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
-    "UniversalAddressBridger-deploy1"
+    "UniversalAddressBridger-deploy5"
 );
-bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy1");
+bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy5");
 bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256(
-    "SharedConfig-impl-deploy1"
+    "SharedConfig-impl-deploy5"
 );
 bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
-    "UniversalAddressManager-deploy1"
+    "UniversalAddressManager-deploy5"
 );
 bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
-    "UniversalAddressManager-impl-deploy1"
+    "UniversalAddressManager-impl-deploy5"
 );
 
 /// @title DeployUniversalAddressManager

@@ -18,7 +18,8 @@ struct UniversalAddressRoute {
     address escrow; // IUniversalAddressManager escrow contract
 }
 
-/// @notice Calculate the deterministic hash committed to by the Universal Address.
+/// @notice Calculate the deterministic hash committed to by the Universal
+///         Address.
 function calcRouteHash(
     UniversalAddressRoute calldata route
 ) pure returns (bytes32) {
@@ -26,9 +27,13 @@ function calcRouteHash(
 }
 
 /// @author Daimo, Inc
-/// @notice Minimal vault that holds funds for a single UniversalAddressRoute. It holds no
-///         mutable state beyond the fixed intent hash, so it can be deployed
-///         cheaply via a proxy clone and reused across chains.
+/// @notice Minimal vault contract that holds funds for a single cross-chain
+///         transfer route, enabling deterministic fund custody across chains.
+/// @dev Stateless design with only a fixed route hash allows cheap deployment
+///      via proxy clones and reuse across multiple chains. Funds are held
+///      securely until the Universal Address Manager orchestrates their release
+///      for swaps, bridging, or refunds. Each vault is uniquely tied to a
+///      specific route and can only be controlled by its designated escrow.
 contract UniversalAddress is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -56,7 +61,11 @@ contract UniversalAddress is Initializable, ReentrancyGuard {
     // Escrow helpers – only callable by the escrow/manager
     // ---------------------------------------------------------------------
 
-    /// @notice Sweep specified token amount out of the vault.
+    /// @notice Transfers a specified amount of tokens from the vault to a
+    ///         designated recipient, callable only by the authorized escrow.
+    /// @param route       The UniversalAddressRoute that this vault was created for
+    /// @param tokenAmount The token and amount to transfer from the vault
+    /// @param recipient   The address to receive the transferred tokens
     function sendAmount(
         UniversalAddressRoute calldata route,
         TokenAmount calldata tokenAmount,

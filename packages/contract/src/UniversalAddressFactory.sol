@@ -8,7 +8,12 @@ import "./UniversalAddress.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Factory for deterministic Universal Address deployments.
+/// @notice Factory contract that creates deterministic Universal Address vault
+///         contracts using CREATE2 deployment for predictable addresses.
+/// @dev Deploys Universal Address contracts at addresses determined by the
+///      route parameters, enabling multi-chain systems to know vault addresses
+///      before deployment. Each route maps to a unique vault address that can
+///      hold funds and execute cross-chain transfers on behalf of users.
 contract UniversalAddressFactory {
     /// Singleton implementation that all minimal proxies delegate to.
     UniversalAddress public immutable universalAddressImpl;
@@ -22,7 +27,8 @@ contract UniversalAddressFactory {
         universalAddressImpl = new UniversalAddress();
     }
 
-    /// @dev Deploy the Universal Address for the given UniversalAddressRoute (or return existing one).
+    /// @dev Deploy the Universal Address for the given UniversalAddressRoute
+    ///      (or return existing one).
     function createUniversalAddress(
         UniversalAddressRoute calldata route
     ) public returns (UniversalAddress ret) {
@@ -47,7 +53,8 @@ contract UniversalAddressFactory {
         emit UniversalAddressDeployed(universalAddress, route);
     }
 
-    /// @notice Pure view helper: compute CREATE2 address for a UniversalAddressRoute.
+    /// @notice Pure view helper: compute CREATE2 address for a
+    ///         UniversalAddressRoute.
     function getUniversalAddress(
         UniversalAddressRoute calldata route
     ) public view returns (address) {

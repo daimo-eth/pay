@@ -7,9 +7,12 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Global configuration registry for the Universal Address protocol.
-/// @dev Upgradeable through a proxy (e.g. Transparent or UUPS) managed by
-///      Daimo governance. A storage gap is reserved for future variables.
+/// @notice Centralized configuration registry that manages protocol-wide
+///         settings for the Universal Address system.
+/// @dev Provides shared configuration for minimum amounts, token whitelists,
+///      contract addresses, and emergency pause controls. Upgradeable through
+///      UUPS proxy pattern with Daimo governance control. Other UA contracts
+///      reference this for consistent behavior across the protocol.
 contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
     // Storage
@@ -51,11 +54,9 @@ contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // ---------------------------------------------------------------------
 
     /// @dev Restrict upgrades to the contract owner.
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyOwner
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // ───────────────────────────────────────────────────────────────────────────
     // Address registry management
@@ -113,5 +114,5 @@ contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // Storage gap for upgradeability
     // ───────────────────────────────────────────────────────────────────────────
 
-    uint256[45] private __gap;
+    uint256[50] private __gap;
 }

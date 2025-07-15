@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "../src/UniversalAddressManager.sol";
 import "../src/UniversalAddressBridger.sol";
@@ -12,7 +13,6 @@ import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
-import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
@@ -30,7 +30,9 @@ bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
     "UniversalAddressBridger-deploy1"
 );
 bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy1");
-bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256("SharedConfig-impl-deploy1");
+bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256(
+    "SharedConfig-impl-deploy1"
+);
 bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
     "UniversalAddressManager-deploy1"
 );
@@ -41,12 +43,10 @@ bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
 /// @title DeployUniversalAddressManager
 /// @notice Foundry script that deploys:
 ///         1. UniversalAddressFactory (deterministic via CREATE3)
-///         2. UniversalAddressBridger (wraps the already-deployed DaimoPayBridger)
+///         2. UniversalAddressBridger (wraps the already-deployed
+///            DaimoPayBridger)
 ///         3. SharedConfig (upgrade-ready, but deployed inline + initialized)
 ///         4. UniversalAddressManager (core escrow contract)
-///
-/// The script mirrors the style of existing deployment scripts under
-/// packages/contract/script/.
 contract DeployUniversalAddressManager is Script {
     function run() public {
         //////////////////////////////////////////////////////////////
@@ -68,7 +68,10 @@ contract DeployUniversalAddressManager is Script {
         // 1. UniversalAddressFactory – deterministic, no constructor args.
         address uaFactory = CREATE3.deploy(
             DEPLOY_SALT_UA_FACTORY,
-            abi.encodePacked(type(UniversalAddressFactory).creationCode, abi.encode())
+            abi.encodePacked(
+                type(UniversalAddressFactory).creationCode,
+                abi.encode()
+            )
         );
         console.log("UniversalAddressFactory deployed at", uaFactory);
 
@@ -98,21 +101,36 @@ contract DeployUniversalAddressManager is Script {
             DEPLOY_SALT_SHARED_CONFIG_IMPL,
             abi.encodePacked(type(SharedConfig).creationCode, abi.encode())
         );
-        console.log("SharedConfig implementation deployed at", sharedConfigImpl);
+        console.log(
+            "SharedConfig implementation deployed at",
+            sharedConfigImpl
+        );
 
-        bytes memory sharedInit = abi.encodeCall(SharedConfig.initialize, (msg.sender));
+        bytes memory sharedInit = abi.encodeCall(
+            SharedConfig.initialize,
+            (msg.sender)
+        );
         address sharedConfig = CREATE3.deploy(
             DEPLOY_SALT_SHARED_CONFIG,
-            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(sharedConfigImpl, sharedInit))
+            abi.encodePacked(
+                type(ERC1967Proxy).creationCode,
+                abi.encode(sharedConfigImpl, sharedInit)
+            )
         );
         console.log("SharedConfig proxy deployed at", sharedConfig);
 
         // 4. UniversalAddressManager – implementation & proxy
         address uaManagerImpl = CREATE3.deploy(
             DEPLOY_SALT_UA_MANAGER_IMPL,
-            abi.encodePacked(type(UniversalAddressManager).creationCode, abi.encode())
+            abi.encodePacked(
+                type(UniversalAddressManager).creationCode,
+                abi.encode()
+            )
         );
-        console.log("UniversalAddressManager implementation deployed at", uaManagerImpl);
+        console.log(
+            "UniversalAddressManager implementation deployed at",
+            uaManagerImpl
+        );
 
         // Prepare initializer calldata for the proxy
         bytes memory initData = abi.encodeCall(
@@ -155,22 +173,27 @@ contract DeployUniversalAddressManager is Script {
         }
 
         // Collect destination chain IDs from each bridge type --------------------------------
-        (uint256[] memory cctpChainIds, ) = getCCTPBridgeRoutes(sourceChainId);
-        (uint256[] memory cctpV2ChainIds, ) = getCCTPV2BridgeRoutes(
-            sourceChainId
-        );
-        (uint256[] memory acrossChainIds, ) = getAcrossBridgeRoutes(
-            sourceChainId
-        );
+        (
+            uint256[] memory cctpChainIds,
+            DaimoPayCCTPBridger.CCTPBridgeRoute[] memory cctpBridgeRoutes
+        ) = getCCTPBridgeRoutes(sourceChainId);
+        (
+            uint256[] memory cctpV2ChainIds,
+            DaimoPayCCTPV2Bridger.CCTPBridgeRoute[] memory cctpV2BridgeRoutes
+        ) = getCCTPV2BridgeRoutes(sourceChainId);
+        (
+            uint256[] memory acrossChainIds,
+            DaimoPayAcrossBridger.AcrossBridgeRoute[] memory acrossBridgeRoutes
+        ) = getAcrossBridgeRoutes(sourceChainId);
 
         address axelarReceiver = CREATE3.getDeployed(
             msg.sender,
             DEPLOY_SALT_AXELAR_BRIDGER
         );
-        (uint256[] memory axelarChainIds, ) = getAxelarBridgeRoutes(
-            sourceChainId,
-            axelarReceiver
-        );
+        (
+            uint256[] memory axelarChainIds,
+            DaimoPayAxelarBridger.AxelarBridgeRoute[] memory axelarBridgeRoutes
+        ) = getAxelarBridgeRoutes(sourceChainId, axelarReceiver);
 
         // Count total chains & allocate output arrays
         uint256 total = cctpChainIds.length +
@@ -185,22 +208,22 @@ contract DeployUniversalAddressManager is Script {
         // helper to push id & stable
         for (uint256 i; i < cctpChainIds.length; ++i) {
             chainIds[idx] = cctpChainIds[i];
-            stableOuts[idx] = _getUSDCAddress(chainIds[idx]);
+            stableOuts[idx] = cctpBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < cctpV2ChainIds.length; ++i) {
             chainIds[idx] = cctpV2ChainIds[i];
-            stableOuts[idx] = _getUSDCAddress(chainIds[idx]);
+            stableOuts[idx] = cctpV2BridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < acrossChainIds.length; ++i) {
             chainIds[idx] = acrossChainIds[i];
-            stableOuts[idx] = _getUSDCAddress(chainIds[idx]);
+            stableOuts[idx] = acrossBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < axelarChainIds.length; ++i) {
             chainIds[idx] = axelarChainIds[i];
-            stableOuts[idx] = _getUSDCAddress(chainIds[idx]);
+            stableOuts[idx] = axelarBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
 

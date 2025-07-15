@@ -20,9 +20,21 @@ import "./interfaces/IUniversalAddressManager.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Escrow contract that manages Universal Addresses,
-///         acting as a single source of truth for all UA intents.
-contract UniversalAddressManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable, IUniversalAddressManager {
+/// @notice Central escrow contract that orchestrates cross-chain Universal
+///         Address intents, managing the complete lifecycle.
+/// @dev Coordinates with Universal Address vault contracts and bridgers to
+///      enable seamless cross-chain transfers. Supports relayer-based
+///      optimistic fast-finish with later settlement when bridge transfers
+///      arrive. Creates deterministic receiver addresses to prevent
+///      double-spending attacks. Assumes all whitelisted payment tokens,
+///      bridge-out tokens, and route toTokens are 1:1 value stablecoins.
+contract UniversalAddressManager is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    IUniversalAddressManager
+{
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -36,7 +48,8 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
     /// Factory responsible for deploying deterministic Universal Addresses.
     UniversalAddressFactory public universalAddressFactory;
 
-    /// Dedicated contract that performs swap / contract calls on behalf of the manager.
+    /// Dedicated contract that performs swap / contract calls on behalf of the
+    /// manager.
     DaimoPayExecutor public executor;
 
     /// Multiplexer around IDaimoPayBridger adapters.
@@ -139,17 +152,32 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
     // ---------------------------------------------------------------------
 
     /// @dev Restrict upgrades to the contract owner.
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyOwner
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // ---------------------------------------------------------------------
     // External user / relayer entrypoints
     // ---------------------------------------------------------------------
 
-    /// @notice Begin a cross-chain transfer on the SOURCE chain.
+    /// @notice Initiates a cross-chain transfer by pulling funds from the
+    ///         Universal Address vault, executing swaps if needed, and
+    ///         initiating a bridge to the destination chain.
+    /// @dev Must be called on the source chain. Creates a deterministic
+    ///      receiver address on the destination chain and bridges the
+    ///      specified token amount to it.
+    /// @param route           The cross-chain route containing destination
+    ///                        chain, recipient, and token details
+    /// @param paymentToken    The whitelisted stablecoin used to fund the
+    ///                        intent.
+    /// @param bridgeTokenOut  The token and amount to be bridged to the
+    ///                        destination chain
+    /// @param relaySalt       Unique salt provided by the relayer to generate
+    ///                        a unique receiver address
+    /// @param calls           Optional swap calls to convert payment token to
+    ///                        required bridge input token
+    /// @param bridgeExtraData Additional data required by the specific bridge
+    ///                        implementation
     function startIntent(
         UniversalAddressRoute calldata route,
         IERC20 paymentToken,
@@ -168,25 +196,26 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
             "UAM: amount < min"
         );
 
-        UniversalAddress intentContract = universalAddressFactory
+        UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
         bytes32 recvSalt = _receiverSalt({
-            universalAddress: address(intentContract),
+            universalAddress: address(uaContract),
             relaySalt: relaySalt,
             bridgeAmountOut: outAmount,
             bridgeToken: bridgeTokenOut.token,
             sourceChainId: block.chainid
         });
 
-        // A salt is used to generate a unique receiver address for each bridge transfer.
-        // The receiver address is a CREATE2 address that encodes the bridging parameters.
-        // Without this check, a malicious relayer could reuse the same receiver address
-        // to claim multiple bridge transfers, effectively double-paying themselves.
+        // A salt is used to generate a unique receiver address for each bridge
+        // transfer. The receiver address is a CREATE2 address that encodes the
+        // bridging parameters. Without this check, a malicious relayer could
+        // reuse the same receiver address to claim multiple bridge transfers,
+        // effectively double-paying themselves.
         require(!saltUsed[recvSalt], "UAM: salt used");
         saltUsed[recvSalt] = true;
 
         // Send payment token to executor
-        intentContract.sendAmount({
+        uaContract.sendAmount({
             route: route,
             tokenAmount: _computeRequiredPaymentAmount({
                 paymentToken: paymentToken,
@@ -232,22 +261,27 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         });
 
         emit Start({
-            universalAddress: address(intentContract),
+            universalAddress: address(uaContract),
             receiverAddr: receiverAddr,
             route: route
         });
     }
 
-    /// @notice Refund unsupported tokens.
+    /// @notice Refunds tokens from a Universal Address vault to the designated
+    ///         refund address.
+    /// @dev Only refunds tokens that are not whitelisted. Sends the entire
+    ///      token balance to the refund address specified in the route.
+    /// @param route The Universal Address route containing the refund address
+    /// @param token The non-whitelisted token to refund from the vault
     function refundIntent(
         UniversalAddressRoute calldata route,
         IERC20 token
     ) external nonReentrant notPaused {
         require(route.escrow == address(this), "UAM: wrong escrow");
 
-        UniversalAddress intentContract = universalAddressFactory
+        UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
-        address universalAddress = address(intentContract);
+        address universalAddress = address(uaContract);
 
         // Disallow refunding whitelisted coins
         require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
@@ -255,7 +289,7 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         uint256 amount = TokenUtils.getBalanceOf(token, universalAddress);
         require(amount > 0, "UAM: no balance");
 
-        intentContract.sendAmount({
+        uaContract.sendAmount({
             route: route,
             tokenAmount: TokenAmount({token: token, amount: amount}),
             recipient: payable(route.refundAddress)
@@ -275,19 +309,17 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
     // ---------------------------------------------------------------------
 
     /// @notice Complete an intent by sweeping funds that are already held by
-    ///         the Universal Address on the destination chain (e.g. tokens
-    ///         were bridged directly to the UA instead of the BridgeReceiver).
-    ///         The caller (typically a relayer) may provide optional swap
-    ///         calls so that the swept assets end up as `route.toToken`.
-    ///         Any surplus after delivering the required `toToken` amount is
-    ///         sent to the caller, and the caller also receives the standard
-    ///         chain-fee rebate.
+    ///         the Universal Address on the destination chain.
+    /// @dev The caller (typically a relayer) may provide optional swap calls
+    ///      so that the swept assets end up as `route.toToken`. Any surplus
+    ///      after delivering the required `toToken` amount is sent to the
+    ///      caller.
     ///
-    /// @param route            The UniversalAddressRoute for the intent.
-    /// @param paymentToken     Token to be used to pay the chain fee.
-    /// @param calls            Arbitrary swap calls to be executed by the
-    ///                         executor. Can be empty when assets are already
-    ///                         `toToken`.
+    /// @param route        The UniversalAddressRoute for the intent
+    /// @param paymentToken Token to be used to pay the intent
+    /// @param toAmount     The amount of `toToken` to deliver to the UA
+    /// @param calls        Arbitrary swap calls to be executed by the executor
+    ///                     Can be empty when assets are already `toToken`
     function sameChainFinishIntent(
         UniversalAddressRoute calldata route,
         IERC20 paymentToken,
@@ -304,9 +336,9 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         );
 
         // Deploy (or fetch) the Universal Address for this route.
-        UniversalAddress intentContract = universalAddressFactory
+        UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
-        address universalAddress = address(intentContract);
+        address universalAddress = address(uaContract);
 
         // Compute the required amount of paymentToken to pay for the toAmount
         TokenAmount
@@ -318,7 +350,7 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
             });
 
         // Pull specified token balances from the UA vault into the executor.
-        intentContract.sendAmount({
+        uaContract.sendAmount({
             route: route,
             tokenAmount: requiredPaymentAmount,
             recipient: payable(address(executor))
@@ -333,7 +365,18 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         });
     }
 
-    /// Relayer-only DESTINATION-chain function: deliver funds early and record filling.
+    /// @notice Allows a relayer to deliver funds early on the destination chain
+    ///         before the bridge transfer completes, recording them for later
+    ///         repayment when the bridged tokens arrive.
+    /// @dev Must be called on the destination chain. The relayer provides their
+    ///      own funds to complete the intent immediately and is recorded as the
+    ///      recipient for the eventual bridged tokens.
+    /// @param route           The UniversalAddressRoute for the intent
+    /// @param calls           Arbitrary swap calls to be executed by the executor
+    /// @param token           The token being provided by the relayer
+    /// @param bridgeTokenOut  The token and amount expected from the bridge
+    /// @param relaySalt       Unique salt from the original bridge transfer
+    /// @param sourceChainId   The chain ID where the bridge transfer originated
     function fastFinishIntent(
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
@@ -385,7 +428,16 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         });
     }
 
-    /// Complete after slow bridge lands
+    /// @notice Completes an intent after bridged tokens arrive on the destination
+    ///         chain, either repaying a relayer or fulfilling the intent directly.
+    /// @dev Must be called on the destination chain. If a relayer fast-finished
+    ///      the intent, they are repaid with the bridged tokens. Otherwise, the
+    ///      intent is completed normally for the recipient.
+    /// @param route           The UniversalAddressRoute for the intent
+    /// @param calls           Arbitrary swap calls to be executed by the executor
+    /// @param bridgeTokenOut  The token and amount that was bridged
+    /// @param relaySalt       Unique salt from the original bridge transfer
+    /// @param sourceChainId   The chain ID where the bridge transfer originated
     function claimIntent(
         UniversalAddressRoute calldata route,
         Call[] calldata calls,
@@ -471,6 +523,17 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
     // Internal helpers
     // ---------------------------------------------------------------------
 
+    /// @notice Generates a deterministic salt for creating a unique receiver
+    ///         address for each bridge transfer.
+    /// @dev The salt encodes all bridge transfer parameters to ensure each
+    ///      transfer gets a unique receiver address, preventing the relayer
+    ///      from claiming the intent multiple times.
+    /// @param universalAddress The Universal Address contract for this intent
+    /// @param relaySalt        Unique salt provided by the relayer
+    /// @param bridgeAmountOut  Amount of tokens being bridged
+    /// @param bridgeToken      Token being bridged to the destination chain
+    /// @param sourceChainId    Chain ID where the bridge transfer originated
+    /// @return Salt for CREATE2 deployment of the receiver contract
     function _receiverSalt(
         address universalAddress,
         bytes32 relaySalt,
@@ -491,6 +554,12 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
             );
     }
 
+    /// @notice Computes the deterministic address where a BridgeReceiver
+    ///         contract will be deployed using CREATE2.
+    /// @dev Uses the receiver salt to calculate the CREATE2 address without
+    ///      actually deploying the contract.
+    /// @param recvSalt The salt generated by _receiverSalt function
+    /// @return addr The computed CREATE2 address for the BridgeReceiver contract
     function _computeReceiverAddress(
         bytes32 recvSalt
     ) internal view returns (address payable addr) {
@@ -498,14 +567,19 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
     }
 
-    /// @notice Computes the required amount of payment token needed to cover a specified target token amount.
-    /// @dev This function assumes the payment token and target token have equal value (1:1 ratio) but may have
-    ///      different decimal places. It performs decimal adjustment to ensure the correct amount is calculated.
-    ///      When the payment token has fewer decimals, ceiling division is used to prevent underpayment.
-    /// @param paymentToken The ERC20 token used for payment
-    /// @param toTokenAmount The target amount in the target token's base units
+    /// @notice Computes the required amount of payment token needed to cover a
+    ///         specified target token amount.
+    /// @dev This function assumes the payment token and target token have
+    ///      equal value (1:1 ratio) but may have different decimal places. It
+    ///      performs decimal adjustment to ensure the correct amount is
+    ///      calculated. When the payment token has fewer decimals, ceiling
+    ///      division is used to prevent underpayment.
+    /// @param paymentToken    The ERC20 token used for payment
+    /// @param toTokenAmount   The target amount in the target token's base
+    ///                        units
     /// @param toTokenDecimals The number of decimal places for the target token
-    /// @return TokenAmount struct containing the payment token and the calculated required amount
+    /// @return TokenAmount    struct containing the payment token and the
+    ///                        calculated required amount
     function _computeRequiredPaymentAmount(
         IERC20 paymentToken,
         uint256 toTokenAmount,
@@ -534,6 +608,15 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
         return TokenAmount({token: paymentToken, amount: amount});
     }
 
+    /// @notice Internal helper that completes an intent by executing swaps,
+    ///         delivering tokens to the recipient, and handling any surplus.
+    /// @param universalAddress The Universal Address contract for this intent
+    /// @param route            The UniversalAddressRoute containing
+    ///                         recipient details
+    /// @param calls            Arbitrary swap calls to be executed by the
+    ///                         executor
+    /// @param toAmount         The amount of target token to deliver to the
+    ///                         recipient
     function _finishIntent(
         address universalAddress,
         UniversalAddressRoute calldata route,
@@ -590,17 +673,25 @@ contract UniversalAddressManager is Initializable, OwnableUpgradeable, Reentranc
 // Minimal deterministic receiver
 // ---------------------------------------------------------------------
 
+/// @notice Minimal deterministic contract that receives bridged tokens and
+///         allows the Universal Address Manager to sweep them.
+/// @dev Deployed via CREATE2 using a salt that encodes bridge transfer
+///      parameters into the deployment address, creating predictable addresses
+///      that are unique to each bridge transfer. Only the deploying manager
+///      can pull funds from this contract.
 contract BridgeReceiver {
     using SafeERC20 for IERC20;
 
-    /// @notice Address allowed to pull funds from this contract (the deployer/manager).
+    /// @notice Address allowed to pull funds from this contract (the deployer/
+    ///         manager).
     address payable public immutable ua;
 
     constructor() {
         ua = payable(msg.sender);
     }
 
-    /// @notice Sweep entire balance of `token` (ERC20 or native when token == IERC20(address(0))) to the deployer address.
+    /// @notice Sweep entire balance of `token` (ERC20 or native when
+    ///         token == IERC20(address(0))) to the deployer address.
     function pull(IERC20 token) external {
         require(msg.sender == ua, "BR: not authorized");
         TokenUtils.transferBalance({token: token, recipient: ua});

@@ -9,6 +9,15 @@ import {TokenAmount} from "../TokenUtils.sol";
 
 /// @notice Minimal interface for UniversalAddressManager used by relayers and other contracts.
 interface IUniversalAddressManager {
+    function startIntent(
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        Call[] calldata calls,
+        bytes calldata bridgeExtraData
+    ) external;
+
     function refundIntent(
         UniversalAddressRoute calldata route,
         IERC20 token

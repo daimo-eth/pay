@@ -62,7 +62,10 @@ contract UniversalAddressTest is Test {
 
         // Config
         SharedConfig implCfg = new SharedConfig();
-        bytes memory cfgData = abi.encodeCall(SharedConfig.initialize, (address(this)));
+        bytes memory cfgData = abi.encodeCall(
+            SharedConfig.initialize,
+            (address(this))
+        );
         ERC1967Proxy cfgProxy = new ERC1967Proxy(address(implCfg), cfgData);
         cfg = SharedConfig(payable(address(cfgProxy)));
         cfg.setWhitelistedStable(address(usdc), true);
@@ -79,12 +82,6 @@ contract UniversalAddressTest is Test {
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         mgr = UniversalAddressManager(payable(address(proxy)));
-
-        // Approvals so mgr can pull funds when needed
-        vm.prank(ALICE);
-        usdc.approve(address(mgr), type(uint256).max);
-        vm.prank(RELAYER);
-        usdc.approve(address(mgr), type(uint256).max);
     }
 
     // ---------------------------------------------------------------------

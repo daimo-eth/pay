@@ -9,9 +9,9 @@ import "./interfaces/IDaimoPayBridger.sol";
 import "./interfaces/IUniversalAddressBridger.sol";
 
 /// @author Daimo, Inc
-/// @notice Thin wrapper that exposes a minimal API for bridging through the
-///         existing DaimoPay adapter ecosystem.  Eliminates the TokenAmount[]
-///         argument surface for callers while preserving full adapter logic.
+/// @notice Simplified bridging interface for the Universal Address system
+///         that multiplexes between multiple bridge-specific adapters (e.g.
+///         CCTP, Across, Axelar).
 contract UniversalAddressBridger is IUniversalAddressBridger {
     using SafeERC20 for IERC20;
 
@@ -19,8 +19,11 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // Immutable routing data (set once in the constructor)
     // ---------------------------------------------------------------------
 
+    /// Map destination chainId to IDaimoPayBridger bridge-specific adapter.
     mapping(uint256 chainId => IDaimoPayBridger adapter)
         public chainIdToBridger;
+
+    /// Map destination chainId to the stablecoin token bridged to.
     mapping(uint256 chainId => address stableOut) public chainIdToStableOut;
 
     constructor(
@@ -52,9 +55,14 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
             toChainId: toChainId,
             bridgeTokenOut: bridgeTokenOut
         });
-        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn(toChainId, opts);
+        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn({
+            toChainId: toChainId,
+            bridgeTokenOutOptions: opts
+        });
     }
 
+    /// @dev Helper to get the bridge-specific adapter contract and the
+    ///      TokenAmount[] expected by the adapter.
     function _getAdapter(
         uint256 toChainId,
         TokenAmount calldata bridgeTokenOut

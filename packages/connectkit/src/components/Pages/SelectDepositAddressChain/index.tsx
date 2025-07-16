@@ -1,17 +1,20 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
-import { DaimoPayOrderMode } from "@daimo/pay-common";
+import {
+  DaimoPayOrderMode,
+  DepositAddressPaymentOptions,
+} from "@daimo/pay-common";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const SelectDepositAddressChain: React.FC = () => {
-  const { setRoute, paymentState } = usePayContext();
+  const { setRoute, paymentState, trpc } = usePayContext();
   const pay = useDaimoPay();
   const { order } = pay;
   const {
@@ -19,6 +22,21 @@ const SelectDepositAddressChain: React.FC = () => {
     setSelectedDepositAddressOption,
     depositAddressOptions,
   } = paymentState;
+
+  // Track Untron receiver availability
+  const [untronAvailable, setUntronAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const available = await trpc.untronHasAvailableReceivers.query();
+        setUntronAvailable(available);
+      } catch (e) {
+        console.error("Failed to check Untron availability", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <PageContent>
@@ -50,9 +68,18 @@ const SelectDepositAddressChain: React.FC = () => {
               title: option.id,
               icons: [option.logoURI],
               disabled:
-                option.minimumUsd > 0 &&
-                order?.mode === DaimoPayOrderMode.HYDRATED &&
-                order.usdValue < option.minimumUsd,
+                // Disable if usd below min
+                (option.minimumUsd > 0 &&
+                  order?.mode === DaimoPayOrderMode.HYDRATED &&
+                  order.usdValue < option.minimumUsd) ||
+                // Disable if TRON_USDT unavailable
+                (option.id === DepositAddressPaymentOptions.TRON_USDT &&
+                  untronAvailable === false),
+              subtitle:
+                option.id === DepositAddressPaymentOptions.TRON_USDT &&
+                untronAvailable === false
+                  ? "currently unavailable"
+                  : undefined,
               onClick: () => {
                 setSelectedDepositAddressOption(option);
                 const meta = { event: "click-option", option: option.id };

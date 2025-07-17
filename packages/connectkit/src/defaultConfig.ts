@@ -11,7 +11,7 @@ import {
   mantle,
   optimism,
   polygon,
-  sepolia,
+  scroll,
   worldchain,
 } from "wagmi/chains";
 import { CoinbaseWalletParameters } from "wagmi/connectors";
@@ -38,17 +38,17 @@ type DefaultConfigProps = {
 } & Partial<CreateConfigParameters>;
 
 export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
-  mainnet,
+  arbitrum,
   base,
+  bsc,
+  celo,
+  linea,
+  mainnet,
+  mantle,
   polygon,
   optimism,
-  arbitrum,
-  linea,
-  bsc,
-  sepolia,
+  scroll,
   worldchain,
-  mantle,
-  celo,
 ];
 
 /** Daimo Pay recommended config, for use with wagmi's createConfig(). */

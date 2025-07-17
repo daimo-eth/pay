@@ -10,6 +10,7 @@ import {
   mantle,
   optimism,
   polygon,
+  scroll,
   solana,
   worldchain,
 } from "./chain";
@@ -671,6 +672,43 @@ const polygonTokens: Token[] = [
 ];
 
 //
+// Scroll
+//
+
+export const scrollETH = nativeETH(scroll.chainId);
+
+export const scrollWETH: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0x5300000000000000000000000000000000000004"),
+  decimals: 18,
+  name: "Wrapped Ether",
+  symbol: "WETH",
+  logoURI: TokenLogo.WETH,
+});
+
+export const scrollUSDC: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+export const scrollUSDT: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const scrollTokens: Token[] = [scrollETH, scrollWETH, scrollUSDC, scrollUSDT];
+
+//
 // Solana
 //
 
@@ -765,6 +803,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [mantle.chainId, mantleTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
+  [scroll.chainId, scrollTokens],
   [solana.chainId, solanaTokens],
   [worldchain.chainId, worldchainTokens],
 ]);
@@ -896,6 +935,14 @@ const tokensByChainAndType: Map<
       [TokenType.BRIDGED_USDC]: polygonUSDCe,
       [TokenType.AXL_USDC]: polygonAxlUSDC,
       [TokenType.DAI]: polygonDAI,
+    },
+  ],
+  [
+    scroll.chainId,
+    {
+      [TokenType.NATIVE]: scrollETH,
+      [TokenType.WRAPPED_NATIVE]: scrollWETH,
+      [TokenType.BRIDGED_USDC]: scrollUSDC,
     },
   ],
   [

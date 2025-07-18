@@ -68,6 +68,13 @@ export const polygon: Chain = {
   cctpDomain: 7,
 };
 
+export const scroll: Chain = {
+  type: "evm",
+  chainId: 534352,
+  name: "Scroll",
+  cctpDomain: null,
+};
+
 export const solana: Chain = {
   type: "solana",
   chainId: 501,
@@ -92,6 +99,7 @@ export const supportedChains: Chain[] = [
   mantle,
   optimism,
   polygon,
+  scroll,
   solana,
   worldchain,
 ];
@@ -150,6 +158,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://optimistic.etherscan.io";
     case polygon.chainId:
       return "https://polygonscan.com";
+    case scroll.chainId:
+      return "https://scrollscan.com";
     case solana.chainId:
       return "https://solscan.io";
     case worldchain.chainId:

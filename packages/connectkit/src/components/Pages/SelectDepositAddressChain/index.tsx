@@ -4,7 +4,10 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
-import { DaimoPayOrderMode } from "@daimo/pay-common";
+import {
+  DaimoPayOrderMode,
+  DepositAddressPaymentOptions,
+} from "@daimo/pay-common";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -18,6 +21,7 @@ const SelectDepositAddressChain: React.FC = () => {
     isDepositFlow,
     setSelectedDepositAddressOption,
     depositAddressOptions,
+    untronAvailable,
   } = paymentState;
 
   return (
@@ -43,16 +47,27 @@ const SelectDepositAddressChain: React.FC = () => {
       <OptionsList
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
-        options={
-          depositAddressOptions.options?.map((option) => {
+        options={(depositAddressOptions.options ?? [])
+          .map((option) => {
+            const disabled =
+              // Disable if usd below min
+              (option.minimumUsd > 0 &&
+                order?.mode === DaimoPayOrderMode.HYDRATED &&
+                order.usdValue < option.minimumUsd) ||
+              // Disable if TRON_USDT unavailable
+              (option.id === DepositAddressPaymentOptions.TRON_USDT &&
+                untronAvailable === false);
+
             return {
               id: option.id,
               title: option.id,
               icons: [option.logoURI],
-              disabled:
-                option.minimumUsd > 0 &&
-                order?.mode === DaimoPayOrderMode.HYDRATED &&
-                order.usdValue < option.minimumUsd,
+              disabled,
+              subtitle:
+                option.id === DepositAddressPaymentOptions.TRON_USDT &&
+                untronAvailable === false
+                  ? "currently unavailable"
+                  : undefined,
               onClick: () => {
                 setSelectedDepositAddressOption(option);
                 const meta = { event: "click-option", option: option.id };
@@ -63,8 +78,9 @@ const SelectDepositAddressChain: React.FC = () => {
                 }
               },
             };
-          }) ?? []
-        }
+          })
+          // Push disabled options to the bottom of the list
+          .sort((a, b) => Number(a.disabled) - Number(b.disabled))}
       />
     </PageContent>
   );

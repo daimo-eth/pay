@@ -225,13 +225,15 @@ export const DaimoPayModal: React.FC<{
     // If mobile injector is disabled, don't show the connected wallets.
     const evmOptionsCount =
       paymentState.walletPaymentOptions.options?.length ?? 0;
+    const isEvmLoading = paymentState.walletPaymentOptions.isLoading;
     const solanaOptionsCount =
       paymentState.solanaPaymentOptions.options?.length ?? 0;
-
+    const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
     if (
       isEthConnected &&
       !isSolanaConnected &&
       (!isMobile || !disableMobileInjector) &&
+      !isEvmLoading &&
       evmOptionsCount > 0
     ) {
       paymentState.setTokenMode("evm");
@@ -246,6 +248,7 @@ export const DaimoPayModal: React.FC<{
       !isEthConnected &&
       showSolanaPaymentMethod &&
       !disableMobileInjector &&
+      !isSolanaLoading &&
       solanaOptionsCount > 0
     ) {
       paymentState.setTokenMode("solana");
@@ -259,7 +262,9 @@ export const DaimoPayModal: React.FC<{
   }, [
     context.open,
     paymentState.walletPaymentOptions.options,
+    paymentState.walletPaymentOptions.isLoading,
     paymentState.solanaPaymentOptions.options,
+    paymentState.solanaPaymentOptions.isLoading,
     showSolanaPaymentMethod,
     address,
     chain?.id,

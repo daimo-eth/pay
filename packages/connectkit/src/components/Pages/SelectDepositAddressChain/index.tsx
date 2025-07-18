@@ -47,20 +47,22 @@ const SelectDepositAddressChain: React.FC = () => {
       <OptionsList
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
-        options={
-          depositAddressOptions.options?.map((option) => {
+        options={(depositAddressOptions.options ?? [])
+          .map((option) => {
+            const disabled =
+              // Disable if usd below min
+              (option.minimumUsd > 0 &&
+                order?.mode === DaimoPayOrderMode.HYDRATED &&
+                order.usdValue < option.minimumUsd) ||
+              // Disable if TRON_USDT unavailable
+              (option.id === DepositAddressPaymentOptions.TRON_USDT &&
+                untronAvailable === false);
+
             return {
               id: option.id,
               title: option.id,
               icons: [option.logoURI],
-              disabled:
-                // Disable if usd below min
-                (option.minimumUsd > 0 &&
-                  order?.mode === DaimoPayOrderMode.HYDRATED &&
-                  order.usdValue < option.minimumUsd) ||
-                // Disable if TRON_USDT unavailable
-                (option.id === DepositAddressPaymentOptions.TRON_USDT &&
-                  untronAvailable === false),
+              disabled,
               subtitle:
                 option.id === DepositAddressPaymentOptions.TRON_USDT &&
                 untronAvailable === false
@@ -76,8 +78,9 @@ const SelectDepositAddressChain: React.FC = () => {
                 }
               },
             };
-          }) ?? []
-        }
+          })
+          // Push disabled options to the bottom of the list
+          .sort((a, b) => Number(a.disabled) - Number(b.disabled))}
       />
     </PageContent>
   );

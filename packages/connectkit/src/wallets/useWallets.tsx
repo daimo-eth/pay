@@ -2,7 +2,7 @@ import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
 import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
-import Logos, { SquircleIcon } from "../assets/logos";
+import Logos, { SquircleIcon, WalletIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
@@ -52,7 +52,11 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           id: connector.id,
           connector,
           shortName: connector.name,
-          iconConnector: <img src={connector.icon} alt={connector.name} />,
+          iconConnector: connector.icon ? (
+            <img src={connector.icon} alt={connector.name} />
+          ) : (
+            <WalletIcon />
+          ),
           iconShape: "squircle",
         });
       });
@@ -119,13 +123,15 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       const c: WalletProps = {
         id: connector.id,
         name: connector.name ?? connector.id ?? connector.type,
-        icon: (
+        icon: connector.icon ? (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
+        ) : (
+          <WalletIcon />
         ),
         connector,
         iconShape: connector.id === "io.rabby" ? "circle" : "squircle",

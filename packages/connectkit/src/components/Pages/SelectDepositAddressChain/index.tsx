@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
@@ -14,29 +14,15 @@ import { OrderHeader } from "../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const SelectDepositAddressChain: React.FC = () => {
-  const { setRoute, paymentState, trpc } = usePayContext();
+  const { setRoute, paymentState } = usePayContext();
   const pay = useDaimoPay();
   const { order } = pay;
   const {
     isDepositFlow,
     setSelectedDepositAddressOption,
     depositAddressOptions,
+    untronAvailable,
   } = paymentState;
-
-  // Track Untron receiver availability
-  const [untronAvailable, setUntronAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const available = await trpc.untronHasAvailableReceivers.query();
-        setUntronAvailable(available);
-      } catch (e) {
-        console.error("Failed to check Untron availability", e);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <PageContent>

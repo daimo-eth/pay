@@ -47,6 +47,7 @@ import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
 import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
+import { useUntronAvailability } from "./useUntronAvailability";
 import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
 
 /** Wallet payment details, sent to processSourcePayment after submitting tx. */
@@ -80,6 +81,8 @@ export interface PaymentState {
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
   depositAddressOptions: ReturnType<typeof useDepositAddressOptions>;
+  /** Whether Untron receivers are currently available. `null` when unknown. */
+  untronAvailable: boolean | null;
   selectedExternalOption: ExternalPaymentOptionMetadata | undefined;
   selectedTokenOption: WalletPaymentOption | undefined;
   selectedSolanaTokenOption: WalletPaymentOption | undefined;
@@ -199,6 +202,9 @@ export function usePaymentState({
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     mode: pay.order?.mode,
   });
+
+  // Poll for Untron receiver availability so components can disable unsupported chains promptly.
+  const { available: untronAvailable } = useUntronAvailability({ trpc });
 
   const chainOrderUsdLimits = useOrderUsdLimits({ trpc });
 
@@ -570,5 +576,6 @@ export function usePaymentState({
     payWithSolanaToken,
     openInWalletBrowser,
     senderEnsName: senderEnsName ?? undefined,
+    untronAvailable,
   };
 }

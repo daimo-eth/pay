@@ -63,11 +63,6 @@ const SelectDepositAddressChain: React.FC = () => {
               title: option.id,
               icons: [option.logoURI],
               disabled,
-              subtitle:
-                option.id === DepositAddressPaymentOptions.TRON_USDT &&
-                untronAvailable === false
-                  ? "currently unavailable"
-                  : undefined,
               onClick: () => {
                 setSelectedDepositAddressOption(option);
                 const meta = { event: "click-option", option: option.id };

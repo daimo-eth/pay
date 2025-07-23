@@ -18,6 +18,7 @@ SCRIPTS=(
     # "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
+    # "script/DeployPayRefundFactory.s.sol"
 
     # Relayer
     # "script/DeployPayBalanceFactory.sol"

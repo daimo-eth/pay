@@ -381,6 +381,7 @@ export enum ExternalPaymentOptions {
   MercadoPago = "MercadoPago",
   Revolut = "Revolut",
   Wise = "Wise",
+  Zelle = "Zelle",
 }
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;

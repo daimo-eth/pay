@@ -406,8 +406,9 @@ function CountdownTimer({
   remainingS: number;
   totalS: number;
 }) {
+  const locales = useLocales();
   if (totalS == 0 || remainingS > 3600) {
-    return <SmallText>Send only once</SmallText>;
+    return <SmallText>{locales.sendOnlyOnce}</SmallText>;
   }
   const isExpired = remainingS === 0;
 

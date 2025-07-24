@@ -146,6 +146,7 @@ const esES: LocaleProps = {
   receivingAddress: "Dirección de destino",
   refresh: "Refrescar",
   waitingForPayment: "Esperando pago",
+  sendOnlyOnce: "Enviar solo una vez",
 };
 
 export default esES;

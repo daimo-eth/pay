@@ -145,6 +145,7 @@ const enUS = {
   receivingAddress: "Receiving Address",
   refresh: "Refresh",
   waitingForPayment: "Waiting For Payment",
+  sendOnlyOnce: "Send only once",
 };
 
 export default enUS;

@@ -207,6 +207,7 @@ export type DaimoPayHydratedOrder = {
   destClaimTxHash: Hex | null;
   redirectUri: string | null;
   orgId: string | null;
+  sourceInitiateUpdatedAt: number | null;
   createdAt: number | null;
   lastUpdatedAt: number | null;
   intentStatus: DaimoPayIntentStatus;

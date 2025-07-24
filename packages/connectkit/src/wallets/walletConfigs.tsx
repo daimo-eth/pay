@@ -71,9 +71,9 @@ export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
   "coinbaseWallet, coinbaseWalletSDK": {
-    name: "Coinbase Wallet",
-    shortName: "Coinbase",
-    icon: <Logos.Coinbase />,
+    name: "Base App",
+    shortName: "Base",
+    icon: <Logos.Base />,
     iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/coinbasewallet",
@@ -90,9 +90,9 @@ export const walletConfigs: {
     },
   },
   "com.coinbase.wallet": {
-    name: "Coinbase Wallet",
-    shortName: "Coinbase",
-    icon: <Logos.Coinbase />,
+    name: "Base App",
+    shortName: "Base",
+    icon: <Logos.Base />,
     iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/coinbasewallet",

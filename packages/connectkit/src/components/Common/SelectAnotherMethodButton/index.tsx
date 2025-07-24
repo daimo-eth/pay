@@ -1,7 +1,7 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { Connector, useAccount } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
-import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
+import { Base, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useLocales from "../../../hooks/useLocales";
@@ -60,7 +60,7 @@ export default function SelectAnotherMethodButton() {
 
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isMetaMask) icons.push(<MetaMask />);
-    if (!isCoinbase) icons.push(<Coinbase />);
+    if (!isCoinbase) icons.push(<Base />);
     if (icons.length < 3) icons.push(<Rabby />);
 
     return icons;

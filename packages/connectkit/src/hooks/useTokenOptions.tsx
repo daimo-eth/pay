@@ -8,7 +8,9 @@ import {
 import { Option } from "../components/Common/OptionsList";
 import TokenChainLogo from "../components/Common/TokenChainLogo";
 import { ROUTES } from "../constants/routes";
+import { flattenChildren } from "../utils";
 import { formatUsd, roundTokenAmount } from "../utils/format";
+import useLocales from "./useLocales";
 import { usePayContext } from "./usePayContext";
 
 /// and Solana tokens. See OptionsList.
@@ -25,6 +27,12 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
     setSelectedSolanaTokenOption,
   } = paymentState;
 
+  // Get translations once and pass down to helpers to avoid violating
+  // the Rules-of-Hooks (hooks can only be called inside React components
+  // or custom hooks).
+  const locales = useLocales();
+  const onString = flattenChildren(locales.on).join("");
+
   let optionsList: Option[] = [];
   let isLoading = false;
   if (["evm", "all"].includes(mode)) {
@@ -34,6 +42,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
         isDepositFlow,
         setSelectedTokenOption,
         setRoute,
+        onString,
       ),
     );
     isLoading ||= walletPaymentOptions.isLoading;
@@ -45,6 +54,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
         isDepositFlow,
         setSelectedSolanaTokenOption,
         setRoute,
+        onString,
       ),
     );
     isLoading ||= solanaPaymentOptions.isLoading;
@@ -64,13 +74,14 @@ function getEvmTokenOptions(
   isDepositFlow: boolean,
   setSelectedTokenOption: (option: WalletPaymentOption) => void,
   setRoute: (route: ROUTES, meta?: any) => void,
+  onString: string,
 ) {
   return options.map((option) => {
     const chainName = getChainName(option.balance.token.chainId);
     const titlePrice = isDepositFlow
       ? formatUsd(option.balance.usd)
       : roundTokenAmount(option.required.amount, option.required.token);
-    const title = `${titlePrice} ${option.balance.token.symbol} on ${chainName}`;
+    const title = `${titlePrice} ${option.balance.token.symbol} ${onString} ${chainName}`;
 
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
     const subtitle =
@@ -112,12 +123,13 @@ function getSolanaTokenOptions(
   isDepositFlow: boolean,
   setSelectedSolanaTokenOption: (option: WalletPaymentOption) => void,
   setRoute: (route: ROUTES, meta?: any) => void,
+  onString: string,
 ) {
   return options.map((option) => {
     const titlePrice = isDepositFlow
       ? formatUsd(option.balance.usd)
       : roundTokenAmount(option.required.amount, option.required.token);
-    const title = `${titlePrice} ${option.balance.token.symbol} on Solana`;
+    const title = `${titlePrice} ${option.balance.token.symbol} ${onString} Solana`;
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
     const subtitle =
       option.disabledReason ??

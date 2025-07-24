@@ -15,6 +15,7 @@ import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
@@ -49,7 +50,7 @@ export const OrderHeader = ({
       return route === ROUTES.SELECT_TOKEN ? (
         // TODO: make this match `ModalH1` font size for mobile
         <span style={{ fontSize: "19px", lineHeight: "22px" }}>
-          Your balances
+          {locales.yourBalances}
         </span>
       ) : null;
     } else {
@@ -82,7 +83,7 @@ export const OrderHeader = ({
       </LogoContainer>
     );
   };
-
+  const locales = useLocales();
   let walletIcon = renderIcon(connector?.icon);
   let solanaIcon = renderIcon(
     solanaWallet?.adapter.icon || <Solana />,
@@ -129,7 +130,7 @@ export const OrderHeader = ({
       return (
         <MinifiedContainer>
           <CoinLogos />
-          <Subtitle>1000+ tokens accepted</Subtitle>
+          <Subtitle>{locales.tokensAccepted}</Subtitle>
         </MinifiedContainer>
       );
     }
@@ -139,7 +140,7 @@ export const OrderHeader = ({
         {titleAmountContent && <TitleAmount>{titleAmountContent}</TitleAmount>}
         <AnyChainAnyCoinContainer>
           <CoinLogos />
-          <Subtitle>1000+ tokens accepted</Subtitle>
+          <Subtitle>{locales.tokensAccepted}</Subtitle>
         </AnyChainAnyCoinContainer>
       </>
     );

@@ -20,6 +20,7 @@ import {
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
+import useLocales from "../../hooks/useLocales";
 import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
@@ -364,7 +365,9 @@ const contentVariants: Variants = {
 
 export function DaimoPayButtonInner() {
   const { order } = useDaimoPay();
-  const label = order?.metadata?.intent ?? "Pay";
+  const locales = useLocales();
+  const defaultLabel = locales.payButton_defaultLabel;
+  const label = order?.metadata?.intent ?? defaultLabel;
 
   return (
     <AnimatePresence initial={false}>

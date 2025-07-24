@@ -4,6 +4,7 @@ import { Bitcoin, Solana, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { OptionsList } from "../OptionsList";
@@ -14,6 +15,7 @@ const OptionsContainer = styled.div`
 `;
 
 export default function SelectAnotherMethodButton() {
+  const locales = useLocales();
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, showSolanaPaymentMethod } = paymentState;
   const { connector } = useAccount();
@@ -31,7 +33,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectMethodOption = {
     id: "select-method",
-    title: `Pay with another method`,
+    title: locales.payWithAnotherMethod,
     icons: getBestPaymentMethodIcons(),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);
@@ -40,7 +42,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectWalletOption = {
     id: "select-wallet",
-    title: "Pay with another wallet",
+    title: locales.payWithAnotherWallet,
     icons: getBestUnconnectedWalletIcons(connector),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);

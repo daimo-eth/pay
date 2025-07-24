@@ -215,11 +215,9 @@ const ConnectWithInjector: React.FC<{
     return (
       <PageContent>
         <Container>
-          <ModalHeading>Invalid State</ModalHeading>
+          <ModalHeading>{locales.invalidState_heading}</ModalHeading>
           <ModalContent>
-            <Alert>
-              No connectors match the id given. This state should never happen.
-            </Alert>
+            <Alert>{locales.invalidState_description}</Alert>
           </ModalContent>
         </Container>
       </PageContent>
@@ -237,7 +235,7 @@ const ConnectWithInjector: React.FC<{
             <AnimatePresence>
               {(status === states.FAILED || status === states.REJECTED) && (
                 <RetryButton
-                  aria-label="Retry"
+                  aria-label={locales.retry}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}

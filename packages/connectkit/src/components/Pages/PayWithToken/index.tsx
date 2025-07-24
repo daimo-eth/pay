@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { getSupportUrl } from "../../../utils/supportUrl";
 import { TrpcClient } from "../../../utils/trpc";
@@ -40,7 +41,7 @@ const PayWithToken: React.FC = () => {
     });
   };
   const [txURL, setTxURL] = useState<string | undefined>();
-
+  const locales = useLocales();
   const walletChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
 
@@ -177,7 +178,7 @@ const PayWithToken: React.FC = () => {
         <PaymentBreakdown paymentOption={selectedTokenOption} />
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
-            Retry Payment
+            {locales.retryPayment}
           </Button>
         )}
         {payState === PayState.RequestFailed && (
@@ -192,7 +193,7 @@ const PayWithToken: React.FC = () => {
               );
             }}
           >
-            Contact Support
+            {locales.contactSupport}
           </Button>
         )}
       </ModalContent>

@@ -5,9 +5,14 @@ import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-reac
 import Logos, { SquircleIcon, WalletIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
+import useLocales from "../hooks/useLocales";
 import { usePayContext } from "../hooks/usePayContext";
 import { SolanaWalletName } from "../provider/SolanaContextProvider";
-import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
+import {
+  flattenChildren,
+  isCoinbaseWalletConnector,
+  isInjectedConnector,
+} from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
 /** Special wallet ID for "other wallets" option. */
@@ -37,7 +42,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const { disableMobileInjector } = context;
   // Solana wallets available in the session (desktop & mobile)
   const solanaWallet = useSolanaWalletAdapter();
-
+  const locales = useLocales();
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
 
@@ -79,12 +84,13 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
     );
     addIfNotPresent("com.trustwallet.app");
-
+    const otherWalletsString = flattenChildren(locales.otherWallets).join("");
+    const otherString = flattenChildren(locales.other).join("");
     // Add other wallet
     mobileWallets.push({
       id: WALLET_ID_OTHER_WALLET,
-      name: "Other Wallets",
-      shortName: "Other",
+      name: otherWalletsString,
+      shortName: otherString,
       iconConnector: <Logos.OtherWallets />,
       iconShape: "square",
       showInMobileConnectors: false,

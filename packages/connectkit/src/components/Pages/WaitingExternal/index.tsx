@@ -11,6 +11,7 @@ import {
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
+import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
@@ -18,7 +19,7 @@ const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
   const { isMobile } = useIsMobile();
-
+  const locales = useLocales();
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
     paymentState;
 
@@ -82,7 +83,7 @@ const WaitingExternal: React.FC = () => {
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-        <ModalH1>Waiting For Payment</ModalH1>
+        <ModalH1>{locales.waitingForPayment}</ModalH1>
         {paymentWaitingMessage && (
           <ModalBody style={{ marginTop: 12, marginBottom: 12 }}>
             {paymentWaitingMessage}

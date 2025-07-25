@@ -1,4 +1,5 @@
 import enUS from "./en-US";
 
-// Use English as the default locale to avoid missing translations
-export type LocaleProps = typeof enUS;
+// Allow locale files to provide only a subset of keys. Missing keys will
+// automatically fall back to English (see getLocale implementation).
+export type LocaleProps = Partial<typeof enUS>;

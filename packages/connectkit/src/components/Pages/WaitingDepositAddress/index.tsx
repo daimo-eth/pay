@@ -16,6 +16,7 @@ import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import Button from "../../Common/Button";
@@ -164,6 +165,7 @@ export default function WaitingDepositAddress() {
 }
 
 function TronUnderpayContent({ orderId }: { orderId?: string }) {
+  const locales = useLocales();
   return (
     <ModalContent
       style={{
@@ -194,7 +196,7 @@ function TronUnderpayContent({ orderId }: { orderId?: string }) {
           }
           style={{ marginTop: 16, width: 200 }}
         >
-          Contact Support
+          {locales.contactSupport}
         </Button>
       </CenterContainer>
     </ModalContent>
@@ -211,7 +213,7 @@ function DepositAddressInfo({
   triggerResize: () => void;
 }) {
   const { isMobile } = useIsMobile();
-
+  const locales = useLocales();
   const [remainingS, totalS] = useCountdown(depAddr?.expirationS);
   const isExpired = depAddr?.expirationS != null && remainingS === 0;
 
@@ -234,7 +236,7 @@ function DepositAddressInfo({
       {isExpired ? (
         <LogoRow>
           <Button onClick={refresh} style={{ width: 128 }}>
-            Refresh
+            {locales.refresh}
           </Button>
         </LogoRow>
       ) : isMobile ? (
@@ -304,18 +306,18 @@ function CopyableInfo({
 }) {
   const underpayment = depAddr?.underpayment;
   const isExpired = depAddr?.expirationS != null && remainingS === 0;
-
+  const locales = useLocales();
   return (
     <CopyableInfoWrapper>
       {underpayment && <UnderpaymentInfo underpayment={underpayment} />}
       <CopyRowOrThrobber
-        title="Send Exactly"
+        title={locales.sendExactly}
         value={depAddr?.amount}
         smallText={depAddr?.coins}
         disabled={isExpired}
       />
       <CopyRowOrThrobber
-        title="Receiving Address"
+        title={locales.receivingAddress}
         value={depAddr?.address}
         valueText={depAddr?.address && getAddressContraction(depAddr.address)}
         disabled={isExpired}
@@ -404,8 +406,9 @@ function CountdownTimer({
   remainingS: number;
   totalS: number;
 }) {
+  const locales = useLocales();
   if (totalS == 0 || remainingS > 3600) {
-    return <SmallText>Send only once</SmallText>;
+    return <SmallText>{locales.sendOnlyOnce}</SmallText>;
   }
   const isExpired = remainingS === 0;
 

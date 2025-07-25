@@ -4,6 +4,7 @@ import { Ethereum, Solana } from "../../../assets/chains";
 import defaultTheme from "../../../constants/defaultTheme";
 import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { useTokenOptions } from "../../../hooks/useTokenOptions";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
@@ -51,6 +52,7 @@ export default function SelectToken() {
 }
 
 function InsufficientBalance() {
+  const locales = useLocales();
   return (
     <ModalContent
       style={{
@@ -61,13 +63,14 @@ function InsufficientBalance() {
         paddingBottom: 16,
       }}
     >
-      <ModalH1>Insufficient balance.</ModalH1>
+      <ModalH1>{locales.insufficientBalance}</ModalH1>
       <SelectAnotherMethodButton />
     </ModalContent>
   );
 }
 
 function ConnectButton() {
+  const locales = useLocales();
   const { connect } = useConnect();
   const solanaWallets = useWallet();
   // On Android, filter out the Android Intent deeplink fake wallet.
@@ -95,7 +98,7 @@ function ConnectButton() {
 
   const connectOption = {
     id: "connect-wallet",
-    title: "Connect Wallet",
+    title: locales.connectWallet,
     icons,
     onClick,
   };

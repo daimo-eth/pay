@@ -17,6 +17,8 @@ import {
   WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
+import useLocales from "../../../hooks/useLocales";
+import { flattenChildren } from "../../../utils";
 import { walletConfigs } from "../../../wallets/walletConfigs";
 import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -24,6 +26,8 @@ import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
 
 export default function SelectMethod() {
+  const locales = useLocales();
+  const payWithString = flattenChildren(locales.payWith).join("");
   const { isMobile, isIOS, isAndroid } = useIsMobile();
 
   const {
@@ -94,7 +98,7 @@ export default function SelectMethod() {
 
       const connectedEthWalletOption = {
         id: "connectedWallet",
-        title: `Pay with ${ethWalletDisplayName}`,
+        title: `${payWithString} ${ethWalletDisplayName}`,
         icons: [
           <WalletChainLogo
             key="eth"
@@ -145,7 +149,7 @@ export default function SelectMethod() {
 
       const connectedSolWalletOption = {
         id: "connectedSolanaWallet",
-        title: `Pay with ${solWalletDisplayName}`,
+        title: `${payWithString} ${solWalletDisplayName}`,
         icons: [
           <WalletChainLogo
             key="sol-wallet"
@@ -176,8 +180,8 @@ export default function SelectMethod() {
     id: "unconnectedWallet",
     title:
       isEthConnected || isSolanaConnected
-        ? `Pay with another wallet`
-        : `Pay with wallet`,
+        ? locales.payWithAnotherWallet
+        : locales.payWithWallet,
     icons: getBestUnconnectedWalletIcons(connector, isMobile),
     onClick: async () => {
       await disconnectAsync();
@@ -210,7 +214,7 @@ export default function SelectMethod() {
   if (showExchangePaymentMethod) {
     options.push({
       id: "exchange",
-      title: "Pay with exchange",
+      title: locales.payWithExchange,
       icons: exchangeOptions.slice(0, 3).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_EXCHANGE, {
@@ -221,7 +225,7 @@ export default function SelectMethod() {
     });
   }
 
-  const depositAddressOption = getDepositAddressOption(setRoute);
+  const depositAddressOption = getDepositAddressOption(setRoute, locales);
   options.push(depositAddressOption);
 
   // ZKP2P is currently only available on desktop. Check if the user is on
@@ -231,7 +235,7 @@ export default function SelectMethod() {
   if (showZkp2pPaymentMethod) {
     options.push({
       id: "ZKP2P",
-      title: "Pay via payment app",
+      title: locales.payViaPaymentApp,
       icons: zkp2pOptions.slice(0, 2).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_ZKP2P);
@@ -288,10 +292,11 @@ function getBestUnconnectedWalletIcons(
 
 function getDepositAddressOption(
   setRoute: (route: ROUTES, data?: Record<string, any>) => void,
+  locales: ReturnType<typeof useLocales>,
 ) {
   return {
     id: "depositAddress",
-    title: "Pay to address",
+    title: locales.payToAddress,
     icons: [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);

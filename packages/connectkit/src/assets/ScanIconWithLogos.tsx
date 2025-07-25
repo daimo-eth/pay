@@ -28,7 +28,7 @@ const ScanIconWithLogos: React.FC<{
 }> = ({ logo, showQR = true }) => {
   const logoList = [
     <Logos.MetaMask key="metamask" />,
-    <Logos.Coinbase key="coinbase" />,
+    <Logos.Base key="base" />,
     <Logos.Phantom key="phantom" />,
     <Logos.Backpack key="backpack" />,
     <Logos.Rainbow key="rainbow" />,

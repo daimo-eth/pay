@@ -2,6 +2,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
+import { ExternalPaymentOptions } from "@daimo/pay-common";
+// Page components
 import { ROUTES } from "../../constants/routes";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
@@ -88,6 +90,79 @@ export const DaimoPayModal: React.FC<{
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
 
+  const uniquePaymentOptions =
+    paymentState.buttonProps?.paymentOptions?.length === 1;
+  /**
+   * If the integrator specified exactly ONE paymentOption, route straight into
+   * the corresponding flow instead of showing the SelectMethod screen.
+   */
+  useEffect(() => {
+    if (!uniquePaymentOptions) return;
+
+    const paymentOptionId = paymentState.buttonProps?.paymentOptions?.[0] as
+      | ExternalPaymentOptions
+      | undefined;
+    if (!paymentOptionId) return;
+
+    // Helper to jump directly to WaitingExternal when we have the metadata
+    const tryRouteDirectExternal = (id: ExternalPaymentOptions) => {
+      if (paymentState.externalPaymentOptions.loading) return;
+      const optionMeta = Array.from(
+        paymentState.externalPaymentOptions.options.values(),
+      )
+        .flat()
+        .find((o) => o.id === id);
+      if (!optionMeta) return;
+
+      setSelectedExternalOption(optionMeta);
+      const meta = { event: "auto-option", option: id };
+      if (isDepositFlow) {
+        context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+      } else {
+        context.setRoute(ROUTES.WAITING_EXTERNAL, meta);
+      }
+    };
+
+    switch (paymentOptionId) {
+      case ExternalPaymentOptions.Wallet:
+        context.setRoute(ROUTES.CONNECTORS);
+        break;
+      case ExternalPaymentOptions.ExternalChains:
+        context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
+        break;
+      case ExternalPaymentOptions.AllExchanges:
+        context.setRoute(ROUTES.SELECT_EXCHANGE);
+        break;
+      case ExternalPaymentOptions.AllPaymentApps:
+        context.setRoute(ROUTES.SELECT_ZKP2P);
+        break;
+      case ExternalPaymentOptions.Coinbase:
+      case ExternalPaymentOptions.Binance:
+      case ExternalPaymentOptions.Lemon:
+      case ExternalPaymentOptions.Venmo:
+      case ExternalPaymentOptions.CashApp:
+      case ExternalPaymentOptions.MercadoPago:
+      case ExternalPaymentOptions.Revolut:
+      case ExternalPaymentOptions.Wise:
+      case ExternalPaymentOptions.Zelle:
+        tryRouteDirectExternal(paymentOptionId);
+        break;
+      default:
+        // Fallback: go to SelectMethod as usual
+        break;
+    }
+    // Dependencies deliberately exclude routeToWaitingExternal for stable ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    uniquePaymentOptions,
+    paymentState.externalPaymentOptions.loading,
+    context.route,
+  ]);
+
+  // ------------------------------------------------------------------
+  // Standard modal navigation helpers (restored after refactor)
+  // ------------------------------------------------------------------
+
   //if chain is unsupported we enforce a "switch chain" prompt
   const closeable = !(
     context.options?.enforceSupportedChains &&
@@ -95,8 +170,11 @@ export const DaimoPayModal: React.FC<{
     !chainIsSupported
   );
 
+  const { isMobile } = useIsMobile();
+
   const showBackButton =
     closeable &&
+    !uniquePaymentOptions && // prevent back button when only one payment option
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
@@ -104,7 +182,7 @@ export const DaimoPayModal: React.FC<{
     paymentFsmState !== "error";
 
   const onBack = () => {
-    const meta = { event: "click-back" };
+    const meta = { event: "click-back" } as const;
     if (context.route === ROUTES.DOWNLOAD) {
       context.setRoute(ROUTES.CONNECT, meta);
     } else if (context.route === ROUTES.CONNECTORS) {
@@ -211,14 +289,12 @@ export const DaimoPayModal: React.FC<{
     }
     context.setOpen(false, { event: "click-close" });
   }
-  const { isMobile } = useIsMobile();
 
   // If the user has a wallet already connected upon opening the modal, go
   // straight to the select token screen
   useEffect(() => {
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
-
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use

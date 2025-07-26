@@ -12,7 +12,7 @@ const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
 ).filter(
   (opt) =>
     // Solana and ExternalChains are handled in the SelectMethod component.
-    opt !== ExternalPaymentOptions.Solana &&
+    opt !== ExternalPaymentOptions.Wallet &&
     opt !== ExternalPaymentOptions.ExternalChains &&
     opt !== ExternalPaymentOptions.Daimo,
 );

@@ -45,6 +45,8 @@ export const OrderHeader = ({
   );
   const orderUsd = order?.destFinalCallTokenAmount.usd;
 
+  const locales = useLocales();
+
   const titleAmountContent = (() => {
     if (paymentState.isDepositFlow) {
       return route === ROUTES.SELECT_TOKEN ? (
@@ -83,7 +85,6 @@ export const OrderHeader = ({
       </LogoContainer>
     );
   };
-  const locales = useLocales();
   let walletIcon = renderIcon(connector?.icon);
   let solanaIcon = renderIcon(
     solanaWallet?.adapter.icon || <Solana />,

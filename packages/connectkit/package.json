@@ -1,7 +1,7 @@
 {
   "name": "@daimo/pay",
   "private": false,
-  "version": "1.14.3",
+  "version": "1.14.4-dev",
   "author": "Daimo",
   "homepage": "https://pay.daimo.com",
   "license": "BSD-2-Clause license",
@@ -32,21 +32,8 @@
     "build": "rollup --config rollup.config.js",
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
   },
-  "keywords": [
-    "ens",
-    "react-hook",
-    "blockchain",
-    "hooks",
-    "family",
-    "ethereum",
-    "react",
-    "daimo",
-    "pay",
-    "payment",
-    "crypto"
-  ],
   "dependencies": {
-    "@daimo/pay-common": "1.14.3",
+    "@daimo/pay-common": "1.14.4-dev",
     "@rollup/plugin-typescript": "^12.1.2",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
@@ -91,5 +78,17 @@
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-visualizer": "^5.5.4",
     "typescript-plugin-styled-components": "^3.0.0"
-  }
+  },
+  "keywords": [
+    "ens",
+    "react-hook",
+    "blockchain",
+    "hooks",
+    "ethereum",
+    "react",
+    "daimo",
+    "pay",
+    "payment",
+    "crypto"
+  ]
 }

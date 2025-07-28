@@ -201,7 +201,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
       : null;
   let payId = "payId" in props ? props.payId : null;
 
-  const { paymentState, log } = context;
+  const { paymentState } = context;
   const { order, paymentState: payState } = useDaimoPay();
 
   // Set the payId or payParams

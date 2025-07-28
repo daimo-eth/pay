@@ -128,12 +128,13 @@ export function WorldPayButton(props: WorldPayButtonProps) {
 function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const pay = useDaimoPay();
   const context = usePayContext();
-  const { log } = context;
+  const { paymentState, log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
 
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
+  // Install Minikit if not already installed
   useEffect(() => {
     log("[WORLD] Installing MiniKit");
     const result = MiniKit.install();
@@ -143,11 +144,12 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Set the payParams
   useEffect(() => {
     log("[WORLD] Creating preview order");
-    pay.createPreviewOrder(props);
+    paymentState.setPayParams(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pay, JSON.stringify(props)]);
+  }, [JSON.stringify(props || {})]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
@@ -207,6 +209,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pay.order, pay.paymentState]);
 
+  // Navigate to the confirmation page in the modal to show the spinner
   const showSpinner = useCallback(() => {
     log(`[WORLD] showing spinner ${pay.order?.id}`);
     const modalOptions = {
@@ -217,6 +220,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     context.setRoute(ROUTES.CONFIRMATION);
   }, [context, pay.order?.id, log, props.closeOnSuccess, props.resetOnSuccess]);
 
+  // Show the Worldcoin payment drawer and pop open the Daimo Pay modal
   const show = useCallback(async () => {
     log(`[WORLD] showing payment ${pay.order?.id}`);
     if (!isMiniKitReady) {

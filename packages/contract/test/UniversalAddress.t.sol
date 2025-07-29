@@ -22,7 +22,6 @@ import {DummyUniversalBridger} from "./utils/DummyUniversalBridger.sol";
 import {BridgeReceiver} from "../src/UniversalAddressManager.sol";
 import {UniversalAddressBridger} from "../src/UniversalAddressBridger.sol";
 import {IDaimoPayBridger} from "../src/interfaces/IDaimoPayBridger.sol";
-import {DummyBridger} from "./utils/DummyBridger.sol";
 import {ReentrantToken} from "./utils/ReentrantToken.sol";
 
 contract UniversalAddressTest is Test {

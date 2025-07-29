@@ -15,7 +15,7 @@ contract PayRefund is Initializable {
     /// The owner chain ID.
     uint256 public ownerChainId;
 
-    /// The Safe on which the owner is a signer, or 0x00...ß
+    /// The Safe on which the owner is a signer
     address public safeAddress;
 
     /// Incrementing nonce for this refund.
@@ -41,17 +41,20 @@ contract PayRefund is Initializable {
     function sendToken(
         IERC20 token,
         address payable recipient,
+        uint256 signedNonce,
         bytes32 r,
         bytes32 s,
         uint8 v
     ) public {
+        assert(signedNonce == nonce, "PR: invalid nonce");
+
+        // Check EIP-712 signature
         bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
         );
         bytes32 REFUND_TYPEHASH = keccak256(
-            "Refund(address token,address recipient,uint256 nonce)"
+            "Refund(uint256 chainId,address token,address recipient,uint256 nonce)"
         );
-
         bytes32 domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_SEPARATOR_TYPEHASH,
@@ -61,31 +64,48 @@ contract PayRefund is Initializable {
                 address(this)
             )
         );
-
         bytes32 structHash = keccak256(
-            abi.encode(REFUND_TYPEHASH, address(token), recipient, nonce)
+            abi.encode(
+                REFUND_TYPEHASH,
+                block.chainId,
+                address(token),
+                recipient,
+                nonce
+            )
         );
-        nonce++;
-
-        bytes32 messageHash = keccak256(
+        bytes32 dataHash = keccak256(
             abi.encodePacked("\x19\x01", domainSeparator, structHash)
         );
-
-        bool isValid = validSignature(
-            owner,
-            ownerChainId,
-            safeAddress,
-            messageHash,
-            r,
-            s,
-            v
-        );
+        bool isValid;
+        if (safeAddress != address(0)) {
+            bool isValid = validSafeSignature({
+                signer: owner,
+                chainId: ownerChainId,
+                safe: safeAddress,
+                dataHash: dataHash,
+                r: r,
+                s: s,
+                v: v
+            });
+        } else {
+            isValid = validEOASignature({
+                signer: owner,
+                dataHash: dataHash,
+                r: r,
+                s: s,
+                v: v
+            });
+        }
         require(isValid, "PR: invalid signature");
 
+        // Effect: increment nonce to ensure signatures can't be reused
+        nonce++;
+
+        // Interaction: transfer tokens
         TokenUtils.transferBalance(token, recipient);
     }
 
-    function validSignature(
+    function validSafeSignature(
         address signer,
         uint256 chainId,
         address safe,
@@ -102,13 +122,11 @@ contract PayRefund is Initializable {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, safe)
         );
-
         // See https://github.com/safe-global/safe-smart-account/blob/main/contracts/handler/CompatibilityFallbackHandler.sol#L51
         bytes32 SAFE_MSG_TYPEHASH = keccak256("SafeMessage(bytes message)");
         bytes32 safeMessageHash = keccak256(
             abi.encode(SAFE_MSG_TYPEHASH, keccak256(abi.encode(dataHash)))
         );
-
         bytes memory messageData = abi.encodePacked(
             "\x19\x01",
             domainSeparator,
@@ -118,6 +136,17 @@ contract PayRefund is Initializable {
 
         address recovered = ecrecover(messageHash, v, r, s);
 
+        return recovered == signer;
+    }
+
+    function validEOASignature(
+        address signer,
+        bytes32 messageHash,
+        bytes32 r,
+        bytes32 s,
+        uint8 v
+    ) public pure returns (bool) {
+        address recovered = ecrecover(messageHash, v, r, s);
         return recovered == signer;
     }
 

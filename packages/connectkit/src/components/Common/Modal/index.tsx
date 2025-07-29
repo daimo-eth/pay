@@ -208,6 +208,7 @@ const Modal: React.FC<ModalProps> = ({
     selectedExternalOption,
     selectedTokenOption,
     selectedSolanaTokenOption,
+    selectedStellarTokenOption,
     selectedDepositAddressOption,
   } = context.paymentState;
   const { order } = useRozoPay();
@@ -332,6 +333,7 @@ const Modal: React.FC<ModalProps> = ({
   }
 
   function getHeading() {
+    console.log('[ROUTE HEADING]', context.route);
     switch (context.route) {
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
@@ -343,6 +345,10 @@ const Modal: React.FC<ModalProps> = ({
         }
       case ROUTES.SOLANA_CONNECTOR:
         return context.solanaConnector ?? "Solana Wallet";
+      case ROUTES.STELLAR_CONNECT:
+        return "Connect Stellar Wallet";
+      case ROUTES.STELLAR_CONNECTOR:
+        return context.stellarConnector ?? "Stellar Wallet";
       case ROUTES.CONNECTORS:
         return locales.connectorsScreen_heading;
       case ROUTES.MOBILECONNECTORS:
@@ -359,6 +365,9 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SOLANA_PAY_WITH_TOKEN:
         if (!selectedSolanaTokenOption) return undefined;
         return `Pay with ${selectedSolanaTokenOption.required.token.symbol}`;
+      case ROUTES.STELLAR_PAY_WITH_TOKEN:
+        if (!selectedStellarTokenOption) return undefined;
+        return `Pay with ${selectedStellarTokenOption.required.token.symbol}`;
       case ROUTES.WAITING_EXTERNAL:
         return selectedExternalOption?.cta;
       case ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN:
@@ -372,6 +381,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:
       case ROUTES.SOLANA_SELECT_AMOUNT:
+      case ROUTES.STELLAR_SELECT_AMOUNT:
       case ROUTES.SELECT_WALLET_AMOUNT:
         return "Select Amount";
       case ROUTES.PAY_WITH_TOKEN:

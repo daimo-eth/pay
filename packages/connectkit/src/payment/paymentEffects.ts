@@ -4,12 +4,20 @@ import {
   RozoPayOrderWithOrg,
   getOrderDestChainId,
   readRozoPayOrderID,
+  stellar,
+  base,
+  baseUSDC,
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress } from "viem";
 import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
 import { PaymentEvent, PaymentState } from "./paymentFsm";
 import { PaymentStore } from "./paymentStore";
+import {
+  ROZO_DAIMO_APP_ID,
+  STELLAR_USDC_ISSUER_PK,
+} from "../constants/rozoConfig";
+import { createRozoPayment, createRozoPaymentRequest } from "../utils/api";
 
 // Maps poller identifier to poll handle which terminates the poller
 // key = `${type}:${orderId}`
@@ -113,6 +121,13 @@ export function attachPaymentEffectHandlers(
         log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         break;
       }
+      // case "pay_stellar_source": {
+      //   if (prev.type === "payment_unpaid") {
+      //     runPayStellarSourceEffects(store, prev, event);
+      //   }
+      //   log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
+      //   break;
+      // }
       default:
         break;
     }
@@ -200,7 +215,8 @@ async function runSetPayParamsEffects(
 
   try {
     const orderPreview = await trpc.previewOrder.query({
-      appId: payParams.appId,
+      // appId: payParams.appId,
+      appId: ROZO_DAIMO_APP_ID,
       toChain: payParams.toChain,
       toToken: payParams.toToken,
       toUnits,
@@ -227,7 +243,11 @@ async function runSetPayParamsEffects(
       // TODO: Properly type this and fix hacky type casting
       order: orderPreview as unknown as RozoPayOrderWithOrg,
       payParamsData: {
-        appId: payParams.appId,
+        // appId: payParams.appId,
+        appId: ROZO_DAIMO_APP_ID,
+        toStellarAddress: payParams.toStellarAddress,
+        toAddress: payParams.toAddress,
+        rozoAppId: payParams.appId,
       },
     });
   } catch (e: any) {
@@ -261,25 +281,75 @@ async function runHydratePayParamsEffects(
   event: Extract<PaymentEvent, { type: "hydrate_order" }>
 ) {
   const order = prev.order;
+  const payParams = prev.payParamsData;
 
   const toUnits = formatUnits(
     BigInt(order.destFinalCallTokenAmount.amount),
     order.destFinalCallTokenAmount.token.decimals
   );
+
+  const toChain = getOrderDestChainId(order);
+  const toToken = getAddress(order.destFinalCallTokenAmount.token.token);
+  let toAddress = getAddress(order.destFinalCall.to);
+
+  // ROZO API CALL
+  // Pay In USDC Base, Pay Out USDC Stellar scenario
+  let rozoPaymentId: string | undefined = order?.externalId ?? undefined;
+
+  if (payParams?.toStellarAddress) {
+    const paymentData = createRozoPaymentRequest({
+      appId: payParams?.rozoAppId ?? ROZO_DAIMO_APP_ID,
+      display: {
+        intent: order?.metadata?.intent ?? "",
+        paymentValue: String(toUnits),
+        currency: "USD",
+      },
+      preferredChain: String(toChain),
+      preferredToken: "USDC",
+      destination: {
+        destinationAddress: payParams?.toStellarAddress,
+        chainId: String(stellar.chainId),
+        amountUnits: toUnits,
+        tokenSymbol: "USDC_XLM",
+        tokenAddress: STELLAR_USDC_ISSUER_PK,
+      },
+      externalId: order?.externalId ?? "",
+      metadata: {
+        daimoOrderId: order?.id ?? "",
+        ...(order?.metadata ?? {}),
+      },
+    });
+
+    const rozoPayment = await createRozoPayment(paymentData);
+    if (!rozoPayment?.data?.id) {
+      throw new Error(rozoPayment?.error?.message ?? "Payment creation failed");
+    }
+    rozoPaymentId = rozoPayment.data.id;
+
+    if (toChain === base.chainId && toToken === baseUSDC.token) {
+      toAddress = rozoPayment.data.destination
+        .destinationAddress as `0x${string}`;
+    }
+  }
+
+  // END ROZO API CALL
+
   try {
     const { hydratedOrder } = await trpc.createOrder.mutate({
-      appId: prev.payParamsData.appId,
+      // appId: prev.payParamsData.appId,
+      appId: ROZO_DAIMO_APP_ID,
       paymentInput: {
         id: order.id.toString(),
-        toChain: getOrderDestChainId(order),
-        toToken: getAddress(order.destFinalCallTokenAmount.token.token),
+        toChain: toChain,
+        toToken,
         toUnits,
-        toAddress: getAddress(order.destFinalCall.to),
+        toAddress,
         toCallData: order.destFinalCall.data,
         isAmountEditable: order.mode === RozoPayOrderMode.CHOOSE_AMOUNT,
         metadata: order.metadata,
         userMetadata: order.userMetadata,
-        externalId: order.externalId ?? undefined,
+        // externalId: order.externalId ?? undefined,
+        externalId: rozoPaymentId,
       },
       // Prefer the refund address passed to this function, if specified. This
       // is for cases where the user pays from an EOA. Otherwise, use the refund

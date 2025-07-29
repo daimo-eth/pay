@@ -1,8 +1,10 @@
-import { getChainExplorerTxUrl, WalletPaymentOption } from "@rozoai/intent-common";
+import {
+  getChainExplorerTxUrl,
+  WalletPaymentOption,
+} from "@rozoai/intent-common";
 import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
-import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
@@ -17,6 +19,7 @@ import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 
 enum PayState {
   RequestingPayment = "Waiting For Payment",
+  CreatingPayment = "Creating Payment Record...",
   SwitchingChain = "Switching Chain",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
@@ -26,9 +29,8 @@ enum PayState {
 const PayWithToken: React.FC = () => {
   const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
-  const { order } = useRozoPay();
   const [payState, setPayStateInner] = useState<PayState>(
-    PayState.RequestingPayment,
+    PayState.RequestingPayment
   );
   const setPayState = (state: PayState) => {
     if (state === payState) return;
@@ -46,7 +48,7 @@ const PayWithToken: React.FC = () => {
 
   const trySwitchingChain = async (
     option: WalletPaymentOption,
-    forceSwitch: boolean = false,
+    forceSwitch: boolean = false
   ): Promise<boolean> => {
     if (walletChainId !== option.required.token.chainId || forceSwitch) {
       const resultChain = await (async () => {
@@ -77,57 +79,59 @@ const PayWithToken: React.FC = () => {
       console.error("Switching chain failed");
       setPayState(PayState.RequestCancelled);
       return;
-    }
-
-    setPayState(PayState.RequestingPayment);
-    try {
-      const result = await payWithToken(option);
-      setTxURL(
-        getChainExplorerTxUrl(option.required.token.chainId, result.txHash),
-      );
-      if (result.success) {
-        setPayState(PayState.RequestSuccessful);
-        setTimeout(() => {
-          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
-        }, 200);
-      } else {
-        setPayState(PayState.RequestFailed);
-      }
-    } catch (e: any) {
-      if (e?.name === "ConnectorChainMismatchError") {
-        // Workaround for Rainbow wallet bug -- user is able to switch chain without
-        // the wallet updating the chain ID for wagmi.
-        log("Chain mismatch detected, attempting to switch and retry");
-        const switchSuccessful = await trySwitchingChain(option, true);
-        if (switchSuccessful) {
-          try {
-            const retryResult = await payWithToken(option);
-            setTxURL(
-              getChainExplorerTxUrl(
-                option.required.token.chainId,
-                retryResult.txHash,
-              ),
-            );
-            if (retryResult.success) {
-              setPayState(PayState.RequestSuccessful);
-              setTimeout(() => {
-                setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
-              }, 200);
-            } else {
-              setPayState(PayState.RequestFailed);
+    } else {
+      try {
+        setPayState(PayState.RequestingPayment);
+        const result = await payWithToken(option);
+        setTxURL(
+          getChainExplorerTxUrl(option.required.token.chainId, result.txHash)
+        );
+        if (result.success) {
+          setPayState(PayState.RequestSuccessful);
+          setTimeout(() => {
+            setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-token" });
+          }, 200);
+        } else {
+          setPayState(PayState.RequestFailed);
+        }
+      } catch (e: any) {
+        if (e?.name === "ConnectorChainMismatchError") {
+          // Workaround for Rainbow wallet bug -- user is able to switch chain without
+          // the wallet updating the chain ID for wagmi.
+          log("Chain mismatch detected, attempting to switch and retry");
+          const switchSuccessful = await trySwitchingChain(option, true);
+          if (switchSuccessful) {
+            try {
+              const retryResult = await payWithToken(option);
+              setTxURL(
+                getChainExplorerTxUrl(
+                  option.required.token.chainId,
+                  retryResult.txHash
+                )
+              );
+              if (retryResult.success) {
+                setPayState(PayState.RequestSuccessful);
+                setTimeout(() => {
+                  setRoute(ROUTES.CONFIRMATION, {
+                    event: "wait-pay-with-token",
+                  });
+                }, 200);
+              } else {
+                setPayState(PayState.RequestFailed);
+              }
+              return; // Payment handled after switching chain
+            } catch (retryError) {
+              console.error(
+                "Failed to pay with token after switching chain",
+                retryError
+              );
+              throw retryError;
             }
-            return; // Payment handled after switching chain
-          } catch (retryError) {
-            console.error(
-              "Failed to pay with token after switching chain",
-              retryError,
-            );
-            throw retryError;
           }
         }
+        setPayState(PayState.RequestCancelled);
+        console.error("Failed to pay with token", e);
       }
-      setPayState(PayState.RequestCancelled);
-      console.error("Failed to pay with token", e);
     }
   };
 

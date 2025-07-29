@@ -22,4 +22,8 @@ export const zSolanaPublicKey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
 
 export type SolanaPublicKey = z.infer<typeof zSolanaPublicKey>;
 
+export const zStellarPublicKey = z.string();
+
+export type StellarPublicKey = z.infer<typeof zStellarPublicKey>;
+
 export type PlatformType = "ios" | "android" | "other";

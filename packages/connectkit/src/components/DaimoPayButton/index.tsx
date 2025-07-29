@@ -31,71 +31,75 @@ export type RozoPayment = RozoPayOrderView;
 /** Props for RozoPayButton. */
 export type PayButtonPaymentProps =
   | {
-    /**
-     * Your public app ID. Specify either (payId) or (appId + parameters).
-     */
-    appId: string;
-    /**
-     * Destination chain ID.
-     */
-    toChain: number;
-    /**
-     * The destination token to send, completing payment. Must be an ERC-20
-     * token or the zero address, indicating the native token / ETH.
-     */
-    toToken: Address;
-    /**
-     * The amount of destination token to send (transfer or approve).
-     * If not provided, the user will be prompted to enter an amount.
-     */
-    toUnits?: string;
-    /**
-     * The destination address to transfer to, or contract to call.
-     */
-    toAddress: Address;
-    /**
-     * Optional calldata to call an arbitrary function on `toAddress`.
-     */
-    toCallData?: Hex;
-    /**
-     * The intent verb, such as "Pay", "Deposit", or "Purchase".
-     */
-    intent?: string;
-    /**
-     * Payment options. By default, all are enabled.
-     */
-    paymentOptions?: ExternalPaymentOptionsString[];
-    /**
-     * Preferred chain IDs. Assets on these chains will appear first.
-     */
-    preferredChains?: number[];
-    /**
-     * Preferred tokens. These appear first in the token list.
-     */
-    preferredTokens?: { chain: number; address: Address }[];
-    /**
-     * Only allow payments on these EVM chains.
-     */
-    evmChains?: number[];
-    /**
-     * External ID. E.g. a correlation ID.
-     */
-    externalId?: string;
-    /**
-     * Developer metadata. E.g. correlation ID.
-     * */
-    metadata?: RozoPayUserMetadata;
-    /**
-     * The address to refund to if the payment bounces.
-     */
-    refundAddress?: Address;
-  }
+      /**
+       * Your public app ID. Specify either (payId) or (appId + parameters).
+       */
+      appId: string;
+      /**
+       * Destination chain ID.
+       */
+      toChain: number;
+      /**
+       * The destination token to send, completing payment. Must be an ERC-20
+       * token or the zero address, indicating the native token / ETH.
+       */
+      toToken: Address;
+      /**
+       * The amount of destination token to send (transfer or approve).
+       * If not provided, the user will be prompted to enter an amount.
+       */
+      toUnits?: string;
+      /**
+       * The destination address to transfer to, or contract to call.
+       */
+      toAddress: Address;
+      /**
+       * The destination stellar address to transfer to.
+       */
+      toStellarAddress?: string;
+      /**
+       * Optional calldata to call an arbitrary function on `toAddress`.
+       */
+      toCallData?: Hex;
+      /**
+       * The intent verb, such as "Pay", "Deposit", or "Purchase".
+       */
+      intent?: string;
+      /**
+       * Payment options. By default, all are enabled.
+       */
+      paymentOptions?: ExternalPaymentOptionsString[];
+      /**
+       * Preferred chain IDs. Assets on these chains will appear first.
+       */
+      preferredChains?: number[];
+      /**
+       * Preferred tokens. These appear first in the token list.
+       */
+      preferredTokens?: { chain: number; address: Address }[];
+      /**
+       * Only allow payments on these EVM chains.
+       */
+      evmChains?: number[];
+      /**
+       * External ID. E.g. a correlation ID.
+       */
+      externalId?: string;
+      /**
+       * Developer metadata. E.g. correlation ID.
+       * */
+      metadata?: RozoPayUserMetadata;
+      /**
+       * The address to refund to if the payment bounces.
+       */
+      refundAddress?: Address;
+    }
   | {
-    /** The payment ID, generated via the Rozo Pay API. Replaces params above. */
-    payId: string;
-    /** Payment options. By default, all are enabled. */
-    paymentOptions?: ExternalPaymentOptionsString[];
-  };
+      /** The payment ID, generated via the Rozo Pay API. Replaces params above. */
+      payId: string;
+      /** Payment options. By default, all are enabled. */
+      paymentOptions?: ExternalPaymentOptionsString[];
+    };
 
 type PayButtonCommonProps = PayButtonPaymentProps & {
   /** Called when user sends payment and transaction is seen on chain */
@@ -182,26 +186,32 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   let payParams: PayParams | null =
     "appId" in props
       ? {
-        appId: props.appId,
-        toChain: props.toChain,
-        toAddress: props.toAddress,
-        toToken: props.toToken,
-        toUnits: props.toUnits,
-        toCallData: props.toCallData,
-        intent: props.intent,
-        paymentOptions: props.paymentOptions,
-        preferredChains: props.preferredChains,
-        preferredTokens: props.preferredTokens,
-        evmChains: props.evmChains,
-        externalId: props.externalId,
-        metadata: props.metadata,
-        refundAddress: props.refundAddress,
-      }
+          appId: props.appId,
+          toChain: props.toChain,
+          toAddress: props.toAddress,
+          toStellarAddress: props.toStellarAddress,
+          toToken: props.toToken,
+          toUnits: props.toUnits,
+          toCallData: props.toCallData,
+          intent: props.intent,
+          paymentOptions: props.paymentOptions,
+          preferredChains: props.preferredChains,
+          preferredTokens: props.preferredTokens,
+          evmChains: props.evmChains,
+          externalId: props.externalId,
+          metadata: props.metadata,
+          refundAddress: props.refundAddress,
+        }
       : null;
   let payId = "payId" in props ? props.payId : null;
 
   const { paymentState, log } = context;
-  const { order, paymentState: payState } = useRozoPay();
+  const {
+    order,
+    paymentState: payState,
+    rozoPaymentId,
+    paymentRozoCompleted,
+  } = useRozoPay();
 
   // Set the payId or payParams
   useEffect(() => {
@@ -258,6 +268,12 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   }, [connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
+  // Reset the sent flags when order changes to allow events to be fired again
+  useEffect(() => {
+    sentStart.current = false;
+    sentComplete.current = false;
+  }, [order?.id]);
+
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
   useEffect(() => {
@@ -285,9 +301,15 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
+    console.log({ paymentRozoCompleted, order, rozoPaymentId });
     if (sentComplete.current) return;
-    if (payState !== "payment_completed" && payState !== "payment_bounced")
-      return;
+
+    if (!paymentRozoCompleted) {
+      if (payState !== "payment_completed" && payState !== "payment_bounced")
+        return;
+    }
+
+    if (!order) return;
 
     sentComplete.current = true;
     const eventType =
@@ -299,19 +321,20 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       paymentId: writeRozoPayOrderID(order.id),
       chainId: getOrderDestChainId(order),
       txHash: assertNotNull(
-        order.destFastFinishTxHash ?? order.destClaimTxHash,
-        `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`,
+        (order as any)?.destFastFinishTxHash ?? (order as any)?.destClaimTxHash,
+        `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
       ),
       payment: getRozoPayOrderView(order),
+      rozoPaymentId: rozoPaymentId ?? order.externalId,
     };
 
-    if (payState === "payment_completed") {
+    if (payState === "payment_completed" || paymentRozoCompleted) {
       onPaymentCompleted?.(event as PaymentCompletedEvent);
     } else if (payState === "payment_bounced") {
       onPaymentBounced?.(event as PaymentBouncedEvent);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order, payState]);
+  }, [order, payState, paymentRozoCompleted]);
 
   // Open the modal by default if the defaultOpen prop is true
   const hasAutoOpened = useRef(false);

@@ -15,6 +15,7 @@ import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 
 type Config = {
   recipientAddress: string;
+  recipientStellarAddress?: string;
   chainId: number;
   tokenAddress: string;
   amount: string;
@@ -24,6 +25,7 @@ export default function DemoBasic() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [config, setConfig] = usePersistedConfig("rozo-basic-config", {
     recipientAddress: "",
+    recipientStellarAddress: "",
     chainId: 0,
     tokenAddress: "",
     amount: "",
@@ -36,6 +38,7 @@ export default function DemoBasic() {
     resetPayment({
       toChain: config.chainId,
       toAddress: getAddress(config.recipientAddress),
+      toStellarAddress: config.recipientStellarAddress,
       toUnits: config.amount,
       toToken: getAddress(config.tokenAddress),
     });
@@ -82,6 +85,11 @@ export default function DemoBasic() {
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
   toAddress={getAddress("${config.recipientAddress}")}
+  ${
+    config.recipientStellarAddress
+      ? `toStellarAddress={"${config.recipientStellarAddress}"}`
+      : ""
+  }
   toUnits={"${config.amount}"}
   toToken={getAddress(${tokenVarName}.token)}
 />`;
@@ -92,7 +100,7 @@ export default function DemoBasic() {
 
     // For non-native tokens
     const token = knownTokens.find(
-      (t) => t.token === config.tokenAddress && t.chainId === config.chainId,
+      (t) => t.token === config.tokenAddress && t.chainId === config.chainId
     );
     if (!token) return;
 
@@ -106,8 +114,14 @@ export default function DemoBasic() {
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
   toAddress={getAddress("${config.recipientAddress}")}
-  toUnits={"${config.amount}"}
-  toToken={getAddress(${tokenVarName}.token)}
+  ${
+    config.recipientStellarAddress
+      ? `toStellarAddress={"${config.recipientStellarAddress}"}
+      toUnits={"${config.amount}"}
+  toToken={getAddress(${tokenVarName}.token)}`
+      : `toUnits={"${config.amount}"}
+  toToken={getAddress(${tokenVarName}.token)}`
+  }
 />`;
     setCodeSnippet(snippet);
   }, [config, hasValidConfig]);
@@ -126,10 +140,12 @@ export default function DemoBasic() {
               appId={APP_ID}
               toChain={config.chainId}
               toAddress={getAddress(config.recipientAddress)}
+              toStellarAddress={config.recipientStellarAddress}
               toUnits={config.amount}
               toToken={getAddress(config.tokenAddress)}
               onPaymentStarted={printEvent}
               onPaymentCompleted={printEvent}
+              resetOnSuccess={true}
             />
             <button
               onClick={() => setIsConfigOpen(true)}

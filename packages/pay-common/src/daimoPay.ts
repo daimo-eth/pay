@@ -18,6 +18,7 @@ import { assertNotNull } from "./assert";
 import {
   BigIntStr,
   SolanaPublicKey,
+  StellarPublicKey,
   zAddress,
   zBigIntStr,
 } from "./primitiveTypes";
@@ -197,7 +198,7 @@ export type RozoPayHydratedOrder = {
   usdValue: number;
   refundAddr: Address;
   nonce: bigint;
-  sourceFulfillerAddr: Address | SolanaPublicKey | null;
+  sourceFulfillerAddr: Address | SolanaPublicKey | StellarPublicKey | null;
   sourceTokenAmount: RozoPayTokenAmount | null;
   sourceInitiateTxHash: Hex | null;
   sourceStartTxHash: Hex | null;
@@ -252,7 +253,7 @@ export type RozoPayOrderView = {
     currency: "USD";
   };
   source: {
-    payerAddress: Address | SolanaPublicKey | null;
+    payerAddress: Address | SolanaPublicKey | StellarPublicKey | null;
     txHash: Hex | string | null;
     chainId: string;
     amountUnits: string;
@@ -353,7 +354,7 @@ export type WalletPaymentOption = {
 
 export type ExternalPaymentOptionMetadata = {
   id: ExternalPaymentOptions;
-  optionType: "external" | "zkp2p" | "exchange";
+  optionType: "external" | "zkp2p" | "exchange" | "stellar";
   cta: string;
   logoURI: string;
   logoShape: "circle" | "squircle";
@@ -368,6 +369,7 @@ export enum ExternalPaymentOptions {
   RampNetwork = "RampNetwork",
   Solana = "Solana",
   ExternalChains = "ExternalChains",
+  Stellar = "Stellar",
   // All exchanges
   AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
@@ -428,7 +430,7 @@ export type DepositAddressPaymentOptionData = {
 };
 
 export interface RozoPayToken extends Token {
-  token: Address | SolanaPublicKey;
+  token: Address | SolanaPublicKey | StellarPublicKey;
   /** Price to convert 1.0 of this token to a USD stablecoin. */
   usd: number;
   /** Price to convert $1 to this token T. If 2.00, then we receive 0.5 T. */

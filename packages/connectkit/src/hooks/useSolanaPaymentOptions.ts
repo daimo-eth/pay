@@ -29,6 +29,7 @@ export function useSolanaPaymentOptions({
           // API expects undefined for deposit flow.
           usdRequired: isDepositFlow ? undefined : usdRequired,
         });
+        console.log("newOptions", JSON.stringify(newOptions));
         setOptions(newOptions);
       } catch (error) {
         console.error(error);

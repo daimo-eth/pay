@@ -11,6 +11,7 @@ import {
   optimism,
   polygon,
   solana,
+  stellar,
   worldchain,
 } from "./chain";
 
@@ -51,6 +52,7 @@ export enum TokenLogo {
   MNT = "https://pay.daimo.com/coin-logos/mnt.png",
   CELO = "https://pay.daimo.com/coin-logos/celo.png",
   cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
+  XLM = "https://pay.daimo.com/coin-logos/xlm.png",
 }
 
 /* --------------------- Tokens Constants --------------------- */
@@ -705,6 +707,31 @@ export const solanaUSDC: Token = token({
 const solanaTokens: Token[] = [solanaUSDC, solanaWSOL, solanaSOL];
 
 //
+// Stellar
+//
+
+export const stellarXLM = nativeToken({
+  chainId: stellar.chainId,
+  name: "Stellar",
+  symbol: "XLM",
+  logoURI: TokenLogo.XLM,
+  token: "11111111111111111111111111111111",
+  decimals: 9,
+});
+
+export const stellarUSDC: Token = token({
+  chainId: stellar.chainId,
+  token: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+const stellarTokens: Token[] = [stellarXLM, stellarUSDC];
+
+//
 // Worldchain
 //
 
@@ -766,6 +793,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
   [solana.chainId, solanaTokens],
+  [stellar.chainId, stellarTokens],
   [worldchain.chainId, worldchainTokens],
 ]);
 
@@ -904,6 +932,13 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE]: solanaSOL,
       [TokenType.WRAPPED_NATIVE]: solanaWSOL,
       [TokenType.NATIVE_USDC]: solanaUSDC,
+    },
+  ],
+  [
+    stellar.chainId,
+    {
+      [TokenType.NATIVE]: stellarXLM,
+      [TokenType.NATIVE_USDC]: stellarUSDC,
     },
   ],
   [

@@ -10,6 +10,7 @@ import {
   Optimism,
   Polygon,
   Solana,
+  Stellar,
   Tron,
 } from "../../../assets/chains";
 import { USDC } from "../../../assets/coins";
@@ -19,6 +20,7 @@ import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
+import { useStellar } from "../../../provider/StellarContextProvider";
 
 /** Shows payment amount. */
 export const OrderHeader = ({
@@ -27,7 +29,7 @@ export const OrderHeader = ({
   excludeLogos = [],
 }: {
   minified?: boolean;
-  show?: "evm" | "solana" | "zkp2p" | "all";
+  show?: "evm" | "solana" | "stellar" | "zkp2p" | "all";
   excludeLogos?: string[];
 }) => {
   const { paymentState, route } = usePayContext();
@@ -38,12 +40,16 @@ export const OrderHeader = ({
     wallet: solanaWallet,
   } = useWallet();
   const { senderEnsName } = paymentState;
+  const { isConnected: isStellarConnected, publicKey: stellarPublicKey, connector: stellarConnector } = useStellar();
   const { order } = useRozoPay();
 
   const ethWalletDisplayName =
     senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
   const solWalletDisplayName = getAddressContraction(
     publicKey?.toBase58() ?? "",
+  );
+  const stellarWalletDisplayName = getAddressContraction(
+    stellarPublicKey ?? "",
   );
   const orderUsd = order?.destFinalCallTokenAmount.usd;
 
@@ -91,6 +97,10 @@ export const OrderHeader = ({
     solanaWallet?.adapter.icon || <Solana />,
     solanaWallet?.adapter.name,
   );
+  let stellarIcon = renderIcon(
+    stellarConnector?.icon || <Stellar />,
+    stellarConnector?.name,
+  );
 
   if (minified) {
     if (titleAmountContent != null) {
@@ -121,9 +131,17 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
+          {show === "stellar" && isStellarConnected && (
+            <>
+              <SubtitleContainer>
+                <Subtitle>{stellarWalletDisplayName}</Subtitle>
+                {stellarIcon}
+              </SubtitleContainer>
+            </>
+          )}
           {show === "all" && (
             <>
-              <CoinLogos $size={32} $exclude={excludeLogos} />
+              <CoinLogos $size={32} $exclude={['stellar', ...excludeLogos]} />
             </>
           )}
         </MinifiedContainer>
@@ -159,6 +177,7 @@ function CoinLogos({ $size = 24, $exclude = [] }: { $size?: number, $exclude?: s
     <Base key="base" />,
     <Polygon key="polygon" />,
     <Solana key="solana" />,
+    <Stellar key="stellar" />,
   ];
 
   const logoBlock = (element: React.ReactElement, index: number) => (

@@ -1,5 +1,5 @@
 export type Chain = {
-  type: "evm" | "solana";
+  type: "evm" | "solana" | "stellar";
   chainId: number;
   name: string;
   cctpDomain: number | null;
@@ -75,6 +75,13 @@ export const solana: Chain = {
   cctpDomain: 5,
 };
 
+export const stellar: Chain = {
+  type: "stellar",
+  chainId: 10001,
+  name: "Stellar",
+  cctpDomain: null,
+};
+
 export const worldchain: Chain = {
   type: "evm",
   chainId: 480,
@@ -93,6 +100,7 @@ export const supportedChains: Chain[] = [
   optimism,
   polygon,
   solana,
+  stellar,
   worldchain,
 ];
 
@@ -152,6 +160,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://polygonscan.com";
     case solana.chainId:
       return "https://solscan.io";
+    case stellar.chainId:
+      return "https://stellar.expert/explorer/public";
     case worldchain.chainId:
       return "https://worldscan.org";
     default:

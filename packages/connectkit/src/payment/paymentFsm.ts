@@ -10,6 +10,7 @@ import {
   ExternalPaymentOptionsString,
   isHydrated,
   SolanaPublicKey,
+  StellarPublicKey,
 } from "@rozoai/intent-common";
 import { Address, Hex, parseUnits } from "viem";
 
@@ -28,6 +29,8 @@ export interface PayParams {
   toUnits?: string;
   /** The final address to transfer to or contract to call. */
   toAddress: Address;
+  /** The final stellar address to transfer to. */
+  toStellarAddress?: string;
   /** Calldata for final call, or empty data for transfer. */
   toCallData?: Hex;
   /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
@@ -99,6 +102,11 @@ export type PaymentEvent =
       paymentTxHash: string;
       sourceToken: SolanaPublicKey;
     }
+  | {
+      type: "pay_stellar_source";
+      paymentTxHash: string;
+      sourceToken: StellarPublicKey;
+    }
   /* result events (effect finished) */
   | {
       type: "preview_generated";
@@ -126,6 +134,9 @@ export type PaymentEvent =
 
 type PayParamsData = {
   appId: string;
+  toStellarAddress?: string;
+  toAddress?: string;
+  rozoAppId?: string;
 };
 
 /**
@@ -135,6 +146,8 @@ export function paymentReducer(
   state: PaymentState,
   event: PaymentEvent
 ): PaymentState {
+  console.log(state);
+  console.log(event);
   switch (state.type) {
     case "idle":
       return reduceIdle(state, event);

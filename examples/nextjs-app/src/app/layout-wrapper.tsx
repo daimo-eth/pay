@@ -12,8 +12,8 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     <main
       className={`
         bg-white
-        ${isMain ? "max-w-6xl " : "max-w-3xl "} 
-        h-screen w-full m-auto px-4 py-8
+        w-full sm:max-w-3xl
+        h-screen m-auto px-4 py-8 overflow-x-auto
       `}
     >
       {!isMain && <NavButtons />}

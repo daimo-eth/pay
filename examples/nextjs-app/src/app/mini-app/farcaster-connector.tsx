@@ -23,7 +23,7 @@ export function farcasterConnector() {
     id: "farcaster",
     name: "Farcaster Wallet",
     rdns: "xyz.farcaster",
-    icon: "https://pay.daimo.com/wallet-logos/farcaster-logo.svg",
+    icon: "https://invoice.rozo.ai/wallets/farcaster-logo.svg",
     type: farcasterConnector.type,
 
     async connect({ chainId } = {}) {

@@ -11,8 +11,8 @@ export const OptionButton = styled(motion.button)`
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  height: 64px;
+  padding: 5px 20px;
+  min-height: 64px;
   font-size: 17px;
   font-weight: var(--ck-primary-button-font-weight, 500);
   line-height: 20px;
@@ -121,8 +121,8 @@ export const OptionSubtitle = styled(motion.span)`
   font-size: 14px;
   opacity: 0.6;
   font-weight: 400;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  // white-space: nowrap;
+  // text-overflow: ellipsis;
   overflow: hidden;
   width: 100%;
 `;

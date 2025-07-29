@@ -44,7 +44,7 @@ const ConnectWithQRCode: React.FC<{}> = () => {
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url = `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+  const url = `https://invoice.rozo.ai/checkout?id=${payId}&mode=${mode}`;
 
   return (
     <PageContent>

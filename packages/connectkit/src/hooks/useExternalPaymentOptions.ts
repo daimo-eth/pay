@@ -14,7 +14,8 @@ const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
     // Solana and ExternalChains are handled in the SelectMethod component.
     opt !== ExternalPaymentOptions.Solana &&
     opt !== ExternalPaymentOptions.ExternalChains &&
-    opt !== ExternalPaymentOptions.Rozo
+    opt !== ExternalPaymentOptions.Rozo &&
+    opt !== ExternalPaymentOptions.Stellar
 );
 
 export function useExternalPaymentOptions({

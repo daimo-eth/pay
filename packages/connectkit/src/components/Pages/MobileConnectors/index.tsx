@@ -28,6 +28,9 @@ const MobileConnectors: React.FC = () => {
       // If the mobile wallet supports solana only, don't show it if we are not supporting solana has a payment method
       if (wallet.isSolanaOnly && !context.paymentState.showSolanaPaymentMethod)
         return false;
+      // If the mobile wallet supports stellar only, don't show it if we are not supporting stellar has a payment method
+      if (wallet.isStellarOnly && !context.paymentState.showStellarPaymentMethod)
+        return false;
       return true;
     }) ?? [];
 

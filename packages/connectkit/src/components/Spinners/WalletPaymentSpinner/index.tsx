@@ -6,9 +6,13 @@ import { AnimationContainer, LoadingContainer } from "../styles";
 const WalletPaymentSpinner = ({
   logo,
   logoShape,
+  loading = false,
+  unavailable = false,
 }: {
   logo: React.ReactNode | string;
   logoShape: "circle" | "squircle";
+  loading?: boolean;
+  unavailable?: boolean;
 }) => {
   const optionSpinner = (() => {
     if (typeof logo === "string") {
@@ -16,20 +20,20 @@ const WalletPaymentSpinner = ({
         return (
           <CircleSpinner
             logo={<img src={logo} />}
-            loading={false}
-            unavailable={false}
+            loading={loading}
+            unavailable={unavailable}
           />
         );
       } else {
-        return <SquircleSpinner logo={<img src={logo} />} loading={false} />;
+        return <SquircleSpinner logo={<img src={logo} />} loading={loading} />;
       }
     } else {
       if (logoShape === "circle") {
         return (
-          <CircleSpinner logo={logo} loading={false} unavailable={false} />
+          <CircleSpinner logo={logo} loading={loading} unavailable={unavailable} />
         );
       } else {
-        return <SquircleSpinner logo={logo} loading={false} />;
+        return <SquircleSpinner logo={logo} loading={loading} />;
       }
     }
   })();

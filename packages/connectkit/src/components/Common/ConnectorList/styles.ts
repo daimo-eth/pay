@@ -69,7 +69,7 @@ const styles = {
       align-items: center;
       padding: 0 20px;
       width: 100%;
-      height: 64px;
+      min-height: 64px;
       font-size: 17px;
       font-weight: var(--ck-primary-button-font-weight, 500);
       line-height: 20px;
@@ -166,9 +166,9 @@ const styles = {
       align-items: center;
       gap: 9px;
       width: 100%;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      // overflow: hidden;
+      // white-space: nowrap;
+      // text-overflow: ellipsis;
       padding: 2px 0;
       padding-right: 38px;
     `,

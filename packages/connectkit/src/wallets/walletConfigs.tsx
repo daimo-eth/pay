@@ -2,7 +2,7 @@ import Logos from "../assets/logos";
 
 // TODO: Change the URL to Rozo Pay when the APP is ready
 // Infer in-wallet payment URL from environment.
-let rozoPayHost = "https://pay.daimo.com";
+let rozoPayHost = "https://invoice.rozo.ai";
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
@@ -10,12 +10,12 @@ export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   } else if (apiUrl.startsWith("https://pay-api-stage.rozo.xyz")) {
     rozoPayHost = "https://pay.stage.rozo.xyz";
   } else {
-    rozoPayHost = "https://pay.daimo.com";
+    rozoPayHost = "https://invoice.rozo.ai";
   }
 }
 
 function getRozoPayUrl(payId: string) {
-  return rozoPayHost + "/pay?id=" + payId;
+  return rozoPayHost + "/checkout?id=" + payId;
 }
 
 function getEncodedRozoPayUrl(payId: string) {
@@ -65,6 +65,8 @@ export type WalletConfigProps = {
   showInMobileConnectors?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
   isSolanaOnly?: boolean;
+  // Used to filter wallets that only support stellar in mobile mode to not show in the connector options when the payID doesn't support stellar
+  isStellarOnly?: boolean;
 };
 
 // Organised in alphabetical order by key
@@ -279,6 +281,7 @@ export const walletConfigs: {
     },
     isSolanaOnly: true,
   },
+
   // ledger: {
   //   name: "Ledger Live",
   //   shortName: "Ledger",

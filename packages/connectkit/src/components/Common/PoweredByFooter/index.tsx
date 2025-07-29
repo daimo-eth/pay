@@ -7,25 +7,35 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import RozoTextLogo from "../../../assets/rozo-text";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 
-const PoweredByFooter = ({ preFilledMessage, showSupport = true }: { preFilledMessage?: string, showSupport?: boolean } = {}) => {
+const PoweredByFooter = ({
+  preFilledMessage,
+  showSupport = true,
+}: { preFilledMessage?: string; showSupport?: boolean } = {}) => {
   const context = usePayContext();
   const pay = useRozoPay();
-  console.log(pay)
 
   const handleContactClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
 
-    if (typeof window.Intercom === 'function') {
+    if (typeof window.Intercom === "function") {
       context.setOpen(false);
-      window.Intercom('showNewMessage', [
-        'Hi, I need help with my payment.',
-        '',
-        `Version: ${rozoPayVersion}`,
-        `Order ID: ${pay.order?.id?.toString()}`,
-        preFilledMessage
-      ].filter(Boolean).join('\n'));
+      window.Intercom(
+        "showNewMessage",
+        [
+          "Hi, I need help with my payment.",
+          "",
+          `Version: ${rozoPayVersion}`,
+          `Order ID: ${pay.order?.id?.toString()}`,
+          preFilledMessage,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      );
     } else {
-      window.open(globalThis.__SUPPORTURL__ || `https://pay.rozo.ai?ref=sdk-v${rozoPayVersion}`);
+      window.open(
+        globalThis.__SUPPORTURL__ ||
+          `https://pay.rozo.ai?ref=sdk-v${rozoPayVersion}`
+      );
     }
   };
 
@@ -35,19 +45,14 @@ const PoweredByFooter = ({ preFilledMessage, showSupport = true }: { preFilledMe
       <Container>
         <TextButton
           onClick={() => {
-            window.open(
-              'http://rozo.ai/',
-              "_blank"
-            );
+            window.open("http://rozo.ai/", "_blank");
           }}
         >
           <span>Powered by</span>
-          <RozoTextLogo height={16} style={{ position: 'relative', top: 2 }} />
+          <RozoTextLogo height={16} style={{ position: "relative", top: 2 }} />
         </TextButton>
         {showSupport && (
-          <TextButton onClick={handleContactClick}>
-            Get help
-          </TextButton>
+          <TextButton onClick={handleContactClick}>Get help</TextButton>
         )}
       </Container>
     </>
@@ -87,7 +92,7 @@ const TextButton = styled(motion.button)`
   font-weight: 500;
 
   svg {
-   fill: var(--ck-body-color-muted);
+    fill: var(--ck-body-color-muted);
   }
 
   transition: color 200ms ease, transform 100ms ease;

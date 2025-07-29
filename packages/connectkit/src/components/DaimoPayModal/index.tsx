@@ -32,11 +32,16 @@ import SelectZKP from "../Pages/SelectZKP";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
+import ConnectorStellar from "../Pages/Stellar/ConnectorStellar";
+import ConnectStellar from "../Pages/Stellar/ConnectStellar";
+import PayWithStellarToken from "../Pages/Stellar/PayWithStellarToken";
+import SelectStellarAmount from "../Pages/Stellar/SelectStellarAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
 import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
 import ConnectUsing from "./ConnectUsing";
+import { useStellar } from "../../provider/StellarContextProvider";
 
 export const RozoPayModal: React.FC<{
   mode: Mode;
@@ -70,10 +75,12 @@ export const RozoPayModal: React.FC<{
       generatePreviewOrder,
       isDepositFlow,
       showSolanaPaymentMethod,
+      showStellarPaymentMethod,
       setPaymentWaitingMessage,
       setSelectedExternalOption,
       setSelectedTokenOption,
       setSelectedSolanaTokenOption,
+      setSelectedStellarTokenOption,
       setSelectedDepositAddressOption,
       setSelectedWallet,
     } = paymentState;
@@ -86,6 +93,7 @@ export const RozoPayModal: React.FC<{
       address,
     } = useAccount();
     const { connected: isSolanaConnected } = useWallet();
+    const { isConnected: isStellarConnected } = useStellar();
     const chainIsSupported = useChainIsSupported(chain?.id);
 
     //if chain is unsupported we enforce a "switch chain" prompt
@@ -170,6 +178,17 @@ export const RozoPayModal: React.FC<{
           setSelectedSolanaTokenOption(undefined);
           context.setRoute(ROUTES.SELECT_TOKEN, meta);
         }
+      } else if (context.route === ROUTES.STELLAR_SELECT_AMOUNT) {
+        setSelectedStellarTokenOption(undefined);
+        context.setRoute(ROUTES.SELECT_TOKEN, meta);
+      } else if (context.route === ROUTES.STELLAR_PAY_WITH_TOKEN) {
+        if (isDepositFlow) {
+          generatePreviewOrder();
+          context.setRoute(ROUTES.STELLAR_SELECT_AMOUNT, meta);
+        } else {
+          setSelectedStellarTokenOption(undefined);
+          context.setRoute(ROUTES.SELECT_TOKEN, meta);
+        }
       } else {
         context.setRoute(ROUTES.SELECT_METHOD, meta);
       }
@@ -195,6 +214,11 @@ export const RozoPayModal: React.FC<{
       [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,
       [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
       [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,
+
+      [ROUTES.STELLAR_CONNECT]: <ConnectStellar />,
+      [ROUTES.STELLAR_CONNECTOR]: <ConnectorStellar />,
+      [ROUTES.STELLAR_SELECT_AMOUNT]: <SelectStellarAmount />,
+      [ROUTES.STELLAR_PAY_WITH_TOKEN]: <PayWithStellarToken />,
       // Unused routes. Kept to minimize connectkit merge conflicts.
       [ROUTES.ONBOARDING]: <Onboarding />,
       [ROUTES.ABOUT]: <About />,
@@ -226,6 +250,7 @@ export const RozoPayModal: React.FC<{
       if (
         isEthConnected &&
         !isSolanaConnected &&
+        !isStellarConnected &&
         (!isMobile || !disableMobileInjector)
       ) {
         paymentState.setTokenMode("evm");
@@ -237,6 +262,7 @@ export const RozoPayModal: React.FC<{
         });
       } else if (
         isSolanaConnected &&
+        !isStellarConnected &&
         !isEthConnected &&
         showSolanaPaymentMethod &&
         !disableMobileInjector
@@ -244,6 +270,17 @@ export const RozoPayModal: React.FC<{
         paymentState.setTokenMode("solana");
         context.setRoute(ROUTES.SELECT_TOKEN, {
           event: "solana_connected_on_open",
+        });
+      } else if (
+        isStellarConnected &&
+        !isEthConnected &&
+        !isSolanaConnected &&
+        showStellarPaymentMethod &&
+        !disableMobileInjector
+      ) {
+        paymentState.setTokenMode("stellar");
+        context.setRoute(ROUTES.SELECT_TOKEN, {
+          event: "stellar_connected_on_open",
         });
       }
       // Don't include context.route in the dependency array otherwise the user
@@ -253,7 +290,9 @@ export const RozoPayModal: React.FC<{
       context.open,
       paymentState.walletPaymentOptions.options,
       paymentState.solanaPaymentOptions.options,
+      paymentState.stellarPaymentOptions.options,
       showSolanaPaymentMethod,
+      showStellarPaymentMethod,
       address,
       chain?.id,
       connector?.id,

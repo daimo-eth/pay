@@ -12,6 +12,7 @@ import {
   Theme,
 } from "../types";
 import { SolanaWalletName } from "./SolanaContextProvider";
+import { StellarWalletName } from "./StellarContextProvider";
 
 /** Meant for internal use. This will be non-exported in a future SDK version. */
 export const PayContext = createContext<PayContextValue | null>(null);
@@ -53,6 +54,11 @@ export type PayContextValue = {
   solanaConnector: SolanaWalletName | undefined;
   setSolanaConnector: React.Dispatch<
     React.SetStateAction<SolanaWalletName | undefined>
+  >;
+  /** Chosen Stellar wallet, eg Lobstr.*/
+  stellarConnector: StellarWalletName | undefined;
+  setStellarConnector: React.Dispatch<
+    React.SetStateAction<StellarWalletName | undefined>
   >;
   /** Global options, across all pay buttons and payments. */
   options?: RozoPayContextOptions;

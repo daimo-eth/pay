@@ -43,6 +43,7 @@ import {
   SolanaWalletName,
 } from "./SolanaContextProvider";
 import { Web3ContextProvider } from "./Web3ContextProvider";
+import { StellarContextProvider, StellarWalletName } from "./StellarContextProvider";
 
 type RozoPayUIProviderProps = {
   children?: React.ReactNode;
@@ -174,6 +175,10 @@ const RozoPayUIProvider = ({
   const [sessionId] = useState(() => crypto.randomUUID().replaceAll("-", ""));
   const [solanaConnector, setSolanaConnector] = useState<
     SolanaWalletName | undefined
+  >();
+
+  const [stellarConnector, setStellarConnector] = useState<
+    StellarWalletName | undefined
   >();
 
   // Other configuration
@@ -342,6 +347,8 @@ const RozoPayUIProvider = ({
     sessionId,
     solanaConnector,
     setSolanaConnector,
+    stellarConnector,
+    setStellarConnector,
     onConnect,
     // Other configuration
     options: opts,
@@ -401,6 +408,7 @@ type RozoPayProviderProps = {
    * (ex. successful txes take minutes to confirm instead of seconds)
    */
   solanaRpcUrl?: string;
+  stellarRpcUrl?: string;
   /** Custom Pay API, useful for test and staging. */
   payApiUrl?: string;
 } & useConnectCallbackProps;
@@ -419,7 +427,9 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
   return (
     <PaymentProvider payApiUrl={payApiUrl} log={log}>
       <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-        <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
+        <StellarContextProvider stellarRpcUrl={props.stellarRpcUrl}>
+          <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
+        </StellarContextProvider>
       </SolanaContextProvider>
     </PaymentProvider>
   );

@@ -1,6 +1,6 @@
 import { ExternalPaymentOptions } from "@rozoai/intent-common";
 import { Connector, useAccount } from "wagmi";
-import { Bitcoin, Solana, Tron } from "../../../assets/chains";
+import { Bitcoin, Solana, Stellar, Tron } from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
@@ -15,7 +15,7 @@ const OptionsContainer = styled.div`
 
 export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
-  const { externalPaymentOptions, showSolanaPaymentMethod } = paymentState;
+  const { externalPaymentOptions, showSolanaPaymentMethod, showStellarPaymentMethod } = paymentState;
   const { connector } = useAccount();
   const { order } = useRozoPay();
   const paymentOptions = order?.metadata.payer?.paymentOptions;
@@ -83,6 +83,7 @@ export default function SelectAnotherMethodButton() {
     if (icons.length < 3) {
       const additionalIcons: JSX.Element[] = [];
       if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
+      if (showStellarPaymentMethod) additionalIcons.push(<Stellar />);
       // if (includeDepositAddressOption && additionalIcons.length < 3)
       //   additionalIcons.push(<Bitcoin />);
       /* if (includeDepositAddressOption && additionalIcons.length < 3)

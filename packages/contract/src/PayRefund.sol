@@ -46,14 +46,11 @@ contract PayRefund is Initializable {
         bytes32 s,
         uint8 v
     ) public {
-        assert(signedNonce == nonce, "PR: invalid nonce");
+        require(signedNonce == nonce, "PR: invalid nonce");
 
         // Check EIP-712 signature
         bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-        bytes32 REFUND_TYPEHASH = keccak256(
-            "Refund(uint256 chainId,address token,address recipient,uint256 nonce)"
         );
         bytes32 domainSeparator = keccak256(
             abi.encode(
@@ -64,10 +61,13 @@ contract PayRefund is Initializable {
                 address(this)
             )
         );
+        bytes32 REFUND_TYPEHASH = keccak256(
+            "Refund(uint256 chainId,address token,address recipient,uint256 nonce)"
+        );
         bytes32 structHash = keccak256(
             abi.encode(
                 REFUND_TYPEHASH,
-                block.chainId,
+                block.chainid,
                 address(token),
                 recipient,
                 nonce
@@ -78,7 +78,7 @@ contract PayRefund is Initializable {
         );
         bool isValid;
         if (safeAddress != address(0)) {
-            bool isValid = validSafeSignature({
+            isValid = validSafeSignature({
                 signer: owner,
                 chainId: ownerChainId,
                 safe: safeAddress,
@@ -90,7 +90,7 @@ contract PayRefund is Initializable {
         } else {
             isValid = validEOASignature({
                 signer: owner,
-                dataHash: dataHash,
+                messageHash: dataHash,
                 r: r,
                 s: s,
                 v: v

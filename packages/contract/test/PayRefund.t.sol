@@ -44,7 +44,7 @@ contract PayRefundTest is Test {
 
         PayRefund pr = new PayRefund();
 
-        bool isValid = pr.validSignature(
+        bool isValid = pr.validSafeSignature(
             signer,
             chainId,
             safe,
@@ -55,7 +55,7 @@ contract PayRefundTest is Test {
         );
         assertTrue(isValid, "valid");
 
-        bool isInvalid = pr.validSignature(
+        bool isInvalid = pr.validSafeSignature(
             address(0),
             chainId,
             safe,
@@ -68,39 +68,77 @@ contract PayRefundTest is Test {
     }
 
     function testSendToken() public {
-        // Dummy token
-        IERC20 token = new TestUSDC{salt: 0}();
-
         // Constants
-        uint256 chainId = 480;
+        // ...owner
+        uint256 ownerChainId = 480;
         address safe = 0x110C97Cd7A4FBFF5F1e831D2BA4342aa92eAbBa4;
-
         address signer = 0xBBBC54500B2EBACe5384c39022F3F761c02909b3;
-        address payable recipient = payable(
-            address(0x1010101010101010101010101010101010101010)
-        );
-        console.log("token", address(token));
+        console.log("ownerChainId", ownerChainId);
+        console.log("safe", safe);
         console.log("signer", signer);
+
+        // refund
+        uint256 chainId = 8453;
+        vm.chainId(chainId);
+        address token = 0x0000000000000000000000000000000000000000;
+        address payable recipient = payable(
+            address(0xc60A0A0E8bBc32DAC2E03030989AD6BEe45A874D)
+        );
+        uint256 nonce = 0;
+        console.log("token", token);
         console.log("recipient", recipient);
+        console.log("nonce", nonce);
 
         // Deploy PayRefund, send it some funds
         PayRefundFactory fact = new PayRefundFactory{salt: 0}();
         console.log("factory", address(fact));
-        PayRefund pr = fact.createRefund(signer, chainId, safe);
-        token.transfer(address(pr), 1230000);
+        PayRefund pr = fact.createRefund(signer, ownerChainId, safe);
+        vm.deal(address(pr), 1230000);
         console.log("pr", address(pr));
-        console.log("token balance", token.balanceOf(address(pr)));
+        console.log("eth balance", address(pr).balance);
+        console.log("chainId", block.chainid);
 
         // Real signature from World App
-        bytes32 r = 0x2b24a63ffbbd6027a93311ed37fff8faceefb99b512c82bc6a56ea361dcaa89c;
-        bytes32 s = 0x7fb6908297af3759eed546fdc57dfda3048c235e8e3c13e44c61f4fb6ca67f13;
-        uint8 v = 0x1c;
+        bytes32 r = 0x00e889d50034b43b0ac50881cee3ed38f8950f9f9d6d970b32406eacbacc784c;
+        bytes32 s = 0x5d9a92d4ae788e8df4b77663d244fac8344c0937ff74e08987d72b192fb0abf0;
+        uint8 v = 0x1b;
 
         // Call sendToken
-        pr.sendToken(IERC20(token), recipient, r, s, v);
+        pr.sendToken(IERC20(token), recipient, nonce, r, s, v);
 
         // Assert nonce incremented and funds retrieved
-        assertEq(pr.nonce(), 1);
-        assertEq(token.balanceOf(recipient), 1230000);
+        assertEq(pr.nonce(), 1, "nonce incremented");
+        assertEq(recipient.balance, 1230000);
+
+        // Replaying the same tx again results in a nonce error
+        vm.expectRevert("PR: invalid nonce");
+        pr.sendToken(IERC20(token), recipient, nonce, r, s, v);
+    }
+
+    function testSendTokenCrossChainReplay() public {
+        uint256 ownerChainId = 480;
+        address safe = 0x110C97Cd7A4FBFF5F1e831D2BA4342aa92eAbBa4;
+        address signer = 0xBBBC54500B2EBACe5384c39022F3F761c02909b3;
+
+        address token = 0x0000000000000000000000000000000000000000;
+        address payable recipient = payable(
+            0xc60A0A0E8bBc32DAC2E03030989AD6BEe45A874D
+        );
+        uint256 nonce = 0;
+
+        bytes32 r = 0x00e889d50034b43b0ac50881cee3ed38f8950f9f9d6d970b32406eacbacc784c;
+        bytes32 s = 0x5d9a92d4ae788e8df4b77663d244fac8344c0937ff74e08987d72b192fb0abf0;
+        uint8 v = 0x1b;
+
+        // Replaying same tx on different chain results in signature error
+        vm.chainId(10);
+        PayRefundFactory fact = new PayRefundFactory{salt: 0}();
+        PayRefund pr = fact.createRefund(signer, ownerChainId, safe);
+        require(address(pr) == address(pr), "same PayRefund across chains");
+        assertEq(block.chainid, 10, "new chainId");
+        assertEq(pr.nonce(), 0, "fresh nonce");
+        vm.deal(address(pr), 1230000);
+        vm.expectRevert("PR: invalid signature");
+        pr.sendToken(IERC20(token), recipient, nonce, r, s, v);
     }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@rozoai/intent-pay",
   "private": false,
-  "version": "0.0.16-beta.18",
+  "version": "0.0.16-beta.19",
   "author": "RozoAI",
   "homepage": "https://github.com/RozoAI/intent-pay",
   "license": "BSD-2-Clause",
@@ -54,7 +54,7 @@
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/web3.js": "^1.95.4",
     "@stellar/stellar-sdk": "^13.3.0",
-    "@rozoai/intent-common": "0.0.16-beta.18",
+    "@rozoai/intent-common": "0.0.16-beta.19",
     "@trpc/client": "^11.0.0-next-beta.318",
     "@trpc/server": "^11.0.0-next-beta.318",
     "buffer": "^6.0.3",

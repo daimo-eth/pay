@@ -141,7 +141,7 @@ const PayWithStellarToken: React.FC = () => {
         );
       }
 
-      setRozoPaymentId(payment.externalId as string);
+      setRozoPaymentId(payment.id as string);
       setPayState(PayState.RequestingPayment);
 
       const result = await payWithStellarTokenImpl(option.required, {

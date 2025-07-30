@@ -13,7 +13,7 @@ import {SharedConfig} from "../src/SharedConfig.sol";
 import {Call} from "../src/DaimoPayExecutor.sol";
 import {DaimoPayExecutor} from "../src/DaimoPayExecutor.sol";
 import {DaimoPayRelayer} from "../src/relayer/DaimoPayRelayer.sol";
-import {TokenAmount} from "../src/TokenUtils.sol";
+import {TokenAmount, NativeTransfer} from "../src/TokenUtils.sol";
 
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {TestDAI} from "./utils/DummyDAI.sol";
@@ -1291,5 +1291,50 @@ contract UniversalAddressTest is Test {
         assertEq(usdc.balanceOf(RELAYER), relayerStartBal);
         // UA vault should now be empty on destination chain.
         assertEq(usdc.balanceOf(universalAddress), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // Test that UniversalAddress contracts emit NativeTransfer events on creation
+    // and when receiving ETH
+    // ---------------------------------------------------------------------
+    function testUniversalAddressNativeTransferEvents() public {
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // Pre-fund the universal address with 1 ETH before deployment
+        vm.deal(universalAddress, 1 ether);
+
+        // Deploy the UniversalAddress contract and expect NativeTransfer event for pre-existing balance
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(address(0), universalAddress, 1 ether);
+
+        UniversalAddress deployedUA = UniversalAddress(
+            intentFactory.createUniversalAddress(route)
+        );
+        assertEq(address(deployedUA), universalAddress);
+
+        // Send 0.5 ETH to the deployed contract and expect NativeTransfer event
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(address(this), universalAddress, 0.5 ether);
+
+        (bool success, ) = payable(universalAddress).call{value: 0.5 ether}("");
+        require(success, "ETH transfer failed");
+
+        // Verify the contract has the expected balance
+        assertEq(universalAddress.balance, 1.5 ether);
+
+        // Test sending ETH from a different address
+        vm.deal(ALICE, 1 ether); // Give Alice some ETH first
+        vm.prank(ALICE);
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(ALICE, universalAddress, 0.25 ether);
+
+        (bool success2, ) = payable(universalAddress).call{value: 0.25 ether}(
+            ""
+        );
+        require(success2, "ETH transfer from Alice failed");
+
+        // Verify final balance
+        assertEq(universalAddress.balance, 1.75 ether);
     }
 }

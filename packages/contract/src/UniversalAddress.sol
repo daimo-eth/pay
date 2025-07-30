@@ -64,6 +64,15 @@ contract UniversalAddress is Initializable, ReentrancyGuard {
     /// @param _routeHash keccak256(UniversalAddressRoute) committed by the factory.
     function initialize(bytes32 _routeHash) public initializer {
         routeHash = _routeHash;
+
+        // Emit event for any ETH that arrived before deployment
+        if (address(this).balance > 0) {
+            emit NativeTransfer(
+                address(0),
+                address(this),
+                address(this).balance
+            );
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -90,5 +99,7 @@ contract UniversalAddress is Initializable, ReentrancyGuard {
     }
 
     /// Accept native chain asset (e.g. ETH) deposits
-    receive() external payable {}
+    receive() external payable {
+        emit NativeTransfer(msg.sender, address(this), msg.value);
+    }
 }

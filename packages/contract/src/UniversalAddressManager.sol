@@ -653,6 +653,15 @@ contract BridgeReceiver {
 
     constructor() {
         ua = payable(msg.sender);
+
+        // Emit event for any ETH that arrived before deployment
+        if (address(this).balance > 0) {
+            emit NativeTransfer(
+                address(0),
+                address(this),
+                address(this).balance
+            );
+        }
     }
 
     /// @notice Sweep entire balance of `token` (ERC20 or native when
@@ -664,5 +673,7 @@ contract BridgeReceiver {
     }
 
     // Accept native asset deposits.
-    receive() external payable {}
+    receive() external payable {
+        emit NativeTransfer(msg.sender, address(this), msg.value);
+    }
 }

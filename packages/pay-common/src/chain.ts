@@ -47,13 +47,6 @@ export const linea: Chain = {
   cctpDomain: 11,
 };
 
-export const mantle: Chain = {
-  type: "evm",
-  chainId: 5000,
-  name: "Mantle",
-  cctpDomain: null,
-};
-
 export const optimism: Chain = {
   type: "evm",
   chainId: 10,
@@ -96,7 +89,6 @@ export const supportedChains: Chain[] = [
   celo,
   ethereum,
   linea,
-  mantle,
   optimism,
   polygon,
   scroll,
@@ -152,8 +144,6 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://etherscan.io";
     case linea.chainId:
       return "https://lineascan.build";
-    case mantle.chainId:
-      return "https://mantlescan.xyz";
     case optimism.chainId:
       return "https://optimistic.etherscan.io";
     case polygon.chainId:

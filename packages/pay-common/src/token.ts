@@ -7,7 +7,6 @@ import {
   celo,
   ethereum,
   linea,
-  mantle,
   optimism,
   polygon,
   scroll,
@@ -449,64 +448,6 @@ const lineaTokens: Token[] = [
 ];
 
 //
-// Mantle
-//
-
-export const mantleMNT = nativeToken({
-  chainId: mantle.chainId,
-  name: "Mantle",
-  symbol: "MNT",
-  logoURI: TokenLogo.MNT,
-});
-
-export const mantleWMNT: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8"),
-  decimals: 18,
-  name: "Wrapped Mantle",
-  symbol: "WMNT",
-  logoURI: TokenLogo.MNT,
-});
-
-export const mantleBridgedUSDC: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "USD Coin",
-  symbol: "USDC",
-  logoURI: TokenLogo.USDC,
-});
-
-export const mantleUSDT: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x201eba5cc46d216ce6dc03f6a759e8e766e956ae"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "Tether USD",
-  symbol: "USDT",
-  logoURI: TokenLogo.USDT,
-});
-
-export const mantleAxlUSDC: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0xEB466342C4d449BC9f53A865D5Cb90586f405215"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "Axelar Wrapped USDC",
-  symbol: "axlUSDC",
-  logoURI: TokenLogo.USDC,
-});
-
-const mantleTokens: Token[] = [
-  mantleMNT,
-  mantleWMNT,
-  mantleBridgedUSDC,
-  mantleUSDT,
-  mantleAxlUSDC,
-];
-
-//
 // Optimism
 //
 
@@ -800,7 +741,6 @@ const knownTokensByChain = new Map<number, Token[]>([
   [celo.chainId, celoTokens],
   [ethereum.chainId, ethereumTokens],
   [linea.chainId, lineaTokens],
-  [mantle.chainId, mantleTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
   [scroll.chainId, scrollTokens],
@@ -904,15 +844,6 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE_USDC]: lineaUSDC,
       [TokenType.AXL_USDC]: lineaAxlUSDC,
       [TokenType.DAI]: lineaDAI,
-    },
-  ],
-  [
-    mantle.chainId,
-    {
-      [TokenType.NATIVE]: mantleMNT,
-      [TokenType.WRAPPED_NATIVE]: mantleWMNT,
-      [TokenType.BRIDGED_USDC]: mantleBridgedUSDC,
-      [TokenType.AXL_USDC]: mantleAxlUSDC,
     },
   ],
   [

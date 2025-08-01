@@ -22,7 +22,8 @@ import { getSupportUrl } from "../../../utils/supportUrl";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
 const Confirmation: React.FC = () => {
-  const { confirmationMessage, onSuccess } = usePayContext();
+  const { showContactSupport, confirmationMessage, onSuccess } =
+    usePayContext();
   const { order, paymentState } = useDaimoPay();
 
   const { done, txURL } = useMemo(() => {
@@ -88,10 +89,16 @@ const Confirmation: React.FC = () => {
         )}
 
         <PoweredByFooter
-          supportUrl={getSupportUrl(
-            order?.id?.toString() ?? "",
-            done ? "Confirmed" : "Confirming",
-          )}
+          // If showContactSupport is false, we don't want to show the support
+          // link, so we pass undefined
+          supportUrl={
+            showContactSupport
+              ? getSupportUrl(
+                  order?.id?.toString() ?? "",
+                  done ? "Confirmed" : "Confirming",
+                )
+              : undefined
+          }
         />
       </ModalContent>
     </PageContent>

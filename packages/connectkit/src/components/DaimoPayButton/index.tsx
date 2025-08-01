@@ -96,6 +96,18 @@ export type PayButtonPaymentProps =
       payId: string;
       /** Payment options. By default, all are enabled. */
       paymentOptions?: ExternalPaymentOptionsString[];
+      /**
+       * The page to start on.
+       */
+      uniquePaymentOption?:
+        | ExternalPaymentOptionsString
+        | "Tron"
+        | "Base"
+        | "Arbitrum"
+        | "Optimism"
+        | "Polygon"
+        | "Ethereum"
+        | "Wallets";
     };
 
 type PayButtonCommonProps = PayButtonPaymentProps & {

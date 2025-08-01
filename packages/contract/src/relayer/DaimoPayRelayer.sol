@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
+import "../UniversalAddress.sol";
+import "../interfaces/IUniversalAddressManager.sol";
 
 /// @author Daimo, Inc
 /// @notice Reference relayer contract. This is a private, untrusted relayer.
@@ -369,6 +371,13 @@ contract DaimoPayRelayer is AccessControl {
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = tokenIn.token;
         dp.fastFinishIntent({intent: intent, calls: calls, tokens: tokens});
+
+        // Reset the allowance back to zero for cleanliness/security.
+        TokenUtils.approve({
+            token: tokenIn.token,
+            spender: address(dp),
+            amount: 0
+        });
     }
 
     function claimAndKeep(
@@ -388,12 +397,175 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
+        // Execute the claim intent
         dp.claimIntent({intent: intent, calls: claimCalls});
 
         // Make post-claim calls
         for (uint256 i = 0; i < postCalls.length; ++i) {
             Call calldata call = postCalls[i];
             (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Starts a new UA intent.
+    function uaStartIntent(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        Call[] calldata startCalls,
+        bytes calldata bridgeExtraData,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-start calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the start intent
+        manager.startIntent({
+            route: route,
+            paymentToken: paymentToken,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            calls: startCalls,
+            bridgeExtraData: bridgeExtraData
+        });
+
+        // Make post-start calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    function uaSameChainFinish(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UniversalAddressRoute calldata route,
+        IERC20 paymentToken,
+        uint256 toAmount,
+        Call[] calldata calls,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-finish calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the same-chain finish intent
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: paymentToken,
+            toAmount: toAmount,
+            calls: calls
+        });
+
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata call = postCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    function uaFastFinish(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UniversalAddressRoute calldata route,
+        TokenAmount calldata tokenIn,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        Call[] calldata calls,
+        uint256 sourceChainId
+    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        // Execute any pre-calls provided by the relayer. These can be used
+        // to perform swaps or other setup before finishing the UA intent.
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Transfer the input tokens to the manager so that it can immediately
+        // forward them to the executor inside fastFinishIntent.
+        TokenUtils.transfer({
+            token: tokenIn.token,
+            recipient: payable(address(manager)),
+            amount: tokenIn.amount
+        });
+
+        // Call fastFinishIntent on the UniversalAddressManager.
+        manager.fastFinishIntent({
+            route: route,
+            calls: calls,
+            token: tokenIn.token,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: sourceChainId
+        });
+
+        // Reset the allowance back to zero for cleanliness/security.
+        TokenUtils.approve({
+            token: tokenIn.token,
+            spender: address(manager),
+            amount: 0
+        });
+    }
+
+    function uaClaimIntent(
+        Call[] calldata preCalls,
+        IUniversalAddressManager manager,
+        UniversalAddressRoute calldata route,
+        Call[] calldata calls,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        uint256 sourceChainId,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-claim calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the claim intent
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: sourceChainId
+        });
+
+        // Make post-claim calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
             require(success, "DPR: postCall failed");
         }
 

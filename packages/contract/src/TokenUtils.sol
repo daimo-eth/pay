@@ -11,6 +11,9 @@ struct TokenAmount {
     uint256 amount;
 }
 
+/// Event emitted when native tokens (ETH, etc.) are transferred
+event NativeTransfer(address indexed from, address indexed to, uint256 value);
+
 /// Utility functions that work for both ERC20 and native tokens.
 library TokenUtils {
     using SafeERC20 for IERC20;
@@ -52,7 +55,7 @@ library TokenUtils {
     /// Sends an ERC20 or ETH transfer. Returns true if successful.
     function tryTransfer(
         IERC20 token,
-        address recipient,
+        address payable recipient,
         uint256 amount
     ) internal returns (bool) {
         if (address(token) != address(0)) {

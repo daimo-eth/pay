@@ -484,7 +484,8 @@ contract DaimoPayTest is Test {
             toChainId: _cctpDestchainId,
             toAddress: CCTP_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(CCTP_INTENT_ADDR, intent);
@@ -601,7 +602,8 @@ contract DaimoPayTest is Test {
             toChainId: _cctpV2DestChainId,
             toAddress: CCTP_V2_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(CCTP_V2_INTENT_ADDR, intent);
@@ -703,7 +705,8 @@ contract DaimoPayTest is Test {
             toChainId: _acrossDestChainId,
             toAddress: ACROSS_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
 
         vm.expectEmit(address(dp));
@@ -782,7 +785,8 @@ contract DaimoPayTest is Test {
             toChainId: _axelarDestChainId,
             toAddress: intentAddr,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
 
         vm.expectEmit(address(dp));
@@ -1758,5 +1762,46 @@ contract DaimoPayTest is Test {
         uint256 attackerBalAfter = _toToken.balanceOf(maliciousRelayer);
         assertEq(victimBalAfter, victimBalBefore);
         assertEq(attackerBalAfter, attackerBalBefore);
+    }
+
+    // Test that PayIntent contracts emit NativeTransfer events on creation
+    // and when receiving ETH
+    function testPayIntentNativeTransferEvents() public {
+        vm.chainId(_cctpDestchainId);
+
+        PayIntent memory intent = getSimpleCCTPPayIntent();
+        address intentAddr = intentFactory.getIntentAddress(intent);
+
+        // Pre-fund the intent address with 1 ETH before deployment
+        vm.deal(intentAddr, 1 ether);
+
+        // Deploy the intent contract and expect NativeTransfer event for pre-existing balance
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(address(0), intentAddr, 1 ether);
+
+        PayIntentContract intentContract = intentFactory.createIntent(intent);
+        assertEq(address(intentContract), intentAddr);
+
+        // Send 0.5 ETH to the deployed contract and expect NativeTransfer event
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(address(this), intentAddr, 0.5 ether);
+
+        (bool success, ) = payable(intentAddr).call{value: 0.5 ether}("");
+        require(success, "ETH transfer failed");
+
+        // Verify the contract has the expected balance
+        assertEq(intentAddr.balance, 1.5 ether);
+
+        // Test sending ETH from a different address
+        vm.deal(_alice, 1 ether); // Give Alice some ETH first
+        vm.prank(_alice);
+        vm.expectEmit(true, true, false, true);
+        emit NativeTransfer(_alice, intentAddr, 0.25 ether);
+
+        (bool success2, ) = payable(intentAddr).call{value: 0.25 ether}("");
+        require(success2, "ETH transfer from Alice failed");
+
+        // Verify final balance
+        assertEq(intentAddr.balance, 1.75 ether);
     }
 }

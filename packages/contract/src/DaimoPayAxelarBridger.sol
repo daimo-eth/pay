@@ -191,6 +191,7 @@ contract DaimoPayAxelarBridger is
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address refundAddress,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPAxB: same chain");
@@ -222,27 +223,31 @@ contract DaimoPayAxelarBridger is
         if (extra.useExpress) {
             axelarGasService.payNativeGasForExpressCallWithToken{
                 value: nativeFee
-            }(
-                address(this),
-                destChainName,
-                Strings.toHexString(receiverContract),
-                abi.encode(toAddress),
-                outTokenSymbol,
-                outAmount,
-                extra.gasRefundAddress
-            );
+            }({
+                sender: address(this),
+                destinationChain: destChainName,
+                destinationAddress: Strings.toHexString(receiverContract),
+                payload: abi.encode(toAddress),
+                symbol: outTokenSymbol,
+                amount: outAmount,
+                // The relayer supplies the gas fee, so we should let them
+                // specify where to refund any excess gas fees.
+                refundAddress: extra.gasRefundAddress
+            });
         } else {
             axelarGasService.payNativeGasForContractCallWithToken{
                 value: nativeFee
-            }(
-                address(this),
-                destChainName,
-                Strings.toHexString(receiverContract),
-                abi.encode(toAddress),
-                outTokenSymbol,
-                outAmount,
-                extra.gasRefundAddress
-            );
+            }({
+                sender: address(this),
+                destinationChain: destChainName,
+                destinationAddress: Strings.toHexString(receiverContract),
+                payload: abi.encode(toAddress),
+                symbol: outTokenSymbol,
+                amount: outAmount,
+                // The relayer supplies the gas fee, so we should let them
+                // specify where to refund any excess gas fees.
+                refundAddress: extra.gasRefundAddress
+            });
         }
 
         // Approve the AxelarGateway contract and initiate the bridge. Send the
@@ -252,13 +257,13 @@ contract DaimoPayAxelarBridger is
             spender: address(axelarGateway),
             value: inAmount
         });
-        axelarGateway.callContractWithToken(
-            destChainName,
-            Strings.toHexString(receiverContract),
-            abi.encode(toAddress),
-            outTokenSymbol,
-            outAmount
-        );
+        axelarGateway.callContractWithToken({
+            destinationChain: destChainName,
+            contractAddress: Strings.toHexString(receiverContract),
+            payload: abi.encode(toAddress),
+            symbol: outTokenSymbol,
+            amount: outAmount
+        });
 
         emit BridgeInitiated({
             fromAddress: msg.sender,
@@ -267,7 +272,8 @@ contract DaimoPayAxelarBridger is
             toChainId: toChainId,
             toAddress: toAddress,
             toToken: outToken,
-            toAmount: outAmount
+            toAmount: outAmount,
+            refundAddress: refundAddress
         });
     }
 

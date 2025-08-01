@@ -50,6 +50,7 @@ contract DaimoPayBridger is IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address refundAddress,
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "DPB: same chain");
@@ -81,6 +82,7 @@ contract DaimoPayBridger is IDaimoPayBridger {
             toChainId: toChainId,
             toAddress: toAddress,
             bridgeTokenOutOptions: bridgeTokenOutOptions,
+            refundAddress: refundAddress,
             extraData: extraData
         });
     }

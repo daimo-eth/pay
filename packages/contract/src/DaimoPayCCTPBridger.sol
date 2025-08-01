@@ -139,6 +139,7 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address refundAddress,
         bytes calldata /* extraData */
     ) public {
         require(toChainId != block.chainid, "DPCCTPB: same chain");
@@ -177,7 +178,8 @@ contract DaimoPayCCTPBridger is IDaimoPayBridger {
             toChainId: toChainId,
             toAddress: toAddress,
             toToken: outToken,
-            toAmount: outAmount
+            toAmount: outAmount,
+            refundAddress: refundAddress
         });
     }
 }

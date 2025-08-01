@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.12;
 
-import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
@@ -61,6 +61,15 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
 
     function initialize(bytes32 _intentHash) public initializer {
         intentHash = _intentHash;
+
+        // Emit event for any ETH that arrived before deployment
+        if (address(this).balance > 0) {
+            emit NativeTransfer(
+                address(0),
+                address(this),
+                address(this).balance
+            );
+        }
     }
 
     /// Send tokens to a recipient.
@@ -108,5 +117,7 @@ contract PayIntentContract is Initializable, ReentrancyGuard {
     }
 
     /// Accept native-token (eg ETH) inputs
-    receive() external payable {}
+    receive() external payable {
+        emit NativeTransfer(msg.sender, address(this), msg.value);
+    }
 }

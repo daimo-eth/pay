@@ -19,10 +19,17 @@ SCRIPTS=(
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
+    # Universal Address
+    # "script/DeployUniversalAddressManager.s.sol"
+
     # Relayer
     # "script/DeployPayBalanceFactory.sol"
     # "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
+
+    # Universal Address
+    # "script/DeployUniversalAddressManager.s.sol"
 )
+
 CHAINS=(
     # "$ETHERSCAN_API_KEY_ARB,https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "$ETHERSCAN_API_KEY_BASE,https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -53,3 +60,5 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         $FORGE_CMD || exit 1
     done
 done
+
+echo "Done"

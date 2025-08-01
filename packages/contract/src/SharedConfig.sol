@@ -35,28 +35,28 @@ contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     bool public paused;
 
     // ───────────────────────────────────────────────────────────────────────────
-    // Initializer
+    // Events
     // ───────────────────────────────────────────────────────────────────────────
 
-    /// @notice Initialize the contract, setting the given owner.
-    function initialize(address _owner) public initializer {
-        __Ownable_init(_owner);
-        __UUPSUpgradeable_init();
-    }
+    event AddrSet(bytes32 indexed key, address indexed value);
+    event NumSet(bytes32 indexed key, uint256 value);
+    event WhitelistedStableSet(address indexed token, bool whitelisted);
+    event PausedSet(bool paused);
 
     /// @dev Disable direct initialization on the implementation.
     constructor() {
         _disableInitializers();
     }
 
-    // ---------------------------------------------------------------------
-    // UUPS upgrade authorization
-    // ---------------------------------------------------------------------
+    // ───────────────────────────────────────────────────────────────────────────
+    // Initializer
+    // ───────────────────────────────────────────────────────────────────────────
 
-    /// @dev Restrict upgrades to the contract owner.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
+    /// @notice Initialize the contract, setting the given owner.
+    function initialize(address _owner) external initializer {
+        __Ownable_init(_owner);
+        __UUPSUpgradeable_init();
+    }
 
     // ───────────────────────────────────────────────────────────────────────────
     // Address registry management
@@ -101,14 +101,14 @@ contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit PausedSet(_paused);
     }
 
-    // ───────────────────────────────────────────────────────────────────────────
-    // Events
-    // ───────────────────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------------
+    // UUPS upgrade authorization
+    // ---------------------------------------------------------------------
 
-    event AddrSet(bytes32 indexed key, address indexed value);
-    event NumSet(bytes32 indexed key, uint256 value);
-    event WhitelistedStableSet(address indexed token, bool whitelisted);
-    event PausedSet(bool paused);
+    /// @dev Restrict upgrades to the contract owner.
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // ───────────────────────────────────────────────────────────────────────────
     // Storage gap for upgradeability

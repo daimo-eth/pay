@@ -9,6 +9,13 @@ import "../TokenUtils.sol";
 ///         that multiplexes between multiple bridge-specific adapters (e.g.
 ///         CCTP, Across, Axelar).
 interface IUniversalAddressBridger {
+    /// @notice Returns the bridge output token for the given destination chain ID.
+    /// @param toChainId The destination chain ID
+    /// @return stableOut The bridge output token
+    function chainIdToStableOut(
+        uint256 toChainId
+    ) external view returns (address stableOut);
+
     /// @notice Fetches a quote: what do I have to send in so that $x shows up
     ///         on the destination?
     /// @param toChainId       Destination chain
@@ -29,11 +36,13 @@ interface IUniversalAddressBridger {
     /// @param toAddress       Recipient address on the destination chain
     /// @param bridgeTokenOut  The stablecoin token and amount to receive on
     ///                        the destination chain
+    /// @param refundAddress   Address to send funds to if the bridge fails
     /// @param extraData       Adapter-specific calldata
     function sendToChain(
         uint256 toChainId,
         address toAddress,
         TokenAmount calldata bridgeTokenOut,
+        address refundAddress,
         bytes calldata extraData
     ) external;
 }

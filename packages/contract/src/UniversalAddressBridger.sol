@@ -43,6 +43,50 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     }
 
     // ---------------------------------------------------------------------
+    // Mutating state
+    // ---------------------------------------------------------------------
+
+    /// @inheritdoc IUniversalAddressBridger
+    function sendToChain(
+        uint256 toChainId,
+        address toAddress,
+        TokenAmount calldata bridgeTokenOut,
+        address refundAddress,
+        bytes calldata extraData
+    ) external {
+        // Determine the required input asset and quantity for the requested bridge.
+        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
+            toChainId: toChainId,
+            bridgeTokenOut: bridgeTokenOut
+        });
+        (address bridgeTokenIn, uint256 inAmount) = adapter.getBridgeTokenIn({
+            toChainId: toChainId,
+            bridgeTokenOutOptions: opts
+        });
+
+        // Pull tokens from caller into this contract.
+        IERC20(bridgeTokenIn).safeTransferFrom({
+            from: msg.sender,
+            to: address(this),
+            value: inAmount
+        });
+
+        // Approve the adapter to spend and forward the call.
+        IERC20(bridgeTokenIn).forceApprove({
+            spender: address(adapter),
+            value: inAmount
+        });
+
+        adapter.sendToChain({
+            toChainId: toChainId,
+            toAddress: toAddress,
+            bridgeTokenOutOptions: opts,
+            refundAddress: refundAddress,
+            extraData: extraData
+        });
+    }
+
+    // ---------------------------------------------------------------------
     // View helpers
     // ---------------------------------------------------------------------
 
@@ -83,47 +127,5 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         // Build a single-element TokenAmount[] expected by the adapter
         opts = new TokenAmount[](1);
         opts[0] = bridgeTokenOut;
-    }
-
-    // ---------------------------------------------------------------------
-    // Mutating state
-    // ---------------------------------------------------------------------
-
-    /// @inheritdoc IUniversalAddressBridger
-    function sendToChain(
-        uint256 toChainId,
-        address toAddress,
-        TokenAmount calldata bridgeTokenOut,
-        bytes calldata extraData
-    ) external {
-        // Determine the required input asset and quantity for the requested bridge.
-        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
-            toChainId: toChainId,
-            bridgeTokenOut: bridgeTokenOut
-        });
-        (address bridgeTokenIn, uint256 inAmount) = adapter.getBridgeTokenIn({
-            toChainId: toChainId,
-            bridgeTokenOutOptions: opts
-        });
-
-        // Pull tokens from caller into this contract.
-        IERC20(bridgeTokenIn).safeTransferFrom({
-            from: msg.sender,
-            to: address(this),
-            value: inAmount
-        });
-
-        // Approve the adapter to spend and forward the call.
-        IERC20(bridgeTokenIn).forceApprove({
-            spender: address(adapter),
-            value: inAmount
-        });
-
-        adapter.sendToChain({
-            toChainId: toChainId,
-            toAddress: toAddress,
-            bridgeTokenOutOptions: opts,
-            extraData: extraData
-        });
     }
 }

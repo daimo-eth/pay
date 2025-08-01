@@ -58,26 +58,18 @@ contract UniversalAddressManager is
     /// Global per-chain configuration (pause switch, whitelists, etc.)
     SharedConfig public cfg;
 
-    /// Config key: min amount of the bridge-out token required to start an
-    /// intent; may be set to eg. $1. This prevents griefing attacks where a
-    /// relayer starts many tiny intents on chain A which cannot be claimed
-    /// on more-expensive destination chain B.
-    bytes32 public constant MIN_START_TOKEN_OUT_KEY =
-        keccak256("MIN_START_TOKEN_OUT");
+    /// Config key: If the UA vault balance is below this amount, the relayer
+    /// must call startIntent or sameChainFinishIntent with the full balance
+    /// of the UA vault. Otherwise, the relayer can use a partial amount.
+    /// Denominated in units of the bridge-out token.
+    /// Set to a value (e.g. $1000) that all supported bridges can handle in a
+    /// single transaction.
+    bytes32 public constant PARTIAL_START_THRESHOLD_KEY =
+        keccak256("PARTIAL_START_THRESHOLD");
 
     /// IMPORTANT: For this version of the protocol, all bridge-out tokens
     ///            are required to have 6 decimals.
     uint256 public constant TOKEN_OUT_DECIMALS = 6;
-
-    // ---------------------------------------------------------------------
-    // Modifiers
-    // ---------------------------------------------------------------------
-
-    /// @dev Reverts when the global pause switch in SharedConfig is enabled.
-    modifier notPaused() {
-        require(!cfg.paused(), "UAM: paused");
-        _;
-    }
 
     // ---------------------------------------------------------------------
     // Storage
@@ -133,6 +125,16 @@ contract UniversalAddressManager is
     );
 
     // ---------------------------------------------------------------------
+    // Modifiers
+    // ---------------------------------------------------------------------
+
+    /// @dev Reverts when the global pause switch in SharedConfig is enabled.
+    modifier notPaused() {
+        require(!cfg.paused(), "UAM: paused");
+        _;
+    }
+
+    // ---------------------------------------------------------------------
     // Constructor & Initializer
     // ---------------------------------------------------------------------
 
@@ -141,12 +143,15 @@ contract UniversalAddressManager is
         _disableInitializers();
     }
 
+    // Accept native asset deposits (for swaps).
+    receive() external payable {}
+
     /// @notice Initialize the contract.
     function initialize(
         UniversalAddressFactory _universalAddressFactory,
         IUniversalAddressBridger _bridger,
         SharedConfig _cfg
-    ) public initializer {
+    ) external initializer {
         __ReentrancyGuard_init();
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
@@ -156,15 +161,6 @@ contract UniversalAddressManager is
         cfg = _cfg;
         executor = new DaimoPayExecutor(address(this));
     }
-
-    // ---------------------------------------------------------------------
-    // UUPS upgrade authorization
-    // ---------------------------------------------------------------------
-
-    /// @dev Restrict upgrades to the contract owner.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
 
     // ---------------------------------------------------------------------
     // External user / relayer entrypoints
@@ -201,13 +197,19 @@ contract UniversalAddressManager is
         require(route.escrow == address(this), "UAM: wrong escrow");
 
         uint256 outAmount = bridgeTokenOut.amount;
-        require(
-            outAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
-            "UAM: amount < min"
-        );
 
+        // Deploy (or fetch) UA vault.
         UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
+
+        // Check that the relayer-specified bridge-out token amount is valid.
+        _enforcePartialStartThreshold({
+            paymentToken: paymentToken,
+            targetToken: bridgeTokenOut.token,
+            targetAmount: outAmount,
+            vaultAddr: address(uaContract)
+        });
+
         UABridgeIntent memory intent = UABridgeIntent({
             universalAddress: address(uaContract),
             relaySalt: relaySalt,
@@ -226,8 +228,10 @@ contract UniversalAddressManager is
         // Send payment token to executor
         TokenAmount memory payTokenAmount = _convertStablecoinAmount({
             token: paymentToken,
+            tokenDecimals: IERC20Metadata(address(paymentToken)).decimals(),
             otherAmount: outAmount,
-            otherDecimals: TOKEN_OUT_DECIMALS
+            otherDecimals: TOKEN_OUT_DECIMALS,
+            roundUp: true
         });
         uaContract.sendAmount({
             route: route,
@@ -266,6 +270,8 @@ contract UniversalAddressManager is
             toChainId: route.toChainId,
             toAddress: receiverAddress,
             bridgeTokenOut: bridgeTokenOut,
+            // Refund to the UA vault so that startIntent can be retried
+            refundAddress: address(uaContract),
             extraData: bridgeExtraData
         });
 
@@ -279,16 +285,26 @@ contract UniversalAddressManager is
         });
     }
 
-    /// @notice Refunds unsupported tokens from a Universal Address vault to its
+    /// @notice Refunds tokens from a Universal Address vault to its
     ///         designated refund address.
     /// @param route The Universal Address route containing the refund address
-    /// @param token The non-whitelisted token to refund from the vault
+    /// @param token The token to refund from the vault
+    /// @dev We only allow refunds in two cases:
+    ///      - The token is not whitelisted.
+    ///      - The token is whitelisted, but the UA's destination chain is not
+    ///        supported by the bridger.
     function refundIntent(
         UniversalAddressRoute calldata route,
         IERC20 token
     ) external nonReentrant notPaused {
-        // Disallow refunding whitelisted coins
-        require(!cfg.whitelistedStable(address(token)), "UAM: whitelisted");
+        // Disallow refunding whitelisted coins if they're bridged to a
+        // supported chain. For unsupported destination chains, we allow
+        // refunding all coins.
+        require(
+            !cfg.whitelistedStable(address(token)) ||
+                bridger.chainIdToStableOut(route.toChainId) == address(0),
+            "UAM: refund denied"
+        );
         require(route.escrow == address(this), "UAM: wrong escrow");
 
         // Get refundable balance
@@ -332,21 +348,27 @@ contract UniversalAddressManager is
         require(route.toChainId == block.chainid, "UAM: wrong chain");
         require(cfg.whitelistedStable(address(paymentToken)), "UAM: whitelist");
         require(route.escrow == address(this), "UAM: wrong escrow");
-        require(
-            toAmount >= cfg.num(MIN_START_TOKEN_OUT_KEY),
-            "UAM: amount < min"
-        );
 
         // Deploy (or fetch) the Universal Address for this route.
         UniversalAddress uaContract = universalAddressFactory
             .createUniversalAddress(route);
         address universalAddress = address(uaContract);
 
+        // Check that the relayer-specified toAmount is valid.
+        _enforcePartialStartThreshold({
+            paymentToken: paymentToken,
+            targetToken: route.toToken,
+            targetAmount: toAmount,
+            vaultAddr: universalAddress
+        });
+
         // Compute the required amount of paymentToken to pay for the toAmount
         TokenAmount memory reqPaymentAmount = _convertStablecoinAmount({
             token: paymentToken,
+            tokenDecimals: IERC20Metadata(address(paymentToken)).decimals(),
             otherAmount: toAmount,
-            otherDecimals: IERC20Metadata(address(route.toToken)).decimals()
+            otherDecimals: IERC20Metadata(address(route.toToken)).decimals(),
+            roundUp: true
         });
 
         // Pull specified token balances from the UA vault into the executor.
@@ -357,11 +379,7 @@ contract UniversalAddressManager is
         });
 
         // Finish the intent and return any leftover tokens to the caller
-        _finishIntent({
-            route: route,
-            calls: calls,
-            toAmount: toAmount
-        });
+        _finishIntent({route: route, calls: calls, toAmount: toAmount});
 
         emit SameChainFinish({
             universalAddress: universalAddress,
@@ -423,8 +441,10 @@ contract UniversalAddressManager is
         });
         TokenAmount memory toTokenAmount = _convertStablecoinAmount({
             token: route.toToken,
+            tokenDecimals: IERC20Metadata(address(route.toToken)).decimals(),
             otherAmount: bridgeTokenOut.amount,
-            otherDecimals: TOKEN_OUT_DECIMALS
+            otherDecimals: TOKEN_OUT_DECIMALS,
+            roundUp: true
         });
         _finishIntent({
             route: route,
@@ -515,8 +535,11 @@ contract UniversalAddressManager is
                 calls: calls,
                 toAmount: _convertStablecoinAmount({
                     token: route.toToken,
+                    tokenDecimals: IERC20Metadata(address(route.toToken))
+                        .decimals(),
                     otherAmount: bridgedAmount,
-                    otherDecimals: TOKEN_OUT_DECIMALS
+                    otherDecimals: TOKEN_OUT_DECIMALS,
+                    roundUp: true
                 }).amount
             });
         } else {
@@ -552,38 +575,6 @@ contract UniversalAddressManager is
     // ---------------------------------------------------------------------
     // Internal helpers
     // ---------------------------------------------------------------------
-
-    /// @dev Computes an equivalent, 1:1 stablecoin amount. Converts decimals.
-    ///      Rounds up, so if the other token is $1.23456 but the payment
-    ///      token has just two decimals, then it returns $1.24.
-    /// @param token The token to convert the amount to
-    /// @param otherAmount The amount of the other token
-    /// @param otherDecimals The decimals of the other token
-    /// @return The converted amount
-    function _convertStablecoinAmount(
-        IERC20 token,
-        uint256 otherAmount,
-        uint256 otherDecimals
-    ) internal view returns (TokenAmount memory) {
-        // Get payment token decimals using IERC20Metadata
-        uint256 decimals = IERC20Metadata(address(token)).decimals();
-
-        // Convert otherAmount to payment token amount.
-        // Formula: tokenAmount = otherAmount * (10^decimals) / (10^otherDecimals)
-        uint256 amount;
-        if (decimals >= otherDecimals) {
-            // Payment token has more or equal decimals than toToken
-            uint256 decimalDiff = decimals - otherDecimals;
-            amount = otherAmount * (10 ** decimalDiff);
-        } else {
-            // Payment token has fewer decimals than toToken
-            // Use ceiling division to round up.
-            uint256 decimalDiff = otherDecimals - decimals;
-            uint256 divisor = 10 ** decimalDiff;
-            amount = (otherAmount + divisor - 1) / divisor;
-        }
-        return TokenAmount({token: token, amount: amount});
-    }
 
     /// @dev Internal helper that completes an intent by executing swaps,
     ///      delivering toToken to the recipient, and handling any surplus.
@@ -625,13 +616,110 @@ contract UniversalAddressManager is
     }
 
     // ---------------------------------------------------------------------
+    // UUPS upgrade authorization
+    // ---------------------------------------------------------------------
+
+    /// @dev Restrict upgrades to the contract owner.
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
+    // ---------------------------------------------------------------------
+    // Shared validation helpers
+    // ---------------------------------------------------------------------
+
+    /// @dev Enforce that the full UA vault balance is used if the vault
+    ///      balance is below the PARTIAL_START_THRESHOLD. Otherwise, the
+    ///      relayer can use a partial amount at least as large as the
+    ///      threshold.
+    /// @param paymentToken   Token that currently resides in the UA vault
+    /// @param targetToken    Token (bridge out or destination toToken) that the
+    ///                       relayer will ultimately deliver
+    /// @param targetAmount   Amount the relayer intends to bridge/deliver, in
+    ///                       targetToken units
+    /// @param vaultAddr      Address of the UniversalAddress vault for this
+    ///                       route – used to read current balance
+    function _enforcePartialStartThreshold(
+        IERC20 paymentToken,
+        IERC20 targetToken,
+        uint256 targetAmount,
+        address vaultAddr
+    ) internal view {
+        uint256 partialStartThreshold = cfg.num(PARTIAL_START_THRESHOLD_KEY);
+
+        // Current vault balance in paymentToken units
+        uint256 vaultBalance = TokenUtils.getBalanceOf({
+            token: paymentToken,
+            addr: vaultAddr
+        });
+
+        // Convert vault balance to targetToken decimals for apples-to-apples
+        // comparison with targetAmount.
+        uint256 vaultBalanceTargetDecimals = _convertStablecoinAmount({
+            token: targetToken,
+            tokenDecimals: TOKEN_OUT_DECIMALS,
+            otherAmount: vaultBalance,
+            otherDecimals: IERC20Metadata(address(paymentToken)).decimals(),
+            roundUp: false
+        }).amount;
+
+        if (vaultBalanceTargetDecimals <= partialStartThreshold) {
+            // Vault balance fits within the threshold – must use the entire
+            // balance.
+            require(
+                targetAmount == vaultBalanceTargetDecimals,
+                "UAM: amount != balance"
+            );
+        } else {
+            // Vault balance exceeds the threshold – must use at least the
+            // threshold.
+            require(
+                targetAmount >= partialStartThreshold,
+                "UAM: amount < threshold"
+            );
+        }
+    }
+
+    /// @dev Computes an equivalent, 1:1 stablecoin amount. Converts decimals.
+    /// @param token The token to convert the amount to
+    /// @param tokenDecimals The decimals of the token to convert to
+    /// @param otherAmount The amount of the other token
+    /// @param otherDecimals The decimals of the other token
+    /// @param roundUp Whether to round up the result
+    /// @return The converted amount
+    function _convertStablecoinAmount(
+        IERC20 token,
+        uint256 tokenDecimals,
+        uint256 otherAmount,
+        uint256 otherDecimals,
+        bool roundUp
+    ) internal pure returns (TokenAmount memory) {
+        // Convert otherAmount to token amount.
+        // Formula: tokenAmount = otherAmount * (10^tokenDecimals) / (10^otherDecimals)
+        uint256 amount;
+        if (tokenDecimals >= otherDecimals) {
+            // Token has more or equal decimals than other token
+            uint256 decimalDiff = tokenDecimals - otherDecimals;
+            amount = otherAmount * (10 ** decimalDiff);
+        } else {
+            // Token has fewer decimals than other token
+            // Use ceiling division to round up.
+            uint256 decimalDiff = otherDecimals - tokenDecimals;
+            uint256 divisor = 10 ** decimalDiff;
+            if (roundUp) {
+                amount = (otherAmount + divisor - 1) / divisor;
+            } else {
+                amount = otherAmount / divisor;
+            }
+        }
+        return TokenAmount({token: token, amount: amount});
+    }
+
+    // ---------------------------------------------------------------------
     // Storage gap for upgradeability
     // ---------------------------------------------------------------------
 
     uint256[50] private __gap;
-
-    // Accept native asset deposits (for swaps).
-    receive() external payable {}
 }
 
 // ---------------------------------------------------------------------
@@ -647,12 +735,12 @@ contract UniversalAddressManager is
 contract BridgeReceiver {
     using SafeERC20 for IERC20;
 
-    /// @notice Address allowed to pull funds from this contract (the deployer/
-    ///         manager).
-    address payable public immutable ua;
+    /// @notice Address allowed to pull funds from this contract
+    ///         (in UA protocol, it's the Universal Address Manager contract above).
+    address payable public immutable universalAddressManager;
 
     constructor() {
-        ua = payable(msg.sender);
+        universalAddressManager = payable(msg.sender);
 
         // Emit event for any ETH that arrived before deployment
         if (address(this).balance > 0) {
@@ -664,16 +752,20 @@ contract BridgeReceiver {
         }
     }
 
+    // Accept native asset deposits.
+    receive() external payable {
+        emit NativeTransfer(msg.sender, address(this), msg.value);
+    }
+
     /// @notice Sweep entire balance of `token` (ERC20 or native when
     ///         token == IERC20(address(0))) to the deployer address.
     /// @return amount The amount of tokens pulled
     function pull(IERC20 token) external returns (uint256) {
-        require(msg.sender == ua, "BR: not authorized");
-        return TokenUtils.transferBalance({token: token, recipient: ua});
-    }
-
-    // Accept native asset deposits.
-    receive() external payable {
-        emit NativeTransfer(msg.sender, address(this), msg.value);
+        require(msg.sender == universalAddressManager, "BR: not authorized");
+        return
+            TokenUtils.transferBalance({
+                token: token,
+                recipient: universalAddressManager
+            });
     }
 }

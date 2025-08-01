@@ -179,6 +179,7 @@ contract DaimoPay is ReentrancyGuard {
                 toChainId: intent.toChainId,
                 toAddress: address(intentContract),
                 bridgeTokenOutOptions: intent.bridgeTokenOutOptions,
+                refundAddress: address(intentContract),
                 extraData: bridgeExtraData
             });
         }

@@ -132,6 +132,7 @@ contract UniversalAddressTest is Test {
         vm.chainId(SRC_CHAIN_ID);
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
+        address receiver = _receiverAddress(universalAddress);
 
         // Alice funds her UA vault.
         vm.prank(ALICE);
@@ -144,9 +145,19 @@ contract UniversalAddressTest is Test {
         });
 
         vm.prank(RELAYER);
+        vm.expectEmit(true, true, true, true);
+        emit IDaimoPayBridger.BridgeInitiated({
+            fromAddress: address(mgr),
+            fromToken: address(usdc),
+            fromAmount: AMOUNT,
+            toChainId: DST_CHAIN_ID,
+            toAddress: receiver,
+            toToken: address(usdc),
+            toAmount: AMOUNT,
+            refundAddress: universalAddress
+        });
         mgr.startIntent(route, usdc, bridgeOut, USER_SALT, new Call[](0), "");
 
-        address receiver = _receiverAddress(universalAddress);
         assertTrue(mgr.receiverUsed(receiver));
     }
 
@@ -401,26 +412,102 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // startIntent below MIN_START_TOKEN_OUT should revert
+    // startIntent when balance exceeds PARTIAL_START_THRESHOLD should revert
+    // if target amount is less than PARTIAL_START_THRESHOLD
     // ---------------------------------------------------------------------
-    function testStartIntent_BelowMinimum_Reverts() public {
-        // Increase the minimum so that 100 USDC is below the threshold
-        bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
-        cfg.setNum(minKey, 150e6); // 150 USDC minimum
+    function testStartIntent_StartAmountLessThanThreshold_Reverts() public {
+        // Set threshold to 50 USDC
+        bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
+        cfg.setNum(thresholdKey, 50e6);
 
         vm.chainId(SRC_CHAIN_ID);
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
 
-        // Alice deposits more (200 USDC) but tries to start with only 100 USDC
+        // Alice deposits 100 USDC into her UA vault
         vm.prank(ALICE);
-        usdc.transfer(universalAddress, 200e6);
+        usdc.transfer(universalAddress, 100e6);
 
-        vm.expectRevert(bytes("UAM: amount < min"));
+        // Relayer attempts to start with 49 USDC (< 50 USDC threshold)
+        vm.expectRevert(bytes("UAM: amount < threshold"));
         mgr.startIntent(
             route,
             usdc,
-            TokenAmount({token: IERC20(address(usdc)), amount: AMOUNT}),
+            TokenAmount({token: IERC20(address(usdc)), amount: 49e6}),
+            USER_SALT,
+            new Call[](0),
+            ""
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // startIntent when balance less than PARTIAL_START_THRESHOLD should use
+    // the full balance of the UA vault
+    // ---------------------------------------------------------------------
+    function testStartIntent_BalanceLessThanThreshold() public {
+        // Deploy second stablecoin with different number of decimals
+        TestDAI dai = new TestDAI();
+        cfg.setWhitelistedStable(address(dai), true);
+
+        // Set PARTIAL_START_THRESHOLD to 50 USDC
+        bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
+        cfg.setNum(thresholdKey, 50e6);
+
+        vm.chainId(SRC_CHAIN_ID);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // 25 DAI with some dust is sent to her UA vault
+        dai.transfer(universalAddress, 25_000_000_000_000_111_111);
+
+        // Prefund the executor with the required USDC to simulate a successful swap
+        DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
+        vm.prank(ALICE);
+        usdc.transfer(address(exec), 25e6);
+
+        // Relayer attempts to start with 25 USDC
+        mgr.startIntent(
+            route,
+            dai,
+            TokenAmount({token: IERC20(address(usdc)), amount: 25e6}),
+            USER_SALT,
+            new Call[](0),
+            ""
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // startIntent when balance exceeds the PARTIAL_START_THRESHOLD should
+    // let relayer use any partial amount greater than the threshold
+    // ---------------------------------------------------------------------
+    function testStartIntent_BalanceGreaterThanThreshold() public {
+        // Deploy second stablecoin with different number of decimals
+        TestDAI dai = new TestDAI();
+        cfg.setWhitelistedStable(address(dai), true);
+
+        // Set PARTIAL_START_THRESHOLD to 50 USDC
+        bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
+        cfg.setNum(thresholdKey, 50e6);
+
+        vm.chainId(SRC_CHAIN_ID);
+        UniversalAddressRoute memory route = _route();
+        address universalAddress = _universalAddress(route);
+
+        // 75 DAI is sent to her UA vault
+        dai.transfer(universalAddress, 75e18);
+
+        // Prefund the executor with the required USDC to simulate a successful
+        // swap
+        DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
+        vm.prank(ALICE);
+        usdc.transfer(address(exec), 60e6);
+
+        // Relayer attempts to start with 60 USDC (greater than threshold but
+        // less than balance)
+        mgr.startIntent(
+            route,
+            dai,
+            TokenAmount({token: IERC20(address(usdc)), amount: 60e6}),
             USER_SALT,
             new Call[](0),
             ""
@@ -856,12 +943,25 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // refundIntent with whitelisted stable-coin should revert
+    // refundIntent with whitelisted stable-coin should revert when destination
+    // chain IS supported by the bridger
     // ---------------------------------------------------------------------
     function testRefundIntent_WhitelistedToken_Reverts() public {
         vm.chainId(SRC_CHAIN_ID); // Source chain – intentSent is required
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
+
+        // Mark the destination chain as SUPPORTED by the DummyUniversalBridger
+        // so that refunds of whitelisted tokens are disallowed.
+        // mapping(uint256 => address) is stored at slot 0.
+        bytes32 mappingSlot = keccak256(
+            abi.encode(uint256(DST_CHAIN_ID), uint256(0))
+        );
+        vm.store(
+            address(bridger),
+            mappingSlot,
+            bytes32(uint256(uint160(address(usdc))))
+        );
 
         // Set minimum start token out to 50 USDC
         bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
@@ -871,8 +971,8 @@ contract UniversalAddressTest is Test {
         vm.prank(ALICE);
         usdc.transfer(universalAddress, 51e6);
 
-        // This should fail because balance (51e6) >= MIN_START_TOKEN_OUT (50e6)
-        vm.expectRevert(bytes("UAM: whitelisted"));
+        // This should fail because token is whitelisted **and** destination chain is supported
+        vm.expectRevert(bytes("UAM: refund denied"));
         mgr.refundIntent(route, usdc);
     }
 
@@ -905,6 +1005,38 @@ contract UniversalAddressTest is Test {
         uint256 aliceBalBefore = stray.balanceOf(ALICE);
         mgr.refundIntent(route, stray);
         assertEq(stray.balanceOf(ALICE), aliceBalBefore + strayAmt);
+    }
+
+    // ---------------------------------------------------------------------
+    // refundIntent succeeds with whitelisted token when destination chain is
+    // NOT supported by the bridger
+    // ---------------------------------------------------------------------
+    function testRefundIntent_UnsupportedChain_Succeeds() public {
+        vm.chainId(SRC_CHAIN_ID);
+
+        // Use a destination chain that the bridger does NOT support (no stableOut set)
+        uint256 unsupportedChainId = DST_CHAIN_ID + 1;
+        UniversalAddressRoute memory route = UniversalAddressRoute({
+            toChainId: unsupportedChainId,
+            toToken: usdc,
+            toAddress: ALEX,
+            refundAddress: ALICE,
+            escrow: address(mgr)
+        });
+        address universalAddress = intentFactory.getUniversalAddress(route);
+
+        // Fund the UA vault with some whitelisted token (USDC)
+        uint256 refundAmount = 42e6;
+        vm.prank(ALICE);
+        usdc.transfer(universalAddress, refundAmount);
+
+        uint256 aliceBalBefore = usdc.balanceOf(ALICE);
+        mgr.refundIntent(route, usdc);
+
+        // Alice should have received the refundAmount
+        assertEq(usdc.balanceOf(ALICE), aliceBalBefore + refundAmount);
+        // UA vault balance for USDC should now be zero
+        assertEq(usdc.balanceOf(universalAddress), 0);
     }
 
     // ---------------------------------------------------------------------
@@ -1041,26 +1173,29 @@ contract UniversalAddressTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // Same-chain intent finish reverts if toAmount is less than min
+    // Same-chain intent finish reverts if the vault balance is less than the
+    // threshold and the relayer attempts to use a partial amount
     // ---------------------------------------------------------------------
-    function testSameChainIntent_ToAmountLessThanMin_Reverts() public {
+    function testSameChainIntent_PartialBalanceLessThanThreshold_Reverts()
+        public
+    {
         UniversalAddressRoute memory route = _route();
         address universalAddress = _universalAddress(route);
 
-        // Set minimum start token out to 10 USDC
-        bytes32 minKey = keccak256("MIN_START_TOKEN_OUT");
-        cfg.setNum(minKey, 10e6);
+        // Set PARTIAL_START_THRESHOLD to 50 USDC
+        bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
+        cfg.setNum(thresholdKey, 50e6);
 
-        // 1) Destination chain – Alice sends USDC to UA vault directly
+        // 1) Destination chain – Alice sends 40 USDC to UA vault (<= threshold)
+        // with some dust
         vm.chainId(DST_CHAIN_ID);
         vm.prank(ALICE);
-        usdc.transfer(universalAddress, AMOUNT);
+        usdc.transfer(universalAddress, 40_000_001);
 
-        // 2) Relayer finalises via sameChainFinishIntent.
+        // 2) Relayer tries to finish with partial amount
         vm.prank(RELAYER);
-        // 9 USDC is less than the minimum start token out of 10 USDC
-        vm.expectRevert(bytes("UAM: amount < min"));
-        mgr.sameChainFinishIntent(route, usdc, 9e6, new Call[](0));
+        vm.expectRevert(bytes("UAM: amount != balance"));
+        mgr.sameChainFinishIntent(route, usdc, 40_000_000, new Call[](0));
     }
 
     // ---------------------------------------------------------------------
@@ -1336,5 +1471,46 @@ contract UniversalAddressTest is Test {
 
         // Verify final balance
         assertEq(universalAddress.balance, 1.75 ether);
+    }
+
+    // ---------------------------------------------------------------------
+    // Test startIntent with payment token having more decimals than USDC
+    // ---------------------------------------------------------------------
+    function testStartIntent_SwapPath_audit() public {
+        // Add a whitelisted payment token with more than UniversalAssetManager.TOKEN_OUT_DECIMALS
+        IERC20 dai = IERC20(new TestDAI());
+        cfg.setWhitelistedStable(address(dai), true);
+
+        vm.chainId(SRC_CHAIN_ID);
+        bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
+        cfg.setNum(thresholdKey, 50e6);
+
+        UniversalAddressRoute memory route = UniversalAddressRoute({
+            toChainId: DST_CHAIN_ID,
+            toToken: usdc,
+            toAddress: ALEX,
+            refundAddress: ALICE,
+            escrow: address(mgr)
+        });
+        address universalAddress = intentFactory.getUniversalAddress(route);
+
+        // UA vault is funded with $10 of DAI (plus some dust for rounding)
+        dai.transfer(universalAddress, 10_000_000_999_999_999_999);
+
+        // Prefund the executor with bridgeToken so balance check passes with $10 of USDC
+        DaimoPayExecutor exec = DaimoPayExecutor(mgr.executor());
+        vm.prank(ALICE);
+        usdc.transfer(address(exec), 10_000_000);
+
+        // Alice kicks off startIntent
+        vm.prank(ALICE);
+        mgr.startIntent(
+            route,
+            dai,
+            TokenAmount({token: IERC20(address(usdc)), amount: 10_000_000}),
+            USER_SALT,
+            new Call[](0),
+            ""
+        );
     }
 }

@@ -34,7 +34,8 @@ contract UniversalAddressFactory {
     ) public returns (UniversalAddress ret) {
         address universalAddress = getUniversalAddress(route);
         if (universalAddress.code.length > 0) {
-            // Already deployed – reuse to save gas.
+            // Already deployed, another CREATE2 would revert,
+            // so not deploying and just returning the existing one.
             return UniversalAddress(payable(universalAddress));
         }
         ret = UniversalAddress(

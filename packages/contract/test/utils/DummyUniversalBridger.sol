@@ -6,6 +6,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {IUniversalAddressBridger} from "../../src/interfaces/IUniversalAddressBridger.sol";
 import {TokenAmount} from "../../src/TokenUtils.sol";
+import {IDaimoPayBridger} from "../../src/interfaces/IDaimoPayBridger.sol";
 
 /// @title DummyUniversalBridger
 /// @notice Minimal in-memory implementation of the IUniversalAddressBridger used exclusively in Foundry tests.
@@ -14,16 +15,11 @@ import {TokenAmount} from "../../src/TokenUtils.sol";
 contract DummyUniversalBridger is IUniversalAddressBridger {
     using SafeERC20 for IERC20;
 
-    event BridgeExecuted(
-        uint256 toChainId,
-        address toAddress,
-        address token,
-        uint256 amount
-    );
-
     // ---------------------------------------------------------------------
     // IUniversalAddressBridger
     // ---------------------------------------------------------------------
+
+    mapping(uint256 chainId => address stableOut) public chainIdToStableOut;
 
     function getBridgeTokenIn(
         uint256 /*toChainId*/,
@@ -37,7 +33,8 @@ contract DummyUniversalBridger is IUniversalAddressBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount calldata bridgeTokenOut,
-        bytes calldata /*extraData*/
+        address refundAddress,
+        bytes calldata /* extraData */
     ) external override {
         // Burn the tokens, simulating a slow bridge
         bridgeTokenOut.token.safeTransferFrom(
@@ -45,11 +42,16 @@ contract DummyUniversalBridger is IUniversalAddressBridger {
             address(0xdead),
             bridgeTokenOut.amount
         );
-        emit BridgeExecuted(
-            toChainId,
-            toAddress,
-            address(bridgeTokenOut.token),
-            bridgeTokenOut.amount
-        );
+
+        emit IDaimoPayBridger.BridgeInitiated({
+            fromAddress: msg.sender,
+            fromToken: address(bridgeTokenOut.token),
+            fromAmount: bridgeTokenOut.amount,
+            toChainId: toChainId,
+            toAddress: toAddress,
+            toToken: address(bridgeTokenOut.token),
+            toAmount: bridgeTokenOut.amount,
+            refundAddress: refundAddress
+        });
     }
 }

@@ -483,7 +483,8 @@ contract DaimoPayTest is Test {
             toChainId: _cctpDestchainId,
             toAddress: CCTP_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(CCTP_INTENT_ADDR, intent);
@@ -600,7 +601,8 @@ contract DaimoPayTest is Test {
             toChainId: _cctpV2DestChainId,
             toAddress: CCTP_V2_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
         vm.expectEmit(address(dp));
         emit DaimoPay.Start(CCTP_V2_INTENT_ADDR, intent);
@@ -673,7 +675,6 @@ contract DaimoPayTest is Test {
         // Create the ExtraData struct for Across bridging
         DaimoPayAcrossBridger.ExtraData memory extraData = DaimoPayAcrossBridger
             .ExtraData({
-                depositor: _alice,
                 exclusiveRelayer: address(0),
                 quoteTimestamp: uint32(block.timestamp),
                 fillDeadline: uint32(block.timestamp + 1 hours),
@@ -703,7 +704,8 @@ contract DaimoPayTest is Test {
             toChainId: _acrossDestChainId,
             toAddress: ACROSS_INTENT_ADDR,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
 
         vm.expectEmit(address(dp));
@@ -782,7 +784,8 @@ contract DaimoPayTest is Test {
             toChainId: _axelarDestChainId,
             toAddress: intentAddr,
             toToken: address(_toToken),
-            toAmount: _toAmount
+            toAmount: _toAmount,
+            refundAddress: intentAddr
         });
 
         vm.expectEmit(address(dp));

@@ -18,7 +18,8 @@ interface IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         address toToken,
-        uint256 toAmount
+        uint256 toAmount,
+        address refundAddress
     );
 
     /// Determine the input token and amount required to achieve one of the
@@ -35,6 +36,7 @@ interface IDaimoPayBridger {
         uint256 toChainId,
         address toAddress,
         TokenAmount[] calldata bridgeTokenOutOptions,
+        address refundAddress,
         bytes calldata extraData
     ) external;
 }

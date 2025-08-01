@@ -161,7 +161,7 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
     case solana.chainId:
       return "https://solscan.io";
     case stellar.chainId:
-      return "https://stellar.expert/explorer/public";
+      return "https://stellar.expert/explorer/public/search?term=";
     case worldchain.chainId:
       return "https://worldscan.org";
     default:
@@ -188,5 +188,10 @@ export function getChainExplorerTxUrl(chainId: number, txHash: string) {
   if (!explorer) {
     return undefined;
   }
+
+  if (chainId === stellar.chainId) {
+    return `${explorer}${txHash}`;
+  }
+
   return `${explorer}/tx/${txHash}`;
 }

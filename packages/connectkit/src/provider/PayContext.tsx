@@ -64,6 +64,12 @@ export type PayContextValue = {
   trpc: any;
   /** Callback to call when the payment is successful. */
   onSuccess: () => void;
+  /**
+   * Whether to show the contact support button. Used specifically for
+   * WorldPayButton on iOS since links are broken on iOS in World App.
+   */
+  showContactSupport: boolean;
+  setShowContactSupport: React.Dispatch<React.SetStateAction<boolean>>;
   /** Custom message to display on confirmation page. */
   confirmationMessage?: string;
   setConfirmationMessage: React.Dispatch<

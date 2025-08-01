@@ -180,6 +180,7 @@ const DaimoPayUIProvider = ({
   const [errorMessage, setErrorMessage] = useState<
     string | React.ReactNode | null
   >("");
+  const [showContactSupport, setShowContactSupport] = useState<boolean>(true);
   const [confirmationMessage, setConfirmationMessage] = useState<
     string | undefined
   >(undefined);
@@ -343,6 +344,8 @@ const DaimoPayUIProvider = ({
     options: opts,
     errorMessage,
     onSuccess,
+    showContactSupport,
+    setShowContactSupport,
     confirmationMessage,
     setConfirmationMessage,
     redirectReturnUrl,

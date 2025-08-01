@@ -24,6 +24,7 @@ import { CustomTheme, Mode, Theme } from "../types";
 import { promptWorldcoinPayment } from "./promptWorldPayment";
 
 import { MiniKit } from "@worldcoin/minikit-js";
+import useIsMobile from "../hooks/useIsMobile";
 
 export type WorldPayButtonPaymentProps = {
   /**
@@ -130,6 +131,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const context = usePayContext();
   const { paymentState, log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
+  const { isIOS } = useIsMobile();
 
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
@@ -150,6 +152,13 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     paymentState.setPayParams(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(props || {})]);
+
+  // Set the showContactSupport flag
+  useEffect(() => {
+    // Links are broken on iOS in World App, so hide the contact support button
+    context.setShowContactSupport(!isIOS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isIOS]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);

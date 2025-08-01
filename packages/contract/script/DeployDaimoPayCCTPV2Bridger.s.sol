@@ -9,7 +9,7 @@ import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_CCTP_V2_BRIDGER = keccak256(
-    "DaimoPayCCTPV2Bridger-deploy3"
+    "DaimoPayCCTPV2Bridger-deploy4"
 );
 
 contract DeployDaimoPayCCTPV2Bridger is Script {

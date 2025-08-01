@@ -20,6 +20,7 @@ import {
 import { AnimatePresence, Variants } from "framer-motion";
 import { Address, Hex } from "viem";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
+import useLocales from "../../hooks/useLocales";
 import { PayParams } from "../../payment/paymentFsm";
 import { ResetContainer } from "../../styles";
 import { CustomTheme, Mode, Theme } from "../../types";
@@ -200,7 +201,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
       : null;
   let payId = "payId" in props ? props.payId : null;
 
-  const { paymentState, log } = context;
+  const { paymentState } = context;
   const { order, paymentState: payState } = useDaimoPay();
 
   // Set the payId or payParams
@@ -249,14 +250,13 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
   const { children, closeOnSuccess, resetOnSuccess, connectedWalletOnly } =
     props;
   const show = useCallback(() => {
-    if (order == null) return;
     const modalOptions = {
       closeOnSuccess,
       resetOnSuccess,
       connectedWalletOnly,
     };
     context.showPayment(modalOptions);
-  }, [order, connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
+  }, [connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
@@ -365,7 +365,9 @@ const contentVariants: Variants = {
 
 export function DaimoPayButtonInner() {
   const { order } = useDaimoPay();
-  const label = order?.metadata?.intent ?? "Pay";
+  const locales = useLocales();
+  const defaultLabel = locales.payButton_defaultLabel;
+  const label = order?.metadata?.intent ?? defaultLabel;
 
   return (
     <AnimatePresence initial={false}>

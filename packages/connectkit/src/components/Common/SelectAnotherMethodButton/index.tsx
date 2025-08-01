@@ -1,9 +1,10 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { Connector, useAccount } from "wagmi";
 import { Bitcoin, Solana, Tron } from "../../../assets/chains";
-import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
+import { Base, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { OptionsList } from "../OptionsList";
@@ -14,8 +15,9 @@ const OptionsContainer = styled.div`
 `;
 
 export default function SelectAnotherMethodButton() {
+  const locales = useLocales();
   const { paymentState, setRoute } = usePayContext();
-  const { externalPaymentOptions } = paymentState;
+  const { externalPaymentOptions, showSolanaPaymentMethod } = paymentState;
   const { connector } = useAccount();
   const { order } = useDaimoPay();
   const paymentOptions = order?.metadata.payer?.paymentOptions;
@@ -23,9 +25,6 @@ export default function SelectAnotherMethodButton() {
     externalPaymentOptions.options.values(),
   ).flat();
 
-  const includeSolana =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.Solana);
   // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
   // Include by default if paymentOptions not provided
   const includeDepositAddressOption =
@@ -34,7 +33,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectMethodOption = {
     id: "select-method",
-    title: `Pay with another method`,
+    title: locales.payWithAnotherMethod,
     icons: getBestPaymentMethodIcons(),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);
@@ -43,7 +42,7 @@ export default function SelectAnotherMethodButton() {
 
   const selectWalletOption = {
     id: "select-wallet",
-    title: "Pay with another wallet",
+    title: locales.payWithAnotherWallet,
     icons: getBestUnconnectedWalletIcons(connector),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);
@@ -61,7 +60,7 @@ export default function SelectAnotherMethodButton() {
 
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isMetaMask) icons.push(<MetaMask />);
-    if (!isCoinbase) icons.push(<Coinbase />);
+    if (!isCoinbase) icons.push(<Base />);
     if (icons.length < 3) icons.push(<Rabby />);
 
     return icons;
@@ -85,7 +84,7 @@ export default function SelectAnotherMethodButton() {
 
     if (icons.length < 3) {
       const additionalIcons: JSX.Element[] = [];
-      if (includeSolana) additionalIcons.push(<Solana />);
+      if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
       if (includeDepositAddressOption && additionalIcons.length < 3)
         additionalIcons.push(<Bitcoin />);
       if (includeDepositAddressOption && additionalIcons.length < 3)

@@ -1,16 +1,31 @@
 import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
-import Logos from "../assets/logos";
+import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
+import Logos, { SquircleIcon, WalletIcon } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
-import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
+import useLocales from "../hooks/useLocales";
+import { usePayContext } from "../hooks/usePayContext";
+import { SolanaWalletName } from "../provider/SolanaContextProvider";
+import {
+  flattenChildren,
+  isCoinbaseWalletConnector,
+  isInjectedConnector,
+} from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
+
+/** Special wallet ID for "other wallets" option. */
+export const WALLET_ID_OTHER_WALLET = "otherWallet";
+/** Special wallet ID for "mobile wallets" option. */
+export const WALLET_ID_MOBILE_WALLETS = "mobileWallets";
 
 export type WalletProps = {
   id: string;
   connector?: Connector;
   isInstalled?: boolean;
+  /** Name of the matching Solana wallet adapter (if any) */
+  solanaConnectorName?: SolanaWalletName;
 } & WalletConfigProps;
 
 export const useWallet = (id: string): WalletProps | null => {
@@ -19,23 +34,38 @@ export const useWallet = (id: string): WalletProps | null => {
   if (!wallet) return null;
   return wallet;
 };
+
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
-
+  const context = usePayContext();
+  const { showSolanaPaymentMethod } = context.paymentState;
+  const { disableMobileInjector } = context;
+  // Solana wallets available in the session (desktop & mobile)
+  const solanaWallet = useSolanaWalletAdapter();
+  const locales = useLocales();
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
 
-    // Add injected wallet (if any) first
-    connectors.forEach((connector) => {
-      if (isCoinbaseWalletConnector(connector.id)) return;
-      mobileWallets.push({
-        id: connector.id,
-        connector,
-        shortName: connector.name,
-        iconConnector: <img src={connector.icon} alt={connector.name} />,
-        iconShape: "squircle",
+    // Add injected wallet (if any) first, unless disabled
+    if (!disableMobileInjector) {
+      connectors.forEach((connector) => {
+        if (isCoinbaseWalletConnector(connector.id)) return;
+        if (!isInjectedConnector(connector.type)) return;
+        // Skip any connectors that mention WalletConnect
+        if (connector.name?.toLowerCase().includes("walletconnect")) return;
+        mobileWallets.push({
+          id: connector.id,
+          connector,
+          shortName: connector.name,
+          iconConnector: connector.icon ? (
+            <img src={connector.icon} alt={connector.name} />
+          ) : (
+            <WalletIcon />
+          ),
+          iconShape: "squircle",
+        });
       });
-    });
+    }
 
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
@@ -54,12 +84,13 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
     );
     addIfNotPresent("com.trustwallet.app");
-
+    const otherWalletsString = flattenChildren(locales.otherWallets).join("");
+    const otherString = flattenChildren(locales.other).join("");
     // Add other wallet
     mobileWallets.push({
-      id: "other",
-      name: "Other Wallets",
-      shortName: "Other",
+      id: WALLET_ID_OTHER_WALLET,
+      name: otherWalletsString,
+      shortName: otherString,
       iconConnector: <Logos.OtherWallets />,
       iconShape: "square",
       showInMobileConnectors: false,
@@ -68,58 +99,76 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return mobileWallets;
   }
 
-  const wallets = connectors.map((connector): WalletProps => {
-    // use overrides
-    const walletId = Object.keys(walletConfigs).find(
-      // where id is comma seperated list
-      (id) =>
-        id
-          .split(",")
-          .map((i) => i.trim())
-          .includes(connector.id),
-    );
+  const wallets = connectors
+    .filter((connector) => {
+      // Skip any connectors that mention WalletConnect
+      return !connector.name?.toLowerCase().includes("walletconnect");
+    })
+    .map((connector): WalletProps => {
+      // First, attempt to find a config by matching connector.id (existing logic).
+      let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
+        (id) =>
+          id
+            .split(",")
+            .map((i) => i.trim())
+            .includes(connector.id),
+      );
 
-    const c: WalletProps = {
-      id: connector.id,
-      name: connector.name ?? connector.id ?? connector.type,
-      icon: (
-        <img
-          src={connector.icon}
-          alt={connector.name}
-          width={"100%"}
-          height={"100%"}
-        />
-      ),
-      connector,
-      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
-      isInstalled:
-        connector.type === "mock" ||
-        (connector.type === "injected" && connector.id !== "metaMask") ||
-        connector.type === "farcasterFrame" ||
-        isCoinbaseWalletConnector(connector.id),
-    };
+      // If not found by id, attempt a fuzzy match on connector.name.
+      if (!walletConfigKey && connector.name) {
+        walletConfigKey = Object.keys(walletConfigs).find((key) => {
+          const cfgName = walletConfigs[key].name?.toLowerCase();
+          const connName = connector.name!.toLowerCase();
+          return (
+            cfgName &&
+            (cfgName.includes(connName) || connName.includes(cfgName))
+          );
+        });
+      }
 
-    if (walletId) {
-      const wallet = walletConfigs[walletId];
-      return {
-        ...c,
-        iconConnector: connector.icon ? (
+      const c: WalletProps = {
+        id: connector.id,
+        name: connector.name ?? connector.id ?? connector.type,
+        icon: connector.icon ? (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
-        ) : undefined,
-        ...wallet,
+        ) : (
+          <WalletIcon />
+        ),
+        connector,
+        iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+        isInstalled:
+          connector.type === "mock" ||
+          (connector.type === "injected" && connector.id !== "metaMask") ||
+          connector.type === "farcasterFrame" ||
+          isCoinbaseWalletConnector(connector.id),
       };
-    }
 
-    return c;
-  });
+      if (walletConfigKey) {
+        const wallet = walletConfigs[walletConfigKey];
+        return {
+          ...c,
+          iconConnector: connector.icon ? (
+            <img
+              src={connector.icon}
+              alt={connector.name}
+              width={"100%"}
+              height={"100%"}
+            />
+          ) : undefined,
+          ...wallet,
+        };
+      }
+
+      return c;
+    });
 
   wallets.push({
-    id: "Mobile Wallets",
+    id: WALLET_ID_MOBILE_WALLETS,
     name: "Mobile Wallets",
     shortName: "Mobile",
     icon: (
@@ -155,6 +204,44 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       </div>
     ),
   });
+
+  if (showSolanaPaymentMethod) {
+    const solanaAdapters = solanaWallet.wallets ?? [];
+
+    // Merge by fuzzy name matching (includes comparison)
+    wallets.forEach((w) => {
+      // Skip wallets without a usable name to avoid matching everything
+      if (!w.name) return;
+
+      const evm = w.name.toLowerCase();
+      const match = solanaAdapters.find((sw) => {
+        const sol = sw.adapter.name.toLowerCase();
+        return evm.includes(sol) || sol.includes(evm);
+      });
+
+      if (match) {
+        w.solanaConnectorName = match.adapter.name;
+      }
+    });
+
+    const unmatched = solanaAdapters.filter(
+      (sw) => !wallets.find((w) => w.solanaConnectorName === sw.adapter.name),
+    );
+
+    unmatched.forEach((sw) => {
+      wallets.push({
+        id: `solana-${sw.adapter.name}`,
+        name: sw.adapter.name,
+        shortName: sw.adapter.name,
+        icon: <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />,
+        iconConnector: (
+          <SquircleIcon icon={sw.adapter.icon} alt={sw.adapter.name} />
+        ),
+        iconShape: "squircle",
+        solanaConnectorName: sw.adapter.name,
+      });
+    });
+  }
 
   return (
     wallets
@@ -200,10 +287,10 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         if (!AisInstalled && BisInstalled) return 1;
         return 0;
       })
-      // order last mobile wallets
+      // order "mobile wallets" option last
       .sort((a, b) => {
-        if (a.id === "Mobile Wallets") return 1;
-        if (b.id === "Mobile Wallets") return -1;
+        if (a.id === WALLET_ID_MOBILE_WALLETS) return 1;
+        if (b.id === WALLET_ID_MOBILE_WALLETS) return -1;
         return 0;
       })
   );

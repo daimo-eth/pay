@@ -6,6 +6,7 @@ import { ROUTES } from "../../constants/routes";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
+import useIsMobile from "../../hooks/useIsMobile";
 import { usePayContext } from "../../hooks/usePayContext";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
@@ -14,19 +15,21 @@ import About from "../Pages/About";
 import Confirmation from "../Pages/Confirmation";
 import Connectors from "../Pages/Connectors";
 import DownloadApp from "../Pages/DownloadApp";
+import ErrorPage from "../Pages/Error";
 import MobileConnectors from "../Pages/MobileConnectors";
 import Onboarding from "../Pages/Onboarding";
 import PayWithToken from "../Pages/PayWithToken";
 import SelectAmount from "../Pages/SelectAmount";
 import SelectDepositAddressAmount from "../Pages/SelectDepositAddressAmount";
 import SelectDepositAddressChain from "../Pages/SelectDepositAddressChain";
+import SelectExchange from "../Pages/SelectExchange";
 import SelectExternalAmount from "../Pages/SelectExternalAmount";
 import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
 import SelectWalletAmount from "../Pages/SelectWalletAmount";
+import SelectWalletChain from "../Pages/SelectWalletChain";
 import SelectZKP from "../Pages/SelectZKP";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
-import ConnectSolana from "../Pages/Solana/ConnectSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
@@ -40,19 +43,28 @@ export const DaimoPayModal: React.FC<{
   theme: Theme;
   customTheme: CustomTheme;
   lang: Languages;
+  disableMobileInjector: boolean;
 }> = ({
   mode,
   theme,
   customTheme,
   lang,
+  disableMobileInjector,
 }: {
   mode: Mode;
   theme: Theme;
   customTheme: CustomTheme;
   lang: Languages;
+  disableMobileInjector: boolean;
 }) => {
   const context = usePayContext();
-  const { setMode, setTheme, setCustomTheme, setLang } = context;
+  const {
+    setMode,
+    setTheme,
+    setCustomTheme,
+    setLang,
+    setDisableMobileInjector,
+  } = context;
   const paymentState = context.paymentState;
   const {
     generatePreviewOrder,
@@ -88,6 +100,7 @@ export const DaimoPayModal: React.FC<{
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
+    context.route !== ROUTES.ERROR &&
     paymentFsmState !== "error";
 
   const onBack = () => {
@@ -128,8 +141,12 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
       if (isDepositFlow) {
-        generatePreviewOrder();
-        context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
+        if (paymentState.selectedDepositAddressOption === undefined) {
+          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+        } else {
+          generatePreviewOrder();
+          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
+        }
       } else {
         setSelectedDepositAddressOption(undefined);
         context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
@@ -163,16 +180,18 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.SELECT_TOKEN]: <SelectToken />,
     [ROUTES.SELECT_AMOUNT]: <SelectAmount />,
     [ROUTES.SELECT_EXTERNAL_AMOUNT]: <SelectExternalAmount />,
+    [ROUTES.SELECT_EXCHANGE]: <SelectExchange />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: <SelectDepositAddressAmount />,
     [ROUTES.SELECT_WALLET_AMOUNT]: <SelectWalletAmount />,
+    [ROUTES.SELECT_WALLET_CHAIN]: <SelectWalletChain />,
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,
     [ROUTES.SELECT_ZKP2P]: <SelectZKP />,
     [ROUTES.WAITING_WALLET]: <WaitingWallet />,
     [ROUTES.CONFIRMATION]: <Confirmation />,
+    [ROUTES.ERROR]: <ErrorPage />,
     [ROUTES.PAY_WITH_TOKEN]: <PayWithToken />,
-    [ROUTES.SOLANA_CONNECT]: <ConnectSolana />,
     [ROUTES.SOLANA_CONNECTOR]: <ConnectorSolana />,
     [ROUTES.SOLANA_SELECT_AMOUNT]: <SelectSolanaAmount />,
     [ROUTES.SOLANA_PAY_WITH_TOKEN]: <PayWithSolanaToken />,
@@ -192,6 +211,7 @@ export const DaimoPayModal: React.FC<{
     }
     context.setOpen(false, { event: "click-close" });
   }
+  const { isMobile } = useIsMobile();
 
   // If the user has a wallet already connected upon opening the modal, go
   // straight to the select token screen
@@ -202,7 +222,20 @@ export const DaimoPayModal: React.FC<{
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
-    if (isEthConnected && !isSolanaConnected) {
+    // If mobile injector is disabled, don't show the connected wallets.
+    const evmOptionsCount =
+      paymentState.walletPaymentOptions.options?.length ?? 0;
+    const isEvmLoading = paymentState.walletPaymentOptions.isLoading;
+    const solanaOptionsCount =
+      paymentState.solanaPaymentOptions.options?.length ?? 0;
+    const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
+    if (
+      isEthConnected &&
+      !isSolanaConnected &&
+      (!isMobile || !disableMobileInjector) &&
+      !isEvmLoading &&
+      evmOptionsCount > 0
+    ) {
       paymentState.setTokenMode("evm");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
@@ -213,7 +246,10 @@ export const DaimoPayModal: React.FC<{
     } else if (
       isSolanaConnected &&
       !isEthConnected &&
-      showSolanaPaymentMethod
+      showSolanaPaymentMethod &&
+      !disableMobileInjector &&
+      !isSolanaLoading &&
+      solanaOptionsCount > 0
     ) {
       paymentState.setTokenMode("solana");
       context.setRoute(ROUTES.SELECT_TOKEN, {
@@ -226,7 +262,9 @@ export const DaimoPayModal: React.FC<{
   }, [
     context.open,
     paymentState.walletPaymentOptions.options,
+    paymentState.walletPaymentOptions.isLoading,
     paymentState.solanaPaymentOptions.options,
+    paymentState.solanaPaymentOptions.isLoading,
     showSolanaPaymentMethod,
     address,
     chain?.id,
@@ -258,6 +296,10 @@ export const DaimoPayModal: React.FC<{
   useEffect(() => setTheme(theme), [theme, setTheme]);
   useEffect(() => setCustomTheme(customTheme), [customTheme, setCustomTheme]);
   useEffect(() => setLang(lang), [lang, setLang]);
+  useEffect(
+    () => setDisableMobileInjector(disableMobileInjector),
+    [disableMobileInjector, setDisableMobileInjector],
+  );
 
   useEffect(() => {
     const appName = getAppName();

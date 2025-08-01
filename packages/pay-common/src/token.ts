@@ -7,9 +7,9 @@ import {
   celo,
   ethereum,
   linea,
-  mantle,
   optimism,
   polygon,
+  scroll,
   solana,
   worldchain,
 } from "./chain";
@@ -448,64 +448,6 @@ const lineaTokens: Token[] = [
 ];
 
 //
-// Mantle
-//
-
-export const mantleMNT = nativeToken({
-  chainId: mantle.chainId,
-  name: "Mantle",
-  symbol: "MNT",
-  logoURI: TokenLogo.MNT,
-});
-
-export const mantleWMNT: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8"),
-  decimals: 18,
-  name: "Wrapped Mantle",
-  symbol: "WMNT",
-  logoURI: TokenLogo.MNT,
-});
-
-export const mantleBridgedUSDC: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "USD Coin",
-  symbol: "USDC",
-  logoURI: TokenLogo.USDC,
-});
-
-export const mantleUSDT: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0x201eba5cc46d216ce6dc03f6a759e8e766e956ae"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "Tether USD",
-  symbol: "USDT",
-  logoURI: TokenLogo.USDT,
-});
-
-export const mantleAxlUSDC: Token = token({
-  chainId: mantle.chainId,
-  token: getAddress("0xEB466342C4d449BC9f53A865D5Cb90586f405215"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "Axelar Wrapped USDC",
-  symbol: "axlUSDC",
-  logoURI: TokenLogo.USDC,
-});
-
-const mantleTokens: Token[] = [
-  mantleMNT,
-  mantleWMNT,
-  mantleBridgedUSDC,
-  mantleUSDT,
-  mantleAxlUSDC,
-];
-
-//
 // Optimism
 //
 
@@ -671,6 +613,43 @@ const polygonTokens: Token[] = [
 ];
 
 //
+// Scroll
+//
+
+export const scrollETH = nativeETH(scroll.chainId);
+
+export const scrollWETH: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0x5300000000000000000000000000000000000004"),
+  decimals: 18,
+  name: "Wrapped Ether",
+  symbol: "WETH",
+  logoURI: TokenLogo.WETH,
+});
+
+export const scrollUSDC: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+export const scrollUSDT: Token = token({
+  chainId: scroll.chainId,
+  token: getAddress("0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const scrollTokens: Token[] = [scrollETH, scrollWETH, scrollUSDC, scrollUSDT];
+
+//
 // Solana
 //
 
@@ -762,9 +741,9 @@ const knownTokensByChain = new Map<number, Token[]>([
   [celo.chainId, celoTokens],
   [ethereum.chainId, ethereumTokens],
   [linea.chainId, lineaTokens],
-  [mantle.chainId, mantleTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
+  [scroll.chainId, scrollTokens],
   [solana.chainId, solanaTokens],
   [worldchain.chainId, worldchainTokens],
 ]);
@@ -868,15 +847,6 @@ const tokensByChainAndType: Map<
     },
   ],
   [
-    mantle.chainId,
-    {
-      [TokenType.NATIVE]: mantleMNT,
-      [TokenType.WRAPPED_NATIVE]: mantleWMNT,
-      [TokenType.BRIDGED_USDC]: mantleBridgedUSDC,
-      [TokenType.AXL_USDC]: mantleAxlUSDC,
-    },
-  ],
-  [
     optimism.chainId,
     {
       [TokenType.NATIVE]: optimismETH,
@@ -896,6 +866,14 @@ const tokensByChainAndType: Map<
       [TokenType.BRIDGED_USDC]: polygonUSDCe,
       [TokenType.AXL_USDC]: polygonAxlUSDC,
       [TokenType.DAI]: polygonDAI,
+    },
+  ],
+  [
+    scroll.chainId,
+    {
+      [TokenType.NATIVE]: scrollETH,
+      [TokenType.WRAPPED_NATIVE]: scrollWETH,
+      [TokenType.BRIDGED_USDC]: scrollUSDC,
     },
   ],
   [

@@ -28,34 +28,38 @@ import { default as trTR } from "./locales/tr-TR";
 import { default as viVN } from "./locales/vi-VN";
 import { default as zhCN } from "./locales/zh-CN";
 
+// Helper to merge locale with English defaults
+const mergeWithEnglish = (locale: any) => ({ ...enUS, ...locale });
+
 // TODO: tree-shaking
 export const getLocale = (lang: Languages) => {
   switch (lang) {
     case "ee-EE":
-      return eeEE;
+      return mergeWithEnglish(eeEE);
     case "ar-AE":
-      return arAE;
+      return mergeWithEnglish(arAE);
     case "es-ES":
-      return esES;
+      return mergeWithEnglish(esES);
     case "fa-IR":
-      return faIR;
+      return mergeWithEnglish(faIR);
     case "fr-FR":
-      return frFR;
+      return mergeWithEnglish(frFR);
     case "ja-JP":
-      return jaJP;
+      return mergeWithEnglish(jaJP);
     case "pt-BR":
-      return ptBR;
+      return mergeWithEnglish(ptBR);
     case "ru-RU":
-      return ruRU;
+      return mergeWithEnglish(ruRU);
     case "zh-CN":
-      return zhCN;
+      return mergeWithEnglish(zhCN);
     case "ca-AD":
-      return caAD;
+      return mergeWithEnglish(caAD);
     case "tr-TR":
-      return trTR;
+      return mergeWithEnglish(trTR);
     case "vi-VN":
-      return viVN;
+      return mergeWithEnglish(viVN);
     default:
+      // English already full
       return enUS;
   }
 };

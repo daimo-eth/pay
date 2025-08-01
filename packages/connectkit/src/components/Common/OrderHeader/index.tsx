@@ -15,6 +15,7 @@ import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
@@ -22,14 +23,10 @@ import { formatUsd } from "../../../utils/format";
 /** Shows payment amount. */
 export const OrderHeader = ({
   minified = false,
-  showEth = false,
-  showSolana = false,
-  showZKP2P = false,
+  show = "all",
 }: {
   minified?: boolean;
-  showEth?: boolean;
-  showSolana?: boolean;
-  showZKP2P?: boolean;
+  show?: "evm" | "solana" | "zkp2p" | "all";
 }) => {
   const { paymentState, route } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();
@@ -48,12 +45,14 @@ export const OrderHeader = ({
   );
   const orderUsd = order?.destFinalCallTokenAmount.usd;
 
+  const locales = useLocales();
+
   const titleAmountContent = (() => {
     if (paymentState.isDepositFlow) {
       return route === ROUTES.SELECT_TOKEN ? (
         // TODO: make this match `ModalH1` font size for mobile
         <span style={{ fontSize: "19px", lineHeight: "22px" }}>
-          Your balances
+          {locales.yourBalances}
         </span>
       ) : null;
     } else {
@@ -86,7 +85,6 @@ export const OrderHeader = ({
       </LogoContainer>
     );
   };
-
   let walletIcon = renderIcon(connector?.icon);
   let solanaIcon = renderIcon(
     solanaWallet?.adapter.icon || <Solana />,
@@ -95,10 +93,18 @@ export const OrderHeader = ({
 
   if (minified) {
     if (titleAmountContent != null) {
+      if (show === "zkp2p") {
+        return (
+          <MinifiedContainer>
+            <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
+          </MinifiedContainer>
+        );
+      }
+
       return (
         <MinifiedContainer>
           <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
-          {showEth && isEthConnected && (
+          {show === "evm" && isEthConnected && (
             <>
               <SubtitleContainer>
                 <Subtitle>{ethWalletDisplayName}</Subtitle>
@@ -106,7 +112,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {showSolana && isSolanaConnected && (
+          {show === "solana" && isSolanaConnected && (
             <>
               <SubtitleContainer>
                 <Subtitle>{solWalletDisplayName}</Subtitle>
@@ -114,7 +120,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {!showEth && !showSolana && !showZKP2P && (
+          {show === "all" && (
             <>
               <CoinLogos $size={32} />
             </>
@@ -125,7 +131,7 @@ export const OrderHeader = ({
       return (
         <MinifiedContainer>
           <CoinLogos />
-          <Subtitle>1000+ tokens accepted</Subtitle>
+          <Subtitle>{locales.tokensAccepted}</Subtitle>
         </MinifiedContainer>
       );
     }
@@ -135,7 +141,7 @@ export const OrderHeader = ({
         {titleAmountContent && <TitleAmount>{titleAmountContent}</TitleAmount>}
         <AnyChainAnyCoinContainer>
           <CoinLogos />
-          <Subtitle>1000+ tokens accepted</Subtitle>
+          <Subtitle>{locales.tokensAccepted}</Subtitle>
         </AnyChainAnyCoinContainer>
       </>
     );

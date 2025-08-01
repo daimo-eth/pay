@@ -1,5 +1,16 @@
-import { DaimoPayUserMetadata } from "@daimo/pay-common";
-import { ReactElement, useCallback, useEffect, useState } from "react";
+import {
+  assertNotNull,
+  DaimoPayEventType,
+  DaimoPayUserMetadata,
+  getDaimoPayOrderView,
+  getOrderDestChainId,
+  getOrderSourceChainId,
+  PaymentBouncedEvent,
+  PaymentCompletedEvent,
+  PaymentStartedEvent,
+  writeDaimoPayOrderID,
+} from "@daimo/pay-common";
+import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { Address, Hex } from "viem";
 import ThemedButton, {
   ThemeContainer,
@@ -59,6 +70,12 @@ export type WorldPayButtonPaymentProps = {
 };
 
 type WorldPayButtonCommonProps = WorldPayButtonPaymentProps & {
+  /** Called when user sends payment and transaction is seen on chain */
+  onPaymentStarted?: (event: PaymentStartedEvent) => void;
+  /** Called when destination transfer or call completes successfully */
+  onPaymentCompleted?: (event: PaymentCompletedEvent) => void;
+  /** Called when destination call reverts and funds are refunded */
+  onPaymentBounced?: (event: PaymentBouncedEvent) => void;
   /** Automatically close the modal after a successful payment. */
   closeOnSuccess?: boolean;
   /** Reset the payment after a successful payment. */
@@ -111,9 +128,13 @@ export function WorldPayButton(props: WorldPayButtonProps) {
 function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const pay = useDaimoPay();
   const context = usePayContext();
-  const { log } = context;
+  const { paymentState, log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
 
+  // Payment events: call these three event handlers.
+  const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
+
+  // Install Minikit if not already installed
   useEffect(() => {
     log("[WORLD] Installing MiniKit");
     const result = MiniKit.install();
@@ -123,12 +144,72 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Set the payParams
   useEffect(() => {
     log("[WORLD] Creating preview order");
-    pay.createPreviewOrder(props);
+    paymentState.setPayParams(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pay, JSON.stringify(props)]);
+  }, [JSON.stringify(props || {})]);
 
+  // Emit onPaymentStart handler when payment state changes to payment_started
+  const sentStart = useRef(false);
+  useEffect(() => {
+    if (sentStart.current) return;
+    if (pay.paymentState !== "payment_started") return;
+
+    // TODO: Populate source payment details immediately when the user pays.
+    // Use this hack because source chain id is not immediately populated when
+    // payment_started
+    const sourceChainId = getOrderSourceChainId(pay.order);
+    if (sourceChainId == null) return;
+
+    sentStart.current = true;
+    onPaymentStarted?.({
+      type: DaimoPayEventType.PaymentStarted,
+      paymentId: writeDaimoPayOrderID(pay.order.id),
+      chainId: sourceChainId,
+      txHash: pay.order.sourceInitiateTxHash,
+      payment: getDaimoPayOrderView(pay.order),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay.order, pay.paymentState]);
+
+  // Emit onPaymentComplete or onPaymentBounced handler when payment state
+  // changes to payment_completed or payment_bounced
+  const sentComplete = useRef(false);
+  useEffect(() => {
+    if (sentComplete.current) return;
+    if (
+      pay.paymentState !== "payment_completed" &&
+      pay.paymentState !== "payment_bounced"
+    )
+      return;
+
+    sentComplete.current = true;
+    const eventType =
+      pay.paymentState === "payment_completed"
+        ? DaimoPayEventType.PaymentCompleted
+        : DaimoPayEventType.PaymentBounced;
+    const event = {
+      type: eventType,
+      paymentId: writeDaimoPayOrderID(pay.order.id),
+      chainId: getOrderDestChainId(pay.order),
+      txHash: assertNotNull(
+        pay.order.destFastFinishTxHash ?? pay.order.destClaimTxHash,
+        `[WORLD PAY BUTTON] dest tx hash null on order ${pay.order.id} when intent status is ${pay.order.intentStatus}`,
+      ),
+      payment: getDaimoPayOrderView(pay.order),
+    };
+
+    if (pay.paymentState === "payment_completed") {
+      onPaymentCompleted?.(event as PaymentCompletedEvent);
+    } else if (pay.paymentState === "payment_bounced") {
+      onPaymentBounced?.(event as PaymentBouncedEvent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay.order, pay.paymentState]);
+
+  // Navigate to the confirmation page in the modal to show the spinner
   const showSpinner = useCallback(() => {
     log(`[WORLD] showing spinner ${pay.order?.id}`);
     const modalOptions = {
@@ -139,6 +220,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     context.setRoute(ROUTES.CONFIRMATION);
   }, [context, pay.order?.id, log, props.closeOnSuccess, props.resetOnSuccess]);
 
+  // Show the Worldcoin payment drawer and pop open the Daimo Pay modal
   const show = useCallback(async () => {
     log(`[WORLD] showing payment ${pay.order?.id}`);
     if (!isMiniKitReady) {

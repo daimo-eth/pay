@@ -39,7 +39,10 @@ import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
 import { CustomTheme } from "../../../types";
-import { useWallet } from "../../../wallets/useWallets";
+import {
+  useWallet,
+  WALLET_ID_MOBILE_WALLETS,
+} from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
@@ -329,19 +332,20 @@ const Modal: React.FC<ModalProps> = ({
   }
 
   function getHeading() {
+    const payWithString = flattenChildren(locales.payWith).join("");
     switch (context.route) {
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (context.pendingConnectorId === "Mobile Wallets") {
-          return "Scan with Phone";
+        if (context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS) {
+          return locales.scanWithPhone;
         } else {
           return walletInfo?.name;
         }
-      case ROUTES.SOLANA_CONNECT:
-        return "Connect Solana Wallet";
+      case ROUTES.SELECT_EXCHANGE:
+        return locales.selectExchange;
       case ROUTES.SOLANA_CONNECTOR:
-        return context.solanaConnector ?? "Solana Wallet";
+        return context.solanaConnector ?? locales.solanaWallet;
       case ROUTES.CONNECTORS:
         return locales.connectorsScreen_heading;
       case ROUTES.MOBILECONNECTORS:
@@ -357,31 +361,35 @@ const Modal: React.FC<ModalProps> = ({
         return order?.metadata.intent;
       case ROUTES.SOLANA_PAY_WITH_TOKEN:
         if (!selectedSolanaTokenOption) return undefined;
-        return `Pay with ${selectedSolanaTokenOption.required.token.symbol}`;
+        return `${payWithString} ${selectedSolanaTokenOption.required.token.symbol}`;
       case ROUTES.WAITING_EXTERNAL:
         return selectedExternalOption?.cta;
       case ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN:
-        return "Select Chain";
+        return locales.selectChain;
       case ROUTES.WAITING_DEPOSIT_ADDRESS:
         if (!selectedDepositAddressOption) return undefined;
-        return `Pay with ${selectedDepositAddressOption.id}`;
+        return `${payWithString} ${selectedDepositAddressOption.id}`;
       case ROUTES.SELECT_ZKP2P:
-        return "Select App";
+        return locales.selectApp;
       case ROUTES.SELECT_AMOUNT:
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:
       case ROUTES.SOLANA_SELECT_AMOUNT:
       case ROUTES.SELECT_WALLET_AMOUNT:
-        return "Select Amount";
+        return locales.selectAmount;
       case ROUTES.PAY_WITH_TOKEN:
         if (selectedTokenOption == null) return undefined;
 
         const chainName = getChainName(
           selectedTokenOption.balance.token.chainId,
         );
-        return `Pay with ${chainName} ${selectedTokenOption.balance.token.symbol}`;
+        return `${payWithString} ${chainName} ${selectedTokenOption.balance.token.symbol}`;
       case ROUTES.CONFIRMATION:
-        return "Payment Successful";
+        return locales.paymentSuccessful;
+      case ROUTES.ERROR:
+        return locales.error;
+      case ROUTES.SELECT_WALLET_CHAIN:
+        return locales.selectChain;
     }
   }
 

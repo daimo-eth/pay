@@ -2,12 +2,16 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
 import CrepeIcon from "../../../assets/crepe";
+import useLocales from "../../../hooks/useLocales";
 import styled from "../../../styles/styled";
 import { daimoPayVersion } from "../../../utils/exports";
 
-const PoweredByFooter = ({ supportUrl }: { supportUrl?: string } = {}) => {
-  const [supportVisible, setSupportVisible] = useState(false);
-
+const PoweredByFooter = ({
+  supportUrl,
+  showNeedHelpImmediately,
+}: { supportUrl?: string; showNeedHelpImmediately?: boolean } = {}) => {
+  const [supportVisible, setSupportVisible] = useState(showNeedHelpImmediately);
+  const locales = useLocales();
   useEffect(() => {
     if (supportUrl == null) return;
     // Show the support link after delay
@@ -37,7 +41,7 @@ const PoweredByFooter = ({ supportUrl }: { supportUrl?: string } = {}) => {
               Need help? <Underline>Contact support</Underline>
             </>
           ) : (
-            <>Powered by Daimo Pay</>
+            <>{locales.poweredBy} Daimo Pay</>
           )}
         </span>
       </TextButton>

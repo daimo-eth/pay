@@ -9,7 +9,6 @@ import { DAIMOPAY_API_URL } from "../shared";
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     appName: "Daimo Pay Deposit Demo",
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   }),
 );
 

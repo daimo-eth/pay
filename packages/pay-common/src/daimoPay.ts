@@ -207,6 +207,7 @@ export type DaimoPayHydratedOrder = {
   destClaimTxHash: Hex | null;
   redirectUri: string | null;
   orgId: string | null;
+  sourceInitiateUpdatedAt: number | null;
   createdAt: number | null;
   lastUpdatedAt: number | null;
   intentStatus: DaimoPayIntentStatus;
@@ -355,7 +356,7 @@ export type WalletPaymentOption = {
 
 export type ExternalPaymentOptionMetadata = {
   id: ExternalPaymentOptions;
-  optionType: "external" | "zkp2p";
+  optionType: "external" | "zkp2p" | "exchange";
   cta: string;
   logoURI: string;
   logoShape: "circle" | "squircle";
@@ -367,12 +368,12 @@ export type ExternalPaymentOptionMetadata = {
 
 export enum ExternalPaymentOptions {
   Daimo = "Daimo",
-  Coinbase = "Coinbase",
-  RampNetwork = "RampNetwork",
-  Binance = "Binance",
   Solana = "Solana",
-  // ChangeNow chains. Bitcoin, Litecoin, Doge, Tron, etc.
   ExternalChains = "ExternalChains",
+  // All exchanges
+  AllExchanges = "AllExchanges",
+  Coinbase = "Coinbase",
+  Binance = "Binance",
   Lemon = "Lemon",
   // All available payment apps
   AllPaymentApps = "AllPaymentApps",
@@ -381,6 +382,7 @@ export enum ExternalPaymentOptions {
   MercadoPago = "MercadoPago",
   Revolut = "Revolut",
   Wise = "Wise",
+  Zelle = "Zelle",
 }
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;

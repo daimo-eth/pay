@@ -11,6 +11,7 @@ import {
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
+import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
@@ -18,18 +19,15 @@ const WaitingExternal: React.FC = () => {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
   const { isMobile } = useIsMobile();
-
+  const locales = useLocales();
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
     paymentState;
 
-  let isPaymentApp = false;
+  let isExchangeApp = false;
   if (selectedExternalOption) {
-    isPaymentApp =
-      selectedExternalOption.id === ExternalPaymentOptions.Venmo ||
-      selectedExternalOption.id === ExternalPaymentOptions.CashApp ||
-      selectedExternalOption.id === ExternalPaymentOptions.MercadoPago ||
-      selectedExternalOption.id === ExternalPaymentOptions.Revolut ||
-      selectedExternalOption.id === ExternalPaymentOptions.Wise;
+    isExchangeApp =
+      selectedExternalOption.id === ExternalPaymentOptions.Binance ||
+      selectedExternalOption.id === ExternalPaymentOptions.Coinbase;
   }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
@@ -43,18 +41,14 @@ const WaitingExternal: React.FC = () => {
   }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openExternalWindow = (url: string) => {
-    if (isMobile || isPaymentApp) {
-      // on mobile: open in a new tab
+    if (!isExchangeApp || isMobile) {
+      // for non-exchange apps: open in a new tab
       window.open(url, "_blank");
     } else {
-      // on desktop: open in a popup window in
-      // portrait mode in the center of the screen
+      // for exchange apps (Binance and Coinbase): open in a popup window
+      // in portrait mode in the center of the screen
       let width = 500;
       let height = 700;
-      // if (isPaymentApp) {
-      //   height = 800;
-      //   width = 800;
-      // }
       const left = Math.max(
         0,
         Math.floor((window.innerWidth - width) / 2) + window.screenX,
@@ -89,7 +83,7 @@ const WaitingExternal: React.FC = () => {
         logoShape={selectedExternalOption.logoShape}
       />
       <ModalContent style={{ marginLeft: 24, marginRight: 24 }}>
-        <ModalH1>Waiting For Payment</ModalH1>
+        <ModalH1>{locales.waitingForPayment}</ModalH1>
         {paymentWaitingMessage && (
           <ModalBody style={{ marginTop: 12, marginBottom: 12 }}>
             {paymentWaitingMessage}

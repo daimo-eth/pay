@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { isMobile } from "../../../utils";
 import defaultTheme from "./../../../constants/defaultTheme";
@@ -36,6 +37,7 @@ export const ScrollArea = ({
   hideBottomLine?: boolean;
   totalItems?: number;
 }) => {
+  const locales = useLocales();
   const { log } = usePayContext();
   const ref = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,7 @@ export const ScrollArea = ({
         }}
       >
         <span>
-          <ArrowDown /> More Available
+          <ArrowDown /> {locales.moreAvailable}
         </span>
       </MoreIndicator>
     </ScrollContainer>

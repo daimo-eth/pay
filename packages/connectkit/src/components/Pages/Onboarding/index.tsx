@@ -39,7 +39,7 @@ const Introduction: React.FC = () => {
                 <FloatWrapper>
                   <RotateWrapper>
                     <LogoGraphic>
-                      <Logos.Coinbase background />
+                      <Logos.Base />
                     </LogoGraphic>
                   </RotateWrapper>
                 </FloatWrapper>

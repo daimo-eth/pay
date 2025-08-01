@@ -119,6 +119,7 @@ const DaimoPayUIProvider = ({
     ethereumOnboardingUrl: undefined,
     walletOnboardingUrl: undefined,
     overlayBlur: undefined,
+    disableMobileInjector: false,
   };
 
   const opts: DaimoPayContextOptions = Object.assign(
@@ -147,6 +148,9 @@ const DaimoPayUIProvider = ({
     customTheme ?? {},
   );
   const [ckLang, setLang] = useState<Languages>("en-US");
+  const [disableMobileInjector, setDisableMobileInjector] = useState<boolean>(
+    opts.disableMobileInjector ?? false,
+  );
 
   const onOpenRef = useRef<(() => void) | undefined>();
   const onCloseRef = useRef<(() => void) | undefined>();
@@ -250,6 +254,10 @@ const DaimoPayUIProvider = ({
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
+  useEffect(
+    () => setDisableMobileInjector(opts.disableMobileInjector ?? false),
+    [opts.disableMobileInjector],
+  );
   useEffect(() => setErrorMessage(null), [route, open]);
 
   const paymentState = usePaymentState({
@@ -262,7 +270,9 @@ const DaimoPayUIProvider = ({
 
   const showPayment = async (modalOptions: DaimoPayModalOptions) => {
     const id = pay.order?.id;
-    log(`[PAY] showing payment ${debugJson({ id, modalOptions })}`);
+    log(
+      `[PAY] showing modal ${debugJson({ id, modalOptions, paymentFsmState: pay.paymentState })}`,
+    );
 
     setModalOptions(modalOptions);
     setOpen(true);
@@ -270,7 +280,9 @@ const DaimoPayUIProvider = ({
       paymentState.setTokenMode("all");
     }
 
-    if (
+    if (pay.paymentState === "error") {
+      setRoute(ROUTES.ERROR);
+    } else if (
       pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"
@@ -312,6 +324,8 @@ const DaimoPayUIProvider = ({
     setCustomTheme,
     lang: ckLang,
     setLang,
+    disableMobileInjector,
+    setDisableMobileInjector,
     setOnOpen,
     setOnClose,
     open,
@@ -363,6 +377,7 @@ const DaimoPayUIProvider = ({
           theme={ckTheme}
           mode={mode}
           customTheme={ckCustomTheme}
+          disableMobileInjector={disableMobileInjector}
         />
       </ThemeProvider>
     </Web3ContextProvider>,

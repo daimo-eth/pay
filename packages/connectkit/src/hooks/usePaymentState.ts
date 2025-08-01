@@ -20,7 +20,14 @@ import {
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useState } from "react";
-import { erc20Abi, getAddress, Hex, hexToBytes, zeroAddress } from "viem";
+import {
+  erc20Abi,
+  getAddress,
+  Hex,
+  hexToBytes,
+  isHex,
+  zeroAddress,
+} from "viem";
 import {
   useAccount,
   useEnsName,
@@ -40,6 +47,7 @@ import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
 import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
+import { useUntronAvailability } from "./useUntronAvailability";
 import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
 
 /** Wallet payment details, sent to processSourcePayment after submitting tx. */
@@ -73,6 +81,8 @@ export interface PaymentState {
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
   depositAddressOptions: ReturnType<typeof useDepositAddressOptions>;
+  /** Whether Untron receivers are currently available. `null` when unknown. */
+  untronAvailable: boolean | null;
   selectedExternalOption: ExternalPaymentOptionMetadata | undefined;
   selectedTokenOption: WalletPaymentOption | undefined;
   selectedSolanaTokenOption: WalletPaymentOption | undefined;
@@ -96,7 +106,7 @@ export interface PaymentState {
   setChosenUsd: (usd: number) => void;
   payWithToken: (
     walletOption: WalletPaymentOption,
-  ) => Promise<{ txHash: Hex; success: boolean }>;
+  ) => Promise<{ txHash?: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
     option: DepositAddressPaymentOptions,
@@ -193,6 +203,9 @@ export function usePaymentState({
     mode: pay.order?.mode,
   });
 
+  // Poll for Untron receiver availability so components can disable unsupported chains promptly.
+  const { available: untronAvailable } = useUntronAvailability({ trpc });
+
   const chainOrderUsdLimits = useOrderUsdLimits({ trpc });
 
   const [selectedExternalOption, setSelectedExternalOption] =
@@ -225,7 +238,7 @@ export function usePaymentState({
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
     walletOption: WalletPaymentOption,
-  ): Promise<{ txHash: Hex; success: boolean }> => {
+  ): Promise<{ txHash?: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
       `[PAY TOKEN] null ethWalletAddress when paying on ethereum`,
@@ -279,6 +292,15 @@ export function usePaymentState({
         throw e;
       }
     })();
+
+    // Special case. Handle Rabby bug, where it returns the *Safe signature*
+    // instead of a txHash for a queued, unsubmitted Safe transaction.
+    if (!isHex(paymentTxHash) || paymentTxHash.length !== 66) {
+      log(
+        `[PAY TOKEN] wallet bug detected. ignoring invalid payment txHash: ${paymentTxHash}`,
+      );
+      return { success: true };
+    }
 
     try {
       await pay.payEthSource({
@@ -554,5 +576,6 @@ export function usePaymentState({
     payWithSolanaToken,
     openInWalletBrowser,
     senderEnsName: senderEnsName ?? undefined,
+    untronAvailable,
   };
 }

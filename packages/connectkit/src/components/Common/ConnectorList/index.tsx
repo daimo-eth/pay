@@ -5,7 +5,12 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { detectBrowser, isCoinbaseWalletConnector } from "../../../utils";
-import { WalletProps, useWallets } from "../../../wallets/useWallets";
+import {
+  WALLET_ID_MOBILE_WALLETS,
+  WALLET_ID_OTHER_WALLET,
+  WalletProps,
+  useWallets,
+} from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
 import Alert from "../Alert";
 import {
@@ -88,8 +93,9 @@ const ConnectorItem = ({
   const { connect } = useConnect();
 
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
-  const redirectToMoreWallets = isMobile && wallet.id === "other";
-  const redirectToMobileWallets = wallet.id === "Mobile Wallets";
+  const redirectToMoreWallets =
+    isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
+  const redirectToMobileWallets = wallet.id === WALLET_ID_MOBILE_WALLETS;
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -97,15 +103,31 @@ const ConnectorItem = ({
     isCoinbaseWalletConnector(wallet.connector?.id);
 
   const onClick = () => {
+    const meta = { event: "connector-list-click", walletId: wallet.id };
+
+    // Desktop multi-chain wallet flow: prompt for chain selection.
+    if (wallet.solanaConnectorName && !isMobile) {
+      const supportsEvm = wallet.connector?.name != null;
+      if (supportsEvm) {
+        context.paymentState.setSelectedWallet(wallet);
+        context.setRoute(ROUTES.SELECT_WALLET_CHAIN, meta);
+        return;
+      } else {
+        context.setSolanaConnector(wallet.solanaConnectorName);
+        context.setRoute(ROUTES.SOLANA_CONNECTOR, meta);
+        return;
+      }
+    }
+
     if (redirectToMoreWallets) {
-      context.setRoute(ROUTES.MOBILECONNECTORS);
+      context.setRoute(ROUTES.MOBILECONNECTORS, meta);
     } else if (redirectToMobileWallets) {
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
-        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
-        context.setPendingConnectorId("Mobile Wallets");
-        context.setRoute(ROUTES.CONNECT);
+        context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
+        context.setRoute(ROUTES.CONNECT, meta);
       }
     } else if (
       context.paymentState.isDepositFlow &&
@@ -113,7 +135,7 @@ const ConnectorItem = ({
       !wallet.connector
     ) {
       context.paymentState.setSelectedWallet(wallet);
-      context.setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+      context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
     } else if (
       isMobile &&
       wallet.getDaimoPayDeeplink != null &&
@@ -125,7 +147,7 @@ const ConnectorItem = ({
         connect({ connector: wallet.connector! });
       }
       context.setPendingConnectorId(wallet.id);
-      context.setRoute(ROUTES.CONNECT);
+      context.setRoute(ROUTES.CONNECT, meta);
     }
   };
 

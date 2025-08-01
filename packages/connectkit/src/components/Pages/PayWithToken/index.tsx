@@ -3,8 +3,10 @@ import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { getSupportUrl } from "../../../utils/supportUrl";
+import { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import {
   Link,
@@ -24,14 +26,22 @@ enum PayState {
 }
 
 const PayWithToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute, log } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
   const { order } = useDaimoPay();
-  const [payState, setPayState] = useState<PayState>(
+  const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const setPayState = (state: PayState) => {
+    setPayStateInner(state);
+    log(`[PAY TOKEN] payState: ${state}`);
+    (trpc as TrpcClient).nav.mutate({
+      action: "pay-with-token-state",
+      data: { state },
+    });
+  };
   const [txURL, setTxURL] = useState<string | undefined>();
-
+  const locales = useLocales();
   const walletChainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
 
@@ -73,6 +83,10 @@ const PayWithToken: React.FC = () => {
     setPayState(PayState.RequestingPayment);
     try {
       const result = await payWithToken(option);
+      if (!result.txHash) {
+        // Transaction not submitted yet. Do nothing, just keep polling.
+        return;
+      }
       setTxURL(
         getChainExplorerTxUrl(option.required.token.chainId, result.txHash),
       );
@@ -86,13 +100,18 @@ const PayWithToken: React.FC = () => {
       }
     } catch (e: any) {
       if (e?.name === "ConnectorChainMismatchError") {
-        // Workaround for Rainbow wallet bug -- user is able to switch chain without
-        // the wallet updating the chain ID for wagmi.
+        // Workaround for Rainbow wallet bug -- user is able to switch chain
+        // without the wallet updating the chain ID for wagmi.
         log("Chain mismatch detected, attempting to switch and retry");
         const switchSuccessful = await trySwitchingChain(option, true);
         if (switchSuccessful) {
+          setPayState(PayState.RequestingPayment);
           try {
             const retryResult = await payWithToken(option);
+            if (!retryResult.txHash) {
+              // Transaction not submitted yet. Do nothing, just keep polling.
+              return;
+            }
             setTxURL(
               getChainExplorerTxUrl(
                 option.required.token.chainId,
@@ -159,7 +178,7 @@ const PayWithToken: React.FC = () => {
         <PaymentBreakdown paymentOption={selectedTokenOption} />
         {payState === PayState.RequestCancelled && (
           <Button onClick={() => handleTransfer(selectedTokenOption)}>
-            Retry Payment
+            {locales.retryPayment}
           </Button>
         )}
         {payState === PayState.RequestFailed && (
@@ -174,7 +193,7 @@ const PayWithToken: React.FC = () => {
               );
             }}
           >
-            Contact Support
+            {locales.contactSupport}
           </Button>
         )}
       </ModalContent>

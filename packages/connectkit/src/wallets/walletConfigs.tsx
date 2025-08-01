@@ -24,6 +24,8 @@ function getEncodedDaimoPayUrl(payId: string) {
 }
 
 export type WalletConfigProps = {
+  // Wallet ID, eg "io.rabby" or a sentinel value like WALLET_ID_OTHER_WALLET.
+  id?: string;
   // Wallets name
   name?: string;
   // Wallets short name. Defaults to `name`
@@ -69,9 +71,9 @@ export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
   "coinbaseWallet, coinbaseWalletSDK": {
-    name: "Coinbase Wallet",
-    shortName: "Coinbase",
-    icon: <Logos.Coinbase />,
+    name: "Base App",
+    shortName: "Base",
+    icon: <Logos.Base />,
     iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/coinbasewallet",
@@ -88,9 +90,9 @@ export const walletConfigs: {
     },
   },
   "com.coinbase.wallet": {
-    name: "Coinbase Wallet",
-    shortName: "Coinbase",
-    icon: <Logos.Coinbase />,
+    name: "Base App",
+    shortName: "Base",
+    icon: <Logos.Base />,
     iconShape: "squircle",
     downloadUrls: {
       download: "https://connect.family.co/v0/download/coinbasewallet",
@@ -242,7 +244,7 @@ export const walletConfigs: {
     name: "Trust Wallet",
     shortName: "Trust",
     icon: <Logos.Trust />,
-    iconConnector: <Logos.Trust background />,
+    iconConnector: <Logos.Trust />,
     downloadUrls: {
       download: "https://connect.family.co/v0/download/trust",
       android:

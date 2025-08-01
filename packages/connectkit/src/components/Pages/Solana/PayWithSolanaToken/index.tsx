@@ -20,6 +20,7 @@ import {
 } from "@daimo/pay-common";
 import { useDaimoPay } from "../../../../hooks/useDaimoPay";
 import { getSupportUrl } from "../../../../utils/supportUrl";
+import { TrpcClient } from "../../../../utils/trpc";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -31,12 +32,20 @@ enum PayState {
 }
 
 const PayWithSolanaToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
   const { selectedSolanaTokenOption, payWithSolanaToken } = paymentState;
   const { order } = useDaimoPay();
-  const [payState, setPayState] = useState<PayState>(
+  const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment,
   );
+  const setPayState = (state: PayState) => {
+    setPayStateInner(state);
+    log(`[PAY SOLANA TOKEN] payState: ${state}`);
+    (trpc as TrpcClient).nav.mutate({
+      action: "pay-with-solana-token-state",
+      data: { state },
+    });
+  };
   const [txURL, setTxURL] = useState<string | undefined>();
 
   const handleTransfer = async (option: WalletPaymentOption) => {

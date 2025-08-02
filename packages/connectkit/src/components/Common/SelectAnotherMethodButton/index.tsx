@@ -1,9 +1,7 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { Connector, useAccount } from "wagmi";
-import { Bitcoin, Solana, Tron } from "../../../assets/chains";
-import { Base, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
+import { MetaMask, Phantom, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
-import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useLocales from "../../../hooks/useLocales";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
@@ -17,86 +15,88 @@ const OptionsContainer = styled.div`
 export default function SelectAnotherMethodButton() {
   const locales = useLocales();
   const { paymentState, setRoute } = usePayContext();
-  const { externalPaymentOptions, showSolanaPaymentMethod } = paymentState;
+  const { externalPaymentOptions } = paymentState;
   const { connector } = useAccount();
-  const { order } = useDaimoPay();
-  const paymentOptions = order?.metadata.payer?.paymentOptions;
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
   ).flat();
 
-  // Deposit address options, e.g. Bitcoin, Tron, Zcash, etc.
-  // Include by default if paymentOptions not provided
-  const includeDepositAddressOption =
-    paymentOptions == null ||
-    paymentOptions.includes(ExternalPaymentOptions.ExternalChains);
+  const createIconDiv = (content: React.ReactNode, key: string) => (
+    <div key={key} style={{ borderRadius: "22.5%", overflow: "hidden" }}>
+      {content}
+    </div>
+  );
+
+  const getWalletIcons = (connector: Connector | undefined) => {
+    const connectorId = connector?.id.toLowerCase();
+    const walletTypes = [
+      { component: <MetaMask />, id: "metamask" },
+      { component: <Rainbow />, id: "rainbow" },
+      { component: <Rabby />, id: "rabby" },
+    ];
+
+    const icons = walletTypes
+      .filter(({ id }) => !connectorId?.includes(id))
+      .map(({ component }) => component);
+
+    if (icons.length < 3) icons.push(<Phantom />);
+    return icons;
+  };
+
+  const getPaymentMethodIcons = () => {
+    const icons: JSX.Element[] = [];
+
+    // Add TRON USDT as first priority
+    icons.push(
+      createIconDiv(
+        <img
+          src="https://pay.daimo.com/chain-logos/tronusdt.svg"
+          alt="TRON USDT"
+        />,
+        "tron-usdt",
+      ),
+    );
+
+    // Add external payment options
+    const externalIcons = allPaymentOptions
+      .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
+      .slice(0, 1)
+      .map((option) =>
+        createIconDiv(
+          typeof option.logoURI === "string" ? (
+            <img src={option.logoURI} alt={option.id} />
+          ) : (
+            option.logoURI
+          ),
+          option.id,
+        ),
+      );
+
+    icons.push(...externalIcons);
+
+    // Fill remaining slots with wallet icons
+    if (icons.length < 3) {
+      const walletIcons = getWalletIcons(connector);
+      const remainingSlots = 3 - icons.length;
+      icons.push(...walletIcons.slice(0, remainingSlots));
+    }
+
+    return icons.slice(0, 3);
+  };
 
   const selectMethodOption = {
     id: "select-method",
     title: locales.payWithAnotherMethod,
-    icons: getBestPaymentMethodIcons(),
-    onClick: () => {
-      setRoute(ROUTES.SELECT_METHOD);
-    },
+    icons: getPaymentMethodIcons(),
+    onClick: () => setRoute(ROUTES.SELECT_METHOD),
   };
 
   const selectWalletOption = {
     id: "select-wallet",
     title: locales.payWithAnotherWallet,
-    icons: getBestUnconnectedWalletIcons(connector),
-    onClick: () => {
-      setRoute(ROUTES.SELECT_METHOD);
-    },
+    icons: getWalletIcons(connector),
+    onClick: () => setRoute(ROUTES.SELECT_METHOD),
   };
-
-  function getBestUnconnectedWalletIcons(connector: Connector | undefined) {
-    const icons: JSX.Element[] = [];
-    const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-    const [isMetaMask, isRainbow, isCoinbase] = [
-      strippedId?.includes("metamask"),
-      strippedId?.includes("rainbow"),
-      strippedId?.includes("coinbase"),
-    ];
-
-    if (!isRainbow) icons.push(<Rainbow />);
-    if (!isMetaMask) icons.push(<MetaMask />);
-    if (!isCoinbase) icons.push(<Base />);
-    if (icons.length < 3) icons.push(<Rabby />);
-
-    return icons;
-  }
-
-  function getBestPaymentMethodIcons() {
-    let icons = (externalPaymentOptions.options.get("external") ?? [])
-      .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
-      .map((option) => (
-        <div
-          key={option.id}
-          style={{ borderRadius: "22.5%", overflow: "hidden" }}
-        >
-          {typeof option.logoURI === "string" ? (
-            <img src={option.logoURI} alt="" />
-          ) : (
-            option.logoURI
-          )}
-        </div>
-      ));
-
-    if (icons.length < 3) {
-      const additionalIcons: JSX.Element[] = [];
-      if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
-      if (includeDepositAddressOption && additionalIcons.length < 3)
-        additionalIcons.push(<Bitcoin />);
-      if (includeDepositAddressOption && additionalIcons.length < 3)
-        additionalIcons.push(<Tron />);
-      if (additionalIcons.length < 3)
-        additionalIcons.push(...getBestUnconnectedWalletIcons(connector));
-
-      icons = [...icons, ...additionalIcons.slice(0, 3 - icons.length)];
-    }
-
-    return icons;
-  }
 
   return (
     <OptionsContainer>

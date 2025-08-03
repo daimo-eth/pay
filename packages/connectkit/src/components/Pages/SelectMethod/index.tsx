@@ -267,24 +267,25 @@ function getBestUnconnectedWalletIcons(
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isRainbow, isTrust, isPhantom, isCoinbase, isMetamask, isRabby] = [
+  const [isRainbow, isPhantom, isRabby, isMetaMask] = [
     strippedId?.includes("rainbow"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),
     strippedId?.includes("coinbase"),
     strippedId?.includes("metamask"),
     strippedId?.includes("rabby"),
+    strippedId?.includes("metamask"),
   ];
 
   if (isMobile) {
-    if (!isTrust) icons.push(<Trust background />);
-    if (!isRainbow) icons.push(<Rainbow />);
-    if (!isPhantom) icons.push(<Phantom />);
+    icons.push(<MetaMask />);
+    icons.push(<Trust background />);
+    icons.push(<Rainbow />);
   } else {
+    if (!isMetaMask) icons.push(<MetaMask />);
     if (!isRainbow) icons.push(<Rainbow />);
     if (!isPhantom) icons.push(<Phantom />);
-    if (!isRabby) icons.push(<Rabby />);
-    if (!isMetamask && icons.length < 3) icons.push(<MetaMask />);
+    if (!isRabby && icons.length < 3) icons.push(<Rabby />);
   }
 
   return icons;

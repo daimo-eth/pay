@@ -98,7 +98,16 @@ export const supportedChains: Chain[] = [
 
 // https://developers.circle.com/stablecoins/supported-domains
 const cctpV1Chains = [arbitrum, base, ethereum, optimism, polygon, solana];
-const cctpV2Chains = [arbitrum, base, ethereum, linea, worldchain];
+const cctpV2Chains = [
+  arbitrum,
+  base,
+  ethereum,
+  linea,
+  optimism,
+  polygon,
+  solana,
+  worldchain,
+];
 
 /** Given a chainId, return the chain. */
 export function getChainById(chainId: number): Chain {

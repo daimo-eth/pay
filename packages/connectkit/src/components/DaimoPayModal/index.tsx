@@ -104,6 +104,7 @@ export const DaimoPayModal: React.FC<{
     context.route !== context.uniquePaymentMethodPage &&
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
+    context.route !== ROUTES.SELECT_TOKEN &&
     context.route !== ROUTES.ERROR &&
     paymentFsmState !== "error";
 

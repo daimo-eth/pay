@@ -153,13 +153,10 @@ export function usePaymentState({
   const { connection } = useConnection();
   const solanaPubKey = solanaWallet.publicKey?.toBase58();
 
-  // TODO: backend should determine whether to show solana payment method
-  const paymentOptions = pay.order?.metadata.payer?.paymentOptions;
-  // Solana bridging is only supported on CCTP v1 chains.
+  // Solana bridging is only supported on CCTPv1 chains.
+  const destChainId = pay.order == null ? null : getOrderDestChainId(pay.order);
   const showSolanaPaymentMethod =
-    paymentOptions == null &&
-    pay.order != null &&
-    isCCTPV1Chain(getOrderDestChainId(pay.order));
+    destChainId != null && isCCTPV1Chain(destChainId);
 
   // From DaimoPayButton props
   const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
@@ -194,6 +191,7 @@ export function usePaymentState({
     address: solanaPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
+    showSolanaPaymentMethod,
   });
   const depositAddressOptions = useDepositAddressOptions({
     trpc,

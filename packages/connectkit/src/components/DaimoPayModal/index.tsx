@@ -231,45 +231,6 @@ export const DaimoPayModal: React.FC<{
       paymentState.buttonProps.uniquePaymentOption
     ) {
       switch (paymentState.buttonProps.uniquePaymentOption) {
-        case "AllExchanges":
-          // Wait for external payment options to load before routing
-          const exchangeOptionsAvailable =
-            paymentState.externalPaymentOptions.options.get("exchange");
-          if (exchangeOptionsAvailable && exchangeOptionsAvailable.length > 0) {
-            context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
-            context.setRoute(ROUTES.SELECT_EXCHANGE, {
-              event: "unique_payment_option_all_exchanges",
-            });
-          } else if (!paymentState.externalPaymentOptions.loading) {
-            // Data loaded but no exchange options, fallback to method selection
-            context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
-            context.setRoute(ROUTES.SELECT_METHOD, {
-              event: "unique_payment_option_all_exchanges_fallback",
-            });
-          }
-          break;
-        case "ExternalChains":
-          // Wait for deposit address options to load before routing
-          const depositAddressOptionsAvailable =
-            paymentState.depositAddressOptions.options;
-          if (
-            depositAddressOptionsAvailable &&
-            depositAddressOptionsAvailable.length > 0
-          ) {
-            context.setUniquePaymentMethodPage(
-              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-            );
-            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
-              event: "unique_payment_option_external_chains",
-            });
-          } else if (!paymentState.depositAddressOptions.loading) {
-            // Data loaded but no deposit address options, fallback to method selection
-            context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
-            context.setRoute(ROUTES.SELECT_METHOD, {
-              event: "unique_payment_option_external_chains_fallback",
-            });
-          }
-          break;
         case "Tron":
           // Find the Tron option from available deposit address options
           const tronOption = paymentState.depositAddressOptions.options?.find(
@@ -453,23 +414,6 @@ export const DaimoPayModal: React.FC<{
             context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
             context.setRoute(ROUTES.SELECT_METHOD, {
               event: "unique_payment_option_lemon_fallback",
-            });
-          }
-          break;
-        case "AllPaymentApps":
-          // Wait for external payment options to load before routing
-          const zkp2pOptionsAvailable =
-            paymentState.externalPaymentOptions.options.get("zkp2p");
-          if (zkp2pOptionsAvailable && zkp2pOptionsAvailable.length > 0) {
-            context.setUniquePaymentMethodPage(ROUTES.SELECT_ZKP2P);
-            context.setRoute(ROUTES.SELECT_ZKP2P, {
-              event: "unique_payment_option_all_payment_apps",
-            });
-          } else if (!paymentState.externalPaymentOptions.loading) {
-            // Data loaded but no zkp2p options, fallback to method selection
-            context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
-            context.setRoute(ROUTES.SELECT_METHOD, {
-              event: "unique_payment_option_all_payment_apps_fallback",
             });
           }
           break;

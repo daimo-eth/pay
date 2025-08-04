@@ -158,8 +158,7 @@ export function usePaymentState({
   // Include by default if paymentOptions not provided. Solana bridging is only
   // supported on CCTP v1 chains.
   const showSolanaPaymentMethod =
-    (paymentOptions == null ||
-      paymentOptions.includes(ExternalPaymentOptions.Solana)) &&
+    paymentOptions == null &&
     pay.order != null &&
     isCCTPV1Chain(getOrderDestChainId(pay.order));
 

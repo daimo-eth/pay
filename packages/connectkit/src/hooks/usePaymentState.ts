@@ -155,8 +155,7 @@ export function usePaymentState({
 
   // TODO: backend should determine whether to show solana payment method
   const paymentOptions = pay.order?.metadata.payer?.paymentOptions;
-  // Include by default if paymentOptions not provided. Solana bridging is only
-  // supported on CCTP v1 chains.
+  // Solana bridging is only supported on CCTP v1 chains.
   const showSolanaPaymentMethod =
     paymentOptions == null &&
     pay.order != null &&

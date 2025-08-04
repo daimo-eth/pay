@@ -386,6 +386,21 @@ export enum ExternalPaymentOptions {
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
 
+export enum UniquePaymentOptions {
+  Wallets = "Wallets",
+  Coinbase = "Coinbase",
+  Binance = "Binance",
+  Lemon = "Lemon",
+  Tron = "Tron",
+  Base = "Base",
+  Arbitrum = "Arbitrum",
+  Optimism = "Optimism",
+  Polygon = "Polygon",
+  Ethereum = "Ethereum",
+}
+
+export type UniquePaymentOptionsString = `${UniquePaymentOptions}`;
+
 export type ExternalPaymentOptionData = {
   url: string;
   waitingMessage: string;

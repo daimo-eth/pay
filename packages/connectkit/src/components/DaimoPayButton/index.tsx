@@ -15,6 +15,7 @@ import {
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
+  UniquePaymentOptionsString,
   writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { AnimatePresence, Variants } from "framer-motion";
@@ -99,15 +100,7 @@ export type PayButtonPaymentProps =
       /**
        * The page to start on.
        */
-      uniquePaymentOption?:
-        | ExternalPaymentOptionsString
-        | "Tron"
-        | "Base"
-        | "Arbitrum"
-        | "Optimism"
-        | "Polygon"
-        | "Ethereum"
-        | "Wallets";
+      uniquePaymentOption?: UniquePaymentOptionsString;
     };
 
 type PayButtonCommonProps = PayButtonPaymentProps & {

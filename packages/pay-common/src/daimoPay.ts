@@ -368,7 +368,6 @@ export type ExternalPaymentOptionMetadata = {
 
 export enum ExternalPaymentOptions {
   Daimo = "Daimo",
-  Solana = "Solana",
   ExternalChains = "ExternalChains",
   // All exchanges
   AllExchanges = "AllExchanges",

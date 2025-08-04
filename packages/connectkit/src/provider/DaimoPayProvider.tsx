@@ -167,7 +167,7 @@ const DaimoPayUIProvider = ({
   const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>();
 
   // Daimo Pay context
-  const [uniquePaymentMethodPage, setuniquePaymentMethodPage] =
+  const [uniquePaymentMethodPage, setUniquePaymentMethodPage] =
     useState<ROUTES>(ROUTES.SELECT_METHOD);
   const [pendingConnectorId, setPendingConnectorId] = useState<
     string | undefined
@@ -336,7 +336,7 @@ const DaimoPayUIProvider = ({
     setRoute,
     // Daimo Pay context
     uniquePaymentMethodPage,
-    setuniquePaymentMethodPage,
+    setUniquePaymentMethodPage,
     pendingConnectorId,
     setPendingConnectorId,
     sessionId,

@@ -42,8 +42,8 @@ export type PayContextValue = {
   displayError: (message: string | React.ReactNode | null, code?: any) => void;
   resize: number;
   triggerResize: () => void;
-  startPage: ROUTES;
-  setStartPage: React.Dispatch<React.SetStateAction<ROUTES>>;
+  uniquePaymentMethodPage: ROUTES;
+  setuniquePaymentMethodPage: React.Dispatch<React.SetStateAction<ROUTES>>;
   // All options below are new, specific to Daimo Pay.
   /** Session ID. */
   sessionId: string;

@@ -83,12 +83,14 @@ contract SharedConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // ───────────────────────────────────────────────────────────────────────────
 
     /// @notice Set whether a stablecoin is whitelisted.
-    function setWhitelistedStable(
-        address token,
-        bool whitelisted
+    function setWhitelistedStables(
+        address[] calldata tokens,
+        bool[] calldata whitelisted
     ) external onlyOwner {
-        whitelistedStable[token] = whitelisted;
-        emit WhitelistedStableSet(token, whitelisted);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            whitelistedStable[tokens[i]] = whitelisted[i];
+            emit WhitelistedStableSet(tokens[i], whitelisted[i]);
+        }
     }
 
     // ───────────────────────────────────────────────────────────────────────────

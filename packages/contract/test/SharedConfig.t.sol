@@ -40,10 +40,34 @@ contract SharedConfigTest is Test {
         assertTrue(!cfg.paused());
     }
 
-    function testWhitelistedStableToggle() public {
-        // Initially false
-        assertTrue(!cfg.whitelistedStable(address(usdc)));
-        cfg.setWhitelistedStable(address(usdc), true);
-        assertTrue(cfg.whitelistedStable(address(usdc)));
+    function testWhitelistedStablesToggle() public {
+        // Set up test data
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(usdc);
+        tokens[1] = address(0xBEEF);
+
+        bool[] memory states = new bool[](2);
+        states[0] = true;
+        states[1] = true;
+
+        // Initially false for both
+        assertTrue(!cfg.whitelistedStable(tokens[0]));
+        assertTrue(!cfg.whitelistedStable(tokens[1]));
+
+        // Set both to true
+        cfg.setWhitelistedStables(tokens, states);
+
+        // Verify both are now true
+        assertTrue(cfg.whitelistedStable(tokens[0]));
+        assertTrue(cfg.whitelistedStable(tokens[1]));
+
+        // Set first to false, second to true
+        states[0] = false;
+        states[1] = true;
+        cfg.setWhitelistedStables(tokens, states);
+
+        // Verify states updated correctly
+        assertTrue(!cfg.whitelistedStable(tokens[0]));
+        assertTrue(cfg.whitelistedStable(tokens[1]));
     }
 }

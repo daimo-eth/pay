@@ -67,7 +67,11 @@ contract UniversalAddressTest is Test {
         );
         ERC1967Proxy cfgProxy = new ERC1967Proxy(address(implCfg), cfgData);
         cfg = SharedConfig(payable(address(cfgProxy)));
-        cfg.setWhitelistedStable(address(usdc), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdc);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Core components
         intentFactory = new UniversalAddressFactory();
@@ -447,7 +451,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_BalanceLessThanThreshold() public {
         // Deploy second stablecoin with different number of decimals
         TestDAI dai = new TestDAI();
-        cfg.setWhitelistedStable(address(dai), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(dai);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Set PARTIAL_START_THRESHOLD to 50 USDC
         bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
@@ -483,7 +491,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_BalanceGreaterThanThreshold() public {
         // Deploy second stablecoin with different number of decimals
         TestDAI dai = new TestDAI();
-        cfg.setWhitelistedStable(address(dai), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(dai);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Set PARTIAL_START_THRESHOLD to 50 USDC
         bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");
@@ -520,7 +532,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_SwapPath() public {
         // Deploy second stable-coin (pretend USDT)
         TestUSDC usdt = new TestUSDC();
-        cfg.setWhitelistedStable(address(usdt), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdt);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         vm.chainId(SRC_CHAIN_ID);
 
@@ -611,7 +627,11 @@ contract UniversalAddressTest is Test {
     function testClaimIntent_SwapEqual() public {
         // Deploy alternate stablecoin USDT and whitelist
         TestUSDC usdt = new TestUSDC();
-        cfg.setWhitelistedStable(address(usdt), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdt);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // 1) Source chain startIntent: pay in USDC, will bridge USDC, final token USDT
         vm.chainId(SRC_CHAIN_ID);
@@ -757,7 +777,11 @@ contract UniversalAddressTest is Test {
     function testClaimIntent_SwapDeficitPull() public {
         // Alternate stablecoin (pretend USDT) and whitelist
         TestUSDC usdt = new TestUSDC();
-        cfg.setWhitelistedStable(address(usdt), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdt);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Fund relayer with plenty of USDT
         usdt.transfer(RELAYER, 500_000e6);
@@ -856,7 +880,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_InsufficientOutput_Reverts() public {
         // Deploy alternate stable-coin (pretend USDT) and whitelist it
         TestUSDC usdt = new TestUSDC();
-        cfg.setWhitelistedStable(address(usdt), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdt);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         vm.chainId(SRC_CHAIN_ID);
         UniversalAddressRoute memory route = UniversalAddressRoute({
@@ -1088,7 +1116,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_ReentrancyBlocked() public {
         // Deploy malicious re-entrant token that will attempt a nested call
         ReentrantToken evil = new ReentrantToken(payable(address(mgr)));
-        cfg.setWhitelistedStable(address(evil), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(evil);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Give Alice plenty of the token
         evil.transfer(ALICE, 1_000_000e6);
@@ -1231,7 +1263,11 @@ contract UniversalAddressTest is Test {
 
         // Create a token with 2 decimals (fewer than USDC's 6)
         TestToken2Decimals token2 = new TestToken2Decimals();
-        cfg.setWhitelistedStable(address(token2), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token2);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // toAmount: 1.234567 USDC = 1,234,567 units (6 decimals)
         uint256 toAmount = 1234567;
@@ -1282,7 +1318,11 @@ contract UniversalAddressTest is Test {
 
         // Create a token with 2 decimals (fewer than USDC's 6)
         TestToken2Decimals token2 = new TestToken2Decimals();
-        cfg.setWhitelistedStable(address(token2), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token2);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Fund UA vault with 2 token2
         uint256 vaultBalance = 2e2;
@@ -1342,7 +1382,11 @@ contract UniversalAddressTest is Test {
 
         // Create a token with 18 decimals (more than USDC's 6)
         TestDAI dai = new TestDAI();
-        cfg.setWhitelistedStable(address(dai), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(dai);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         // Fund UA vault with 2 DAI
         uint256 vaultBalance = 2e18;
@@ -1479,7 +1523,11 @@ contract UniversalAddressTest is Test {
     function testStartIntent_SwapPath_audit() public {
         // Add a whitelisted payment token with more than UniversalAssetManager.TOKEN_OUT_DECIMALS
         IERC20 dai = IERC20(new TestDAI());
-        cfg.setWhitelistedStable(address(dai), true);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(dai);
+        bool[] memory states = new bool[](1);
+        states[0] = true;
+        cfg.setWhitelistedStables(tokens, states);
 
         vm.chainId(SRC_CHAIN_ID);
         bytes32 thresholdKey = keccak256("PARTIAL_START_THRESHOLD");

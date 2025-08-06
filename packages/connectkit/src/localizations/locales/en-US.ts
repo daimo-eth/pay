@@ -146,6 +146,8 @@ const enUS = {
   refresh: "Refresh",
   waitingForPayment: "Waiting For Payment",
   sendOnlyOnce: "Send only once",
+  showQR: "Show QR",
+  hideQR: "Hide QR",
 };
 
 export default enUS;

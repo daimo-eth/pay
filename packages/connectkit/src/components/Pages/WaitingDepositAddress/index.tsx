@@ -216,9 +216,10 @@ function DepositAddressInfo({
   const locales = useLocales();
   const [remainingS, totalS] = useCountdown(depAddr?.expirationS);
   const isExpired = depAddr?.expirationS != null && remainingS === 0;
+  const [showQR, setShowQR] = useState(!isMobile);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(triggerResize, [isExpired]);
+  useEffect(triggerResize, [isExpired, showQR]);
 
   const logoOffset = isMobile ? 4 : 0;
   const logoElement = depAddr.displayToken ? (
@@ -239,11 +240,7 @@ function DepositAddressInfo({
             {locales.refresh}
           </Button>
         </LogoRow>
-      ) : isMobile ? (
-        <LogoRow>
-          <LogoWrap>{logoElement}</LogoWrap>
-        </LogoRow>
-      ) : (
+      ) : showQR ? (
         <QRWrap>
           <CustomQRCode
             value={depAddr?.uri}
@@ -252,7 +249,13 @@ function DepositAddressInfo({
             image={logoElement}
           />
         </QRWrap>
+      ) : (
+        <LogoRow>
+          <LogoWrap>{logoElement}</LogoWrap>
+        </LogoRow>
       )}
+      <div style={{ height: 8 }} />
+      {isMobile && <ShowHideQRRow showQR={showQR} setShowQR={setShowQR} />}
       <CopyableInfo depAddr={depAddr} remainingS={remainingS} totalS={totalS} />
     </ModalContent>
   );
@@ -274,6 +277,59 @@ function getDisplayToken(meta: DepositAddressPaymentOptionMetadata) {
       return null;
   }
 }
+
+function ShowHideQRRow({
+  showQR,
+  setShowQR,
+}: {
+  showQR: boolean;
+  setShowQR: (showQR: boolean) => void;
+}) {
+  const toggleQR = () => setShowQR(!showQR);
+  const locales = useLocales();
+
+  return (
+    <ShowQRWrap>
+      <CopyRow onClick={toggleQR}>
+        <SmallText>{showQR ? locales.hideQR : locales.showQR}</SmallText>
+        <div style={{ width: 8 }} />
+        <ShowQRIcon>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="#666"
+            className="size-6"
+            width={20}
+            height={20}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"
+            />
+          </svg>
+        </ShowQRIcon>
+      </CopyRow>
+    </ShowQRWrap>
+  );
+}
+
+const ShowQRWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  color: var(--ck-primary-button-color);
+`;
+
+const ShowQRIcon = styled.div`
+  width: 20px;
+`;
 
 const LogoWrap = styled.div`
   position: relative;
@@ -366,7 +422,6 @@ const CopyableInfoWrapper = styled.div`
   flex-direction: column;
   justify-content: stretch;
   gap: 0;
-  margin-top: 8px;
 `;
 
 const CountdownWrap = styled.div`

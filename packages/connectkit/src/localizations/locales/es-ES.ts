@@ -147,6 +147,8 @@ const esES: LocaleProps = {
   refresh: "Refrescar",
   waitingForPayment: "Esperando pago",
   sendOnlyOnce: "Enviar solo una vez",
+  showQR: "Mostrar QR",
+  hideQR: "Ocultar QR",
 };
 
 export default esES;

@@ -2,9 +2,10 @@ import React, { useMemo } from "react";
 
 import { usePayContext } from "./usePayContext";
 
+import { LocaleFull } from "../localizations/locales";
 import { getLocale } from "./../localizations";
 
-export default function useLocales(replacements?: any) {
+export default function useLocales(replacements?: any): LocaleFull {
   const context = usePayContext();
   const language = context.options?.language ?? "en-US";
 
@@ -14,7 +15,7 @@ export default function useLocales(replacements?: any) {
 
   if (!translations) {
     console.error(`Missing translations for: ${language}`);
-    return `Missing translations for: ${language}`;
+    throw new Error(`Missing translations for: ${language}`);
   }
 
   const translated: any = {};

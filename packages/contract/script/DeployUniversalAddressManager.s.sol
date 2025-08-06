@@ -13,8 +13,8 @@ import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
+import "./constants/UASharedConfigConstants.sol";
 
-import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
 import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
 import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
@@ -24,20 +24,20 @@ import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 // CREATE3Factory constant CREATE3;
 
 bytes32 constant DEPLOY_SALT_UA_FACTORY = keccak256(
-    "UniversalAddressFactory-deploy5"
+    "UniversalAddressFactory-deploy6"
 );
 bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
-    "UniversalAddressBridger-deploy5"
+    "UniversalAddressBridger-deploy6"
 );
-bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy5");
+bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy6");
 bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256(
-    "SharedConfig-impl-deploy5"
+    "SharedConfig-impl-deploy6"
 );
 bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
-    "UniversalAddressManager-deploy5"
+    "UniversalAddressManager-deploy6"
 );
 bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
-    "UniversalAddressManager-impl-deploy5"
+    "UniversalAddressManager-impl-deploy6"
 );
 
 /// @title DeployUniversalAddressManager
@@ -49,17 +49,6 @@ bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
 ///         4. UniversalAddressManager (core escrow contract)
 contract DeployUniversalAddressManager is Script {
     function run() public {
-        //////////////////////////////////////////////////////////////
-        // PREP
-        //////////////////////////////////////////////////////////////
-        // Determine the already-deployed DaimoPayBridger multiplexer.
-        address daimoPayBridger = CREATE3.getDeployed(
-            msg.sender,
-            DEPLOY_SALT_BRIDGER
-        );
-        require(daimoPayBridger != address(0), "UAM: DaimoPayBridger missing");
-        console.log("using DaimoPayBridger at", daimoPayBridger);
-
         //////////////////////////////////////////////////////////////
         // DEPLOY
         //////////////////////////////////////////////////////////////
@@ -78,14 +67,9 @@ contract DeployUniversalAddressManager is Script {
         // 2. UniversalAddressBridger
         (
             uint256[] memory chainIds,
+            address[] memory bridgers,
             address[] memory stableOuts
-        ) = _getSupportedChainsAndStables(block.chainid);
-
-        uint256 n = chainIds.length;
-        IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](n);
-        for (uint256 i; i < n; ++i) {
-            bridgers[i] = IDaimoPayBridger(daimoPayBridger);
-        }
+        ) = _getSupportedChainsAndBridges(block.chainid);
 
         address universalBridger = CREATE3.deploy(
             DEPLOY_SALT_UA_BRIDGER,
@@ -118,6 +102,25 @@ contract DeployUniversalAddressManager is Script {
             )
         );
         console.log("SharedConfig proxy deployed at", sharedConfig);
+
+        // Set whitelisted stables
+        address[] memory whitelistedStables = getUAWhitelistedStables(
+            block.chainid
+        );
+        bool[] memory whitelisted = new bool[](whitelistedStables.length);
+        for (uint256 i; i < whitelistedStables.length; ++i) {
+            whitelisted[i] = true;
+        }
+        SharedConfig(sharedConfig).setWhitelistedStables(
+            whitelistedStables,
+            whitelisted
+        );
+
+        // Set config values
+        SharedConfig(sharedConfig).setNum(
+            keccak256("PARTIAL_START_THRESHOLD"),
+            getUAPartialStartThreshold()
+        );
 
         // 4. UniversalAddressManager – implementation & proxy
         address uaManagerImpl = CREATE3.deploy(
@@ -154,25 +157,29 @@ contract DeployUniversalAddressManager is Script {
         vm.stopBroadcast();
     }
 
-    /// @notice Collect the list of destination chain IDs supported by the
-    ///         DaimoPayBridger on the current source chain and map each to its
-    ///         canonical USDC address.
+    /// @notice Collect the list of destination chain IDs, bridge adapters, and
+    ///         stablecoin addresses supported by the UA Bridger on the current
+    ///         source chain.
     /// @dev    Mirrors the logic in DeployDaimoPayBridger.s.sol so that the UA
     ///         bridger is configured for the exact same set of chains.
-    function _getSupportedChainsAndStables(
+    function _getSupportedChainsAndBridges(
         uint256 sourceChainId
     )
         private
         view
-        returns (uint256[] memory chainIds, address[] memory stableOuts)
+        returns (
+            uint256[] memory chainIds,
+            address[] memory bridgers,
+            address[] memory stableOuts
+        )
     {
         bool testnet = _isTestnet(sourceChainId);
         if (testnet) {
             // Bridging not supported on testnet.
-            return (new uint256[](0), new address[](0));
+            return (new uint256[](0), new address[](0), new address[](0));
         }
 
-        // Collect destination chain IDs from each bridge type --------------------------------
+        // Collect destination chain IDs from each bridge type
         (
             uint256[] memory cctpChainIds,
             DaimoPayCCTPBridger.CCTPBridgeRoute[] memory cctpBridgeRoutes
@@ -195,6 +202,24 @@ contract DeployUniversalAddressManager is Script {
             DaimoPayAxelarBridger.AxelarBridgeRoute[] memory axelarBridgeRoutes
         ) = getAxelarBridgeRoutes(sourceChainId, axelarReceiver);
 
+        // Get addresses of deployed bridger implementations
+        address cctpBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_CCTP_BRIDGER
+        );
+        address cctpV2Bridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_CCTP_V2_BRIDGER
+        );
+        address acrossBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_ACROSS_BRIDGER
+        );
+        address axelarBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_AXELAR_BRIDGER
+        );
+
         // Count total chains & allocate output arrays
         uint256 total = cctpChainIds.length +
             cctpV2ChainIds.length +
@@ -202,32 +227,37 @@ contract DeployUniversalAddressManager is Script {
             axelarChainIds.length;
 
         chainIds = new uint256[](total);
+        bridgers = new address[](total);
         stableOuts = new address[](total);
 
         uint256 idx = 0;
-        // helper to push id & stable
+        // Helper to push id, bridgers, and stableOuts
         for (uint256 i; i < cctpChainIds.length; ++i) {
             chainIds[idx] = cctpChainIds[i];
+            bridgers[idx] = cctpBridger;
             stableOuts[idx] = cctpBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < cctpV2ChainIds.length; ++i) {
             chainIds[idx] = cctpV2ChainIds[i];
+            bridgers[idx] = cctpV2Bridger;
             stableOuts[idx] = cctpV2BridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < acrossChainIds.length; ++i) {
             chainIds[idx] = acrossChainIds[i];
+            bridgers[idx] = acrossBridger;
             stableOuts[idx] = acrossBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
         for (uint256 i; i < axelarChainIds.length; ++i) {
             chainIds[idx] = axelarChainIds[i];
+            bridgers[idx] = axelarBridger;
             stableOuts[idx] = axelarBridgeRoutes[i].bridgeTokenOut;
             idx++;
         }
 
-        return (chainIds, stableOuts);
+        return (chainIds, bridgers, stableOuts);
     }
 
     // Exclude from forge coverage

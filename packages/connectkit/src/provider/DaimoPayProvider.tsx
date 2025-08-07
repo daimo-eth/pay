@@ -305,7 +305,9 @@ const DaimoPayUIProvider = ({
     pay.order.sourceStatus === DaimoPayOrderStatusSource.WAITING_PAYMENT &&
     pay.order.sourceTokenAmount != null;
   useEffect(() => {
-    if (
+    if (pay.paymentState === "error") {
+      setRoute(ROUTES.ERROR);
+    } else if (
       pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"

@@ -12,6 +12,7 @@ import {
   SolanaPublicKey,
 } from "@daimo/pay-common";
 import { Address, Hex, parseUnits } from "viem";
+import { getDisplayExpiresAt } from "./paymentUtils";
 
 /** Payment parameters. The payment is created only after user taps pay. */
 export interface PayParams {
@@ -210,7 +211,7 @@ function reducePreview(
 
   switch (event.type) {
     case "order_hydrated":
-      return { type: "payment_unpaid", order: event.order };
+      return getStateFromHydratedOrder(event.order);
     case "set_chosen_usd": {
       const token = state.order.destFinalCallTokenAmount.token;
       const tokenUnits = (event.usd / token.priceFromUsd).toString();
@@ -277,10 +278,10 @@ function reducePaymentUnpaid(
           message: "Payment failed",
         };
       }
-      return getStateFromHydratedOrder(state, event.order);
+      return getStateFromHydratedOrder(event.order);
     }
     case "order_refreshed":
-      return getStateFromHydratedOrder(state, event.order);
+      return getStateFromHydratedOrder(event.order);
     case "error":
       return {
         type: "error",
@@ -300,7 +301,7 @@ function reducePaymentStarted(
 ): PaymentState {
   switch (event.type) {
     case "order_refreshed":
-      return getStateFromHydratedOrder(state, event.order);
+      return getStateFromHydratedOrder(event.order);
     case "error":
       return {
         type: "error",
@@ -319,28 +320,9 @@ function reducePaymentStarted(
  * Returns the appropriate payment state based on the order's mode and intent status.
  */
 function getStateFromOrder(order: DaimoPayOrderWithOrg): PaymentState {
-  if (order.intentStatus === DaimoPayIntentStatus.COMPLETED) {
-    assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-    );
-    return { type: "payment_completed", order };
-  } else if (order.intentStatus === DaimoPayIntentStatus.BOUNCED) {
-    assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-    );
-    return { type: "payment_bounced", order };
-  } else if (order.intentStatus === DaimoPayIntentStatus.STARTED) {
-    assert(
-      order.mode === DaimoPayOrderMode.HYDRATED,
-      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`,
-    );
-    return { type: "payment_started", order };
-  } else if (order.mode === DaimoPayOrderMode.HYDRATED) {
-    return { type: "payment_unpaid", order };
+  if (order.mode === DaimoPayOrderMode.HYDRATED) {
+    return getStateFromHydratedOrder(order);
   } else {
-    // Order is not hydrated (SALE or CHOOSE_AMOUNT mode)
     return { type: "unhydrated", order };
   }
 }
@@ -349,22 +331,35 @@ function getStateFromOrder(order: DaimoPayOrderWithOrg): PaymentState {
  * Determines the appropriate payment state for a hydrated order. Progresses
  * the payment through different processing states.
  */
-function getStateFromHydratedOrder(
-  state: Extract<PaymentState, { type: "payment_started" | "payment_unpaid" }>,
-  order: DaimoPayOrderWithOrg,
-): PaymentState {
+function getStateFromHydratedOrder(order: DaimoPayOrderWithOrg): PaymentState {
   assert(isHydrated(order), `[PAYMENT_REDUCER] unhydrated`);
+
+  // Handle finished orders first
+  switch (order.intentStatus) {
+    case DaimoPayIntentStatus.COMPLETED:
+      return { type: "payment_completed", order };
+    case DaimoPayIntentStatus.BOUNCED:
+      return { type: "payment_bounced", order };
+  }
+
+  // If unfinished, check if expired
+  const displayExpiresAt = getDisplayExpiresAt(order);
+  if (Date.now() / 1e3 > displayExpiresAt) {
+    return {
+      type: "error",
+      order,
+      message: "Payment expired. Please restart.",
+    };
+  }
+
+  // Unfinished but not expired
   switch (order.intentStatus) {
     case DaimoPayIntentStatus.UNPAID:
       return { type: "payment_unpaid", order };
     case DaimoPayIntentStatus.STARTED:
       return { type: "payment_started", order };
-    case DaimoPayIntentStatus.COMPLETED:
-      return { type: "payment_completed", order };
-    case DaimoPayIntentStatus.BOUNCED:
-      return { type: "payment_bounced", order };
     default:
-      return state;
+      return { type: "error", order, message: `Status: ${order.intentStatus}` };
   }
 }
 

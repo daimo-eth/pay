@@ -608,5 +608,5 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
 // TODO: Use new CREATE3Factory when redeploying new contracts
 // 0x37922885311Bc9d18E136e4FE6654409d3F45FFd
 CREATE3Factory constant CREATE3 = CREATE3Factory(
-    0x4Ce25bE5611B6527eA48f7Abf513d48BAcb4Cc44
+    0x37922885311Bc9d18E136e4FE6654409d3F45FFd
 );

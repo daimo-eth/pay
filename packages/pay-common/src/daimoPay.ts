@@ -497,10 +497,6 @@ export function writeDaimoPayOrderID(id: bigint): string {
   return base58.encode(numberToBytes(id));
 }
 
-export const zUUID = z.string().uuid();
-
-export type UUID = z.infer<typeof zUUID>;
-
 export enum DaimoPayEventType {
   PaymentStarted = "payment_started",
   PaymentCompleted = "payment_completed",
@@ -552,38 +548,3 @@ export type DaimoPayEvent =
   | PaymentCompletedEvent
   | PaymentBouncedEvent
   | PaymentRefundedEvent;
-
-export interface WebhookEndpoint {
-  id: UUID;
-  orgId: UUID;
-  url: string;
-  token: string;
-  createdAt: Date;
-  deletedAt: Date | null;
-}
-
-// Lifecycle: Pending (just created) -> (if failing) Retrying (exponential backoff) -> Successful or Failed
-export enum WebhookEventStatus {
-  PENDING = "pending", // waiting to be delivered
-  RETRYING = "retrying", // currently in exponential backoff queue
-  SUCCESSFUL = "successful", // successfully delivered
-  FAILED = "failed", // gave up after retrying
-}
-
-export interface WebhookEvent {
-  id: UUID;
-  endpoint: WebhookEndpoint;
-  isTestEvent: boolean;
-  body: DaimoPayEvent;
-  status: WebhookEventStatus;
-  deliveries: WebhookDelivery[];
-  createdAt: Date;
-}
-
-export interface WebhookDelivery {
-  id: UUID;
-  eventId: UUID;
-  httpStatus: number | null;
-  body: string | null;
-  createdAt: Date;
-}

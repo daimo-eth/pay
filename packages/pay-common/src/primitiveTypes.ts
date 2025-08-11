@@ -8,6 +8,10 @@ export const zBigIntStr = z
 
 export type BigIntStr = `${bigint}`;
 
+export const zUUID = z.string().uuid();
+
+export type UUID = z.infer<typeof zUUID>;
+
 export const zAddress = z
   .string()
   .regex(/^0x[0-9a-f]{40}$/i)

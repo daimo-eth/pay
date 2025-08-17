@@ -1,5 +1,6 @@
 import { supportedChains, WalletPaymentOption } from "@daimo/pay-common";
 import { useEffect, useMemo, useState } from "react";
+import { Address } from "viem";
 import { TrpcClient } from "../utils/trpc";
 
 /** Wallet payment options. User picks one. */
@@ -8,9 +9,11 @@ export function useWalletPaymentOptions({
   address,
   usdRequired,
   destChainId,
+  destAddress,
   preferredChains,
   preferredTokens,
   evmChains,
+  passthroughTokens,
   isDepositFlow,
   log,
 }: {
@@ -18,9 +21,11 @@ export function useWalletPaymentOptions({
   address: string | undefined;
   usdRequired: number | undefined;
   destChainId: number | undefined;
+  destAddress: Address | undefined;
   preferredChains: number[] | undefined;
   preferredTokens: { chain: number; address: string }[] | undefined;
   evmChains: number[] | undefined;
+  passthroughTokens: { chain: number; address: string }[] | undefined;
   isDepositFlow: boolean;
   log: (msg: string) => void;
 }) {
@@ -49,12 +54,19 @@ export function useWalletPaymentOptions({
 
   useEffect(() => {
     const refreshWalletPaymentOptions = async () => {
-      if (address == null || usdRequired == null || destChainId == null) return;
+      if (
+        address == null ||
+        usdRequired == null ||
+        destChainId == null ||
+        destAddress == null
+      ) {
+        return;
+      }
 
       setOptions(null);
       setIsLoading(true);
       try {
-        const newOptions = await trpc.getWalletPaymentOptions.query({
+        let newOptions = await trpc.getWalletPaymentOptions.query({
           payerAddress: address,
           // API expects undefined for deposit flow.
           usdRequired: isDepositFlow ? undefined : usdRequired,
@@ -63,6 +75,9 @@ export function useWalletPaymentOptions({
           preferredTokens: memoizedPreferredTokens,
           evmChains: memoizedEvmChains,
         });
+
+        // Add passthrough tokens client-side.
+        addPassthroughTokens(newOptions, passthroughTokens, destAddress);
 
         // Filter out chains we don't support yet.
         const isSupported = (o: WalletPaymentOption) =>
@@ -100,4 +115,24 @@ export function useWalletPaymentOptions({
     options,
     isLoading,
   };
+}
+
+/** Updates and sorts `options`, marking the relevant oneas as pass-through. */
+export function addPassthroughTokens(
+  options: WalletPaymentOption[],
+  passthroughTokens: { chain: number; address: string }[] | undefined,
+  passthroughAddress: Address,
+) {
+  if (passthroughTokens == null) return;
+
+  for (const option of options) {
+    const tok = option.balance.token;
+    if (option.disabledReason != null) continue;
+    const found = passthroughTokens.find(
+      (t) => t.address === tok.token && t.chain == tok.chainId,
+    );
+    if (found == null) continue;
+
+    option.passthroughAddress = passthroughAddress;
+  }
 }

@@ -134,6 +134,17 @@ export const zDaimoPayOrderMetadata = z.object({
         .describe(
           "Payment options like Coinbase, Binance, etc. Defaults to all available options.",
         ),
+      passthroughTokens: z
+        .array(
+          z.object({
+            chain: z.number(),
+            address: zAddress.transform((a) => getAddress(a)),
+          }),
+        )
+        .optional()
+        .describe(
+          "Pass-through tokens. If the user pays via these tokens, they're sent directly to the destination address without swapping or bridging.",
+        ),
     })
     .optional()
     .describe(""),
@@ -205,6 +216,7 @@ export type DaimoPayHydratedOrder = {
   destStatus: DaimoPayOrderStatusDest;
   destFastFinishTxHash: Hex | null;
   destClaimTxHash: Hex | null;
+  passedToAddress: Address | null;
   redirectUri: string | null;
   orgId: string | null;
   sourceInitiateUpdatedAt: number | null;
@@ -343,6 +355,7 @@ export function getDaimoPayOrderView(order: DaimoPayOrder): DaimoPayOrderView {
 }
 
 export type WalletPaymentOption = {
+  /** The user's balance of this token. */
   balance: DaimoPayTokenAmount;
 
   // TODO: deprecate, replace with requiredUsd / minRequiredUsd / feesUsd
@@ -351,7 +364,11 @@ export type WalletPaymentOption = {
   minimumRequired: DaimoPayTokenAmount;
   fees: DaimoPayTokenAmount;
 
+  /** If present, the option is disabled. */
   disabledReason?: string;
+
+  /** If present, send directly to passthroughAddress, no swap or bridge. */
+  passthroughAddress?: Address;
 };
 
 export type ExternalPaymentOptionMetadata = {

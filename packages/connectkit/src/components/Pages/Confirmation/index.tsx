@@ -11,10 +11,13 @@ import {
 
 import {
   assert,
+  assertNotNull,
   getChainExplorerTxUrl,
   getOrderDestChainId,
+  getOrderSourceChainId,
 } from "@daimo/pay-common";
 import { motion } from "framer-motion";
+import { Hex } from "viem";
 import { LoadingCircleIcon, TickIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
@@ -31,13 +34,21 @@ const Confirmation: React.FC = () => {
       paymentState === "payment_completed" ||
       paymentState === "payment_bounced"
     ) {
-      const txHash = order.destFastFinishTxHash ?? order.destClaimTxHash;
-      const destChainId = getOrderDestChainId(order);
+      let finalChainId: number;
+      let finalTxHash: Hex | null;
+
+      if (order.passedToAddress == null) {
+        finalChainId = getOrderDestChainId(order);
+        finalTxHash = order.destFastFinishTxHash ?? order.destClaimTxHash;
+      } else {
+        finalChainId = assertNotNull(getOrderSourceChainId(order));
+        finalTxHash = order.sourceInitiateTxHash;
+      }
       assert(
-        txHash != null,
+        finalTxHash != null,
         `[CONFIRMATION] paymentState: ${paymentState}, but missing txHash`,
       );
-      const txURL = getChainExplorerTxUrl(destChainId, txHash);
+      const txURL = getChainExplorerTxUrl(finalChainId, finalTxHash);
 
       return { done: true, txURL };
     }

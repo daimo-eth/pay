@@ -263,6 +263,7 @@ const DaimoPayUIProvider = ({
   );
   useEffect(() => setErrorMessage(null), [route, open]);
 
+  // TODO: replace with dispatcher pattern; remove hook slop
   const paymentState = usePaymentState({
     trpc,
     lockPayParams,

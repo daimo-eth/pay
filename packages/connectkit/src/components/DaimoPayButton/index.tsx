@@ -91,6 +91,11 @@ export type PayButtonPaymentProps =
        * The address to refund to if the payment bounces.
        */
       refundAddress?: Address;
+      /**
+       * Pass-through tokens. If the user pays via a pass-through
+       * token, it is sent directly to `toAddress` with no swapping or bridging.
+       */
+      passthroughTokens?: PassthroughToken[];
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
@@ -102,6 +107,15 @@ export type PayButtonPaymentProps =
        */
       uniquePaymentOption?: UniquePaymentOptionsString;
     };
+
+/**
+ * Represents a pass-through token. If the user pays via a pass-through
+ * token, it is sent directly to `toAddress` with no swapping or bridging.
+ */
+type PassthroughToken = {
+  chain: number;
+  address: Address;
+};
 
 type PayButtonCommonProps = PayButtonPaymentProps & {
   /** Called when user sends payment and transaction is seen on chain */
@@ -202,6 +216,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
           externalId: props.externalId,
           metadata: props.metadata,
           refundAddress: props.refundAddress,
+          passthroughTokens: props.passthroughTokens,
         }
       : null;
   let payId = "payId" in props ? props.payId : null;
@@ -300,12 +315,16 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
       payState === "payment_completed"
         ? DaimoPayEventType.PaymentCompleted
         : DaimoPayEventType.PaymentBounced;
+    const passthroughTxHash =
+      order.passedToAddress == null ? undefined : order.sourceInitiateTxHash;
     const event = {
       type: eventType,
       paymentId: writeDaimoPayOrderID(order.id),
       chainId: getOrderDestChainId(order),
       txHash: assertNotNull(
-        order.destFastFinishTxHash ?? order.destClaimTxHash,
+        order.destFastFinishTxHash ??
+          order.destClaimTxHash ??
+          passthroughTxHash,
         `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`,
       ),
       payment: getDaimoPayOrderView(order),

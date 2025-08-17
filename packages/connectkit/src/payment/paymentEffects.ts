@@ -215,6 +215,7 @@ async function runSetPayParamsEffects(
           preferredChains: payParams.preferredChains,
           preferredTokens: payParams.preferredTokens,
           evmChains: payParams.evmChains,
+          passthroughTokens: payParams.passthroughTokens,
         },
       },
       externalId: payParams.externalId,

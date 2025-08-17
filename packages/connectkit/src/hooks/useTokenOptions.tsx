@@ -3,6 +3,7 @@
 import {
   DaimoPayToken,
   getChainName,
+  Token,
   WalletPaymentOption,
 } from "@daimo/pay-common";
 import { Option } from "../components/Common/OptionsList";
@@ -10,6 +11,7 @@ import TokenChainLogo from "../components/Common/TokenChainLogo";
 import { ROUTES } from "../constants/routes";
 import { flattenChildren } from "../utils";
 import { formatUsd, roundTokenAmount } from "../utils/format";
+import { useDaimoPay } from "./useDaimoPay";
 import useLocales from "./useLocales";
 import { usePayContext } from "./usePayContext";
 
@@ -33,6 +35,13 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
   const locales = useLocales();
   const onString = flattenChildren(locales.on).join("");
 
+  // HACK: special handling for portfolio deposits
+  const pay = useDaimoPay();
+  const isPassthrough = !!pay.order?.metadata.payer?.passthroughTokens?.length;
+  const nonPassthroughToken = isPassthrough
+    ? pay.order?.destFinalCallTokenAmount.token
+    : undefined;
+
   let optionsList: Option[] = [];
   let isLoading = false;
   if (["evm", "all"].includes(mode)) {
@@ -43,6 +52,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
         setSelectedTokenOption,
         setRoute,
         onString,
+        nonPassthroughToken,
       ),
     );
     isLoading ||= walletPaymentOptions.isLoading;
@@ -59,6 +69,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
     );
     isLoading ||= solanaPaymentOptions.isLoading;
   }
+
   optionsList.sort((a, b) => {
     const dDisabled = (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0);
     if (dDisabled !== 0) return dDisabled;
@@ -75,6 +86,7 @@ function getEvmTokenOptions(
   setSelectedTokenOption: (option: WalletPaymentOption) => void,
   setRoute: (route: ROUTES, meta?: any) => void,
   onString: string,
+  nonPassthroughToken?: Token,
 ) {
   return options.map((option) => {
     const chainName = getChainName(option.balance.token.chainId);
@@ -84,14 +96,27 @@ function getEvmTokenOptions(
     const title = `${titlePrice} ${option.balance.token.symbol} ${onString} ${chainName}`;
 
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
-    const subtitle =
+    let subtitle =
       option.disabledReason ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;
     const disabled = option.disabledReason != null;
 
+    // HACK: special handling for portfolio deposits
+    if (nonPassthroughToken != null) {
+      const defaultSym = nonPassthroughToken.symbol;
+      const optSym = option.balance.token.symbol;
+      if (option.passthroughAddress == null && optSym !== defaultSym) {
+        subtitle = `Convert to ${defaultSym}`;
+      } else {
+        subtitle = `Deposit ${optSym}`;
+      }
+    }
+    const sortValue =
+      option.balance.usd + (option.passthroughAddress == null ? 0 : 1e9);
+
     return {
       id: getDaimoTokenKey(option.balance.token),
-      sortValue: option.balance.usd,
+      sortValue,
       title,
       subtitle,
       icons: [

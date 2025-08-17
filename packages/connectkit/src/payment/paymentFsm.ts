@@ -47,6 +47,8 @@ export interface PayParams {
   metadata?: DaimoPayUserMetadata;
   /** The address to refund to if the payment bounces or a refund is requested. */
   refundAddress?: Address;
+  /** Pass-through tokens. If the user pays via these tokens, they're sent directly without swapping. */
+  passthroughTokens?: { chain: number; address: Address }[];
 }
 
 export type PaymentState =

@@ -180,9 +180,11 @@ export function usePaymentState({
     address: ethWalletAddress,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     destChainId: pay.order?.destFinalCallTokenAmount.token.chainId,
+    destAddress: pay.order?.destFinalCall.to,
     preferredChains: pay.order?.metadata.payer?.preferredChains,
     preferredTokens: pay.order?.metadata.payer?.preferredTokens,
     evmChains: pay.order?.metadata.payer?.evmChains,
+    passthroughTokens: pay.order?.metadata.payer?.passthroughTokens,
     isDepositFlow,
     log,
   });
@@ -269,10 +271,11 @@ export function usePaymentState({
     }
 
     const paymentTxHash = await (async () => {
+      const dest = walletOption.passthroughAddress ?? hydratedOrder.intentAddr;
       try {
         if (required.token.token === zeroAddress) {
           return await sendTransactionAsync({
-            to: hydratedOrder.intentAddr,
+            to: dest,
             value: paymentAmount,
           });
         } else {
@@ -280,7 +283,7 @@ export function usePaymentState({
             abi: erc20Abi,
             address: getAddress(required.token.token),
             functionName: "transfer",
-            args: [hydratedOrder.intentAddr, paymentAmount],
+            args: [dest, paymentAmount],
           });
         }
       } catch (e) {

@@ -55,7 +55,6 @@ const defaultConfig = ({
   appIcon,
   appDescription,
   appUrl,
-  coinbaseWalletPreference,
   additionalConnectors,
   chains = REQUIRED_CHAINS,
   client,
@@ -90,7 +89,6 @@ const defaultConfig = ({
         description: appDescription,
         url: appUrl,
       },
-      coinbaseWalletPreference,
       additionalConnectors,
     });
 

@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "@daimo/pay-common": "1.16.1-dev",
-    "@rollup/plugin-typescript": "^12.1.2",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/web3.js": "^1.95.4",
@@ -44,6 +43,7 @@
     "detect-browser": "^5.3.0",
     "encoding": "^0.1.13",
     "framer-motion": "^11.11.4",
+    "ox": "^0.8.8",
     "pino-pretty": "^13.0.0",
     "qrcode": "^1.5.0",
     "react-transition-state": "^1.1.4",
@@ -57,7 +57,7 @@
     "react": "18.x || 19.x",
     "react-dom": "18.x || 19.x",
     "viem": ">=2.22.0",
-    "wagmi": "2.x"
+    "wagmi": "^2.16.4"
   },
   "peerDependenciesMeta": {
     "@worldcoin/minikit-js": {
@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-typescript": "^12.1.4",
     "@types/node": "^20.14.12",
     "@types/qrcode": "^1.4.2",
     "@types/react": "^18.2.47",

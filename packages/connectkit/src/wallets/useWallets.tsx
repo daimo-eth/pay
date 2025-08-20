@@ -10,7 +10,8 @@ import { usePayContext } from "../hooks/usePayContext";
 import { SolanaWalletName } from "../provider/SolanaContextProvider";
 import {
   flattenChildren,
-  isCoinbaseWalletConnector,
+  isBaseAccountConnector,
+  isGeminiConnector,
   isInjectedConnector,
 } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
@@ -49,7 +50,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     // Add injected wallet (if any) first, unless disabled
     if (!disableMobileInjector) {
       connectors.forEach((connector) => {
-        if (isCoinbaseWalletConnector(connector.id)) return;
+        if (isBaseAccountConnector(connector.id)) return;
+        if (isGeminiConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
@@ -145,7 +147,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           connector.type === "mock" ||
           (connector.type === "injected" && connector.id !== "metaMask") ||
           connector.type === "farcasterFrame" ||
-          isCoinbaseWalletConnector(connector.id),
+          isBaseAccountConnector(connector.id),
       };
 
       if (walletConfigKey) {

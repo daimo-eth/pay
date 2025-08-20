@@ -1,8 +1,4 @@
-import {
-  coinbaseWallet,
-  CoinbaseWalletParameters,
-  safe,
-} from "@wagmi/connectors";
+import { baseAccount, gemini, safe } from "@wagmi/connectors";
 import { CreateConnectorFn } from "wagmi";
 
 type DefaultConnectorsProps = {
@@ -12,16 +8,13 @@ type DefaultConnectorsProps = {
     description?: string;
     url?: string;
   };
-  coinbaseWalletPreference?: CoinbaseWalletParameters<"4">["preference"];
   additionalConnectors?: CreateConnectorFn[];
 };
 
 const defaultConnectors = ({
   app,
-  coinbaseWalletPreference,
   additionalConnectors,
 }: DefaultConnectorsProps): CreateConnectorFn[] => {
-  const hasAllAppData = app.name && app.icon && app.description && app.url;
   const shouldUseSafeConnector =
     !(typeof window === "undefined") && window?.parent !== window;
 
@@ -38,11 +31,18 @@ const defaultConnectors = ({
 
   // Add the rest of the connectors
   connectors.push(
-    coinbaseWallet({
+    baseAccount({
       appName: app.name,
       appLogoUrl: app.icon,
-      overrideIsMetaMask: false,
-      preference: coinbaseWalletPreference,
+    }),
+  );
+  connectors.push(
+    gemini({
+      appMetadata: {
+        name: app.name,
+        url: app.url,
+        icons: [app.icon ?? ""],
+      },
     }),
   );
 

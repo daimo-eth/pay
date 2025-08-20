@@ -16,7 +16,7 @@ import {
 } from "./styles";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { isCoinbaseWalletConnector, isMobile } from "../../../utils";
+import { isBaseAccountConnector, isMobile } from "../../../utils";
 
 import { chainToLogo, UnknownChain } from "../../../assets/chains";
 import useLocales from "../../../hooks/useLocales";
@@ -131,7 +131,7 @@ const ChainSelectList = ({
                         animate={
                           // UI fix for Coinbase Wallet on mobile does not remove isPending on rejection event
                           mobile &&
-                          isCoinbaseWalletConnector(connector?.id) &&
+                          isBaseAccountConnector(connector?.id) &&
                           isPending &&
                           pendingChainId === ch.id
                             ? {
@@ -203,7 +203,7 @@ const ChainSelectList = ({
                             animate={
                               // UI fix for Coinbase Wallet on mobile does not remove isLoading on rejection event
                               mobile &&
-                              isCoinbaseWalletConnector(connector?.id) && {
+                              isBaseAccountConnector(connector?.id) && {
                                 opacity: [1, 0],
                                 transition: { delay: 4, duration: 4 },
                               }

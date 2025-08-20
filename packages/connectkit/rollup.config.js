@@ -41,6 +41,7 @@ export default [
         declaration: true,
         declarationDir: "build",
         rootDir: "src",
+        tsconfig: "./tsconfig.json",
       }),
     ],
   },

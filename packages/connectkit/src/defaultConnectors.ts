@@ -28,7 +28,6 @@ const defaultConnectors = ({
       }),
     );
   }
-
   // Add the rest of the connectors
   connectors.push(
     baseAccount({
@@ -41,7 +40,7 @@ const defaultConnectors = ({
       appMetadata: {
         name: app.name,
         url: app.url,
-        icons: [app.icon ?? ""],
+        appLogoUrl: app.icon,
       },
     }),
   );

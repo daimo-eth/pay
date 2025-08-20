@@ -147,7 +147,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           connector.type === "mock" ||
           (connector.type === "injected" && connector.id !== "metaMask") ||
           connector.type === "farcasterFrame" ||
-          isBaseAccountConnector(connector.id),
+          isBaseAccountConnector(connector.id) ||
+          isGeminiConnector(connector.id),
       };
 
       if (walletConfigKey) {

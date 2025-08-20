@@ -20,7 +20,6 @@ const ConnectUsing = () => {
   const { pendingConnectorId } = context;
 
   const wallet = useWallet(pendingConnectorId ?? "");
-
   // If cannot be scanned, display injector flow, which if extension is not installed will show CTA to install it
   const isQrCode = !wallet?.isInstalled;
 

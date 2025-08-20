@@ -114,7 +114,6 @@ const ConnectorItem = ({
     if (wallet.solanaConnectorName && !isMobile) {
       const supportsEvm = wallet.connector?.name != null;
       if (supportsEvm) {
-        console.log("supportsEvm", supportsEvm);
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_CHAIN, meta);
         return;
@@ -124,7 +123,6 @@ const ConnectorItem = ({
         return;
       }
     }
-
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS, meta);
     } else if (redirectToMobileWallets) {

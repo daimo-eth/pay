@@ -1,5 +1,7 @@
 import {
   assert,
+  ExternalPaymentOptionsString,
+  isHydrated,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
   RozoPayOrder,
@@ -7,10 +9,9 @@ import {
   RozoPayOrderMode,
   RozoPayOrderWithOrg,
   RozoPayUserMetadata,
-  ExternalPaymentOptionsString,
-  isHydrated,
   SolanaPublicKey,
   StellarPublicKey,
+  WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { Address, Hex, parseUnits } from "viem";
 
@@ -31,6 +32,8 @@ export interface PayParams {
   toAddress: Address;
   /** The final stellar address to transfer to. */
   toStellarAddress?: string;
+  /** The final solana address to transfer to. */
+  toSolanaAddress?: string;
   /** Calldata for final call, or empty data for transfer. */
   toCallData?: Hex;
   /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
@@ -85,7 +88,11 @@ export type PaymentEvent =
   | { type: "set_pay_id"; payId: RozoPayOrderID }
   // HACK: edit the order in-memory to change the amount in deposit flow
   | { type: "set_chosen_usd"; usd: number }
-  | { type: "hydrate_order"; refundAddress?: Address }
+  | {
+      type: "hydrate_order";
+      refundAddress?: Address;
+      walletPaymentOption?: WalletPaymentOption;
+    }
   | {
       type: "pay_source";
     }

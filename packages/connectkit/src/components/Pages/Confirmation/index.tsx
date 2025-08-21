@@ -11,8 +11,10 @@ import {
 
 import {
   assert,
+  baseUSDC,
   getChainExplorerTxUrl,
   getOrderDestChainId,
+  rozoSolana,
   stellar,
 } from "@rozoai/intent-common";
 import { motion } from "framer-motion";
@@ -35,7 +37,13 @@ const Confirmation: React.FC = () => {
 
   const { done, txURL } = useMemo(() => {
     const { tokenMode, txHash, rozoPaymentId } = paymentStateContext;
-    if (tokenMode === "stellar" && txHash) {
+
+    console.log("[CONFIRMATION] tokenMode", {tokenMode, txHash, rozoPaymentId, paymentState, order, paymentStateContext, isConfirming});
+
+    const isRozoPayment = tokenMode === "stellar" || tokenMode === "solana" || 
+      (tokenMode === "evm" && order && order.destFinalCallTokenAmount?.token.token === baseUSDC.token);
+    
+    if (isRozoPayment && txHash) {
       // Add delay before setting payment completed to show confirming state
       if (isConfirming) {
         setTimeout(() => {
@@ -45,7 +53,17 @@ const Confirmation: React.FC = () => {
         return { done: false, txURL: undefined };
       }
 
-      const txURL = getChainExplorerTxUrl(stellar.chainId, txHash);
+      // Determine chain ID based on token mode
+      let chainId: number;
+      if (tokenMode === "stellar") {
+        chainId = stellar.chainId;
+      } else if (tokenMode === "solana") {
+        chainId = rozoSolana.chainId;
+      } else {
+        chainId = Number(paymentStateContext.selectedTokenOption?.required.token.chainId);
+      }
+
+      const txURL = getChainExplorerTxUrl(chainId, txHash);
       return { done: true, txURL };
     } else {
       if (
@@ -69,7 +87,7 @@ const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (done) {
-      if (paymentStateContext.tokenMode === "stellar") {
+      if (paymentStateContext.tokenMode === "stellar" || paymentStateContext.tokenMode === "solana") {
         setPaymentRozoCompleted(true);
       }
       onSuccess();
@@ -109,10 +127,13 @@ const Confirmation: React.FC = () => {
           <ModalH1>Confirming...</ModalH1>
         ) : (
           <>
-            <ModalH1>
-              <Link href={txURL} target="_blank" rel="noopener noreferrer">
-                Payment Completed
-              </Link>
+            <ModalH1 style={{ display: "flex", alignItems: "center", gap: 3, flexDirection: "column" }}>
+              Payment Completed
+              {txURL && (
+                <Link href={txURL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, fontWeight: 400 }}>
+                  See transaction details
+                </Link>
+              )}
             </ModalH1>
             {confirmationMessage && (
               <ModalBody>{confirmationMessage}</ModalBody>

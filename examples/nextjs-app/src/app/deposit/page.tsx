@@ -1,14 +1,15 @@
 "use client";
 
-import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import * as Tokens from "@rozoai/intent-common";
 import {
+  baseUSDC,
   getChainName,
   getChainNativeToken,
   knownTokens,
 } from "@rozoai/intent-common";
+import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import { useEffect, useState } from "react";
-import { getAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
@@ -16,33 +17,44 @@ import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 
 type Config = {
   recipientAddress: string;
+  recipientStellarAddress?: string;
   chainId: number;
   tokenAddress: string;
 };
+
+const tempAddress = "0x0000000000000000000000000000000000000000" as Address;
 
 export default function DemoDeposit() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [config, setConfig] = usePersistedConfig("rozo-deposit-config", {
     recipientAddress: "",
+    recipientStellarAddress: "",
     chainId: 0,
     tokenAddress: "",
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
+  const [parsedConfig, setParsedConfig] = useState<Config | null>(null);
+
   const { resetPayment } = useRozoPayUI();
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);
+    setParsedConfig(config);
     resetPayment({
       toChain: config.chainId,
       toAddress: getAddress(config.recipientAddress),
+      toStellarAddress: config.recipientStellarAddress,
       toToken: getAddress(config.tokenAddress),
     });
   };
 
   // Only render the RozoPayButton when we have valid config
   const hasValidConfig =
-    config && config.recipientAddress && config.chainId && config.tokenAddress;
+    parsedConfig &&
+    parsedConfig.recipientAddress &&
+    parsedConfig.chainId &&
+    parsedConfig.tokenAddress;
 
   // Add escape key handler
   useEffect(() => {
@@ -59,6 +71,39 @@ export default function DemoDeposit() {
   }, [isConfigOpen]);
 
   useEffect(() => {
+    const getConfig = JSON.parse(
+      localStorage.getItem("rozo-deposit-config") || "{}"
+    );
+
+    if (getConfig && getConfig.chainId !== 0) {
+      const parsedConfig = { ...getConfig };
+
+      if (!isAddress(parsedConfig.tokenAddress)) {
+        Object.assign(parsedConfig, {
+          tokenAddress: tempAddress,
+        });
+      }
+
+      if (!isAddress(parsedConfig.recipientAddress)) {
+        Object.assign(parsedConfig, {
+          recipientAddress: tempAddress,
+        });
+      }
+
+      if (
+        parsedConfig &&
+        typeof parsedConfig === "object" &&
+        "recipientAddress" in parsedConfig &&
+        "chainId" in parsedConfig &&
+        "tokenAddress" in parsedConfig
+      ) {
+        setConfig(parsedConfig);
+        setParsedConfig(parsedConfig);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     // Only generate code snippet if we have a complete config
     if (!hasValidConfig) {
       setCodeSnippet("");
@@ -66,28 +111,40 @@ export default function DemoDeposit() {
     }
 
     // First check if it's a native token (address is 0x0)
-    if (config.tokenAddress === getChainNativeToken(config.chainId)?.token) {
+    if (
+      parsedConfig.tokenAddress ===
+      getChainNativeToken(parsedConfig.chainId)?.token
+    ) {
       const tokenVarName =
-        getChainName(config.chainId).toLowerCase() +
-        getChainNativeToken(config.chainId)?.symbol;
+        getChainName(parsedConfig.chainId).toLowerCase() +
+        getChainNativeToken(parsedConfig.chainId)?.symbol;
       if (tokenVarName) {
-        const snippet = `import { ${tokenVarName} } from "@rozoai/intent-common";
+        const snippet = `
+        import { getAddress } from "viem";
+        import { ${tokenVarName} } from "@rozoai/intent-common";
 
-<RozoPayButton
-  appId="${APP_ID}"
-  toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
-  toToken={getAddress(${tokenVarName}.token)}
-  intent="Deposit"
-/>`;
+        <RozoPayButton
+          appId="${APP_ID}"
+          toChain={${tokenVarName}.chainId}
+          toAddress={getAddress("${parsedConfig.recipientAddress}")}
+          ${
+            parsedConfig.recipientStellarAddress
+              ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}`
+              : ""
+          }
+          toToken={getAddress(${tokenVarName}.token)}
+          intent="Deposit"
+        />`;
         setCodeSnippet(snippet);
         return;
       }
     }
 
     // For non-native tokens
-    if (config.chainId != 0) {
-      const token = knownTokens.find((t) => t.token === config.tokenAddress);
+    if (parsedConfig.chainId != 0) {
+      const token = knownTokens.find(
+        (t) => t.token === parsedConfig.tokenAddress
+      );
       if (!token) return;
 
       // Find the variable name in pay-common exports
@@ -95,18 +152,24 @@ export default function DemoDeposit() {
         Object.entries(Tokens).find(([_, t]) => t === token)?.[0] ||
         token.symbol;
 
-      const snippet = `import { ${tokenVarName} } from "@rozoai/intent-common";
-
+      const snippet = `import { getAddress} from "viem";
+import { ${tokenVarName}} from "@rozoai/intent-common";
+    
 <RozoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
-  toToken={getAddress(${tokenVarName}.token)}
+  toAddress={getAddress("${parsedConfig.recipientAddress}")}
+  ${
+    parsedConfig.recipientStellarAddress
+      ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}
+  toToken={getAddress(${tokenVarName}.token)}`
+      : `toToken={getAddress(${tokenVarName}.token)}`
+  }
   intent="Deposit"
 />`;
       setCodeSnippet(snippet);
     }
-  }, [config, hasValidConfig]);
+  }, [parsedConfig, hasValidConfig]);
 
   return (
     <Container className="max-w-4xl mx-auto p-6">
@@ -116,13 +179,14 @@ export default function DemoDeposit() {
       </Text>
 
       <div className="flex flex-col items-center gap-8">
-        {hasValidConfig ? (
+        {Boolean(hasValidConfig) && parsedConfig ? (
           <>
             <RozoPayButton
               appId={APP_ID}
-              toChain={config.chainId}
-              toAddress={getAddress(config.recipientAddress)}
-              toToken={getAddress(config.tokenAddress)}
+              toChain={parsedConfig.chainId}
+              toAddress={getAddress(parsedConfig.recipientAddress)}
+              toToken={getAddress(parsedConfig.tokenAddress)}
+              toStellarAddress={parsedConfig.recipientStellarAddress}
               intent="Deposit"
               onPaymentStarted={printEvent}
               onPaymentCompleted={(e) => {
@@ -156,7 +220,7 @@ export default function DemoDeposit() {
         )}
 
         {/* Only show implementation code if we have a complete config */}
-        {hasValidConfig && (
+        {Boolean(hasValidConfig) && parsedConfig && (
           <div className="w-full">
             <Text className="text-lg font-medium text-primary-dark mb-2">
               Implementation Code
@@ -172,6 +236,27 @@ export default function DemoDeposit() {
           onConfirm={handleSetConfig}
           defaultRecipientAddress={config.recipientAddress}
         />
+
+        {parsedConfig?.recipientStellarAddress && (
+          <div className="text-sm text-gray-600 text-left">
+            <p className="mb-2">
+              <strong>Note:</strong> When using <code>toStellarAddress</code>,
+              you must set:
+            </p>
+            <ul className="list-disc list-inside mb-2">
+              <li>
+                <code>toChain</code> to Base Chain ({baseUSDC.chainId})
+              </li>
+              <li>
+                <code>toToken</code> to Base USDC ({baseUSDC.token})
+              </li>
+              <li>
+                The <code>toAddress</code> can be any valid EVM address in this
+                case.
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
     </Container>
   );

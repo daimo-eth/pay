@@ -89,6 +89,24 @@ export const worldchain: Chain = {
   cctpDomain: 14,
 };
 
+/**
+ * Rozo Solana
+ * @link https://github.com/RozoAI/rozo-payment-manager/tree/staging?tab=readme-ov-file#supported-chains-and-tokens
+ */
+export const rozoSolana: Chain = {
+  type: "solana",
+  chainId: 900,
+  name: "Solana",
+  cctpDomain: 5,
+};
+
+export const rozoStellar: Chain = {
+  type: "stellar",
+  chainId: 1500,
+  name: "Stellar",
+  cctpDomain: null,
+};
+
 export const supportedChains: Chain[] = [
   arbitrum,
   base,
@@ -102,10 +120,20 @@ export const supportedChains: Chain[] = [
   solana,
   stellar,
   worldchain,
+  rozoSolana,
+  rozoStellar,
 ];
 
 // https://developers.circle.com/stablecoins/supported-domains
-const cctpV1Chains = [arbitrum, base, ethereum, optimism, polygon, solana];
+const cctpV1Chains = [
+  arbitrum,
+  base,
+  ethereum,
+  optimism,
+  polygon,
+  solana,
+  rozoSolana,
+];
 const cctpV2Chains = [arbitrum, base, ethereum, linea, worldchain];
 
 /** Given a chainId, return the chain. */
@@ -159,8 +187,10 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
     case polygon.chainId:
       return "https://polygonscan.com";
     case solana.chainId:
+    case rozoSolana.chainId:
       return "https://solscan.io";
     case stellar.chainId:
+    case rozoStellar.chainId:
       return "https://stellar.expert/explorer/public/search?term=";
     case worldchain.chainId:
       return "https://worldscan.org";

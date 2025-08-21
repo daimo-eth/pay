@@ -8,6 +8,7 @@ import { useChainIsSupported } from "../../hooks/useChainIsSupported";
 import { useRozoPay } from "../../hooks/useDaimoPay";
 import useIsMobile from "../../hooks/useIsMobile";
 import { usePayContext } from "../../hooks/usePayContext";
+import { useStellar } from "../../provider/StellarContextProvider";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
 import Modal from "../Common/Modal";
 import { RozoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
@@ -41,7 +42,6 @@ import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
 import ConnectUsing from "./ConnectUsing";
-import { useStellar } from "../../provider/StellarContextProvider";
 
 export const RozoPayModal: React.FC<{
   mode: Mode;

@@ -138,6 +138,7 @@ export const zRozoPayOrderMetadata = z.object({
     })
     .optional()
     .describe(""),
+  memo: z.string().optional().describe("Memo for the payment."),
 });
 
 export type RozoPayOrderMetadata = z.infer<typeof zRozoPayOrderMetadata>;
@@ -178,6 +179,7 @@ export type RozoPayDehydratedOrder = {
   externalId: string | null;
   userMetadata: RozoPayUserMetadata | null;
   refundAddr: Address | null;
+  memo?: string | null;
 };
 
 export type RozoPayHydratedOrder = {
@@ -216,6 +218,7 @@ export type RozoPayHydratedOrder = {
   userMetadata: RozoPayUserMetadata | null;
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
+  memo?: string | null;
 };
 
 export type RozoPayOrderWithOrg = RozoPayOrder & {

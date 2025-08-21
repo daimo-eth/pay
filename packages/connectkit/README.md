@@ -21,11 +21,11 @@ You can find the full Rozo Pay documentation [here](https://pay.rozoai.com).
 
 ## Examples
 
-Check out https://github.com/RozoAI/intent-pay/examples
+Check out [example](https://github.com/RozoAI/intent-pay/tree/master/examples/nextjs-app)
 
-### Try in CodeSandbox
+## Demo
 
-Coming soon.
+Check out our Demo Page [demo.rozo.ai](https://demo.rozo.ai/)
 
 ### Local Development
 
@@ -34,16 +34,16 @@ Clone the repository and build the SDK in `dev` mode:
 ```sh
 git clone https://github.com/RozoAI/intent-pay.git
 cd pay/packages/connectkit
-npm i
-npm run dev
+pnpm i
+pnpm run dev
 ```
 
 The rollup bundler will now watch file changes in the background. Try using one of the examples for testing:
 
 ```sh
 cd examples/nextjs
-npm i
-npm run dev
+pnpm i
+pnpm run dev
 ```
 
 Any changes will be reflected on the Pay button in the example app.
@@ -58,7 +58,7 @@ Audits:
 
 ## Support
 
-[Contact us](mailto:support@daimo.com) if you'd like to integrate Daimo Pay.
+[Contact us](mailto:hi@rozo.ai) if you'd like to integrate Rozo Pay.
 
 ## License
 

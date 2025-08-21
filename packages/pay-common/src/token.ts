@@ -10,6 +10,8 @@ import {
   mantle,
   optimism,
   polygon,
+  rozoSolana,
+  rozoStellar,
   solana,
   stellar,
   worldchain,
@@ -704,7 +706,22 @@ export const solanaUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-const solanaTokens: Token[] = [solanaUSDC, solanaWSOL, solanaSOL];
+export const rozoSolanaUSDC: Token = token({
+  chainId: rozoSolana.chainId,
+  token: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+const solanaTokens: Token[] = [
+  solanaUSDC,
+  solanaWSOL,
+  solanaSOL,
+  rozoSolanaUSDC,
+];
 
 //
 // Stellar
@@ -729,7 +746,17 @@ export const stellarUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-const stellarTokens: Token[] = [stellarXLM, stellarUSDC];
+export const rozoStellarUSDC: Token = token({
+  chainId: rozoStellar.chainId,
+  token: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+const stellarTokens: Token[] = [stellarXLM, stellarUSDC, rozoStellarUSDC];
 
 //
 // Worldchain

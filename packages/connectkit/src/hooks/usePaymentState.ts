@@ -1,7 +1,6 @@
 import {
   assert,
   assertNotNull,
-  RozoPayHydratedOrderWithOrg,
   debugJson,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
@@ -13,17 +12,17 @@ import {
   isCCTPV1Chain,
   PlatformType,
   readRozoPayOrderID,
-  SolanaPublicKey,
-  StellarPublicKey,
+  RozoPayHydratedOrderWithOrg,
   WalletPaymentOption,
   writeRozoPayOrderID,
-  stellar,
-  RozoPayToken,
-  RozoPayTokenAmount,
-  baseUSDC,
 } from "@rozoai/intent-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { VersionedTransaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { erc20Abi, getAddress, Hex, hexToBytes, zeroAddress } from "viem";
 import {
@@ -33,9 +32,28 @@ import {
   useWriteContract,
 } from "wagmi";
 
+import { ALBEDO_ID } from "@creit.tech/stellar-wallets-kit";
+import {
+  createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import {
+  Asset,
+  Memo,
+  Networks,
+  Operation,
+  TransactionBuilder,
+} from "@stellar/stellar-sdk";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
+import {
+  STELLAR_USDC_ASSET_CODE,
+  STELLAR_USDC_ISSUER_PK,
+} from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
+import { useStellar } from "../provider/StellarContextProvider";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -45,22 +63,9 @@ import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
 import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
+import { useStellarDestination } from "./useStellarDestination";
 import { useStellarPaymentOptions } from "./useStellarPaymentOptions";
 import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
-import { useStellarDestination } from "./useStellarDestination";
-import { useStellar } from "../provider/StellarContextProvider";
-import { ALBEDO_ID } from "@creit.tech/stellar-wallets-kit";
-import {
-  Asset,
-  Networks,
-  Operation,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
-import { roundTokenAmount } from "../utils/format";
-import {
-  STELLAR_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
-} from "../constants/rozoConfig";
 
 /** Wallet payment details, sent to processSourcePayment after submitting tx. */
 export type SourcePayment = Parameters<
@@ -129,16 +134,27 @@ export interface PaymentState {
     option: DepositAddressPaymentOptions
   ) => Promise<DepositAddressPaymentOptionData | null>;
   payWithSolanaToken: (
-    inputToken: SolanaPublicKey
+    walletPaymentOption: WalletPaymentOption
+  ) => Promise<{ txHash: string; success: boolean }>;
+  payWithSolanaTokenRozo: (
+    walletPaymentOption: WalletPaymentOption,
+    rozoPayment: {
+      tokenAddress: string;
+      destAddress: string;
+      usdcAmount: string;
+      solanaAmount: string;
+      memo?: string;
+    }
   ) => Promise<{ txHash: string; success: boolean }>;
   payWithStellarToken: (
-    inputToken: RozoPayTokenAmount,
+    option: WalletPaymentOption,
     rozoPayment: {
       destAddress: string;
       usdcAmount: string;
       stellarAmount: string;
+      memo?: string;
     }
-  ) => Promise<{ txHash: string; success: boolean }>;
+  ) => Promise<{ signedTx: string; success: boolean }>;
   openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
   senderEnsName: string | undefined;
   setTxHash: (txHash: string) => void;
@@ -322,7 +338,8 @@ export function usePaymentState({
       );
 
       // Will refund to ethWalletAddress if refundAddress was not set in payParams
-      const res = await pay.hydrateOrder(ethWalletAddress);
+      // and provide walletOption to hydrateOrder
+      const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
       hydratedOrder = res.order;
 
       log(
@@ -336,9 +353,15 @@ export function usePaymentState({
 
     const paymentTxHash = await (async () => {
       try {
+        console.log("[PAY TOKEN] sending token", {
+          required,
+          hydratedOrder,
+          paymentAmount,
+        });
+
         if (required.token.token === zeroAddress) {
           return await sendTransactionAsync({
-            to: hydratedOrder.intentAddr, // TODO: Change this to middleware address from API, if it's ready
+            to: hydratedOrder.destFinalCall.to,
             value: paymentAmount,
           });
         } else {
@@ -346,7 +369,7 @@ export function usePaymentState({
             abi: erc20Abi,
             address: getAddress(required.token.token),
             functionName: "transfer",
-            args: [hydratedOrder.intentAddr, paymentAmount], // TODO: Change this to middleware address from API, if it's ready
+            args: [hydratedOrder.destFinalCall.to, paymentAmount],
           });
         }
       } catch (e) {
@@ -356,13 +379,14 @@ export function usePaymentState({
     })();
 
     try {
-      await pay.payEthSource({
-        paymentTxHash,
-        sourceChainId: required.token.chainId,
-        payerAddress: ethWalletAddress,
-        sourceToken: getAddress(required.token.token),
-        sourceAmount: paymentAmount,
-      });
+      //   await pay.payEthSource({
+      //     paymentTxHash,
+      //     sourceChainId: required.token.chainId,
+      //     payerAddress: ethWalletAddress as `0x${string}`,
+      //     sourceToken: getAddress(required.token.token),
+      //     sourceAmount: paymentAmount,
+      //   });
+      setTxHash(paymentTxHash);
       return { txHash: paymentTxHash, success: true };
     } catch {
       console.error(
@@ -372,9 +396,11 @@ export function usePaymentState({
     }
   };
 
+  // @NOTE: This is Pay In Solana by Daimo (default)
   const payWithSolanaToken = async (
-    inputToken: SolanaPublicKey
+    walletPaymentOption: WalletPaymentOption
   ): Promise<{ txHash: string; success: boolean }> => {
+    const inputToken = walletPaymentOption.required.token.token;
     const payerPublicKey = solanaWallet.publicKey;
     assert(
       payerPublicKey != null,
@@ -393,7 +419,11 @@ export function usePaymentState({
 
     let hydratedOrder: RozoPayHydratedOrderWithOrg;
     if (pay.paymentState !== "payment_unpaid") {
-      const res = await pay.hydrateOrder();
+      const res = await pay.hydrateOrder(
+        // @TODO: Revalidate this
+        undefined, // refundAddress
+        walletPaymentOption
+      );
       hydratedOrder = res.order;
 
       log(
@@ -419,7 +449,6 @@ export function usePaymentState({
         const txHash = await solanaWallet.sendTransaction(tx, connection);
         return txHash;
       } catch (e) {
-        console.error(e);
         throw e;
       }
     })();
@@ -438,6 +467,136 @@ export function usePaymentState({
     }
   };
 
+  // @NOTE: This is Pay In Solana by Rozo
+  const payWithSolanaTokenRozo = async (
+    walletPaymentOption: WalletPaymentOption,
+    rozoPayment: {
+      tokenAddress: string;
+      destAddress: string;
+      usdcAmount: string;
+      solanaAmount: string;
+      memo?: string;
+    }
+  ): Promise<{ txHash: string; success: boolean }> => {
+    try {
+      const payerPublicKey = solanaWallet.publicKey;
+
+      // Initial validation
+      if (!payerPublicKey) {
+        throw new Error("Solana Public key is null");
+      }
+
+      if (!pay.order?.id) {
+        throw new Error("Order ID is null");
+      }
+
+      if (!connection || !solanaWallet) {
+        throw new Error("Solana services not initialized");
+      }
+
+      console.log("[PAY SOLANA] Starting Solana payment transaction", {
+        pay,
+        rozoPayment,
+      });
+
+      const mintAddress = new PublicKey(rozoPayment.tokenAddress ?? "");
+      const fromKey = new PublicKey(payerPublicKey);
+      const toKey = new PublicKey(rozoPayment.destAddress);
+
+      console.log("[PAY SOLANA] Transaction details:", {
+        fromKey: fromKey.toString(),
+        toKey: toKey.toString(),
+        amount: rozoPayment.solanaAmount,
+        memo: rozoPayment.memo,
+      });
+
+      // Create a new legacy transaction
+      const transaction = new Transaction();
+      console.log("[PAY SOLANA] Created new transaction");
+
+      const fromAddress = await getAssociatedTokenAddress(
+        mintAddress,
+        payerPublicKey
+      );
+      const toAddress = await getAssociatedTokenAddress(mintAddress, toKey);
+
+      const recipientATAAccountInfo = await connection.getAccountInfo(
+        toAddress
+      );
+
+      console.log(
+        "[PAY SOLANA] Recipient ATA account info",
+        fromAddress,
+        toAddress,
+        recipientATAAccountInfo
+      );
+
+      if (!recipientATAAccountInfo) {
+        const createATAInstruction = createAssociatedTokenAccountInstruction(
+          payerPublicKey,
+          toAddress,
+          toKey,
+          mintAddress,
+          TOKEN_PROGRAM_ID
+        );
+
+        console.log(
+          "[PAY SOLANA] Creating ATA instruction",
+          createATAInstruction
+        );
+
+        transaction.add(createATAInstruction);
+      }
+
+      // 1. Add the SOL transfer instruction
+      // This is the core instruction that moves SOL from the payer to the recipient.
+      transaction.add(
+        createTransferInstruction(
+          fromAddress, // From (source) ATA
+          toAddress, // To (destination) ATA
+          payerPublicKey, // The owner of the source ATA
+          Number(rozoPayment.solanaAmount) * 10 ** 6, // Amount in atomic units
+          [],
+          TOKEN_PROGRAM_ID // The SPL Token program ID
+        )
+      );
+
+      console.log("[PAY SOLANA] Added SOL transfer instruction");
+
+      // 2. Add the optional memo instruction
+      // If a memo string is provided, create and add an instruction for the SPL Memo program.
+      if (rozoPayment.memo) {
+        transaction.add(
+          new TransactionInstruction({
+            keys: [
+              { pubkey: payerPublicKey, isSigner: true, isWritable: true },
+            ],
+            programId: new PublicKey(
+              "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+            ),
+            data: Buffer.from(rozoPayment.memo, "utf-8"),
+          })
+        );
+        console.log("[PAY SOLANA] Added memo instruction");
+      }
+
+      console.log("[PAY SOLANA] Getting latest blockhash");
+      const blockhash = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash.blockhash;
+
+      console.log("[PAY SOLANA] Sending transaction to wallet");
+      const txHash = await solanaWallet.sendTransaction(
+        transaction,
+        connection
+      );
+      console.log("[PAY SOLANA] Transaction sent successfully, hash:", txHash);
+      return { txHash: txHash, success: true };
+    } catch (error) {
+      console.error(error);
+      return { txHash: "", success: false };
+    }
+  };
+
   // Stellar payment
   /**
    * Execute a payment using Stellar token
@@ -445,13 +604,14 @@ export function usePaymentState({
    * @returns Transaction hash and success status
    */
   const payWithStellarToken = async (
-    payToken: RozoPayTokenAmount,
+    walletPaymentOption: WalletPaymentOption,
     rozoPayment: {
       destAddress: string;
       usdcAmount: string;
       stellarAmount: string;
+      memo?: string;
     }
-  ): Promise<{ txHash: string; success: boolean }> => {
+  ): Promise<{ signedTx: string; success: boolean }> => {
     try {
       // Initial validation
       if (!stellarPublicKey) {
@@ -466,7 +626,7 @@ export function usePaymentState({
         throw new Error("Stellar services not initialized");
       }
 
-      const token = payToken.token;
+      const token = walletPaymentOption.required.token;
 
       const destinationAddress = rozoPayment.destAddress;
       // const amount = rozoPayment.amount;
@@ -481,7 +641,7 @@ export function usePaymentState({
       const fee = String(await stellarServer.fetchBaseFee());
 
       // Build transaction based on token type
-      let transaction;
+      let transaction: TransactionBuilder;
       const isXlmToken = token.symbol === "XLM";
 
       if (isXlmToken) {
@@ -500,8 +660,7 @@ export function usePaymentState({
               path: [],
             })
           )
-          .setTimeout(180)
-          .build();
+          .setTimeout(180);
       } else {
         // For other tokens, use direct payment
         transaction = new TransactionBuilder(sourceAccount, {
@@ -515,34 +674,32 @@ export function usePaymentState({
               amount: String(rozoPayment.usdcAmount),
             })
           )
-          .setTimeout(180)
-          .build();
+          .setTimeout(180);
       }
 
-      // Sign and submit transaction
-      const signedTx = await stellarKit.signTransaction(transaction.toXDR(), {
-        address: stellarPublicKey,
-        networkPassphrase: Networks.PUBLIC,
-      });
-
-      if (!signedTx?.signedTxXdr) {
-        throw new Error("Failed to sign transaction");
+      if (rozoPayment.memo) {
+        transaction.addMemo(Memo.text(String(rozoPayment.memo)));
       }
 
-      const tx = TransactionBuilder.fromXDR(
-        signedTx.signedTxXdr,
-        Networks.PUBLIC
+      const transactionBuilder = transaction.build();
+
+      console.log(
+        "[PAY STELLAR] Transaction built",
+        transactionBuilder.toXDR()
       );
-      const submittedTx = await stellarServer.submitTransaction(tx);
+      return { signedTx: transactionBuilder.toXDR(), success: true };
 
-      if (!submittedTx?.successful) {
-        throw new Error(
-          `Transaction failed: ${submittedTx?.result_xdr ?? "Unknown error"}`
-        );
-      }
+      // const submittedTx = await stellarServer.submitTransaction(tx);
 
-      return { txHash: submittedTx?.hash ?? "", success: true };
+      // if (!submittedTx?.successful) {
+      //   throw new Error(
+      //     `Transaction failed: ${submittedTx?.result_xdr ?? "Unknown error"}`
+      //   );
+      // }
+
+      // return { txHash: submittedTx?.hash ?? "", success: true };
     } catch (error: any) {
+      console.log("[PAY STELLAR] Error", error);
       throw new Error(error.message);
     }
   };
@@ -749,6 +906,7 @@ export function usePaymentState({
     payWithExternal,
     payWithDepositAddress,
     payWithSolanaToken,
+    payWithSolanaTokenRozo,
     payWithStellarToken,
     openInWalletBrowser,
     senderEnsName: senderEnsName ?? undefined,

@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiClient, ApiResponse, RequestState } from "./base";
-import { ROZO_DAIMO_APP_ID } from "../../constants/rozoConfig";
 
 /**
  * Payment display information
@@ -389,6 +388,7 @@ export const createRozoPaymentRequest = (options: {
   };
   preferredChain?: string;
   preferredToken?: string;
+  preferredTokenAddress?: string;
   destination: {
     destinationAddress?: string;
     chainId: string;
@@ -408,6 +408,7 @@ export const createRozoPaymentRequest = (options: {
     appId,
     preferredChain,
     preferredToken,
+    preferredTokenAddress,
   } = options;
 
   return {
@@ -418,5 +419,6 @@ export const createRozoPaymentRequest = (options: {
     metadata,
     preferredChain,
     preferredToken,
+    preferredTokenAddress,
   };
 };

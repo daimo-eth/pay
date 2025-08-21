@@ -32,13 +32,16 @@ const Wallets: React.FC = () => {
   const { isMobile } = useIsMobile();
   const { hydrateOrder, order } = useRozoPay();
 
+  // @NOTE: This is causing issues with the payment flow
+  // so we're disabling it for now. Happen when user iniate connect wallet (except mobile)
   // If we're not in deposit mode, hydrate immediately.
   useEffect(() => {
     if (
       !context.paymentState.isDepositFlow &&
       order != null &&
-      order.mode !== RozoPayOrderMode.HYDRATED
+      order.mode !== RozoPayOrderMode.HYDRATED  && isMobile
     ) {
+      console.log("HYDRATING ORDER", order, context);
       hydrateOrder();
     }
   }, [context.paymentState.isDepositFlow, hydrateOrder, order]);

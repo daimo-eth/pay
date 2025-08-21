@@ -1,5 +1,7 @@
 import json from "@rollup/plugin-json";
+import resolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
+import esbuild from "rollup-plugin-esbuild";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
 
 /** @type {import('rollup').RollupOptions[]} */
@@ -36,12 +38,24 @@ export default [
     ],
     plugins: [
       peerDepsExternal(),
+      resolve({
+        extensions: [".mjs", ".js", ".jsx", ".json", ".ts", ".tsx"],
+      }),
+      esbuild({
+        include: /src\/.*\.[jt]sx?$/,
+        target: "esnext",
+        jsx: "automatic",
+      }),
       json(),
       typescript({
         declaration: true,
         declarationDir: "build",
         rootDir: "src",
         tsconfig: "./tsconfig.json",
+        noEmitOnError: false,
+        // Ensure only our sources are type-checked/emitted
+        include: ["src/**/*.ts", "src/**/*.tsx"],
+        exclude: ["node_modules/**", "build/**"],
       }),
     ],
   },

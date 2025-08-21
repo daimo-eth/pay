@@ -405,6 +405,7 @@ export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
 
 export enum UniquePaymentOptions {
   Wallets = "Wallets",
+  AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
   Binance = "Binance",
   Lemon = "Lemon",

@@ -254,6 +254,13 @@ export const DaimoPayModal: React.FC<{
           }
           // If still loading, do nothing and wait for next render
           break;
+        case "AllExchanges":
+          // Open exchanges list directly
+          context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
+          context.setRoute(ROUTES.SELECT_EXCHANGE, {
+            event: "unique_payment_option_all_exchanges",
+          });
+          break;
         case "Base":
           // Find the Base option from available deposit address options
           const baseOption = paymentState.depositAddressOptions.options?.find(

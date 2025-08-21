@@ -1,11 +1,11 @@
 import { RozoPayEvent, getChainExplorerByChainId } from "@rozoai/intent-common";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { isAddress } from "viem";
 
 export const APP_ID = "rozoDemoStellar"; // Your public app ID. Use pay-demo for prototyping only.
 
 export const ROZOPAY_API_URL =
-  process.env.NEXT_PUBLIC_ROZOPAY_API_URL || "https://intentapiv2.rozo.ai";
+  process.env.NEXT_PUBLIC_ROZOPAY_API_URL || "https://intentapi.rozo.ai";
 
 export const ROZO_ADDRESS = "";
 

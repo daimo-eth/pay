@@ -4,8 +4,7 @@ import { Asset } from "@stellar/stellar-sdk";
 /**
  * ROZO CONFIG
  */
-export const ROZO_API_URL =
-  "https://fxcvfolhncmuvfazuqub.supabase.co/functions/v1/";
+export const ROZO_API_URL = "https://intentapiv2.rozo.ai/functions/v1/";
 export const ROZO_API_TOKEN =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4Y3Zmb2xobmNtdXZmYXp1cXViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4Mzg2NjYsImV4cCI6MjA2ODQxNDY2Nn0.B4dV5y_-zCMKSNm3_qyCbAvCPJmoOGv_xB783LfAVUA";
 export const ROZO_DAIMO_APP_ID = "pay-muggle-FnFUQEgr2XuVSSXNN5EKKn";

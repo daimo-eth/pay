@@ -162,7 +162,7 @@ const MultiCurrencySelectAmount: React.FC<{
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>
           {/* Invisible div to balance spacing */}
-          <MaxButton>Max</MaxButton>
+          <MaxButton style={{ visibility: "hidden" }}>Max</MaxButton>
           <AmountInputField
             value={isEditingUsd ? usdValue : tokenValue}
             onChange={handleAmountChange}

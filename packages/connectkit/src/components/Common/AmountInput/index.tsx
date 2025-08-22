@@ -162,7 +162,7 @@ const MultiCurrencySelectAmount: React.FC<{
       <ModalContent $preserveDisplay={true}>
         <AmountInputContainer>
           {/* Invisible div to balance spacing */}
-          <MaxButton style={{ visibility: "hidden" }}>Max</MaxButton>
+          <MaxButton>Max</MaxButton>
           <AmountInputField
             value={isEditingUsd ? usdValue : tokenValue}
             onChange={handleAmountChange}
@@ -220,7 +220,7 @@ const MaxButton = styled.button`
     --ck-secondary-button-background,
     var(--ck-body-background-secondary)
   );
-  color: var(--ck-body-color-muted);
+  color: var(--ck-body-color-secondary);
   cursor: pointer;
 `;
 const SwitchContainer = styled.div`

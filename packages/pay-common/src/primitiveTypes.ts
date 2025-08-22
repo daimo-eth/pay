@@ -12,17 +12,7 @@ export const zUUID = z.string().uuid();
 
 export type UUID = z.infer<typeof zUUID>;
 
-export const zAddress = z.string().transform((val, ctx) => {
-  try {
-    return getAddress(val);
-  } catch {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Invalid Ethereum address",
-    });
-    return z.NEVER;
-  }
-});
+export const zAddress = z.string().transform((val) => getAddress(val));
 
 export const zHex = z
   .string()

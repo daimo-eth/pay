@@ -39,7 +39,6 @@ export default function SelectMethod() {
   const {
     connected: isSolanaConnected,
     wallet: solanaWallet,
-    wallets: solanaWallets,
     disconnect: disconnectSolana,
     publicKey,
   } = useWallet();

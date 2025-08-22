@@ -1,5 +1,6 @@
 import { ExternalPaymentOptions } from "@daimo/pay-common";
-import { Connector, useAccount } from "wagmi";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { Connector, useAccount, useDisconnect } from "wagmi";
 import { MetaMask, Phantom, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import useLocales from "../../../hooks/useLocales";
@@ -17,9 +18,13 @@ export default function SelectAnotherMethodButton() {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions } = paymentState;
   const { connector } = useAccount();
+  const { disconnectAsync } = useDisconnect();
+  const { disconnect: disconnectSolana } = useWallet();
+
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
   ).flat();
+  const uniquePaymentOption = paymentState.buttonProps?.uniquePaymentOption;
 
   const createIconDiv = (content: React.ReactNode, key: string) => (
     <div key={key} style={{ borderRadius: "22.5%", overflow: "hidden" }}>
@@ -95,14 +100,20 @@ export default function SelectAnotherMethodButton() {
     id: "select-wallet",
     title: locales.payWithAnotherWallet,
     icons: getWalletIcons(connector),
-    onClick: () => setRoute(ROUTES.SELECT_METHOD),
+    onClick: async () => {
+      await disconnectAsync();
+      await disconnectSolana();
+      setRoute(ROUTES.CONNECTORS);
+    },
   };
 
   return (
     <OptionsContainer>
       <OptionsList
         options={
-          allPaymentOptions.length > 0
+          // If there are non-wallet payment options, show the full select
+          // method menu. Otherwise, show the wallet menu.
+          allPaymentOptions.length > 0 && uniquePaymentOption !== "Wallets"
             ? [selectMethodOption]
             : [selectWalletOption]
         }

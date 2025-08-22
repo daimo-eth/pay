@@ -6,8 +6,9 @@ import {
   Token,
 } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useCallback, useEffect, useState } from "react";
-import { isAddress } from "viem";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPublicClient, http, isAddress } from "viem";
+import { mainnet } from "viem/chains";
 
 // Define the possible configuration types
 export type ConfigType = "payment" | "deposit";
@@ -79,6 +80,22 @@ export function ConfigPanel({
 
   // Add error state for recipient address
   const [addressError, setAddressError] = useState<string>("");
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
+  const [isResolvingEns, setIsResolvingEns] = useState<boolean>(false);
+
+  const ensClient = useMemo(
+    () =>
+      createPublicClient({
+        chain: mainnet,
+        transport: http(),
+      }),
+    [],
+  );
+
+  const isEnsName = useCallback((value: string) => {
+    const name = value.trim();
+    return /\.(eth)$/i.test(name);
+  }, []);
 
   // Extract unique chains
   const chains = supportedChains.filter(
@@ -93,22 +110,31 @@ export function ConfigPanel({
   }
 
   // Validate address on change
-  const validateAddress = useCallback((address: string) => {
-    if (!address) {
-      setAddressError("Address is required");
+  const validateAddress = useCallback(
+    (address: string) => {
+      if (!address) {
+        setAddressError("Address or ENS is required");
+        return false;
+      }
+      if (isAddress(address)) {
+        setAddressError("");
+        return true;
+      }
+      if (isEnsName(address)) {
+        // Defer to ENS resolver for final validation
+        setAddressError("");
+        return true;
+      }
+      setAddressError("Invalid Ethereum address or ENS name");
       return false;
-    }
-    if (!isAddress(address)) {
-      setAddressError("Invalid Ethereum address");
-      return false;
-    }
-    setAddressError("");
-    return true;
-  }, []);
+    },
+    [isEnsName],
+  );
 
   // Update address handler
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
+    setResolvedAddress(null);
     setConfig((prev) => ({
       ...prev,
       recipientAddress: newAddress,
@@ -116,21 +142,54 @@ export function ConfigPanel({
     validateAddress(newAddress);
   };
 
+  // Resolve ENS names when entered
+  useEffect(() => {
+    const value = config.recipientAddress?.trim();
+    if (!value || !isEnsName(value)) return;
+
+    let cancelled = false;
+    setIsResolvingEns(true);
+    setResolvedAddress(null);
+
+    ensClient
+      .getEnsAddress({ name: value })
+      .then((addr) => {
+        if (cancelled) return;
+        setResolvedAddress(addr);
+        if (!addr) setAddressError("ENS name not found");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAddressError("Failed to resolve ENS");
+      })
+      .finally(() => {
+        if (!cancelled) setIsResolvingEns(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config.recipientAddress, ensClient, isEnsName]);
+
   // Update form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate recipient address
-    if (!isAddress(config.recipientAddress)) {
-      alert("Please enter a valid address");
+    // Validate recipient address or ENS
+    const finalRecipient = isAddress(config.recipientAddress)
+      ? config.recipientAddress
+      : resolvedAddress || "";
+
+    if (!finalRecipient || !isAddress(finalRecipient)) {
+      alert("Please enter a valid address or resolvable ENS name");
       return;
     }
 
     // Create the appropriate config object based on type
     if (configType === "payment") {
-      onConfirm(config);
+      onConfirm({ ...config, recipientAddress: finalRecipient });
     } else {
-      onConfirm({ ...config, amount: "" });
+      onConfirm({ ...config, recipientAddress: finalRecipient, amount: "" });
     }
 
     onClose();
@@ -139,7 +198,7 @@ export function ConfigPanel({
   // Determine if the form is valid based on config type
   const isFormValid = () => {
     const baseValid =
-      isAddress(config.recipientAddress) &&
+      (isAddress(config.recipientAddress) || !!resolvedAddress) &&
       config.chainId > 0 &&
       config.tokenAddress !== "";
 
@@ -182,20 +241,23 @@ export function ConfigPanel({
             <input
               type="text"
               value={config.recipientAddress}
-              onChange={(e) =>
-                setConfig((prev) => ({
-                  ...prev,
-                  recipientAddress: e.target.value,
-                }))
-              }
+              onChange={handleAddressChange}
               className={`w-full p-2 border rounded ${
                 addressError
                   ? "border-red-500 focus:border-red-500 focus:ring-red-200"
                   : "border-gray-300 focus:border-green-medium focus:ring-green-light"
               } focus:ring focus:ring-opacity-50`}
-              placeholder="0x..."
+              placeholder="0x... or name.eth"
               formNoValidate
             />
+            {isResolvingEns && (
+              <p className="mt-1 text-sm text-gray-500">Resolving ENS…</p>
+            )}
+            {!isResolvingEns && resolvedAddress && !addressError && (
+              <p className="mt-1 text-sm text-gray-600">
+                Resolved: {resolvedAddress}
+              </p>
+            )}
             {addressError && (
               <p className="mt-1 text-sm text-red-500">{addressError}</p>
             )}

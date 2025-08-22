@@ -1,5 +1,3 @@
-export type * as Types from "./types";
-
 export { version } from "../package.json";
 
 // Configure Daimo Pay
@@ -7,8 +5,8 @@ export { default as getDefaultConfig } from "./defaultConfig";
 export { DaimoPayProvider } from "./provider/DaimoPayProvider";
 
 // Pay button
-export {
-  DaimoPayButton,
+export { DaimoPayButton } from "./components/DaimoPayButton";
+export type {
   DaimoPayButtonCustomProps,
   DaimoPayButtonProps,
   DaimoPayment,

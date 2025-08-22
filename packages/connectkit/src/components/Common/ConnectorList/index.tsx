@@ -4,7 +4,11 @@ import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { useLastConnector } from "../../../hooks/useLastConnector";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { detectBrowser, isCoinbaseWalletConnector } from "../../../utils";
+import {
+  detectBrowser,
+  isBaseAccountConnector,
+  isGeminiConnector,
+} from "../../../utils";
 import {
   WALLET_ID_MOBILE_WALLETS,
   WALLET_ID_OTHER_WALLET,
@@ -100,7 +104,8 @@ const ConnectorItem = ({
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
-    isCoinbaseWalletConnector(wallet.connector?.id);
+    (isBaseAccountConnector(wallet.connector?.id) ||
+      isGeminiConnector(wallet.connector?.id));
 
   const onClick = () => {
     const meta = { event: "connector-list-click", walletId: wallet.id };
@@ -118,7 +123,6 @@ const ConnectorItem = ({
         return;
       }
     }
-
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS, meta);
     } else if (redirectToMobileWallets) {

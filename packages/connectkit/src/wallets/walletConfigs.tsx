@@ -70,7 +70,7 @@ export type WalletConfigProps = {
 export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
-  "coinbaseWallet, coinbaseWalletSDK": {
+  "coinbaseWallet, coinbaseWalletSDK,com.coinbase.wallet": {
     name: "Base App",
     shortName: "Base",
     icon: <Logos.Base />,
@@ -89,7 +89,7 @@ export const walletConfigs: {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
   },
-  "com.coinbase.wallet": {
+  "baseAccount": {
     name: "Base App",
     shortName: "Base",
     icon: <Logos.Base />,

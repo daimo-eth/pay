@@ -96,15 +96,15 @@ export type PayButtonPaymentProps =
        * token, it is sent directly to `toAddress` with no swapping or bridging.
        */
       passthroughTokens?: PassthroughToken[];
+      /** Only show one payment option to the user. */
+      uniquePaymentOption?: UniquePaymentOptionsString;
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
       payId: string;
       /** Payment options. By default, all are enabled. */
       paymentOptions?: ExternalPaymentOptionsString[];
-      /**
-       * The page to start on.
-       */
+      /** Only show one payment option to the user. */
       uniquePaymentOption?: UniquePaymentOptionsString;
     };
 
@@ -217,6 +217,7 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
           metadata: props.metadata,
           refundAddress: props.refundAddress,
           passthroughTokens: props.passthroughTokens,
+          uniquePaymentOption: props.uniquePaymentOption,
         }
       : null;
   let payId = "payId" in props ? props.payId : null;

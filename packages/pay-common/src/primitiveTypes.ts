@@ -1,4 +1,4 @@
-import { Address, Hex } from "viem";
+import { getAddress, Hex } from "viem";
 import { z } from "zod";
 
 export const zBigIntStr = z
@@ -12,10 +12,7 @@ export const zUUID = z.string().uuid();
 
 export type UUID = z.infer<typeof zUUID>;
 
-export const zAddress = z
-  .string()
-  .regex(/^0x[0-9a-f]{40}$/i)
-  .refine((s): s is Address => true);
+export const zAddress = z.string().transform((val) => getAddress(val));
 
 export const zHex = z
   .string()

@@ -293,7 +293,6 @@ contract RelayerTest is Test {
         return
             DaimoPayRelayer.SwapAndTipParams({
                 requiredTokenIn: TokenAmount(_token1, 0),
-                suppliedAmountIn: 0,
                 requiredTokenOut: TokenAmount(_token1, 0),
                 maxPreTip: 0,
                 maxPostTip: 0,
@@ -305,7 +304,7 @@ contract RelayerTest is Test {
     function testCheckSwapAndTipHash() public view {
         DaimoPayRelayer.SwapAndTipParams
             memory params = getSimpleSwapAndTipParams();
-        bytes32 EXPECTED_SWAP_AND_TIP_HASH = 0xaffbe61b726412fdd454deff26aedd565d35fc4b9a7005218acbbf3c910e9cfa;
+        bytes32 EXPECTED_SWAP_AND_TIP_HASH = 0x4f76a4b1ef8b8a70d2782c2e40d5a7c6167dbbb389879dc5a93fda9788b9bd64;
         assertEq(EXPECTED_SWAP_AND_TIP_HASH, keccak256(abi.encode(params)));
     }
 
@@ -313,9 +312,13 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams
             memory params = getSimpleSwapAndTipParams();
 
-        // swapAndTip is accepts only a single, preauthorized call
+        // swapAndTip accepts only a single, pre-authorized call
         vm.expectRevert("DPR: wrong hash");
         relayerContract.swapAndTip(params);
+
+        // Setup: approve relayer to spend test contract's tokens
+        uint256 testContractBalance = _token1.balanceOf(address(this));
+        _token1.approve(address(relayerContract), testContractBalance);
 
         // Pre-approve the call
         bytes32 swapAndTipHash = keccak256(abi.encode(params));
@@ -348,7 +351,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -418,7 +420,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -488,7 +489,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -543,7 +543,6 @@ contract RelayerTest is Test {
         // The owner is willing to tip 200, but a 1000 - 700 = 300 tip is
         // required to make the swap succeed
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedAmountIn = 700;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
         uint256 maxPreTip = 200;
         uint256 maxPostTip = 0;
@@ -559,7 +558,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -591,7 +589,6 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input and wants to receive 1000 token2
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 1000);
         uint256 maxPreTip = 0;
         uint256 maxPostTip = 200;
@@ -608,7 +605,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -635,7 +631,6 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input and wants to receive 900 token2
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 1000);
-        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 900);
         uint256 maxPreTip = 0;
         uint256 maxPostTip = 0;
@@ -651,7 +646,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,
@@ -687,7 +681,6 @@ contract RelayerTest is Test {
 
         // bob sends 1000 token1 as input but only 500 of token1 is required
         TokenAmount memory requiredTokenIn = TokenAmount(_token1, 500);
-        uint256 suppliedAmountIn = 1000;
         TokenAmount memory requiredTokenOut = TokenAmount(_token2, 500);
         uint256 maxPreTip = 0;
         uint256 maxPostTip = 0;
@@ -703,7 +696,6 @@ contract RelayerTest is Test {
         DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
             .SwapAndTipParams({
                 requiredTokenIn: requiredTokenIn,
-                suppliedAmountIn: suppliedAmountIn,
                 requiredTokenOut: requiredTokenOut,
                 maxPreTip: maxPreTip,
                 maxPostTip: maxPostTip,

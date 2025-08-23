@@ -89,7 +89,7 @@ export const walletConfigs: {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
   },
-  "baseAccount": {
+  baseAccount: {
     name: "Base App",
     shortName: "Base",
     icon: <Logos.Base />,
@@ -296,6 +296,19 @@ export const walletConfigs: {
   //   // TODO: Add Daimo Pay to Ledger Live's Discover section https://developers.ledger.com/docs/ledger-live/discover/getting-started
   //   shouldDeeplinkDesktop: true,
   // },
+  world: {
+    name: "World",
+    icon: <Logos.World />,
+    showInMobileConnectors: true,
+    deeplinkScheme: "world",
+    getDaimoPayDeeplink: (payId: string) => {
+      const path = "/pay?id=" + payId;
+      const url =
+        "https://worldcoin.org/mini-app?app_id=app_f33b65e238f88e46ae7c681bc8213efc&path=" +
+        encodeURI(path);
+      return url;
+    },
+  },
   zerion: {
     name: "Zerion",
     icon: <Logos.Zerion />,

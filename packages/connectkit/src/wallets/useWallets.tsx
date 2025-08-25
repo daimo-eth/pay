@@ -13,6 +13,7 @@ import {
   isBaseAccountConnector,
   isGeminiConnector,
   isInjectedConnector,
+  isPortoConnector,
 } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -38,6 +39,8 @@ export const useWallet = (id: string): WalletProps | null => {
 
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
+  console.log("wtf1 ");
+  console.log("connectors: ", connectors);
   const context = usePayContext();
   const { showSolanaPaymentMethod } = context.paymentState;
   const { disableMobileInjector } = context;
@@ -52,6 +55,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       connectors.forEach((connector) => {
         if (isBaseAccountConnector(connector.id)) return;
         if (isGeminiConnector(connector.id)) return;
+        if (isPortoConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
@@ -101,74 +105,69 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return mobileWallets;
   }
 
-  const wallets = connectors
-    .filter((connector) => {
-      // Skip any connectors that mention WalletConnect
-      return !connector.name?.toLowerCase().includes("walletconnect");
-    })
-    .map((connector): WalletProps => {
-      // First, attempt to find a config by matching connector.id (existing logic).
-      let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
-        (id) =>
-          id
-            .split(",")
-            .map((i) => i.trim())
-            .includes(connector.id),
-      );
+  const wallets = connectors.map((connector): WalletProps => {
+    // First, attempt to find a config by matching connector.id (existing logic).
+    let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
+      (id) =>
+        id
+          .split(",")
+          .map((i) => i.trim())
+          .includes(connector.id),
+    );
 
-      // If not found by id, attempt a fuzzy match on connector.name.
-      if (!walletConfigKey && connector.name) {
-        walletConfigKey = Object.keys(walletConfigs).find((key) => {
-          const cfgName = walletConfigs[key].name?.toLowerCase();
-          const connName = connector.name!.toLowerCase();
-          return (
-            cfgName &&
-            (cfgName.includes(connName) || connName.includes(cfgName))
-          );
-        });
-      }
+    // If not found by id, attempt a fuzzy match on connector.name.
+    if (!walletConfigKey && connector.name) {
+      walletConfigKey = Object.keys(walletConfigs).find((key) => {
+        const cfgName = walletConfigs[key].name?.toLowerCase();
+        const connName = connector.name!.toLowerCase();
+        return (
+          cfgName && (cfgName.includes(connName) || connName.includes(cfgName))
+        );
+      });
+    }
 
-      const c: WalletProps = {
-        id: connector.id,
-        name: connector.name ?? connector.id ?? connector.type,
-        icon: connector.icon ? (
+    const c: WalletProps = {
+      id: connector.id,
+      name: connector.name ?? connector.id ?? connector.type,
+      icon: connector.icon ? (
+        <img
+          src={connector.icon}
+          alt={connector.name}
+          width={"100%"}
+          height={"100%"}
+        />
+      ) : (
+        <WalletIcon />
+      ),
+      connector,
+      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+      isInstalled:
+        connector.type === "mock" ||
+        (connector.type === "injected" && connector.id !== "metaMask") ||
+        connector.type === "farcasterFrame" ||
+        isPortoConnector(connector.id) ||
+        isBaseAccountConnector(connector.id) ||
+        isGeminiConnector(connector.id),
+    };
+
+    if (walletConfigKey) {
+      const wallet = walletConfigs[walletConfigKey];
+      return {
+        ...c,
+        iconConnector: connector.icon ? (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
-        ) : (
-          <WalletIcon />
-        ),
-        connector,
-        iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
-        isInstalled:
-          connector.type === "mock" ||
-          (connector.type === "injected" && connector.id !== "metaMask") ||
-          connector.type === "farcasterFrame" ||
-          isBaseAccountConnector(connector.id) ||
-          isGeminiConnector(connector.id),
+        ) : undefined,
+        ...wallet,
       };
+    }
 
-      if (walletConfigKey) {
-        const wallet = walletConfigs[walletConfigKey];
-        return {
-          ...c,
-          iconConnector: connector.icon ? (
-            <img
-              src={connector.icon}
-              alt={connector.name}
-              width={"100%"}
-              height={"100%"}
-            />
-          ) : undefined,
-          ...wallet,
-        };
-      }
-
-      return c;
-    });
+    return c;
+  });
 
   wallets.push({
     id: WALLET_ID_MOBILE_WALLETS,

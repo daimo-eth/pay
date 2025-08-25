@@ -1,4 +1,5 @@
 import { baseAccount, gemini, safe } from "@wagmi/connectors";
+import { porto } from "porto/wagmi";
 import { CreateConnectorFn } from "wagmi";
 
 type DefaultConnectorsProps = {
@@ -46,6 +47,7 @@ const defaultConnectors = ({
       },
     }),
   );
+  connectors.push(porto());
 
   return connectors;
 };

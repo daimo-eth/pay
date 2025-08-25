@@ -13,7 +13,6 @@ const nextConfig = {
     styledComponents: true,
   },
   reactStrictMode: true,
-  swcMinify: true,
   typescript: {
     ignoreBuildErrors: true,
   },

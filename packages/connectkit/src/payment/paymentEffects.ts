@@ -248,6 +248,7 @@ async function runSetPayParamsEffects(
         // appId: payParams.appId,
         appId: ROZO_DAIMO_APP_ID,
         toStellarAddress: payParams.toStellarAddress,
+        toSolanaAddress: payParams.toSolanaAddress,
         toAddress: payParams.toAddress,
         rozoAppId: payParams.appId,
       },
@@ -349,6 +350,15 @@ async function runHydratePayParamsEffects(
         destination.chainId = String(rozoStellar.chainId);
         destination.tokenSymbol = "USDC";
         destination.tokenAddress = `USDC:${STELLAR_USDC_ISSUER_PK}`;
+      }
+
+      // Pay Out USDC Solana
+      if (payParams?.toSolanaAddress) {
+        console.log("[runHydratePayParamsEffects] Pay Out USDC Solana");
+        destination.destinationAddress = payParams?.toSolanaAddress;
+        destination.chainId = String(rozoSolanaUSDC.chainId);
+        destination.tokenSymbol = "USDC";
+        destination.tokenAddress = rozoSolanaUSDC.token;
       }
 
       const paymentData = createRozoPaymentRequest({

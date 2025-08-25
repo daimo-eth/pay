@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
 
@@ -32,19 +32,30 @@ const Wallets: React.FC = () => {
   const { isMobile } = useIsMobile();
   const { hydrateOrder, order } = useRozoPay();
 
-  // @NOTE: This is causing issues with the payment flow
-  // so we're disabling it for now. Happen when user iniate connect wallet (except mobile)
-  // If we're not in deposit mode, hydrate immediately.
+  // Track if hydration has already been attempted to prevent multiple runs
+  const hasHydratedRef = useRef(false);
+  const lastOrderIdRef = useRef<bigint | null>(null);
+
+  // If we're not in deposit mode, hydrate immediately (only once per order)
   useEffect(() => {
+    // Reset hydration flag if we have a new order
+    if (order?.id !== lastOrderIdRef.current) {
+      hasHydratedRef.current = false;
+      lastOrderIdRef.current = order?.id || null;
+    }
+
     if (
+      !hasHydratedRef.current &&
       !context.paymentState.isDepositFlow &&
       order != null &&
-      order.mode !== RozoPayOrderMode.HYDRATED  && isMobile
+      order.mode !== RozoPayOrderMode.HYDRATED &&
+      isMobile
     ) {
       console.log("HYDRATING ORDER", order, context);
+      hasHydratedRef.current = true;
       hydrateOrder();
     }
-  }, [context.paymentState.isDepositFlow, hydrateOrder, order]);
+  }, [context.paymentState.isDepositFlow, order, isMobile, hydrateOrder]);
 
   // Show new-user education buttons
   const showLearnMore = !context.options?.hideQuestionMarkCTA;

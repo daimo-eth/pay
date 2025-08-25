@@ -3,6 +3,8 @@ import {
   baseUSDC,
   ethereum,
   knownTokens,
+  rozoSolana,
+  rozoSolanaUSDC,
   rozoStellar,
   solana,
   stellar,
@@ -19,6 +21,7 @@ export type ConfigType = "payment" | "deposit";
 interface BaseConfig {
   recipientAddress: string;
   recipientStellarAddress?: string;
+  recipientSolanaAddress?: string;
   chainId: number;
   tokenAddress: string;
   amount: string;
@@ -56,6 +59,7 @@ export function ConfigPanel({
   const [config, setConfig] = useState<PaymentConfig>({
     recipientAddress: defaultRecipientAddress,
     recipientStellarAddress: "",
+    recipientSolanaAddress: "",
     chainId: 0,
     tokenAddress: "",
     amount: "",
@@ -82,8 +86,6 @@ export function ConfigPanel({
             recipientAddress: tempAddress,
           });
         }
-
-        console.log({ parsedConfig });
 
         if (
           parsedConfig &&
@@ -117,9 +119,15 @@ export function ConfigPanel({
       return knownTokens.filter((t) => t.chainId === config.chainId);
     } else if (config.recipientStellarAddress) {
       return knownTokens.filter((t) => t.chainId === rozoStellar.chainId);
+    } else if (config.recipientSolanaAddress) {
+      return knownTokens.filter((t) => t.chainId === rozoSolana.chainId);
     }
     return [];
-  }, [config.chainId, config.recipientStellarAddress]);
+  }, [
+    config.chainId,
+    config.recipientStellarAddress,
+    config.recipientSolanaAddress,
+  ]);
 
   // Validate address on change
   const validateAddress = useCallback((address: string) => {
@@ -164,12 +172,26 @@ export function ConfigPanel({
         tokenAddress: baseUSDC.token,
         recipientAddress: tempAddress,
         recipientStellarAddress: config.recipientStellarAddress,
+        recipientSolanaAddress: "",
       });
 
       setConfig((prev) => ({
         ...prev,
         ...newConfig,
       }));
+    } else if (config.chainId === rozoSolana.chainId) {
+      if (!config.recipientSolanaAddress) {
+        alert("Please enter a valid Solana address");
+        return;
+      }
+
+      Object.assign(newConfig, {
+        chainId: baseUSDC.chainId,
+        tokenAddress: baseUSDC.token,
+        recipientAddress: tempAddress,
+        recipientStellarAddress: "",
+        recipientSolanaAddress: config.recipientSolanaAddress,
+      });
     } else {
       if (!config.recipientAddress) {
         alert("Please enter a valid EVM address");
@@ -240,6 +262,8 @@ export function ConfigPanel({
               value={
                 config.recipientStellarAddress
                   ? rozoStellar.chainId
+                  : config.recipientSolanaAddress
+                  ? rozoSolana.chainId
                   : config.chainId
               }
               onChange={(e) =>
@@ -247,6 +271,7 @@ export function ConfigPanel({
                   ...prev,
                   chainId: Number(e.target.value),
                   recipientStellarAddress: "",
+                  recipientSolanaAddress: "",
                   recipientAddress:
                     prev.recipientAddress === tempAddress
                       ? ""
@@ -279,6 +304,8 @@ export function ConfigPanel({
                 value={
                   config.recipientStellarAddress
                     ? stellarUSDC.token
+                    : config.recipientSolanaAddress
+                    ? rozoSolanaUSDC.token
                     : config.tokenAddress
                 }
                 onChange={(e) =>
@@ -299,8 +326,22 @@ export function ConfigPanel({
             )}
           </div>
 
-          {config.chainId !== rozoStellar.chainId &&
-            !config.recipientStellarAddress && (
+          {config.chainId === 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Recipient Address
+              </label>
+              <span className="text-sm text-gray-500">
+                Select a chain to fill in the recipient address
+              </span>
+            </div>
+          )}
+
+          {config.chainId > 0 &&
+            config.chainId !== rozoStellar.chainId &&
+            config.chainId !== rozoSolana.chainId &&
+            !config.recipientStellarAddress &&
+            !config.recipientSolanaAddress && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Recipient Address (EVM)
@@ -345,6 +386,27 @@ export function ConfigPanel({
                 }
                 className={`w-full p-2 border rounded border-gray-300 focus:border-primary-medium focus:ring-primary-light focus:ring focus:ring-opacity-50`}
                 placeholder="G..."
+                formNoValidate
+              />
+            </div>
+          )}
+
+          {config.chainId === rozoSolana.chainId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Recipient Address (Solana)
+              </label>
+              <input
+                type="text"
+                value={config.recipientSolanaAddress}
+                onChange={(e) =>
+                  setConfig((prev) => ({
+                    ...prev,
+                    recipientSolanaAddress: e.target.value,
+                  }))
+                }
+                className={`w-full p-2 border rounded border-gray-300 focus:border-primary-medium focus:ring-primary-light focus:ring focus:ring-opacity-50`}
+                placeholder="..."
                 formNoValidate
               />
             </div>

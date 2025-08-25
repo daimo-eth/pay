@@ -18,6 +18,7 @@ import {
 } from "@rozoai/intent-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  Connection,
   PublicKey,
   Transaction,
   TransactionInstruction,
@@ -35,7 +36,7 @@ import {
 import { ALBEDO_ID } from "@creit.tech/stellar-wallets-kit";
 import {
   createAssociatedTokenAccountInstruction,
-  createTransferInstruction,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -46,6 +47,7 @@ import {
   Operation,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
+import bs58 from "bs58";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import {
@@ -499,74 +501,91 @@ export function usePaymentState({
         rozoPayment,
       });
 
+      console.log("[PAY SOLANA] Setting up transaction...");
+
+      const newConnection = new Connection(
+        "https://api.mainnet-beta.solana.com",
+        "confirmed"
+      );
+      console.log("[PAY SOLANA] Connected to Solana mainnet");
+
+      const instructions: TransactionInstruction[] = [];
+
+      // Set up token addresses
       const mintAddress = new PublicKey(rozoPayment.tokenAddress ?? "");
       const fromKey = new PublicKey(payerPublicKey);
       const toKey = new PublicKey(rozoPayment.destAddress);
 
       console.log("[PAY SOLANA] Transaction details:", {
+        tokenMint: mintAddress.toString(),
         fromKey: fromKey.toString(),
         toKey: toKey.toString(),
         amount: rozoPayment.solanaAmount,
         memo: rozoPayment.memo,
       });
 
-      // Create a new legacy transaction
-      const transaction = new Transaction();
-      console.log("[PAY SOLANA] Created new transaction");
-
-      const fromAddress = await getAssociatedTokenAddress(
+      // Get token accounts for sender and recipient
+      console.log("[PAY SOLANA] Deriving associated token accounts...");
+      const senderTokenAccount = await getAssociatedTokenAddress(
         mintAddress,
-        payerPublicKey
+        fromKey
       );
-      const toAddress = await getAssociatedTokenAddress(mintAddress, toKey);
-
-      const recipientATAAccountInfo = await connection.getAccountInfo(
-        toAddress
+      const recipientTokenAccount = await getAssociatedTokenAddress(
+        mintAddress,
+        toKey
       );
-
       console.log(
-        "[PAY SOLANA] Recipient ATA account info",
-        fromAddress,
-        toAddress,
-        recipientATAAccountInfo
+        "[PAY SOLANA] Sender token account:",
+        senderTokenAccount.toString()
+      );
+      console.log(
+        "[PAY SOLANA] Recipient token account:",
+        recipientTokenAccount.toString()
       );
 
-      if (!recipientATAAccountInfo) {
-        const createATAInstruction = createAssociatedTokenAccountInstruction(
-          payerPublicKey,
-          toAddress,
-          toKey,
-          mintAddress,
-          TOKEN_PROGRAM_ID
-        );
+      // Check if recipient token account exists
+      console.log("[PAY SOLANA] Checking if recipient token account exists...");
+      const recipientTokenInfo = await connection.getAccountInfo(
+        recipientTokenAccount
+      );
 
-        console.log(
-          "[PAY SOLANA] Creating ATA instruction",
-          createATAInstruction
+      // Create recipient token account if it doesn't exist
+      if (!recipientTokenInfo) {
+        console.log("[PAY SOLANA] Creating recipient token account...");
+        instructions.push(
+          createAssociatedTokenAccountInstruction(
+            payerPublicKey,
+            recipientTokenAccount,
+            toKey,
+            mintAddress,
+            TOKEN_PROGRAM_ID
+          )
         );
-
-        transaction.add(createATAInstruction);
       }
 
-      // 1. Add the SOL transfer instruction
-      // This is the core instruction that moves SOL from the payer to the recipient.
-      transaction.add(
-        createTransferInstruction(
-          fromAddress, // From (source) ATA
-          toAddress, // To (destination) ATA
-          payerPublicKey, // The owner of the source ATA
-          Number(rozoPayment.solanaAmount) * 10 ** 6, // Amount in atomic units
-          [],
-          TOKEN_PROGRAM_ID // The SPL Token program ID
+      // Add transfer instruction
+      console.log("[PAY SOLANA] Adding transfer instruction...");
+      const transferAmount = parseFloat(rozoPayment.solanaAmount) * 1_000_000;
+      console.log(
+        "[PAY SOLANA] Transfer amount (with decimals):",
+        transferAmount
+      );
+
+      instructions.push(
+        createTransferCheckedInstruction(
+          senderTokenAccount,
+          mintAddress,
+          recipientTokenAccount,
+          fromKey,
+          transferAmount,
+          6
         )
       );
 
-      console.log("[PAY SOLANA] Added SOL transfer instruction");
-
-      // 2. Add the optional memo instruction
-      // If a memo string is provided, create and add an instruction for the SPL Memo program.
+      // Add memo if provided
       if (rozoPayment.memo) {
-        transaction.add(
+        console.log("[PAY SOLANA] Adding memo instruction:", rozoPayment.memo);
+        instructions.push(
           new TransactionInstruction({
             keys: [
               { pubkey: payerPublicKey, isSigner: true, isWritable: true },
@@ -577,19 +596,33 @@ export function usePaymentState({
             data: Buffer.from(rozoPayment.memo, "utf-8"),
           })
         );
-        console.log("[PAY SOLANA] Added memo instruction");
       }
 
-      console.log("[PAY SOLANA] Getting latest blockhash");
-      const blockhash = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash.blockhash;
+      // Create and partially sign transaction
+      console.log("[PAY SOLANA] Building transaction...");
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash("confirmed");
+      console.log("[PAY SOLANA] Got blockhash:", blockhash);
 
-      console.log("[PAY SOLANA] Sending transaction to wallet");
-      const txHash = await solanaWallet.sendTransaction(
-        transaction,
-        connection
+      const transaction = new Transaction();
+      transaction.recentBlockhash = blockhash;
+      transaction.lastValidBlockHeight = lastValidBlockHeight;
+      transaction.feePayer = payerPublicKey;
+      instructions.forEach((instruction) => transaction.add(instruction));
+
+      // Serialize the transaction
+      console.log("[PAY SOLANA] Serializing transaction...");
+      const serializedTransaction = bs58.encode(
+        transaction.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false,
+        })
       );
-      console.log("[PAY SOLANA] Transaction sent successfully, hash:", txHash);
+
+      console.log("[PAY SOLANA] Sending transaction to wallet for signing...");
+      const tx = Transaction.from(bs58.decode(serializedTransaction));
+      const txHash = await solanaWallet.sendTransaction(tx, connection);
+      console.log("[PAY SOLANA] Transaction sent! Hash:", txHash);
       return { txHash: txHash, success: true };
     } catch (error) {
       console.error(error);
@@ -766,7 +799,15 @@ export function usePaymentState({
     );
 
     const payId = writeRozoPayOrderID(pay.order.id);
-    const deeplink = wallet.getRozoPayDeeplink(payId);
+
+    let ref: string | undefined = undefined;
+
+    // Refer to: https://stackoverflow.com/a/78637988/13172178
+    if (wallet.name === "Phantom") {
+      ref = isIOS ? "1598432977" : "app.phantom";
+    }
+
+    const deeplink = wallet.getRozoPayDeeplink(payId, ref);
     // If we are in IOS, we don't open the deeplink in a new window, because it
     // will not work, the link will be opened in the page WAITING_WALLET
     if (!isIOS) {

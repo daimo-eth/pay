@@ -12,7 +12,7 @@
     "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
     "@rozoai/intent-common": "0.0.18",
-    "@rozoai/intent-pay": "0.0.20",
+    "@rozoai/intent-pay": "0.0.21",
     "@tanstack/react-query": "^5.51.11",
     "autoprefixer": "^10.4.20",
     "next": "^15.3.3",

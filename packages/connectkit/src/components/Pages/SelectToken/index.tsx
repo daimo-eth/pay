@@ -35,7 +35,10 @@ export default function SelectToken() {
         requiredSkeletons={4}
         isLoading={isLoading}
         // TODO: Hide Tron and Ethereum from the token options
-        options={optionsList.filter((option) => option.id !== "1-0x0000000000000000000000000000000000000000")}
+        options={optionsList.filter(
+          (option) =>
+            option.id !== "1-0x0000000000000000000000000000000000000000"
+        )}
         scrollHeight={
           isAnotherMethodButtonVisible && isMobileFormat ? 225 : 300
         }
@@ -73,7 +76,7 @@ function ConnectButton() {
   const solanaWallets = useWallet();
   // On Android, filter out the Android Intent deeplink fake wallet.
   const filteredWallets = solanaWallets.wallets.filter(
-    (w) => w.adapter.name !== "Mobile Wallet Adapter",
+    (w) => w.adapter.name !== "Mobile Wallet Adapter"
   );
   const hasSolanaWallet = filteredWallets.length > 0;
 

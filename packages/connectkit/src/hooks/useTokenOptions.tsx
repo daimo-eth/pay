@@ -1,8 +1,6 @@
-/// Gets token options when paying from a connected wallet. Supports both EVM
-
 import {
-  RozoPayToken,
   getChainName,
+  RozoPayToken,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { Option } from "../components/Common/OptionsList";
@@ -11,6 +9,7 @@ import { ROUTES } from "../constants/routes";
 import { formatUsd, roundTokenAmount } from "../utils/format";
 import { usePayContext } from "./usePayContext";
 
+/// Gets token options when paying from a connected wallet. Supports both EVM
 /// and Solana tokens. See OptionsList.
 export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
   optionsList: Option[];
@@ -35,8 +34,8 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
         walletPaymentOptions.options ?? [],
         isDepositFlow,
         setSelectedTokenOption,
-        setRoute,
-      ),
+        setRoute
+      )
     );
     isLoading ||= walletPaymentOptions.isLoading;
   }
@@ -46,8 +45,8 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
         solanaPaymentOptions.options ?? [],
         isDepositFlow,
         setSelectedSolanaTokenOption,
-        setRoute,
-      ),
+        setRoute
+      )
     );
     isLoading ||= solanaPaymentOptions.isLoading;
   }
@@ -57,8 +56,8 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
         stellarPaymentOptions.options ?? [],
         isDepositFlow,
         setSelectedStellarTokenOption,
-        setRoute,
-      ),
+        setRoute
+      )
     );
     isLoading ||= stellarPaymentOptions.isLoading;
   }
@@ -76,7 +75,7 @@ function getEvmTokenOptions(
   options: WalletPaymentOption[],
   isDepositFlow: boolean,
   setSelectedTokenOption: (option: WalletPaymentOption) => void,
-  setRoute: (route: ROUTES, meta?: any) => void,
+  setRoute: (route: ROUTES, meta?: any) => void
 ) {
   return options.map((option) => {
     const chainName = getChainName(option.balance.token.chainId);
@@ -85,7 +84,10 @@ function getEvmTokenOptions(
       : roundTokenAmount(option.required.amount, option.required.token);
     const title = `${titlePrice} ${option.balance.token.symbol} on ${chainName}`;
 
-    const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+    const balanceStr = `${roundTokenAmount(
+      option.balance.amount,
+      option.balance.token
+    )} ${option.balance.token.symbol}`;
     const subtitle =
       option.disabledReason ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;
@@ -124,14 +126,17 @@ function getSolanaTokenOptions(
   options: WalletPaymentOption[],
   isDepositFlow: boolean,
   setSelectedSolanaTokenOption: (option: WalletPaymentOption) => void,
-  setRoute: (route: ROUTES, meta?: any) => void,
+  setRoute: (route: ROUTES, meta?: any) => void
 ) {
   return options.map((option) => {
     const titlePrice = isDepositFlow
       ? formatUsd(option.balance.usd)
       : roundTokenAmount(option.required.amount, option.required.token);
     const title = `${titlePrice} ${option.balance.token.symbol} on Solana`;
-    const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+    const balanceStr = `${roundTokenAmount(
+      option.balance.amount,
+      option.balance.token
+    )} ${option.balance.token.symbol}`;
     const subtitle =
       option.disabledReason ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;
@@ -170,13 +175,17 @@ function getStellarTokenOptions(
   options: WalletPaymentOption[],
   isDepositFlow: boolean,
   setSelectedStellarTokenOption: (option: WalletPaymentOption) => void,
-  setRoute: (route: ROUTES, meta?: any) => void,
+  setRoute: (route: ROUTES, meta?: any) => void
 ) {
   return options.map((option) => {
     const titlePrice = isDepositFlow
-      ? formatUsd(option.balance.usd) : roundTokenAmount(option.required.amount, option.required.token);
+      ? formatUsd(option.balance.usd)
+      : roundTokenAmount(option.required.amount, option.required.token);
     const title = `${titlePrice} ${option.balance.token.symbol} on Stellar`;
-    const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+    const balanceStr = `${roundTokenAmount(
+      option.balance.amount,
+      option.balance.token
+    )} ${option.balance.token.symbol}`;
     const subtitle =
       option.disabledReason ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;

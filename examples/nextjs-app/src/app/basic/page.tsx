@@ -17,6 +17,7 @@ import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 type Config = {
   recipientAddress: string;
   recipientStellarAddress?: string;
+  recipientSolanaAddress?: string;
   chainId: number;
   tokenAddress: string;
   amount: string;
@@ -29,6 +30,7 @@ export default function DemoBasic() {
   const [config, setConfig] = usePersistedConfig("rozo-basic-config", {
     recipientAddress: "",
     recipientStellarAddress: "",
+    recipientSolanaAddress: "",
     chainId: 0,
     tokenAddress: "",
     amount: "",
@@ -44,6 +46,7 @@ export default function DemoBasic() {
       toChain: config.chainId,
       toAddress: getAddress(config.recipientAddress),
       toStellarAddress: config.recipientStellarAddress,
+      toSolanaAddress: config.recipientSolanaAddress,
       toUnits: config.amount,
       toToken: getAddress(config.tokenAddress),
     });
@@ -131,6 +134,11 @@ export default function DemoBasic() {
               ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}`
               : ""
           }
+          ${
+            parsedConfig.recipientSolanaAddress
+              ? `toSolanaAddress={"${parsedConfig.recipientSolanaAddress}"}`
+              : ""
+          }
           toUnits={"${parsedConfig.amount}"}
           toToken={getAddress(${tokenVarName}.token)}
         />`;
@@ -141,7 +149,7 @@ export default function DemoBasic() {
 
     // For non-native tokens
     const token = knownTokens.find(
-      (t) =>
+      (t: any) =>
         t.token === parsedConfig.tokenAddress &&
         t.chainId === parsedConfig.chainId
     );
@@ -159,14 +167,15 @@ export default function DemoBasic() {
      appId="${APP_ID}"
      toChain={${tokenVarName}.chainId}
      toAddress={getAddress("${parsedConfig.recipientAddress}")}
- ${
+ ${`${
    parsedConfig.recipientStellarAddress
-     ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}
-     toUnits={"${parsedConfig.amount}"}
-     toToken={getAddress(${tokenVarName}.token)}`
-     : `toUnits={"${parsedConfig.amount}"}
-     toToken={getAddress(${tokenVarName}.token)}`
+     ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}`
+     : parsedConfig.recipientSolanaAddress
+     ? `toSolanaAddress={"${parsedConfig.recipientSolanaAddress}"}`
+     : ""
  }
+     toUnits={"${parsedConfig.amount}"}
+     toToken={getAddress(${tokenVarName}.token)}`}
  />`;
     setCodeSnippet(snippet);
   }, [parsedConfig, hasValidConfig]);
@@ -186,8 +195,9 @@ export default function DemoBasic() {
               toChain={parsedConfig.chainId}
               toAddress={getAddress(parsedConfig.recipientAddress)}
               toStellarAddress={parsedConfig.recipientStellarAddress}
+              toSolanaAddress={parsedConfig.recipientSolanaAddress}
               toUnits={parsedConfig.amount}
-              toToken={getAddress(config.tokenAddress)}
+              toToken={getAddress(parsedConfig.tokenAddress)}
               onPaymentStarted={printEvent}
               onPaymentCompleted={printEvent}
               resetOnSuccess={true}
@@ -226,13 +236,17 @@ export default function DemoBasic() {
           defaultRecipientAddress={config.recipientAddress}
         />
 
-        {parsedConfig?.recipientStellarAddress && (
+        {parsedConfig?.recipientStellarAddress ||
+        parsedConfig?.recipientSolanaAddress ? (
           <div className="text-sm text-gray-600 text-left">
             <p className="mb-2">
-              <strong>Note:</strong> When using <code>toStellarAddress</code>,
-              you must set:
+              <strong>Note:</strong>
             </p>
             <ul className="list-disc list-inside mb-2">
+              <li>
+                When using <code>toStellarAddress</code> or{" "}
+                <code>toSolanaAddress</code>, you must set:
+              </li>
               <li>
                 <code>toChain</code> to Base Chain ({baseUSDC.chainId})
               </li>
@@ -245,7 +259,7 @@ export default function DemoBasic() {
               </li>
             </ul>
           </div>
-        )}
+        ) : null}
       </div>
     </Container>
   );

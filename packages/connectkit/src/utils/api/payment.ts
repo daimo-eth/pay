@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient, ApiResponse, RequestState } from "./base";
 
 /**
@@ -329,6 +329,16 @@ export const useRozoPayments = (
   RequestState<PaymentResponseData[]>,
   () => Promise<ApiResponse<PaymentResponseData[]> | void>
 ] => {
+  // Create stable params object that only changes when content actually changes
+  const stableParams = useMemo(() => {
+    if (!params) return undefined;
+    // Sort keys for consistent comparison
+    const sortedEntries = Object.entries(params).sort(([a], [b]) =>
+      a.localeCompare(b)
+    );
+    return Object.fromEntries(sortedEntries);
+  }, [params]);
+
   const [state, setState] = useState<RequestState<PaymentResponseData[]>>({
     data: null,
     error: null,
@@ -342,7 +352,7 @@ export const useRozoPayments = (
     setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      const response = await listRozoPayments(params);
+      const response = await listRozoPayments(stableParams);
 
       setState({
         data: response.data,
@@ -364,7 +374,7 @@ export const useRozoPayments = (
         isSuccess: false,
       });
     }
-  }, [JSON.stringify(params)]);
+  }, [stableParams]);
 
   useEffect(() => {
     if (enabled) {

@@ -1,20 +1,21 @@
-import { ReactElement, useCallback, useEffect, useRef } from "react";
+import { ReactElement, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { usePayContext } from "../../hooks/usePayContext";
 import { TextContainer } from "./styles";
 
 import {
   assertNotNull,
-  RozoPayEventType,
-  RozoPayOrderView,
-  RozoPayUserMetadata,
   ExternalPaymentOptionsString,
-  getRozoPayOrderView,
   getOrderDestChainId,
   getOrderSourceChainId,
+  getRozoPayOrderView,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
+  RozoPayEventType,
+  RozoPayHydratedOrderWithOrg,
+  RozoPayOrderView,
+  RozoPayUserMetadata,
   writeRozoPayOrderID,
 } from "@rozoai/intent-common";
 import { AnimatePresence, Variants } from "framer-motion";
@@ -57,6 +58,10 @@ export type PayButtonPaymentProps =
        * The destination stellar address to transfer to.
        */
       toStellarAddress?: string;
+      /**
+       * The destination solana address to transfer to.
+       */
+      toSolanaAddress?: string;
       /**
        * Optional calldata to call an arbitrary function on `toAddress`.
        */
@@ -181,29 +186,85 @@ export function RozoPayButton(props: RozoPayButtonProps): JSX.Element {
 function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   const context = usePayContext();
 
-  // Pre-load payment info in background.
-  // Reload when any of the info changes.
-  let payParams: PayParams | null =
-    "appId" in props
-      ? {
-          appId: props.appId,
-          toChain: props.toChain,
-          toAddress: props.toAddress,
-          toStellarAddress: props.toStellarAddress,
-          toToken: props.toToken,
-          toUnits: props.toUnits,
-          toCallData: props.toCallData,
-          intent: props.intent,
-          paymentOptions: props.paymentOptions,
-          preferredChains: props.preferredChains,
-          preferredTokens: props.preferredTokens,
-          evmChains: props.evmChains,
-          externalId: props.externalId,
-          metadata: props.metadata,
-          refundAddress: props.refundAddress,
-        }
-      : null;
-  let payId = "payId" in props ? props.payId : null;
+  // Extract payment configuration from props
+  const { payParams, payId } = useMemo(() => {
+    if ("appId" in props) {
+      const {
+        appId,
+        toChain,
+        toAddress,
+        toStellarAddress,
+        toSolanaAddress,
+        toToken,
+        toUnits,
+        toCallData,
+        intent,
+        paymentOptions,
+        preferredChains,
+        preferredTokens,
+        evmChains,
+        externalId,
+        metadata,
+        refundAddress,
+      } = props;
+
+      return {
+        payParams: {
+          appId,
+          toChain,
+          toAddress,
+          toStellarAddress,
+          toSolanaAddress,
+          toToken,
+          toUnits,
+          toCallData,
+          intent,
+          paymentOptions,
+          preferredChains,
+          preferredTokens,
+          evmChains,
+          externalId,
+          metadata,
+          refundAddress,
+        } as PayParams,
+        payId: null,
+      };
+    }
+
+    if ("payId" in props) {
+      return {
+        payParams: null,
+        payId: props.payId,
+      };
+    }
+
+    return { payParams: null, payId: null };
+  }, [
+    "appId" in props,
+    "payId" in props,
+    // Only include relevant props based on mode
+    ...("appId" in props
+      ? [
+          props.appId,
+          props.toChain,
+          props.toAddress,
+          props.toStellarAddress,
+          props.toSolanaAddress,
+          props.toToken,
+          props.toUnits,
+          props.toCallData,
+          props.intent,
+          props.paymentOptions,
+          props.preferredChains,
+          props.preferredTokens,
+          props.evmChains,
+          props.externalId,
+          props.metadata,
+          props.refundAddress,
+        ]
+      : []),
+    ...("payId" in props ? [props.payId] : []),
+  ]);
 
   const { paymentState, log } = context;
   const {
@@ -213,16 +274,27 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     paymentRozoCompleted,
   } = useRozoPay();
 
-  // Set the payId or payParams
+  // Track previous values to prevent unnecessary API calls
+  const prevPayIdRef = useRef<string | null>(null);
+  const prevPayParamsRef = useRef<PayParams | null>(null);
+
+  // Set the payId or payParams when they change
   useEffect(() => {
-    if (payId != null) {
+    const payIdChanged = payId !== prevPayIdRef.current;
+    const payParamsChanged = payParams !== prevPayParamsRef.current;
+
+    if (payIdChanged && payId != null) {
+      prevPayIdRef.current = payId;
+      prevPayParamsRef.current = null; // Reset when switching modes
       paymentState.setPayId(payId);
-    } else if (payParams != null) {
+    } else if (payParamsChanged && payParams != null) {
+      prevPayParamsRef.current = payParams;
+      prevPayIdRef.current = null; // Reset when switching modes
       paymentState.setPayParams(payParams);
     }
-    paymentState.setButtonProps(props);
+    // Note: paymentState is not stable/memoized, so we don't include it as a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payId, JSON.stringify(payParams || {})]);
+  }, [payId, payParams]);
 
   // Set the confirmation message
   const { setConfirmationMessage } = context;
@@ -297,11 +369,35 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, payState]);
 
+  // Type guard to check if order is hydrated
+  const isHydratedOrder = (
+    order: any
+  ): order is RozoPayHydratedOrderWithOrg => {
+    return order && typeof order === "object" && "intentAddr" in order;
+  };
+
+  // Helper function to safely extract transaction hash from order
+  const getDestinationTxHash = (order: any): string | null => {
+    // Only proceed if order is hydrated (where tx hashes would exist)
+    if (!isHydratedOrder(order)) {
+      return null;
+    }
+
+    // Check for destFastFinishTxHash first (preferred)
+    if ("destFastFinishTxHash" in order && order.destFastFinishTxHash) {
+      return order.destFastFinishTxHash;
+    }
+    // Fallback to destClaimTxHash
+    if ("destClaimTxHash" in order && order.destClaimTxHash) {
+      return order.destClaimTxHash;
+    }
+    return null;
+  };
+
   // Emit onPaymentComplete or onPaymentBounced handler when payment state
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
-    console.log({ paymentRozoCompleted, order, rozoPaymentId });
     if (sentComplete.current) return;
 
     if (!paymentRozoCompleted) {
@@ -321,7 +417,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       paymentId: writeRozoPayOrderID(order.id),
       chainId: getOrderDestChainId(order),
       txHash: assertNotNull(
-        (order as any)?.destFastFinishTxHash ?? (order as any)?.destClaimTxHash,
+        getDestinationTxHash(order),
         `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
       ),
       payment: getRozoPayOrderView(order),

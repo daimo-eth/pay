@@ -1,10 +1,10 @@
 import {
-  RozoPayOrderMode,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
   PlatformType,
+  RozoPayOrderMode,
 } from "@rozoai/intent-common";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
 const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
@@ -42,6 +42,13 @@ export function useExternalPaymentOptions({
     Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
+
+  // Create stable filterIds dependency that only changes when content actually changes
+  const stableFilterIds = useMemo(() => {
+    if (!filterIds) return null;
+    // Sort to ensure consistent comparison
+    return [...filterIds].sort();
+  }, [filterIds]);
 
   useEffect(() => {
     const refreshExternalPaymentOptions = async (
@@ -98,12 +105,7 @@ export function useExternalPaymentOptions({
     if (usdRequired != null && mode != null) {
       refreshExternalPaymentOptions(usdRequired, mode);
     }
-    // TODO: this is an ugly way to handle polling/refresh
-    // Notice the load-bearing JSON.stringify() to prevent a visible infinite
-    // refresh glitch on the SelectMethod screen. Replace this useEffect().
-    //
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
+  }, [usdRequired, stableFilterIds, platform, mode, trpc]);
 
   return { options, loading };
 }

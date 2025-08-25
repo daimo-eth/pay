@@ -1,16 +1,23 @@
-
 import {
-  RozoPayUserMetadata, assertNotNull,
-  RozoPayEventType,
-  getRozoPayOrderView,
+  assertNotNull,
   getOrderDestChainId,
   getOrderSourceChainId,
+  getRozoPayOrderView,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
   PaymentStartedEvent,
+  RozoPayEventType,
+  RozoPayUserMetadata,
   writeRozoPayOrderID,
 } from "@rozoai/intent-common";
-import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Address, Hex } from "viem";
 import ThemedButton, {
   ThemeContainer,
@@ -131,6 +138,46 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const { log } = context;
   const [isMiniKitReady, setIsMiniKitReady] = useState(false);
 
+  // Create stable payment parameters that only change when content actually changes
+  const stablePaymentParams = useMemo(() => {
+    const {
+      appId,
+      toChain,
+      toToken,
+      toUnits,
+      toAddress,
+      toCallData,
+      intent,
+      externalId,
+      metadata,
+      refundAddress,
+    } = props;
+
+    return {
+      appId,
+      toChain,
+      toToken,
+      toUnits,
+      toAddress,
+      toCallData,
+      intent,
+      externalId,
+      metadata,
+      refundAddress,
+    };
+  }, [
+    props.appId,
+    props.toChain,
+    props.toToken,
+    props.toUnits,
+    props.toAddress,
+    props.toCallData,
+    props.intent,
+    props.externalId,
+    props.metadata,
+    props.refundAddress,
+  ]);
+
   // Payment events: call these three event handlers.
   const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
 
@@ -145,9 +192,8 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
 
   useEffect(() => {
     log("[WORLD] Creating preview order");
-    pay.createPreviewOrder(props);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pay, JSON.stringify(props)]);
+    pay.createPreviewOrder(stablePaymentParams);
+  }, [pay, stablePaymentParams]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
@@ -194,7 +240,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
       chainId: getOrderDestChainId(pay.order),
       txHash: assertNotNull(
         pay.order.destFastFinishTxHash ?? pay.order.destClaimTxHash,
-        `[WORLD PAY BUTTON] dest tx hash null on order ${pay.order.id} when intent status is ${pay.order.intentStatus}`,
+        `[WORLD PAY BUTTON] dest tx hash null on order ${pay.order.id} when intent status is ${pay.order.intentStatus}`
       ),
       payment: getRozoPayOrderView(pay.order),
     };
@@ -221,14 +267,14 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     log(`[WORLD] showing payment ${pay.order?.id}`);
     if (!isMiniKitReady) {
       console.error(
-        "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",
+        "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature."
       );
       return;
     }
 
     if (
       ["payment_started", "payment_completed", "payment_bounced"].includes(
-        pay.paymentState,
+        pay.paymentState
       )
     ) {
       showSpinner();
@@ -238,7 +284,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     log(`[WORLD] hydrating order ${pay.order?.id}`);
     const { order } = await pay.hydrateOrder();
     log(
-      `[WORLD] hydrated order ${pay.order?.id}. Prompting payment with MiniKit`,
+      `[WORLD] hydrated order ${pay.order?.id}. Prompting payment with MiniKit`
     );
     const payRes = await promptWorldcoinPayment(order, context.trpc);
     if (payRes == null || payRes.finalPayload.status == "error") {

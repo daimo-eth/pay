@@ -18,6 +18,7 @@ import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
 type Config = {
   recipientAddress: string;
   recipientStellarAddress?: string;
+  recipientSolanaAddress?: string;
   chainId: number;
   tokenAddress: string;
 };
@@ -30,6 +31,7 @@ export default function DemoDeposit() {
   const [config, setConfig] = usePersistedConfig("rozo-deposit-config", {
     recipientAddress: "",
     recipientStellarAddress: "",
+    recipientSolanaAddress: "",
     chainId: 0,
     tokenAddress: "",
   } as Config);
@@ -45,6 +47,7 @@ export default function DemoDeposit() {
       toChain: config.chainId,
       toAddress: getAddress(config.recipientAddress),
       toStellarAddress: config.recipientStellarAddress,
+      toSolanaAddress: config.recipientSolanaAddress,
       toToken: getAddress(config.tokenAddress),
     });
   };
@@ -132,6 +135,11 @@ export default function DemoDeposit() {
               ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}`
               : ""
           }
+          ${
+            parsedConfig.recipientSolanaAddress
+              ? `toSolanaAddress={"${parsedConfig.recipientSolanaAddress}"}`
+              : ""
+          }
           toToken={getAddress(${tokenVarName}.token)}
           intent="Deposit"
         />`;
@@ -159,12 +167,14 @@ import { ${tokenVarName}} from "@rozoai/intent-common";
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
   toAddress={getAddress("${parsedConfig.recipientAddress}")}
-  ${
+  ${`${
     parsedConfig.recipientStellarAddress
-      ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}
-  toToken={getAddress(${tokenVarName}.token)}`
-      : `toToken={getAddress(${tokenVarName}.token)}`
+      ? `toStellarAddress={"${parsedConfig.recipientStellarAddress}"}`
+      : parsedConfig.recipientSolanaAddress
+      ? `toSolanaAddress={"${parsedConfig.recipientSolanaAddress}"}`
+      : ""
   }
+  toToken={getAddress(${tokenVarName}.token)}`}
   intent="Deposit"
 />`;
       setCodeSnippet(snippet);
@@ -187,6 +197,7 @@ import { ${tokenVarName}} from "@rozoai/intent-common";
               toAddress={getAddress(parsedConfig.recipientAddress)}
               toToken={getAddress(parsedConfig.tokenAddress)}
               toStellarAddress={parsedConfig.recipientStellarAddress}
+              toSolanaAddress={parsedConfig.recipientSolanaAddress}
               intent="Deposit"
               onPaymentStarted={printEvent}
               onPaymentCompleted={(e) => {

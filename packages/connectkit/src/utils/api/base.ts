@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROZO_API_TOKEN, ROZO_API_URL } from "../../constants/rozoConfig";
 
 // HTTP methods type
@@ -187,6 +187,37 @@ export const useApiRequest = <T = any>(
   options: RequestOptions = {},
   dependencies: any[] = []
 ): [RequestState<T>, (newOptions?: RequestOptions) => Promise<void>] => {
+  // Create stable options object that only changes when content actually changes
+  const stableOptions = useMemo(() => {
+    const { method, headers, body, params, signal } = options;
+
+    // Sort headers and params for consistent comparison
+    const sortedHeaders = headers
+      ? Object.fromEntries(
+          Object.entries(headers).sort(([a], [b]) => a.localeCompare(b))
+        )
+      : undefined;
+    const sortedParams = params
+      ? Object.fromEntries(
+          Object.entries(params).sort(([a], [b]) => a.localeCompare(b))
+        )
+      : undefined;
+
+    return {
+      method,
+      headers: sortedHeaders,
+      body,
+      params: sortedParams,
+      signal,
+    };
+  }, [
+    options.method,
+    options.headers,
+    options.body,
+    options.params,
+    options.signal,
+  ]);
+
   const [state, setState] = useState<RequestState<T>>({
     data: null,
     error: null,
@@ -201,7 +232,7 @@ export const useApiRequest = <T = any>(
       setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
-        const mergedOptions = { ...options, ...newOptions };
+        const mergedOptions = { ...stableOptions, ...newOptions };
         const response = await fetchApi<T>(url, mergedOptions);
 
         setState({
@@ -223,7 +254,7 @@ export const useApiRequest = <T = any>(
         });
       }
     },
-    [url, JSON.stringify(options)]
+    [url, stableOptions]
   );
 
   useEffect(() => {

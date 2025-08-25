@@ -27,25 +27,27 @@ export function useWalletPaymentOptions({
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Memoize array dependencies to prevent unnecessary re-fetches
-  // TODO: this is an ugly way to handle polling/refresh
-  // Notice the load-bearing JSON.stringify() to prevent a visible infinite
-  // refresh glitch on the SelectMethod screen. Replace this useEffect().
-  const memoizedPreferredChains = useMemo(
-    () => preferredChains,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(preferredChains)]
-  );
-  const memoizedPreferredTokens = useMemo(
-    () => preferredTokens,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(preferredTokens)]
-  );
-  const memoizedEvmChains = useMemo(
-    () => evmChains,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(evmChains)]
-  );
+  // Create stable array dependencies that only change when content actually changes
+  const stablePreferredChains = useMemo(() => {
+    if (!preferredChains || preferredChains.length === 0) return undefined;
+    // Sort to ensure consistent comparison
+    return [...preferredChains].sort((a, b) => a - b);
+  }, [preferredChains]);
+
+  const stablePreferredTokens = useMemo(() => {
+    if (!preferredTokens || preferredTokens.length === 0) return undefined;
+    // Sort by chain first, then by address for consistent comparison
+    return [...preferredTokens].sort((a, b) => {
+      if (a.chain !== b.chain) return a.chain - b.chain;
+      return a.address.localeCompare(b.address);
+    });
+  }, [preferredTokens]);
+
+  const stableEvmChains = useMemo(() => {
+    if (!evmChains || evmChains.length === 0) return undefined;
+    // Sort to ensure consistent comparison
+    return [...evmChains].sort((a, b) => a - b);
+  }, [evmChains]);
 
   useEffect(() => {
     const refreshWalletPaymentOptions = async () => {
@@ -54,15 +56,27 @@ export function useWalletPaymentOptions({
       setOptions(null);
       setIsLoading(true);
       try {
-        const newOptions = await trpc.getWalletPaymentOptions.query({
+        const queryParams: any = {
           payerAddress: address,
           // API expects undefined for deposit flow.
           usdRequired: isDepositFlow ? undefined : usdRequired,
           destChainId,
-          preferredChains: memoizedPreferredChains,
-          preferredTokens: memoizedPreferredTokens,
-          evmChains: memoizedEvmChains,
-        });
+        };
+
+        // Only include array parameters if they have values
+        if (stablePreferredChains) {
+          queryParams.preferredChains = stablePreferredChains;
+        }
+        if (stablePreferredTokens) {
+          queryParams.preferredTokens = stablePreferredTokens;
+        }
+        if (stableEvmChains) {
+          queryParams.evmChains = stableEvmChains;
+        }
+
+        const newOptions = await trpc.getWalletPaymentOptions.query(
+          queryParams
+        );
 
         // Filter out chains we don't support yet.
         const isSupported = (o: WalletPaymentOption) =>
@@ -87,15 +101,15 @@ export function useWalletPaymentOptions({
     if (address != null && usdRequired != null && destChainId != null) {
       refreshWalletPaymentOptions();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     address,
     usdRequired,
     destChainId,
     isDepositFlow,
-    memoizedPreferredChains,
-    memoizedPreferredTokens,
-    memoizedEvmChains,
+    stablePreferredChains,
+    stablePreferredTokens,
+    stableEvmChains,
+    trpc,
   ]);
 
   return {

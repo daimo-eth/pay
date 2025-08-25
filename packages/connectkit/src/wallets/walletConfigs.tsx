@@ -60,7 +60,7 @@ export type WalletConfigProps = {
   };
   deeplinkScheme?: string;
   // For Rozo Pay deeplinks
-  getRozoPayDeeplink?: (payId: string) => string;
+  getRozoPayDeeplink?: (payId: string, ref?: string) => string;
   // To sort mobile wallets to show in the connector list
   showInMobileConnectors?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
@@ -181,10 +181,10 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
-    getRozoPayDeeplink: (payId: string) => {
+    getRozoPayDeeplink: (payId: string, ref?: string) => {
       const url = encodeURIComponent(getRozoPayUrl(payId));
-      const ref = encodeURIComponent(window.location.origin);
-      return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
+      const urlRef = encodeURIComponent(ref || window.location.origin);
+      return `https://phantom.app/ul/browse/${url}?ref=${urlRef}`;
     },
   },
   farcaster: {

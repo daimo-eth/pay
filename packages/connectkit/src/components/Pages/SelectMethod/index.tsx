@@ -7,7 +7,15 @@ import { PageContent } from "../../Common/Modal/styles";
 import { getAddressContraction } from "@rozoai/intent-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Arbitrum, Base, Ethereum, Optimism, Polygon, Solana, Stellar, Tron } from "../../../assets/chains";
+import {
+  Arbitrum,
+  Base,
+  Ethereum,
+  Optimism,
+  Polygon,
+  Solana,
+  Stellar,
+} from "../../../assets/chains";
 import {
   MetaMask,
   Phantom,
@@ -17,12 +25,12 @@ import {
   WalletIcon,
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
+import { useStellar } from "../../../provider/StellarContextProvider";
 import { walletConfigs } from "../../../wallets/walletConfigs";
 import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
-import { useStellar } from "../../../provider/StellarContextProvider";
 
 export default function SelectMethod() {
   const { isMobile, isIOS, isAndroid } = useIsMobile();
@@ -46,9 +54,16 @@ export default function SelectMethod() {
   const { disconnectAsync } = useDisconnect();
 
   // Stellar Support
-  const { connector: stellarConnector, setConnector: setStellarConnector, isConnected: isStellarConnected, disconnect: disconnectStellar, publicKey: stellarPublicKey } = useStellar();
+  const {
+    connector: stellarConnector,
+    setConnector: setStellarConnector,
+    isConnected: isStellarConnected,
+    disconnect: disconnectStellar,
+    publicKey: stellarPublicKey,
+  } = useStellar();
 
-  const { externalPaymentOptions, senderEnsName, showStellarPaymentMethod } = paymentState;
+  const { externalPaymentOptions, senderEnsName, showStellarPaymentMethod } =
+    paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
   // Desktop: Always show connected wallets when available
@@ -124,7 +139,7 @@ export default function SelectMethod() {
 
     if (showConnectedSolana && showSolanaPaymentMethod) {
       const solWalletDisplayName = getAddressContraction(
-        publicKey?.toBase58() ?? "",
+        publicKey?.toBase58() ?? ""
       );
 
       // Prefer icon from walletConfigs if available
@@ -176,7 +191,7 @@ export default function SelectMethod() {
 
     if (showConnectedStellar) {
       const stellarWalletDisplayName = getAddressContraction(
-        stellarPublicKey ?? "",
+        stellarPublicKey ?? ""
       );
 
       const connectedStellarWalletOption = {
@@ -184,21 +199,21 @@ export default function SelectMethod() {
         title: `Pay with ${stellarWalletDisplayName}`,
         icons: stellarConnector?.icon
           ? [
-            <WalletChainLogo
-              key="stellar-wallet"
-              walletIcon={stellarConnector.icon}
-              walletName={stellarConnector.name}
-              chainLogo={<Stellar />}
-            />,
-          ]
+              <WalletChainLogo
+                key="stellar-wallet"
+                walletIcon={stellarConnector.icon}
+                walletName={stellarConnector.name}
+                chainLogo={<Stellar />}
+              />,
+            ]
           : [
-            <WalletChainLogo
-              key="stellar-wallet"
-              walletIcon={<Stellar />}
-              walletName="Default wallet icon"
-              chainLogo={<Stellar />}
-            />,
-          ],
+              <WalletChainLogo
+                key="stellar-wallet"
+                walletIcon={<Stellar />}
+                walletName="Default wallet icon"
+                chainLogo={<Stellar />}
+              />,
+            ],
         onClick: () => {
           paymentState.setTokenMode("stellar");
           setRoute(ROUTES.SELECT_TOKEN, {
@@ -244,15 +259,15 @@ export default function SelectMethod() {
   options.push(unconnectedWalletOption);
 
   log(
-    `[SELECT_METHOD] loading: ${externalPaymentOptions.loading}, options: ${JSON.stringify(
-      externalPaymentOptions.options,
-    )}`,
+    `[SELECT_METHOD] loading: ${
+      externalPaymentOptions.loading
+    }, options: ${JSON.stringify(externalPaymentOptions.options)}`
   );
 
   if (showStellarPaymentMethod) {
     options.push({
       id: "stellar",
-      title: "Pay on Stellar",
+      title: "Pay with Stellar",
       icons: [<Stellar key="stellar" />],
       onClick: async () => {
         await disconnectAsync();
@@ -262,7 +277,6 @@ export default function SelectMethod() {
       },
     });
   }
-
 
   // Pay with Exchange
   const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
@@ -322,7 +336,7 @@ export default function SelectMethod() {
 // Get 3 icons, skipping the one that is already connected
 function getBestUnconnectedWalletIcons(
   connector: Connector | undefined,
-  isMobile: boolean,
+  isMobile: boolean
 ) {
   const icons: JSX.Element[] = [];
   const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
@@ -350,15 +364,19 @@ function getBestUnconnectedWalletIcons(
 }
 
 function getDepositAddressOption(
-  setRoute: (route: ROUTES, data?: Record<string, any>) => void,
+  setRoute: (route: ROUTES, data?: Record<string, any>) => void
 ) {
   return {
     id: "depositAddress",
     title: "Pay to address",
-    icons: [<Base key="base" />, <Arbitrum key="arbitrum" />, <Optimism key="optimism" />, <Polygon key="polygon" />],
+    icons: [
+      <Base key="base" />,
+      <Arbitrum key="arbitrum" />,
+      <Optimism key="optimism" />,
+      <Polygon key="polygon" />,
+    ],
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },
   };
 }
-

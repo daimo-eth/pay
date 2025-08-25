@@ -120,29 +120,13 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {show === "all" && (
-            <>
-              <CoinLogos $size={32} />
-            </>
-          )}
         </MinifiedContainer>
       );
-    } else {
-      return (
-        <MinifiedContainer>
-          <CoinLogos />
-          <Subtitle>{locales.tokensAccepted}</Subtitle>
-        </MinifiedContainer>
-      );
-    }
+    } else return;
   } else {
     return (
       <>
         {titleAmountContent && <TitleAmount>{titleAmountContent}</TitleAmount>}
-        <AnyChainAnyCoinContainer>
-          <CoinLogos />
-          <Subtitle>{locales.tokensAccepted}</Subtitle>
-        </AnyChainAnyCoinContainer>
       </>
     );
   }

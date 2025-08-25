@@ -18,7 +18,6 @@ import {
 } from "../../../assets/logos";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
-import { flattenChildren } from "../../../utils";
 import { walletConfigs } from "../../../wallets/walletConfigs";
 import { Option, OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -27,8 +26,7 @@ import WalletChainLogo from "../../Common/WalletChainLogo";
 
 export default function SelectMethod() {
   const locales = useLocales();
-  const payWithString = flattenChildren(locales.payWith).join("");
-  const { isMobile, isIOS, isAndroid } = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   const {
     address,
@@ -97,7 +95,7 @@ export default function SelectMethod() {
 
       const connectedEthWalletOption = {
         id: "connectedWallet",
-        title: `${payWithString} ${ethWalletDisplayName}`,
+        title: `${ethWalletDisplayName}`,
         icons: [
           <WalletChainLogo
             key="eth"
@@ -148,7 +146,7 @@ export default function SelectMethod() {
 
       const connectedSolWalletOption = {
         id: "connectedSolanaWallet",
-        title: `${payWithString} ${solWalletDisplayName}`,
+        title: `${solWalletDisplayName}`,
         icons: [
           <WalletChainLogo
             key="sol-wallet"

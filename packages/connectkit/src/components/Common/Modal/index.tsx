@@ -357,6 +357,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SWITCHNETWORKS:
         return locales.switchNetworkScreen_heading;
       case ROUTES.SELECT_METHOD:
+        return order?.metadata.intent + " with";
       case ROUTES.SELECT_TOKEN:
         return order?.metadata.intent;
       case ROUTES.SOLANA_PAY_WITH_TOKEN:

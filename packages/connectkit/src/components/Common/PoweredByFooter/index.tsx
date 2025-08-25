@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
-import CrepeIcon from "../../../assets/crepe";
+import GearIcon from "../../../assets/gear";
 import useLocales from "../../../hooks/useLocales";
 import styled from "../../../styles/styled";
-import { daimoPayVersion } from "../../../utils/exports";
 
 const PoweredByFooter = ({
   supportUrl,
@@ -23,27 +22,17 @@ const PoweredByFooter = ({
 
   return (
     <Container>
-      <TextButton
-        onClick={() => {
-          window.open(
-            supportVisible
-              ? supportUrl
-              : `https://pay.daimo.com?ref=sdk-v${daimoPayVersion}`,
-            "_blank",
-          );
-        }}
-        className={supportVisible ? "support" : ""}
-      >
-        {!supportVisible && <CrepeIcon />}
+      <TextButton className={supportVisible ? "support" : ""}>
         <span>
           {supportVisible ? (
             <>
               Need help? <Underline>Contact support</Underline>
             </>
           ) : (
-            <>{locales.poweredBy} Daimo Pay</>
+            <>{locales.poweredBy} Daimo</>
           )}
         </span>
+        {!supportVisible && <GearIcon />}
       </TextButton>
     </Container>
   );
@@ -67,7 +56,7 @@ const TextButton = styled(motion.button)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 4px;
   height: 42px;
   padding: 0 16px;
   border-radius: 6px;

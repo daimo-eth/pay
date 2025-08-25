@@ -70,6 +70,21 @@ export default [
         jsx: "automatic",
       }),
     ],
+    onwarn(warn, defaultHandler) {
+      // silence noisy but harmless warnings
+      if (
+        warn.code === "MODULE_LEVEL_DIRECTIVE" &&
+        /"use client"/.test(warn.message)
+      )
+        return;
+      if (warn.code === "THIS_IS_UNDEFINED") return;
+      if (
+        warn.code === "CIRCULAR_DEPENDENCY" &&
+        /porto\/node_modules\/ox\/_esm\/core\//.test(warn.message)
+      )
+        return;
+      defaultHandler(warn);
+    },
   },
   // Types: emit bundled .d.ts for public entrypoints
   {

@@ -48,11 +48,15 @@ const defaultConnectors = ({
       },
     }),
   );
+<<<<<<< HEAD
   connectors.push(
     porto({
       merchantRpcUrl: app.merchantRpcUrl,
     }),
   );
+=======
+  connectors.push(porto());
+>>>>>>> f88acca1 (porto)
 
   return connectors;
 };

@@ -436,10 +436,20 @@ export const DaimoPayModal: React.FC<{
           break;
       }
     }
+
+    const hasUniquePaymentOption =
+      paymentState.buttonProps &&
+      "uniquePaymentOption" in paymentState.buttonProps &&
+      paymentState.buttonProps.uniquePaymentOption;
+    const isWalletsUniquePaymentOption =
+      paymentState.buttonProps?.uniquePaymentOption === "Wallets";
+
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
     // If mobile injector is disabled, don't show the connected wallets.
+    // If there's a unique payment option, and the unique payment option is not
+    // "Wallets", don't auto-connect the user's wallet.
     const evmOptionsCount =
       paymentState.walletPaymentOptions.options?.length ?? 0;
     const isEvmLoading = paymentState.walletPaymentOptions.isLoading;
@@ -447,7 +457,7 @@ export const DaimoPayModal: React.FC<{
       paymentState.solanaPaymentOptions.options?.length ?? 0;
     const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
     if (
-      context.uniquePaymentMethodPage === ROUTES.SELECT_METHOD &&
+      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
       isEthConnected &&
       !isSolanaConnected &&
       (!isMobile || !disableMobileInjector) &&
@@ -462,7 +472,7 @@ export const DaimoPayModal: React.FC<{
         address,
       });
     } else if (
-      context.uniquePaymentMethodPage === ROUTES.SELECT_METHOD &&
+      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
       isSolanaConnected &&
       !isEthConnected &&
       showSolanaPaymentMethod &&

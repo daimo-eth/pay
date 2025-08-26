@@ -261,6 +261,14 @@ export const DaimoPayModal: React.FC<{
             event: "unique_payment_option_all_exchanges",
           });
           break;
+        case "ExternalChains":
+          context.setUniquePaymentMethodPage(
+            ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+          );
+          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+            event: "unique_payment_option_external_chains",
+          });
+          break;
         case "Base":
           // Find the Base option from available deposit address options
           const baseOption = paymentState.depositAddressOptions.options?.find(

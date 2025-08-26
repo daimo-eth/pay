@@ -27,7 +27,7 @@ export default function SelectToken() {
   const isConnected = isEvmConnected || isSolConnected;
 
   const isAnotherMethodButtonVisible =
-    optionsList.length > 0 && tokenMode !== "all";
+    optionsList.length > 0 && tokenMode !== "showCoin";
 
   return (
     <PageContent>
@@ -45,7 +45,9 @@ export default function SelectToken() {
       {!isLoading && isConnected && optionsList.length === 0 && (
         <InsufficientBalance />
       )}
-      {!isLoading && !isConnected && tokenMode === "all" && <ConnectButton />}
+      {!isLoading && !isConnected && tokenMode === "showCoin" && (
+        <ConnectButton />
+      )}
       {isAnotherMethodButtonVisible && <SelectAnotherMethodButton />}
     </PageContent>
   );

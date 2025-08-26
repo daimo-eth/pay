@@ -261,7 +261,7 @@ export const DaimoPayModal: React.FC<{
             event: "unique_payment_option_all_exchanges",
           });
           break;
-        case "ExternalChains":
+        case "ManualAddress":
           context.setUniquePaymentMethodPage(
             ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
           );

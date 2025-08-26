@@ -415,6 +415,7 @@ export enum UniquePaymentOptions {
   Optimism = "Optimism",
   Polygon = "Polygon",
   Ethereum = "Ethereum",
+  ManualAddress = "ManualAddress",
 }
 
 export type UniquePaymentOptionsString = `${UniquePaymentOptions}`;

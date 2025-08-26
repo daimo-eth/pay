@@ -26,49 +26,54 @@ import { promptWorldcoinPayment } from "./promptWorldPayment";
 import { MiniKit } from "@worldcoin/minikit-js";
 import useIsMobile from "../hooks/useIsMobile";
 
-export type WorldPayButtonPaymentProps = {
-  /**
-   * Your public app ID. Specify either (payId) or (appId + parameters).
-   */
-  appId: string;
-  /**
-   * Destination chain ID.
-   */
-  toChain: number;
-  /**
-   * The destination token to send, completing payment. Must be an ERC-20
-   * token or the zero address, indicating the native token / ETH.
-   */
-  toToken: Address;
-  /**
-   * The amount of destination token to send (transfer or approve).
-   */
-  toUnits: string;
-  /**
-   * The destination address to transfer to, or contract to call.
-   */
-  toAddress: Address;
-  /**
-   * Optional calldata to call an arbitrary function on `toAddress`.
-   */
-  toCallData?: Hex;
-  /**
-   * The intent verb, such as "Pay", "Deposit", or "Purchase".
-   */
-  intent?: string;
-  /**
-   * External ID. E.g. a correlation ID.
-   */
-  externalId?: string;
-  /**
-   * Developer metadata. E.g. correlation ID.
-   * */
-  metadata?: DaimoPayUserMetadata;
-  /**
-   * The address to refund to if the payment bounces.
-   */
-  refundAddress?: Address;
-};
+export type WorldPayButtonPaymentProps =
+  | {
+      /**
+       * Your public app ID. Specify either (payId) or (appId + parameters).
+       */
+      appId: string;
+      /**
+       * Destination chain ID.
+       */
+      toChain: number;
+      /**
+       * The destination token to send, completing payment. Must be an ERC-20
+       * token or the zero address, indicating the native token / ETH.
+       */
+      toToken: Address;
+      /**
+       * The amount of destination token to send (transfer or approve).
+       */
+      toUnits: string;
+      /**
+       * The destination address to transfer to, or contract to call.
+       */
+      toAddress: Address;
+      /**
+       * Optional calldata to call an arbitrary function on `toAddress`.
+       */
+      toCallData?: Hex;
+      /**
+       * The intent verb, such as "Pay", "Deposit", or "Purchase".
+       */
+      intent?: string;
+      /**
+       * External ID. E.g. a correlation ID.
+       */
+      externalId?: string;
+      /**
+       * Developer metadata. E.g. correlation ID.
+       * */
+      metadata?: DaimoPayUserMetadata;
+      /**
+       * The address to refund to if the payment bounces.
+       */
+      refundAddress?: Address;
+    }
+  | {
+      /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
+      payId: string;
+    };
 
 type WorldPayButtonCommonProps = WorldPayButtonPaymentProps & {
   /** Called when user sends payment and transaction is seen on chain */
@@ -148,8 +153,13 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
 
   // Set the payParams
   useEffect(() => {
-    log("[WORLD] Creating preview order");
-    paymentState.setPayParams(props);
+    if ("payId" in props) {
+      log("[WORLD] Using payId from props: ", props.payId);
+      paymentState.setPayId(props.payId);
+    } else {
+      log("[WORLD] Creating preview order");
+      paymentState.setPayParams(props);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(props || {})]);
 

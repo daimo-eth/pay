@@ -15,7 +15,7 @@ const SelectZKP: React.FC = () => {
   if (!zkp2pOptions) {
     return (
       <PageContent>
-        <OrderHeader minified show="zkp2p" />
+        <OrderHeader minified show="hideCoin" />
         <ModalH1>No ZKP2P options available</ModalH1>
       </PageContent>
     );
@@ -40,7 +40,7 @@ const SelectZKP: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified show="zkp2p" />
+      <OrderHeader minified show="hideCoin" />
       <OptionsList options={options} />
     </PageContent>
   );

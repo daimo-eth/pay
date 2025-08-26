@@ -26,7 +26,7 @@ const SelectDepositAddressChain: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified />
+      <OrderHeader minified show="hideCoin" />
 
       {!depositAddressOptions.loading &&
         depositAddressOptions.options?.length === 0 && (

@@ -16,7 +16,7 @@ import useLocales from "./useLocales";
 import { usePayContext } from "./usePayContext";
 
 /// and Solana tokens. See OptionsList.
-export function useTokenOptions(mode: "evm" | "solana" | "all"): {
+export function useTokenOptions(mode: "evm" | "solana" | "showCoin"): {
   optionsList: Option[];
   isLoading: boolean;
 } {
@@ -44,7 +44,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
 
   let optionsList: Option[] = [];
   let isLoading = false;
-  if (["evm", "all"].includes(mode)) {
+  if (["evm", "showCoin"].includes(mode)) {
     optionsList.push(
       ...getEvmTokenOptions(
         walletPaymentOptions.options ?? [],
@@ -57,7 +57,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "all"): {
     );
     isLoading ||= walletPaymentOptions.isLoading;
   }
-  if (["solana", "all"].includes(mode)) {
+  if (["solana", "showCoin"].includes(mode)) {
     optionsList.push(
       ...getSolanaTokenOptions(
         solanaPaymentOptions.options ?? [],

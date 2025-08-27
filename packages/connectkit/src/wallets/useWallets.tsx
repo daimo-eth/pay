@@ -39,6 +39,7 @@ export const useWallet = (id: string): WalletProps | null => {
 
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
+  console.log("connectors", connectors);
   const context = usePayContext();
   const { showSolanaPaymentMethod } = context.paymentState;
   const { disableMobileInjector } = context;
@@ -278,13 +279,22 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       )
       // order by isInstalled injected connectors first
       .sort((a, b) => {
-        const AisInstalled =
+        const aIsInstalledInjected =
           a.isInstalled && isInjectedConnector(a.connector?.type);
-        const BisInstalled =
+        const bIsInstalledInjected =
           b.isInstalled && isInjectedConnector(b.connector?.type);
 
-        if (AisInstalled && !BisInstalled) return -1;
-        if (!AisInstalled && BisInstalled) return 1;
+        if (aIsInstalledInjected && !bIsInstalledInjected) return -1;
+        if (!aIsInstalledInjected && bIsInstalledInjected) return 1;
+
+        // Within installed injected group, push Porto to the end
+        if (aIsInstalledInjected && bIsInstalledInjected) {
+          const aIsPorto = isPortoConnector(a.connector?.id);
+          const bIsPorto = isPortoConnector(b.connector?.id);
+          if (aIsPorto && !bIsPorto) return 1;
+          if (!aIsPorto && bIsPorto) return -1;
+        }
+
         return 0;
       })
       // order "mobile wallets" option last

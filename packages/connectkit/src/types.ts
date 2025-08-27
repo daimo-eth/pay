@@ -30,7 +30,6 @@ export type DaimoPayContextOptions = {
   hideBalance?: boolean;
   hideTooltips?: boolean;
   hideQuestionMarkCTA?: boolean;
-  hideNoWalletCTA?: boolean;
   hideRecentBadge?: boolean;
   /** Avoids layout shift when the DaimoPay modal is open by adding padding to the body */
   avoidLayoutShift?: boolean;

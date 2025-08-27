@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { keyframes } from "styled-components";
-import CrepeIcon from "../../../assets/crepe";
 import useLocales from "../../../hooks/useLocales";
 import styled from "../../../styles/styled";
-import { daimoPayVersion } from "../../../utils/exports";
 
 const PoweredByFooter = ({
   supportUrl,
@@ -23,18 +21,7 @@ const PoweredByFooter = ({
 
   return (
     <Container>
-      <TextButton
-        onClick={() => {
-          window.open(
-            supportVisible
-              ? supportUrl
-              : `https://pay.daimo.com?ref=sdk-v${daimoPayVersion}`,
-            "_blank",
-          );
-        }}
-        className={supportVisible ? "support" : ""}
-      >
-        {!supportVisible && <CrepeIcon />}
+      <Text>
         <span>
           {supportVisible ? (
             <>
@@ -44,7 +31,7 @@ const PoweredByFooter = ({
             <>{locales.poweredBy} Daimo Pay</>
           )}
         </span>
-      </TextButton>
+      </Text>
     </Container>
   );
 };
@@ -60,10 +47,9 @@ const fadeIn = keyframes`
 100%{ opacity:1; }
 `;
 
-const TextButton = styled(motion.button)`
+const Text = styled(motion.button)`
   appearance: none;
   user-select: none;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -76,18 +62,7 @@ const TextButton = styled(motion.button)`
   text-decoration-color: var(--ck-body-color-muted);
   font-size: 15px;
   line-height: 18px;
-  font-weight: 500;
-
-  transition:
-    color 200ms ease,
-    transform 100ms ease;
-  &:hover {
-    color: var(--ck-body-color-muted-hover);
-    text-decoration-color: var(--ck-body-color-muted-hover);
-  }
-  &:active {
-    transform: scale(0.96);
-  }
+  font-weight: 400;
 
   span {
     opacity: 1;

@@ -250,7 +250,7 @@ export default function SelectMethod() {
       <OrderHeader />
 
       <OptionsList
-        requiredSkeletons={isMobile ? 4 : 3} // TODO: programmatically determine skeletons to best avoid layout shifts
+        requiredSkeletons={isMobile ? 3 : 4}
         isLoading={externalPaymentOptions.loading}
         options={externalPaymentOptions.loading ? [] : options}
       />

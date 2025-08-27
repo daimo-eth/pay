@@ -214,6 +214,20 @@ export const DaimoPayModal: React.FC<{
     }
     context.setOpen(false, { event: "click-close" });
   }
+
+  const goToManualAddressScreen = (eventSuffix: string) => {
+    if (paymentState.isDepositFlow) {
+      context.setUniquePaymentMethodPage(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT);
+      context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
+        event: `unique_payment_option_deposit_${eventSuffix}`,
+      });
+    } else {
+      context.setUniquePaymentMethodPage(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
+      context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
+        event: `unique_payment_option_${eventSuffix}`,
+      });
+    }
+  };
   const { isMobile } = useIsMobile();
 
   // Override the first screen upon opening the modal.
@@ -239,21 +253,7 @@ export const DaimoPayModal: React.FC<{
           );
           if (tronOption) {
             setSelectedDepositAddressOption(tronOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_tron",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_tron",
-              });
-            }
+            goToManualAddressScreen("tron");
           } else if (!paymentState.depositAddressOptions.loading) {
             // Data loaded but option not found, fallback to chain selection
             context.setUniquePaymentMethodPage(
@@ -287,21 +287,7 @@ export const DaimoPayModal: React.FC<{
           );
           if (baseOption) {
             setSelectedDepositAddressOption(baseOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_base",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_base",
-              });
-            }
+            goToManualAddressScreen("base");
           } else if (!paymentState.depositAddressOptions.loading) {
             context.setUniquePaymentMethodPage(
               ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
@@ -319,21 +305,7 @@ export const DaimoPayModal: React.FC<{
             );
           if (arbitrumOption) {
             setSelectedDepositAddressOption(arbitrumOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_arbitrum",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_arbitrum",
-              });
-            }
+            goToManualAddressScreen("arbitrum");
           } else if (!paymentState.depositAddressOptions.loading) {
             context.setUniquePaymentMethodPage(
               ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
@@ -351,21 +323,7 @@ export const DaimoPayModal: React.FC<{
             );
           if (optimismOption) {
             setSelectedDepositAddressOption(optimismOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_optimism",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_optimism",
-              });
-            }
+            goToManualAddressScreen("optimism");
           } else if (!paymentState.depositAddressOptions.loading) {
             context.setUniquePaymentMethodPage(
               ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
@@ -383,21 +341,7 @@ export const DaimoPayModal: React.FC<{
             );
           if (polygonOption) {
             setSelectedDepositAddressOption(polygonOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_polygon",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_polygon",
-              });
-            }
+            goToManualAddressScreen("polygon");
           } else if (!paymentState.depositAddressOptions.loading) {
             context.setUniquePaymentMethodPage(
               ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
@@ -415,21 +359,7 @@ export const DaimoPayModal: React.FC<{
             );
           if (ethereumOption) {
             setSelectedDepositAddressOption(ethereumOption);
-            if (paymentState.isDepositFlow) {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT,
-              );
-              context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
-                event: "unique_payment_option_deposit_ethereum",
-              });
-            } else {
-              context.setUniquePaymentMethodPage(
-                ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
-              );
-              context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
-                event: "unique_payment_option_ethereum",
-              });
-            }
+            goToManualAddressScreen("ethereum");
           } else if (!paymentState.depositAddressOptions.loading) {
             context.setUniquePaymentMethodPage(
               ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,

@@ -21,7 +21,7 @@ const PoweredByFooter = ({
 
   return (
     <Container>
-      <TextButton>
+      <Text>
         <span>
           {supportVisible ? (
             <>
@@ -31,7 +31,7 @@ const PoweredByFooter = ({
             <>{locales.poweredBy} Daimo Pay</>
           )}
         </span>
-      </TextButton>
+      </Text>
     </Container>
   );
 };
@@ -47,10 +47,9 @@ const fadeIn = keyframes`
 100%{ opacity:1; }
 `;
 
-const TextButton = styled(motion.button)`
+const Text = styled(motion.button)`
   appearance: none;
   user-select: none;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -64,17 +63,6 @@ const TextButton = styled(motion.button)`
   font-size: 15px;
   line-height: 18px;
   font-weight: 400;
-
-  transition:
-    color 200ms ease,
-    transform 100ms ease;
-  &:hover {
-    color: var(--ck-body-color-muted-hover);
-    text-decoration-color: var(--ck-body-color-muted-hover);
-  }
-  &:active {
-    transform: scale(0.96);
-  }
 
   span {
     opacity: 1;

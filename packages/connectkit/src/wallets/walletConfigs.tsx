@@ -64,8 +64,6 @@ export type WalletConfigProps = {
   showInMobileConnectors?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
   isSolanaOnly?: boolean;
-  // Used to determine if the wallet supports CCTP v2
-  isCCTPv2?: boolean;
 };
 
 // Organised in alphabetical order by key
@@ -90,7 +88,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   baseAccount: {
     name: "Base App",
@@ -110,7 +107,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   backpack: {
     name: "Backpack",
@@ -122,7 +118,6 @@ export const walletConfigs: {
       const url = encodeURIComponent(getDaimoPayUrl(payId));
       return `https://backpack.app/ul/v1/browse/${url}`;
     },
-    isCCTPv2: true,
   },
   bitget: {
     name: "Bitget",
@@ -133,7 +128,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "bitkeep://bkconnect?action=dapp&url=" + getDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   "co.family.wallet": {
     name: "Family",
@@ -150,7 +144,6 @@ export const walletConfigs: {
       return "familywallet://browser?url=" + getDaimoPayUrl(payId);
     },
     showInMobileConnectors: true,
-    isCCTPv2: true,
   },
   "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK": {
     name: "MetaMask",
@@ -178,7 +171,6 @@ export const walletConfigs: {
         "https://metamask.app.link/dapp/" + daimoPayUrl.replace("https://", "")
       );
     },
-    isCCTPv2: true,
   },
   "app.phantom": {
     name: "Phantom",
@@ -191,7 +183,6 @@ export const walletConfigs: {
       const ref = encodeURIComponent(window.location.origin);
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
-    isCCTPv2: true,
   },
   farcaster: {
     name: "Farcaster",
@@ -203,7 +194,6 @@ export const walletConfigs: {
         "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
       );
     },
-    isCCTPv2: true,
   },
   minipay: {
     name: "MiniPay",
@@ -216,7 +206,6 @@ export const walletConfigs: {
         encodeURIComponent(getEncodedDaimoPayUrl(payId))
       );
     },
-    isCCTPv2: false,
   },
   "me.rainbow": {
     name: "Rainbow Wallet",
@@ -238,7 +227,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "rainbow://dapp?url=" + getDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   // "io.rabby": {
   //   name: "Rabby Wallet",
@@ -268,7 +256,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "trust://open_url?coin_id=60&url=" + getDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   okx: {
     name: "OKX",
@@ -278,7 +265,6 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
   solflare: {
     name: "Solflare",
@@ -291,7 +277,6 @@ export const walletConfigs: {
       return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
     },
     isSolanaOnly: true,
-    isCCTPv2: false,
   },
   // ledger: {
   //   name: "Ledger Live",
@@ -324,10 +309,9 @@ export const walletConfigs: {
       const path = "/pay?id=" + payId;
       const url =
         "https://worldcoin.org/mini-app?app_id=app_f33b65e238f88e46ae7c681bc8213efc&path=" +
-        encodeURI(path);
+        encodeURIComponent(path);
       return url;
     },
-    isCCTPv2: true,
   },
   zerion: {
     name: "Zerion",
@@ -344,6 +328,5 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return "zerion://browser?url=" + getDaimoPayUrl(payId);
     },
-    isCCTPv2: true,
   },
 } as const;

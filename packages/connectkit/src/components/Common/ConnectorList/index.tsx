@@ -56,20 +56,14 @@ const ConnectorList = () => {
         <Alert error>No connectors found in ConnectKit config.</Alert>
       )}
       {!ready && walletsToDisplay.length > 0 && (
-        <ConnectorsContainer
-          $mobile={isMobile}
-          $totalResults={walletsToDisplay.length}
-        >
+        <ConnectorsContainer $totalResults={walletsToDisplay.length}>
           {walletsToDisplay.map((_, idx) => (
             <SkeletonConnectorItem key={idx} />
           ))}
         </ConnectorsContainer>
       )}
       {ready && walletsToDisplay.length > 0 && (
-        <ConnectorsContainer
-          $mobile={isMobile}
-          $totalResults={walletsToDisplay.length}
-        >
+        <ConnectorsContainer $totalResults={walletsToDisplay.length}>
           {walletsToDisplay.map((wallet) => (
             <ConnectorItem
               key={wallet.id}
@@ -176,12 +170,10 @@ const ConnectorItem = ({
 };
 
 const SkeletonConnectorItem = () => {
-  const { isMobile } = useIsMobile();
-
   return (
     <ConnectorButton type="button" disabled>
-      <SkeletonIcon $mobile={isMobile} />
-      <SkeletonLabel $mobile={isMobile} />
+      <SkeletonIcon />
+      <SkeletonLabel />
     </ConnectorButton>
   );
 };

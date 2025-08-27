@@ -13,6 +13,7 @@ import CopyToClipboard from "../Common/CopyToClipboard";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
+import Logos, { SquircleIcon } from "../../assets/logos";
 import MobileWithLogos from "../../assets/MobileWithLogos";
 import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
 
@@ -44,7 +45,11 @@ const ConnectWithQRCode: React.FC<{}> = () => {
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url = `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+  const url = isDesktopLinkToMobileWallets
+    ? `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`
+    : wallet?.id === "world" && wallet?.getDaimoPayDeeplink
+      ? wallet.getDaimoPayDeeplink(payId)
+      : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
 
   return (
     <PageContent>
@@ -52,22 +57,26 @@ const ConnectWithQRCode: React.FC<{}> = () => {
         <CustomQRCode
           value={url}
           image={
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: "22.5%",
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "var(--ck-body-background)",
-                transform: "scale(1.3) translateY(5%)",
-                transformOrigin: "center center",
-              }}
-            >
-              <MobileWithLogos />
-            </div>
+            wallet?.id === "world" ? (
+              <SquircleIcon icon={Logos.World} alt="World" />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "22.5%",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "var(--ck-body-background)",
+                  transform: "scale(1.3) translateY(5%)",
+                  transformOrigin: "center center",
+                }}
+              >
+                <MobileWithLogos />
+              </div>
+            )
           }
           tooltipMessage={
             isDesktopLinkToMobileWallets ? (

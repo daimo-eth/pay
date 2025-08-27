@@ -5,6 +5,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 import { ModalContent, PageContent } from "../../Common/Modal/styles";
 
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
+import useIsMobile from "../../../hooks/useIsMobile";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
@@ -17,7 +18,7 @@ const SelectWalletAmount: React.FC = () => {
   const { paymentState, setPendingConnectorId, setRoute } = usePayContext();
   const { selectedWallet, openInWalletBrowser } = paymentState;
   const { setChosenUsd, hydrateOrder } = useDaimoPay();
-
+  const { isMobile } = useIsMobile();
   const maxUsdLimit = paymentState.getOrderUsdLimit();
 
   const [usdInput, setUsdInput] = useState<string>("");
@@ -40,9 +41,13 @@ const SelectWalletAmount: React.FC = () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
     await hydrateOrder();
-
-    if (selectedWallet.id === WALLET_ID_MOBILE_WALLETS) {
-      setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
+    console.log("selectedWallet", selectedWallet);
+    console.log("isMobile", isMobile);
+    if (
+      selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
+      (selectedWallet.id === "world" && !isMobile)
+    ) {
+      setPendingConnectorId(selectedWallet.id);
       setRoute(ROUTES.CONNECT);
     } else {
       openInWalletBrowser(selectedWallet, amountUsd);

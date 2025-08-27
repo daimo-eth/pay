@@ -170,6 +170,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       return c;
     });
 
+  wallets.push(walletConfigs.world as WalletProps);
+
   wallets.push({
     id: WALLET_ID_MOBILE_WALLETS,
     name: "Mobile Wallets",

@@ -21,7 +21,7 @@ const PoweredByFooter = ({
 
   return (
     <Container>
-      <Text>
+      <TextLink href={supportVisible ? supportUrl : undefined}>
         <span>
           {supportVisible ? (
             <>
@@ -31,7 +31,7 @@ const PoweredByFooter = ({
             <>{locales.poweredBy} Daimo Pay</>
           )}
         </span>
-      </Text>
+      </TextLink>
     </Container>
   );
 };
@@ -43,11 +43,11 @@ const Container = styled(motion.div)`
 `;
 
 const fadeIn = keyframes`
-0%{ opacity:0; }
-100%{ opacity:1; }
+  0%{ opacity:0; }
+  100%{ opacity:1; }
 `;
 
-const Text = styled(motion.button)`
+const TextLink = styled.a`
   appearance: none;
   user-select: none;
   display: inline-flex;
@@ -67,10 +67,6 @@ const Text = styled(motion.button)`
   span {
     opacity: 1;
     transition: opacity 300ms ease;
-  }
-
-  &.support span {
-    animation: ${fadeIn} 300ms ease both;
   }
 `;
 

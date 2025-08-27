@@ -105,19 +105,25 @@ contract RelayerTest is Test {
             )
         );
         relayerContract.fastFinish({
+            preCalls: new Call[](0),
             dp: DaimoPay(payable(address(0))),
             intent: createSampleIntent(),
             tokenIn: TokenAmount(_token1, 0),
-            calls: new Call[](0)
+            calls: new Call[](0),
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
 
         vm.startPrank(_relayer);
         relayerContract.fastFinish({
+            preCalls: new Call[](0),
             dp: DaimoPay(payable(address(mockDp))),
             intent: createSampleIntent(),
             tokenIn: TokenAmount(_token1, 0),
-            calls: new Call[](0)
+            calls: new Call[](0),
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
         });
         vm.stopPrank();
     }

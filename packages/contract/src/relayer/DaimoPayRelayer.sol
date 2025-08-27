@@ -363,11 +363,23 @@ contract DaimoPayRelayer is AccessControl {
     }
 
     function fastFinish(
+        Call[] calldata preCalls,
         DaimoPay dp,
         PayIntent calldata intent,
         TokenAmount calldata tokenIn,
-        Call[] calldata calls
+        Call[] calldata calls,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-finish calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata call = preCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: preCall failed");
+        }
+
         TokenUtils.transfer({
             token: tokenIn.token,
             recipient: payable(address(dp)),
@@ -378,12 +390,21 @@ contract DaimoPayRelayer is AccessControl {
         tokens[0] = tokenIn.token;
         dp.fastFinishIntent({intent: intent, calls: calls, tokens: tokens});
 
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata call = postCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: postCall failed");
+        }
+
         // Reset the allowance back to zero for cleanliness/security.
         TokenUtils.approve({
             token: tokenIn.token,
             spender: address(dp),
             amount: 0
         });
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     function claimAndKeep(
@@ -503,8 +524,12 @@ contract DaimoPayRelayer is AccessControl {
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         Call[] calldata calls,
-        uint256 sourceChainId
+        uint256 sourceChainId,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
         // Execute any pre-calls provided by the relayer. These can be used
         // to perform swaps or other setup before finishing the UA intent.
         for (uint256 i = 0; i < preCalls.length; ++i) {
@@ -531,12 +556,21 @@ contract DaimoPayRelayer is AccessControl {
             sourceChainId: sourceChainId
         });
 
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
         // Reset the allowance back to zero for cleanliness/security.
         TokenUtils.approve({
             token: tokenIn.token,
             spender: address(manager),
             amount: 0
         });
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     function uaClaimIntent(

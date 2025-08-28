@@ -222,16 +222,18 @@ contract UniversalAddressTest is Test {
 
         // RELAYER triggers fast-finish via the relayer contract
         vm.prank(RELAYER);
-        relayerContract.uaFastFinish(
-            new Call[](0), // preCalls
-            mgr,
-            route,
-            tokenIn,
-            bridgeTokenOut,
-            USER_SALT,
-            new Call[](0), // calls
-            SRC_CHAIN_ID
-        );
+        relayerContract.uaFastFinish({
+            preCalls: new Call[](0),
+            manager: mgr,
+            route: route,
+            tokenIn: tokenIn,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: USER_SALT,
+            calls: new Call[](0),
+            sourceChainId: SRC_CHAIN_ID,
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
+        });
 
         // Beneficiary should have received the funds
         assertEq(usdc.balanceOf(ALEX), AMOUNT);

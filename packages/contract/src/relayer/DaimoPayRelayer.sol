@@ -31,7 +31,6 @@ contract DaimoPayRelayer is AccessControl {
     /// @param innerSwap the swap that will be executed
     struct SwapAndTipParams {
         TokenAmount requiredTokenIn;
-        uint256 suppliedAmountIn;
         TokenAmount requiredTokenOut;
         uint256 maxPreTip;
         uint256 maxPostTip;
@@ -117,8 +116,8 @@ contract DaimoPayRelayer is AccessControl {
             token: p.requiredTokenOut.token,
             addr: address(this)
         });
-        uint256 preTipAmount = _collectSwapInput(p);
-        _refundOverPayment(p);
+        (uint256 preTipAmount, uint256 suppliedAmountIn) = _collectSwapInput(p);
+        _refundOverPayment(p, suppliedAmountIn);
 
         //////////////////////////////////////////////////////////////
         // SWAP
@@ -146,7 +145,7 @@ contract DaimoPayRelayer is AccessControl {
             caller: msg.sender,
             requiredTokenIn: address(p.requiredTokenIn.token),
             requiredTokenOut: address(p.requiredTokenOut.token),
-            suppliedAmountIn: p.suppliedAmountIn,
+            suppliedAmountIn: suppliedAmountIn,
             swapAmountOut: swapAmountOut,
             maxPreTip: p.maxPreTip,
             maxPostTip: p.maxPostTip,
@@ -169,28 +168,27 @@ contract DaimoPayRelayer is AccessControl {
     /// Collect the swap input tokens from the caller and approve the swapper
     function _collectSwapInput(
         SwapAndTipParams calldata p
-    ) private returns (uint256 preTipAmount) {
+    ) private returns (uint256 preTipAmount, uint256 suppliedAmountIn) {
         if (address(p.requiredTokenIn.token) == address(0)) {
-            preTipAmount = _collectNativeSwapInput(p);
+            (preTipAmount, suppliedAmountIn) = _collectNativeSwapInput(p);
         } else {
-            preTipAmount = _collectERC20SwapInput(p);
+            (preTipAmount, suppliedAmountIn) = _collectERC20SwapInput(p);
         }
     }
 
     function _collectNativeSwapInput(
         SwapAndTipParams calldata p
-    ) private returns (uint256 preTipAmount) {
+    ) private returns (uint256 preTipAmount, uint256 suppliedAmountIn) {
         require(
             address(p.requiredTokenIn.token) == address(0),
             "DPR: not native token"
         );
 
-        // The caller should've supplied the exact amount in msg.value
-        require(p.suppliedAmountIn == msg.value, "DPR: wrong msg.value");
+        suppliedAmountIn = msg.value;
 
         // Check that the tip doesn't exceed maxPreTip
-        if (p.suppliedAmountIn < p.requiredTokenIn.amount) {
-            preTipAmount = p.requiredTokenIn.amount - p.suppliedAmountIn;
+        if (suppliedAmountIn < p.requiredTokenIn.amount) {
+            preTipAmount = p.requiredTokenIn.amount - suppliedAmountIn;
             require(preTipAmount <= p.maxPreTip, "DPR: excessive pre tip");
 
             // Ensure the relayer has enough balance to cover the tip
@@ -213,23 +211,28 @@ contract DaimoPayRelayer is AccessControl {
 
     function _collectERC20SwapInput(
         SwapAndTipParams calldata p
-    ) private returns (uint256 preTipAmount) {
+    ) private returns (uint256 preTipAmount, uint256 suppliedAmountIn) {
         require(
             address(p.requiredTokenIn.token) != address(0),
             "DPR: not ERC20 token"
         );
+
+        suppliedAmountIn = TokenUtils.getBalanceOf({
+            token: p.requiredTokenIn.token,
+            addr: msg.sender
+        });
 
         // Pull the tokens the user supplied
         TokenUtils.transferFrom({
             token: p.requiredTokenIn.token,
             from: msg.sender,
             to: address(this),
-            amount: p.suppliedAmountIn
+            amount: suppliedAmountIn
         });
 
         // Check that the tip doesn't exceed maxPreTip
-        if (p.suppliedAmountIn < p.requiredTokenIn.amount) {
-            preTipAmount = p.requiredTokenIn.amount - p.suppliedAmountIn;
+        if (suppliedAmountIn < p.requiredTokenIn.amount) {
+            preTipAmount = p.requiredTokenIn.amount - suppliedAmountIn;
             require(preTipAmount <= p.maxPreTip, "DPR: excessive pre tip");
 
             // Ensure the relayer has enough balance to cover the tip
@@ -253,13 +256,16 @@ contract DaimoPayRelayer is AccessControl {
         }
     }
 
-    function _refundOverPayment(SwapAndTipParams calldata p) private {
+    function _refundOverPayment(
+        SwapAndTipParams calldata p,
+        uint256 suppliedAmountIn
+    ) private {
         // No refund address
         if (p.refundAddress == address(0)) return;
         // No overpayment happened
-        if (p.suppliedAmountIn <= p.requiredTokenIn.amount) return;
+        if (suppliedAmountIn <= p.requiredTokenIn.amount) return;
 
-        uint256 overpay = p.suppliedAmountIn - p.requiredTokenIn.amount;
+        uint256 overpay = suppliedAmountIn - p.requiredTokenIn.amount;
         TokenUtils.transfer({
             token: p.requiredTokenIn.token,
             recipient: p.refundAddress,
@@ -357,11 +363,23 @@ contract DaimoPayRelayer is AccessControl {
     }
 
     function fastFinish(
+        Call[] calldata preCalls,
         DaimoPay dp,
         PayIntent calldata intent,
         TokenAmount calldata tokenIn,
-        Call[] calldata calls
+        Call[] calldata calls,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-finish calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata call = preCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: preCall failed");
+        }
+
         TokenUtils.transfer({
             token: tokenIn.token,
             recipient: payable(address(dp)),
@@ -372,12 +390,21 @@ contract DaimoPayRelayer is AccessControl {
         tokens[0] = tokenIn.token;
         dp.fastFinishIntent({intent: intent, calls: calls, tokens: tokens});
 
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata call = postCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: postCall failed");
+        }
+
         // Reset the allowance back to zero for cleanliness/security.
         TokenUtils.approve({
             token: tokenIn.token,
             spender: address(dp),
             amount: 0
         });
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     function claimAndKeep(
@@ -497,8 +524,12 @@ contract DaimoPayRelayer is AccessControl {
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         Call[] calldata calls,
-        uint256 sourceChainId
+        uint256 sourceChainId,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
     ) public payable onlyRole(RELAYER_EOA_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
         // Execute any pre-calls provided by the relayer. These can be used
         // to perform swaps or other setup before finishing the UA intent.
         for (uint256 i = 0; i < preCalls.length; ++i) {
@@ -525,12 +556,21 @@ contract DaimoPayRelayer is AccessControl {
             sourceChainId: sourceChainId
         });
 
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
         // Reset the allowance back to zero for cleanliness/security.
         TokenUtils.approve({
             token: tokenIn.token,
             spender: address(manager),
             amount: 0
         });
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
     function uaClaimIntent(

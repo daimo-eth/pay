@@ -41,8 +41,6 @@ const SelectWalletAmount: React.FC = () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
     await hydrateOrder();
-    console.log("selectedWallet", selectedWallet);
-    console.log("isMobile", isMobile);
     if (
       selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
       (selectedWallet.id === "world" && !isMobile)

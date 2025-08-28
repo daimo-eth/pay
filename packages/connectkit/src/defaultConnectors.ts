@@ -8,6 +8,7 @@ type DefaultConnectorsProps = {
     icon?: string;
     description?: string;
     url?: string;
+    merchantRpcUrl?: string;
   };
   additionalConnectors?: CreateConnectorFn[];
 };
@@ -47,7 +48,11 @@ const defaultConnectors = ({
       },
     }),
   );
-  connectors.push(porto());
+  connectors.push(
+    porto({
+      merchantRpcUrl: app.merchantRpcUrl,
+    }),
+  );
 
   return connectors;
 };

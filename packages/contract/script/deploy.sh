@@ -23,7 +23,7 @@ SCRIPTS=(
     # "script/DeployUniversalAddressManager.s.sol"
 
     # Relayer
-    # "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
+    "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
 
     # Utils
     # "script/DeployPayBalanceFactory.sol"
@@ -41,7 +41,7 @@ CHAINS=(
     # "$ETHERSCAN_API_KEY_WORLD,https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # # Expensive, deploy last
-    # "$ETHERSCAN_API_KEY_L1,https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "$ETHERSCAN_API_KEY_L1,https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do

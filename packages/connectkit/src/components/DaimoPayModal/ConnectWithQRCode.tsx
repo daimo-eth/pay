@@ -25,6 +25,8 @@ import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
  * - If the pendingConnectorId is MOBILE_WALLETS_CONNECTOR_ID, then show a QR
  *   that the user can scan from their phone. This opens the flow in eg. mobile
  *   Safari, letting them pick which app they want to use & finish there.
+ * - If the pendingConnectorId is world, then show a QR that the user can scan
+ *   from their phone. This deeplinks into the World Mini App
  */
 const ConnectWithQRCode: React.FC<{}> = () => {
   const context = usePayContext();
@@ -45,11 +47,9 @@ const ConnectWithQRCode: React.FC<{}> = () => {
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url = isDesktopLinkToMobileWallets
-    ? `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`
-    : wallet?.id === "world" && wallet?.getDaimoPayDeeplink
-      ? wallet.getDaimoPayDeeplink(payId)
-      : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+  const url = wallet?.id === "world" && wallet?.getDaimoPayDeeplink
+    ? wallet.getDaimoPayDeeplink(payId)
+    : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
 
   return (
     <PageContent>

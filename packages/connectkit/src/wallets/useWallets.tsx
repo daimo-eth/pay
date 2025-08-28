@@ -13,6 +13,7 @@ import {
   isBaseAccountConnector,
   isGeminiConnector,
   isInjectedConnector,
+  isPortoConnector,
 } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -38,6 +39,7 @@ export const useWallet = (id: string): WalletProps | null => {
 
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
+  console.log("connectors", connectors);
   const context = usePayContext();
   const { showSolanaPaymentMethod } = context.paymentState;
   const { disableMobileInjector } = context;
@@ -52,6 +54,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       connectors.forEach((connector) => {
         if (isBaseAccountConnector(connector.id)) return;
         if (isGeminiConnector(connector.id)) return;
+        if (isPortoConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
@@ -101,74 +104,69 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return mobileWallets;
   }
 
-  const wallets = connectors
-    .filter((connector) => {
-      // Skip any connectors that mention WalletConnect
-      return !connector.name?.toLowerCase().includes("walletconnect");
-    })
-    .map((connector): WalletProps => {
-      // First, attempt to find a config by matching connector.id (existing logic).
-      let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
-        (id) =>
-          id
-            .split(",")
-            .map((i) => i.trim())
-            .includes(connector.id),
-      );
+  const wallets = connectors.map((connector): WalletProps => {
+    // First, attempt to find a config by matching connector.id (existing logic).
+    let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
+      (id) =>
+        id
+          .split(",")
+          .map((i) => i.trim())
+          .includes(connector.id),
+    );
 
-      // If not found by id, attempt a fuzzy match on connector.name.
-      if (!walletConfigKey && connector.name) {
-        walletConfigKey = Object.keys(walletConfigs).find((key) => {
-          const cfgName = walletConfigs[key].name?.toLowerCase();
-          const connName = connector.name!.toLowerCase();
-          return (
-            cfgName &&
-            (cfgName.includes(connName) || connName.includes(cfgName))
-          );
-        });
-      }
+    // If not found by id, attempt a fuzzy match on connector.name.
+    if (!walletConfigKey && connector.name) {
+      walletConfigKey = Object.keys(walletConfigs).find((key) => {
+        const cfgName = walletConfigs[key].name?.toLowerCase();
+        const connName = connector.name!.toLowerCase();
+        return (
+          cfgName && (cfgName.includes(connName) || connName.includes(cfgName))
+        );
+      });
+    }
 
-      const c: WalletProps = {
-        id: connector.id,
-        name: connector.name ?? connector.id ?? connector.type,
-        icon: connector.icon ? (
+    const c: WalletProps = {
+      id: connector.id,
+      name: connector.name ?? connector.id ?? connector.type,
+      icon: connector.icon ? (
+        <img
+          src={connector.icon}
+          alt={connector.name}
+          width={"100%"}
+          height={"100%"}
+        />
+      ) : (
+        <WalletIcon />
+      ),
+      connector,
+      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+      isInstalled:
+        connector.type === "mock" ||
+        (connector.type === "injected" && connector.id !== "metaMask") ||
+        connector.type === "farcasterFrame" ||
+        isPortoConnector(connector.id) ||
+        isBaseAccountConnector(connector.id) ||
+        isGeminiConnector(connector.id),
+    };
+
+    if (walletConfigKey) {
+      const wallet = walletConfigs[walletConfigKey];
+      return {
+        ...c,
+        iconConnector: connector.icon ? (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
-        ) : (
-          <WalletIcon />
-        ),
-        connector,
-        iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
-        isInstalled:
-          connector.type === "mock" ||
-          (connector.type === "injected" && connector.id !== "metaMask") ||
-          connector.type === "farcasterFrame" ||
-          isBaseAccountConnector(connector.id) ||
-          isGeminiConnector(connector.id),
+        ) : undefined,
+        ...wallet,
       };
+    }
 
-      if (walletConfigKey) {
-        const wallet = walletConfigs[walletConfigKey];
-        return {
-          ...c,
-          iconConnector: connector.icon ? (
-            <img
-              src={connector.icon}
-              alt={connector.name}
-              width={"100%"}
-              height={"100%"}
-            />
-          ) : undefined,
-          ...wallet,
-        };
-      }
-
-      return c;
-    });
+    return c;
+  });
 
   wallets.push({
     id: WALLET_ID_MOBILE_WALLETS,
@@ -281,13 +279,22 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       )
       // order by isInstalled injected connectors first
       .sort((a, b) => {
-        const AisInstalled =
+        const aIsInstalledInjected =
           a.isInstalled && isInjectedConnector(a.connector?.type);
-        const BisInstalled =
+        const bIsInstalledInjected =
           b.isInstalled && isInjectedConnector(b.connector?.type);
 
-        if (AisInstalled && !BisInstalled) return -1;
-        if (!AisInstalled && BisInstalled) return 1;
+        if (aIsInstalledInjected && !bIsInstalledInjected) return -1;
+        if (!aIsInstalledInjected && bIsInstalledInjected) return 1;
+
+        // Within installed injected group, push Porto to the end
+        if (aIsInstalledInjected && bIsInstalledInjected) {
+          const aIsPorto = isPortoConnector(a.connector?.id);
+          const bIsPorto = isPortoConnector(b.connector?.id);
+          if (aIsPorto && !bIsPorto) return 1;
+          if (!aIsPorto && bIsPorto) return -1;
+        }
+
         return 0;
       })
       // order "mobile wallets" option last

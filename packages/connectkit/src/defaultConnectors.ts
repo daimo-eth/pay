@@ -1,4 +1,5 @@
 import { baseAccount, gemini, safe } from "@wagmi/connectors";
+import { porto } from "porto/wagmi";
 import { CreateConnectorFn } from "wagmi";
 
 type DefaultConnectorsProps = {
@@ -7,6 +8,7 @@ type DefaultConnectorsProps = {
     icon?: string;
     description?: string;
     url?: string;
+    merchantRpcUrl?: string;
   };
   additionalConnectors?: CreateConnectorFn[];
 };
@@ -44,6 +46,11 @@ const defaultConnectors = ({
         // Use the default Daimo Pay logo if the app does not provide an icon
         appLogoUrl: app.icon ?? "https://pay.daimo.com/daimo-pay-logo.svg",
       },
+    }),
+  );
+  connectors.push(
+    porto({
+      merchantRpcUrl: app.merchantRpcUrl,
     }),
   );
 

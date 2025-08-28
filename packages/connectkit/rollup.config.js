@@ -1,8 +1,9 @@
+import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import resolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
-import esbuild from "rollup-plugin-esbuild";
 import dts from "rollup-plugin-dts";
+import esbuild from "rollup-plugin-esbuild";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
 
 /** @type {import('rollup').RollupOptions[]} */
@@ -15,6 +16,9 @@ export default [
       "react-dom",
       "framer-motion",
       "wagmi",
+      "@wagmi/core",
+      "porto",
+      "porto/wagmi",
       "@daimo/pay-common",
       "buffer",
       "styled-components",
@@ -40,7 +44,15 @@ export default [
     plugins: [
       peerDepsExternal(),
       resolve({
+        browser: true,
+        preferBuiltins: false,
+        exportConditions: ["browser", "module", "default"],
+        mainFields: ["browser", "module", "main"],
         extensions: [".mjs", ".js", ".jsx", ".json", ".ts", ".tsx"],
+      }),
+      commonjs({
+        transformMixedEsModules: true,
+        requireReturnsDefault: "auto", // fixes default import of CJS like eventemitter3
       }),
       json(),
       typescript({

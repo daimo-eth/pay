@@ -8,6 +8,7 @@ import {
   detectBrowser,
   isBaseAccountConnector,
   isGeminiConnector,
+  isPortoConnector,
 } from "../../../utils";
 import {
   WALLET_ID_MOBILE_WALLETS,
@@ -99,6 +100,7 @@ const ConnectorItem = ({
   const shouldConnectImmediately =
     (detectBrowser() === "safari" || detectBrowser() === "ios") &&
     (isBaseAccountConnector(wallet.connector?.id) ||
+      isPortoConnector(wallet.connector?.id) ||
       isGeminiConnector(wallet.connector?.id));
 
   const onClick = () => {

@@ -61,7 +61,7 @@ const enUS = {
 
   scanScreen_heading: `Scan with Phone`,
   scanScreen_heading_withConnector: `Scan with {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_default: `Open {{ CONNECTORNAME }} on \nyour mobile phone to scan`,
+  scanScreen_tooltip_default: `Open {{ CONNECTORNAME }} on \nyour mobile phone`,
 
   downloadAppScreen_heading: `Get {{ CONNECTORNAME }}`,
   downloadAppScreen_iosAndroid: `Scan with your phone camera to download on iOS or Android.`,

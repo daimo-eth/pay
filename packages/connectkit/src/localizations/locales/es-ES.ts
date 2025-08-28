@@ -63,7 +63,7 @@ const esES: LocaleProps = {
 
   scanScreen_heading: `Escanea con el teléfono`,
   scanScreen_heading_withConnector: `Escanea con {{ CONNECTORNAME }}`,
-  scanScreen_tooltip_default: `Abre {{ CONNECTORNAME }} en tu teléfono móvil para escanear`,
+  scanScreen_tooltip_default: `Abre {{ CONNECTORNAME }} en tu teléfono móvil`,
 
   downloadAppScreen_heading: `Obtén {{ CONNECTORNAME }}`,
   downloadAppScreen_iosAndroid: `Escanea con la cámara de tu teléfono para descargarla en iOS o Android.`,

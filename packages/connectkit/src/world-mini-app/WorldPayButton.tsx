@@ -82,6 +82,8 @@ type WorldPayButtonCommonProps = WorldPayButtonPaymentProps & {
   onPaymentCompleted?: (event: PaymentCompletedEvent) => void;
   /** Called when destination call reverts and funds are refunded */
   onPaymentBounced?: (event: PaymentBouncedEvent) => void;
+  /** Open the modal by default. */
+  defaultOpen?: boolean;
   /** Automatically close the modal after a successful payment. */
   closeOnSuccess?: boolean;
   /** Reset the payment after a successful payment. */
@@ -169,6 +171,16 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     context.setShowContactSupport(!isIOS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isIOS]);
+
+  // Open the modal by default if the defaultOpen prop is true
+  const hasAutoOpened = useRef(false);
+  useEffect(() => {
+    if (!props.defaultOpen || hasAutoOpened.current) return;
+    if (pay.order == null) return;
+    show();
+    hasAutoOpened.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay.order, props.defaultOpen, hasAutoOpened.current]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);

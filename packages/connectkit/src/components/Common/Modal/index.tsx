@@ -337,7 +337,10 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS) {
+        if (
+          context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
+          context.pendingConnectorId === "world"
+        ) {
           return locales.scanWithPhone;
         } else {
           return walletInfo?.name;

@@ -53,6 +53,8 @@ export enum TokenLogo {
   cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
 }
 
+const NATIVE_TOKEN_ADDRESS = zeroAddress;
+
 /* --------------------- Tokens Constants --------------------- */
 
 //
@@ -894,6 +896,10 @@ const tokensByChainAndType: Map<
   ],
 ]);
 
+export function isNativeToken(token: Address): boolean {
+  return token === NATIVE_TOKEN_ADDRESS;
+}
+
 export function getChainNativeToken(chainId: number): Token {
   return assertNotNull(
     tokensByChainAndType.get(chainId)?.[TokenType.NATIVE],
@@ -947,7 +953,7 @@ function nativeToken({
   name,
   symbol,
   logoURI,
-  token = zeroAddress,
+  token = NATIVE_TOKEN_ADDRESS,
   decimals = 18,
 }: {
   chainId: number;

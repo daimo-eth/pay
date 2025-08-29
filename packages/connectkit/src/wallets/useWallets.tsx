@@ -39,7 +39,6 @@ export const useWallet = (id: string): WalletProps | null => {
 
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
-  console.log("connectors", connectors);
   const context = usePayContext();
   const { showSolanaPaymentMethod } = context.paymentState;
   const { disableMobileInjector } = context;

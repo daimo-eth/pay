@@ -184,11 +184,19 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
+  porto: {
+    name: "Porto",
+    icon: <Logos.Porto />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+  },
   farcaster: {
     name: "Farcaster",
     icon: <Logos.Farcaster />,
     iconShape: "squircle",
-    showInMobileConnectors: true,
+    // Temporarily hidden from mobile connectors to make room for World wallet.
+    // Will re-enable once /pay flow is fixed for Farcaster and we support more mobile wallets.
+    showInMobileConnectors: false,
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
@@ -308,7 +316,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       const path = "/pay?id=" + payId;
       const url =
-        "https://worldcoin.org/mini-app?app_id=app_f33b65e238f88e46ae7c681bc8213efc&path=" +
+        "https://worldcoin.org/mini-app?app_id=app_d7696b966d051cde62b7a2a0a14a6632&path=" +
         encodeURIComponent(path);
       return url;
     },

@@ -11,6 +11,7 @@ import {
   ExternalPaymentOptions,
   getOrderDestChainId,
   isCCTPV1Chain,
+  isNativeToken,
   PlatformType,
   readDaimoPayOrderID,
   SolanaPublicKey,
@@ -20,14 +21,7 @@ import {
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useState } from "react";
-import {
-  erc20Abi,
-  getAddress,
-  Hex,
-  hexToBytes,
-  isHex,
-  zeroAddress,
-} from "viem";
+import { erc20Abi, getAddress, Hex, hexToBytes, isHex } from "viem";
 import {
   useAccount,
   useEnsName,
@@ -273,7 +267,7 @@ export function usePaymentState({
     const paymentTxHash = await (async () => {
       const dest = walletOption.passthroughAddress ?? hydratedOrder.intentAddr;
       try {
-        if (required.token.token === zeroAddress) {
+        if (isNativeToken(getAddress(required.token.token))) {
           return await sendTransactionAsync({
             to: dest,
             value: paymentAmount,
@@ -536,7 +530,9 @@ export function usePaymentState({
     [setRoute, pay, currPayParams],
   );
 
-  const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
+  const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "showCoin">(
+    "evm",
+  );
 
   return {
     buttonProps,

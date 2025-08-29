@@ -184,11 +184,19 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
+  porto: {
+    name: "Porto",
+    icon: <Logos.Porto />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+  },
   farcaster: {
     name: "Farcaster",
     icon: <Logos.Farcaster />,
     iconShape: "squircle",
-    showInMobileConnectors: true,
+    // Temporarily hidden from mobile connectors to make room for World wallet.
+    // Will re-enable once /pay flow is fixed for Farcaster and we support more mobile wallets.
+    showInMobileConnectors: false,
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId

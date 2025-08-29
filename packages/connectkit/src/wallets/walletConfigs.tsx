@@ -316,7 +316,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       const path = "/pay?id=" + payId;
       const url =
-        "https://worldcoin.org/mini-app?app_id=app_f33b65e238f88e46ae7c681bc8213efc&path=" +
+        "https://worldcoin.org/mini-app?app_id=app_d7696b966d051cde62b7a2a0a14a6632&path=" +
         encodeURIComponent(path);
       return url;
     },

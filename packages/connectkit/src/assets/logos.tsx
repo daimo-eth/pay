@@ -1483,5 +1483,6 @@ export default {
   Bitget,
   Farcaster,
   MiniPay,
+  World,
   Porto,
 };

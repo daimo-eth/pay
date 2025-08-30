@@ -184,12 +184,12 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
-  porto: {
-    name: "Porto",
-    icon: <Logos.Porto />,
-    iconShape: "squircle",
-    showInMobileConnectors: true,
-  },
+  // porto: {
+  //   name: "Porto",
+  //   icon: <Logos.Porto />,
+  //   iconShape: "squircle",
+  //   showInMobileConnectors: true,
+  // },
   farcaster: {
     name: "Farcaster",
     icon: <Logos.Farcaster />,

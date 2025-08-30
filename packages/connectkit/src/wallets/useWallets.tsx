@@ -13,7 +13,6 @@ import {
   isBaseAccountConnector,
   isGeminiConnector,
   isInjectedConnector,
-  isPortoConnector,
 } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
@@ -53,7 +52,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       connectors.forEach((connector) => {
         if (isBaseAccountConnector(connector.id)) return;
         if (isGeminiConnector(connector.id)) return;
-        if (isPortoConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
@@ -143,7 +141,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         connector.type === "mock" ||
         (connector.type === "injected" && connector.id !== "metaMask") ||
         connector.type === "farcasterFrame" ||
-        isPortoConnector(connector.id) ||
         isBaseAccountConnector(connector.id) ||
         isGeminiConnector(connector.id),
     };
@@ -287,15 +284,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
         if (aIsInstalledInjected && !bIsInstalledInjected) return -1;
         if (!aIsInstalledInjected && bIsInstalledInjected) return 1;
-
-        // Within installed injected group, push Porto to the end
-        if (aIsInstalledInjected && bIsInstalledInjected) {
-          const aIsPorto = isPortoConnector(a.connector?.id);
-          const bIsPorto = isPortoConnector(b.connector?.id);
-          if (aIsPorto && !bIsPorto) return 1;
-          if (!aIsPorto && bIsPorto) return -1;
-        }
-
         return 0;
       })
       // order "mobile wallets" option last

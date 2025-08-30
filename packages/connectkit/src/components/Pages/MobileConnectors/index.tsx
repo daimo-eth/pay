@@ -3,7 +3,6 @@ import React from "react";
 import { ROUTES } from "../../../constants/routes";
 import { useConnect } from "../../../hooks/useConnect";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { detectBrowser, isPortoConnector } from "../../../utils";
 import {
   WalletConfigProps,
   walletConfigs,
@@ -34,24 +33,7 @@ const MobileConnectors: React.FC = () => {
       return true;
     }) ?? [];
 
-  const goToWallet = (walletId: string, wallet: WalletConfigProps) => {
-    // Special case: Porto should behave like desktop and use the configured connector
-    if (walletId === "porto") {
-      const portoConnector = connectors.find((c) => isPortoConnector(c.id));
-      if (!portoConnector) {
-        console.error("Porto connector not found");
-        return;
-      }
-      const browser = detectBrowser();
-      const shouldConnectImmediately =
-        browser === "safari" || browser === "ios";
-      context.setPendingConnectorId(portoConnector.id);
-      if (shouldConnectImmediately) {
-        connect({ connector: portoConnector });
-      }
-      setRoute(ROUTES.CONNECT);
-      return;
-    }
+  const goToWallet = (wallet: WalletConfigProps) => {
     if (wallet.getDaimoPayDeeplink == null) {
       console.error(`wallet ${wallet.name} has no deeplink`);
       return;
@@ -94,7 +76,7 @@ const MobileConnectors: React.FC = () => {
                   return (
                     <WalletItem
                       key={i}
-                      onClick={() => goToWallet(walletId, wallet)}
+                      onClick={() => goToWallet(wallet)}
                       style={{
                         animationDelay: `${i * 50}ms`,
                       }}

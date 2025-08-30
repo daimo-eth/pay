@@ -17,8 +17,6 @@ export default [
       "framer-motion",
       "wagmi",
       "@wagmi/core",
-      "porto",
-      "porto/wagmi",
       "@daimo/pay-common",
       "buffer",
       "styled-components",

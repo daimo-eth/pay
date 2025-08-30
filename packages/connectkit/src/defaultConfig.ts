@@ -29,11 +29,6 @@ type DefaultConfigProps = {
   appDescription?: string;
   appUrl?: string;
 
-  /**
-   * RPC URL used to sponsor gas fees for transactions made with Porto wallets.
-   */
-  merchantRpcUrl?: string;
-
   // Coinbase Wallet preference
   coinbaseWalletPreference?: CoinbaseWalletParameters<"4">["preference"];
 
@@ -63,7 +58,6 @@ const defaultConfig = ({
   additionalConnectors,
   chains = REQUIRED_CHAINS,
   client,
-  merchantRpcUrl,
   ...props
 }: DefaultConfigProps): CreateConfigParameters => {
   globalAppName = appName;
@@ -94,7 +88,6 @@ const defaultConfig = ({
         icon: appIcon,
         description: appDescription,
         url: appUrl,
-        merchantRpcUrl: merchantRpcUrl,
       },
       additionalConnectors,
     });

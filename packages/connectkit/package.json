@@ -1,7 +1,7 @@
 {
   "name": "@daimo/pay",
   "private": false,
-  "version": "1.16.7-dev",
+  "version": "1.16.8-dev",
   "author": "Daimo",
   "homepage": "https://pay.daimo.com",
   "license": "BSD-2-Clause license",
@@ -33,7 +33,7 @@
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
   },
   "dependencies": {
-    "@daimo/pay-common": "1.16.7-dev",
+    "@daimo/pay-common": "1.16.8-dev",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/web3.js": "^1.95.4",
@@ -48,7 +48,8 @@
     "react-transition-state": "^1.1.4",
     "react-use-measure": "^2.1.1",
     "resize-observer-polyfill": "^1.5.1",
-    "styled-components": "^5.3.5"
+    "styled-components": "^5.3.5",
+    "porto": "^0.0.80"
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",

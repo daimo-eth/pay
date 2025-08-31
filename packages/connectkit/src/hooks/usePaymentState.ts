@@ -83,8 +83,8 @@ export interface PaymentState {
   selectedDepositAddressOption: DepositAddressPaymentOptionMetadata | undefined;
   getOrderUsdLimit: () => number;
   setPaymentWaitingMessage: (message: string | undefined) => void;
-  tokenMode: "evm" | "solana" | "showCoin";
-  setTokenMode: (mode: "evm" | "solana" | "showCoin") => void;
+  tokenMode: "evm" | "solana" | "all";
+  setTokenMode: (mode: "evm" | "solana" | "all") => void;
   setSelectedWallet: (wallet: WalletConfigProps | undefined) => void;
   setSelectedWalletDeepLink: (deepLink: string | undefined) => void;
   setSelectedExternalOption: (

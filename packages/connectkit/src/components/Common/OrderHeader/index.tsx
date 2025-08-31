@@ -23,10 +23,10 @@ import { formatUsd } from "../../../utils/format";
 /** Shows payment amount. */
 export const OrderHeader = ({
   minified = false,
-  show = "showCoin",
+  show = "all",
 }: {
   minified?: boolean;
-  show?: "evm" | "solana" | "hideCoin" | "showCoin";
+  show?: "evm" | "solana" | "zkp2p" | "all";
 }) => {
   const { paymentState, route } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();
@@ -93,6 +93,14 @@ export const OrderHeader = ({
 
   if (minified) {
     if (titleAmountContent != null) {
+      if (show === "zkp2p") {
+        return (
+          <MinifiedContainer>
+            <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
+          </MinifiedContainer>
+        );
+      }
+
       return (
         <MinifiedContainer>
           <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
@@ -112,7 +120,7 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {show === "showCoin" && (
+          {show === "all" && (
             <>
               <CoinLogos $size={32} />
             </>
@@ -120,14 +128,12 @@ export const OrderHeader = ({
         </MinifiedContainer>
       );
     } else {
-      if (show !== "hideCoin") {
-        return (
-          <MinifiedContainer>
-            <CoinLogos />
-            <Subtitle>{locales.tokensAccepted}</Subtitle>
-          </MinifiedContainer>
-        );
-      }
+      return (
+        <MinifiedContainer>
+          <CoinLogos />
+          <Subtitle>{locales.tokensAccepted}</Subtitle>
+        </MinifiedContainer>
+      );
     }
   } else {
     return (

@@ -15,7 +15,7 @@ const SelectExchange: React.FC = () => {
   if (!exchangeOptions) {
     return (
       <PageContent>
-        <OrderHeader minified show="hideCoin" />
+        <OrderHeader minified show="zkp2p" />
         <ModalH1>No Exchange options available</ModalH1>
       </PageContent>
     );
@@ -40,7 +40,7 @@ const SelectExchange: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified show="hideCoin" />
+      <OrderHeader minified show="zkp2p" />
       <OptionsList options={options} />
     </PageContent>
   );

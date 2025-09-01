@@ -105,7 +105,6 @@ const DaimoPayUIProvider = ({
     hideBalance: false,
     hideTooltips: false,
     hideQuestionMarkCTA: false,
-    hideNoWalletCTA: false,
     hideRecentBadge: false,
     avoidLayoutShift: true,
     embedGoogleFonts: false,

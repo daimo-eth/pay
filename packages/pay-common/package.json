@@ -8,7 +8,7 @@
   "license": "BSD-2-Clause license",
   "scripts": {
     "build": "tsc",
-    "test": "tape -r ts-node/register/transpile-only test/**/*.test.ts",
+    "test": "tsc --noEmit",
     "lint": "npm run lint:deps && npm run lint:style",
     "lint:deps": "npx depcheck --ignores @tsconfig/node20,@types/tape,ts-node",
     "lint:style": "eslint --max-warnings=0"

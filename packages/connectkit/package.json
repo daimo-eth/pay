@@ -30,6 +30,7 @@
     "start": "rollup --config rollup.config.js -w",
     "dev": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js",
+    "test": "tsc --noEmit",
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
   },
   "dependencies": {

@@ -6,7 +6,7 @@
     "outDir": "build",
     "declaration": false,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "sourceMap": true,
@@ -19,7 +19,12 @@
     "preserveValueImports": false
   },
   "include": ["src/**/*", "package.json"],
-  "exclude": ["node_modules", "build", "src/**/*.test.tsx?"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "src/**/*.test.tsx?",
+    "**/node_modules/**"
+  ],
   "watchOptions": {
     "watchFile": "useFsEvents",
     "watchDirectory": "useFsEvents",

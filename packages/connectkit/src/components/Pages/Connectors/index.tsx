@@ -28,7 +28,7 @@ const Wallets: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified show="hideCoin" />
+      <OrderHeader minified />
       <ConnectorList />
       {context.options?.disclaimer && (
         <Disclaimer style={{ visibility: "hidden", pointerEvents: "none" }}>

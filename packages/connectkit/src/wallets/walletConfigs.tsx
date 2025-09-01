@@ -1,8 +1,9 @@
 import Logos from "../assets/logos";
+import { ROZO_INVOICE_URL } from "../constants/rozoConfig";
 
 // TODO: Change the URL to Rozo Pay when the APP is ready
 // Infer in-wallet payment URL from environment.
-let rozoPayHost = "https://invoice.rozo.ai";
+let rozoPayHost = ROZO_INVOICE_URL;
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
@@ -10,7 +11,7 @@ export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   } else if (apiUrl.startsWith("https://pay-api-stage.rozo.xyz")) {
     rozoPayHost = "https://pay.stage.rozo.xyz";
   } else {
-    rozoPayHost = "https://invoice.rozo.ai";
+    rozoPayHost = ROZO_INVOICE_URL;
   }
 }
 

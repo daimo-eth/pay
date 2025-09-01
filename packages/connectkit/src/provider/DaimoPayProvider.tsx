@@ -25,25 +25,28 @@ import {
 } from "../hooks/useConnectCallback";
 import { useRozoPay } from "../hooks/useDaimoPay";
 import { usePaymentState } from "../hooks/usePaymentState";
-import { PaymentContext, PaymentProvider } from "./PaymentProvider";
 import defaultTheme from "../styles/defaultTheme";
 import {
   CustomTheme,
-  RozoPayContextOptions,
-  RozoPayModalOptions,
   Languages,
   Mode,
+  RozoPayContextOptions,
+  RozoPayModalOptions,
   Theme,
 } from "../types";
 import { createTrpcClient } from "../utils/trpc";
 import { setInWalletPaymentUrlFromApiUrl } from "../wallets/walletConfigs";
 import { PayContext, PayContextValue } from "./PayContext";
+import { PaymentContext, PaymentProvider } from "./PaymentProvider";
 import {
   SolanaContextProvider,
   SolanaWalletName,
 } from "./SolanaContextProvider";
+import {
+  StellarContextProvider,
+  StellarWalletName,
+} from "./StellarContextProvider";
 import { Web3ContextProvider } from "./Web3ContextProvider";
-import { StellarContextProvider, StellarWalletName } from "./StellarContextProvider";
 
 type RozoPayUIProviderProps = {
   children?: React.ReactNode;
@@ -81,7 +84,7 @@ const RozoPayUIProvider = ({
   // state collisions.
   if (React.useContext(PayContext)) {
     throw new Error(
-      "Multiple, nested usages of RozoPayProvider detected. Please use only one.",
+      "Multiple, nested usages of RozoPayProvider detected. Please use only one."
     );
   }
 
@@ -95,7 +98,9 @@ const RozoPayUIProvider = ({
   for (const requiredChain of REQUIRED_CHAINS) {
     if (!chains.some((c) => c.id === requiredChain.id)) {
       throw new Error(
-        `Rozo Pay requires chains ${REQUIRED_CHAINS.map((c) => c.name).join(", ")}. Use \`getDefaultConfig\` to automatically configure required chains.`,
+        `Rozo Pay requires chains ${REQUIRED_CHAINS.map((c) => c.name).join(
+          ", "
+        )}. Use \`getDefaultConfig\` to automatically configure required chains.`
       );
     }
   }
@@ -126,7 +131,7 @@ const RozoPayUIProvider = ({
   const opts: RozoPayContextOptions = Object.assign(
     {},
     defaultOptions,
-    options,
+    options
   );
 
   if (typeof window !== "undefined") {
@@ -146,11 +151,11 @@ const RozoPayUIProvider = ({
   const [ckTheme, setTheme] = useState<Theme>(theme);
   const [ckMode, setMode] = useState<Mode>(mode);
   const [ckCustomTheme, setCustomTheme] = useState<CustomTheme | undefined>(
-    customTheme ?? {},
+    customTheme ?? {}
   );
   const [ckLang, setLang] = useState<Languages>("en-US");
   const [disableMobileInjector, setDisableMobileInjector] = useState<boolean>(
-    opts.disableMobileInjector ?? false,
+    opts.disableMobileInjector ?? false
   );
 
   const onOpenRef = useRef<(() => void) | undefined>();
@@ -218,11 +223,11 @@ const RozoPayUIProvider = ({
       }
 
       // Log the open/close event
-      trpc.nav.mutate({
-        action: open ? "navOpenPay" : "navClosePay",
-        orderId: pay.order?.id?.toString(),
-        data: meta ?? {},
-      });
+      // trpc.nav.mutate({
+      //   action: open ? "navOpenPay" : "navClosePay",
+      //   orderId: pay.order?.id?.toString(),
+      //   data: meta ?? {},
+      // });
 
       // Run the onOpen and onClose callbacks
       if (open) onOpenRef.current?.();
@@ -230,7 +235,7 @@ const RozoPayUIProvider = ({
     },
     // We don't have good caching on paymentState, so don't include it as a dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trpc, pay.order?.id, modalOptions?.resetOnSuccess, paymentCompleted],
+    [trpc, pay.order?.id, modalOptions?.resetOnSuccess, paymentCompleted]
   );
 
   // Callback when a payment is successfully completed (regardless of whether
@@ -246,14 +251,14 @@ const RozoPayUIProvider = ({
     (route: ROUTES, data?: Record<string, any>) => {
       const action = route.replace("rozoPay", "");
       log(`[SET ROUTE] ${action} ${pay.order?.id} ${debugJson(data ?? {})}`);
-      trpc.nav.mutate({
-        action,
-        orderId: pay.order?.id?.toString(),
-        data: data ?? {},
-      });
+      // trpc.nav.mutate({
+      //   action,
+      //   orderId: pay.order?.id?.toString(),
+      //   data: data ?? {},
+      // });
       setRouteState(route);
     },
-    [trpc, pay.order?.id, log],
+    [trpc, pay.order?.id, log]
   );
 
   // Other Configuration
@@ -261,7 +266,7 @@ const RozoPayUIProvider = ({
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(
     () => setDisableMobileInjector(opts.disableMobileInjector ?? false),
-    [opts.disableMobileInjector],
+    [opts.disableMobileInjector]
   );
   useEffect(() => setErrorMessage(null), [route, open]);
 
@@ -280,7 +285,7 @@ const RozoPayUIProvider = ({
         id,
         modalOptions,
         paymentFsmState: pay.paymentState,
-      })}`,
+      })}`
     );
 
     setModalOptions(modalOptions);
@@ -391,7 +396,7 @@ const RozoPayUIProvider = ({
           disableMobileInjector={disableMobileInjector}
         />
       </ThemeProvider>
-    </Web3ContextProvider>,
+    </Web3ContextProvider>
   );
 };
 
@@ -420,8 +425,8 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
   const payApiUrl = props.payApiUrl ?? "https://intentapi.rozo.ai";
   const log = useMemo(
     () =>
-      props.debugMode ? (...args: any[]) => console.log(...args) : () => { },
-    [props.debugMode],
+      props.debugMode ? (...args: any[]) => console.log(...args) : () => {},
+    [props.debugMode]
   );
 
   return (

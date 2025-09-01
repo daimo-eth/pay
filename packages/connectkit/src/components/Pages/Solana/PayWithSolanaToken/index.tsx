@@ -14,17 +14,31 @@ import {
   RozoPayTokenAmount,
   rozoSolana,
   rozoSolanaUSDC,
-  WalletPaymentOption
+  rozoStellar,
+  rozoStellarUSDC,
+  WalletPaymentOption,
 } from "@rozoai/intent-common";
-import { WalletSendTransactionError, WalletSignTransactionError } from "@solana/wallet-adapter-base";
+import {
+  WalletSendTransactionError,
+  WalletSignTransactionError,
+} from "@solana/wallet-adapter-base";
 import { ROUTES } from "../../../../constants/routes";
-import { ROZO_DAIMO_APP_ID, ROZO_SOLANA_USDC_MINT_ADDRESS, SOLANA_USDC_ASSET_CODE } from "../../../../constants/rozoConfig";
+import {
+  ROZO_DAIMO_APP_ID,
+  ROZO_SOLANA_USDC_MINT_ADDRESS,
+  SOLANA_USDC_ASSET_CODE,
+  STELLAR_USDC_ISSUER_PK,
+} from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useSolanaDestination } from "../../../../hooks/useSolanaDestination";
-import { createRozoPayment, createRozoPaymentRequest, PaymentResponseData } from "../../../../utils/api";
+import { useStellarDestination } from "../../../../hooks/useStellarDestination";
+import {
+  createRozoPayment,
+  createRozoPaymentRequest,
+  PaymentResponseData,
+} from "../../../../utils/api";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
-import { TrpcClient } from "../../../../utils/trpc";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
@@ -38,7 +52,13 @@ enum PayState {
 
 const PayWithSolanaToken: React.FC = () => {
   const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
-  const { selectedSolanaTokenOption, payWithSolanaTokenRozo: payWithSolanaTokenImpl, payParams, setRozoPaymentId, setTxHash } = paymentState;
+  const {
+    selectedSolanaTokenOption,
+    payWithSolanaTokenRozo: payWithSolanaTokenImpl,
+    payParams,
+    setRozoPaymentId,
+    setTxHash,
+  } = paymentState;
   const { order, hydrateOrder, setPaymentRozoCompleted } = useRozoPay();
   const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment
@@ -49,18 +69,21 @@ const PayWithSolanaToken: React.FC = () => {
     PaymentResponseData | undefined
   >();
 
-    // Get the destination address and payment direction using our custom hook
-    const { destinationAddress, isPayInSolanaOutBase } =
+  // Get the destination address and payment direction using our custom hook
+  const { destinationAddress, hasToSolanaAddress } =
     useSolanaDestination(payParams);
-  
+
+  const { hasToStellarAddress, destinationAddress: stellarDestinationAddress } =
+    useStellarDestination(payParams);
+
   const setPayState = (state: PayState) => {
     if (state === payState) return;
     setPayStateInner(state);
     log(`[PayWithSolanaToken] payState: ${state}`);
-    (trpc as TrpcClient).nav.mutate({
-      action: "pay-with-solana-token-state",
-      data: { state },
-    });
+    // (trpc as TrpcClient).nav.mutate({
+    //   action: "pay-with-solana-token-state",
+    //   data: { state },
+    // });
   };
 
   // ROZO API CALL
@@ -82,18 +105,26 @@ const PayWithSolanaToken: React.FC = () => {
       preferredChain: String(rozoSolanaUSDC.chainId),
       preferredToken: "USDC",
       destination: {
-        destinationAddress: isPayInSolanaOutBase
-          ? payParams?.toAddress
-          : destinationAddress,
-        chainId: isPayInSolanaOutBase
-          ? String(base.chainId)
-          : String(rozoSolana.chainId),
+        destinationAddress: hasToSolanaAddress
+          ? destinationAddress
+          : hasToStellarAddress
+          ? stellarDestinationAddress
+          : payParams?.toAddress,
+        chainId: hasToSolanaAddress
+          ? String(rozoSolana.chainId)
+          : hasToStellarAddress
+          ? String(rozoStellar.chainId)
+          : String(base.chainId),
         amountUnits: amount,
-        tokenSymbol: isPayInSolanaOutBase
+        tokenSymbol: hasToSolanaAddress
           ? rozoSolanaUSDC.symbol
+          : hasToStellarAddress
+          ? rozoStellarUSDC.symbol
           : SOLANA_USDC_ASSET_CODE,
-        tokenAddress: isPayInSolanaOutBase
+        tokenAddress: hasToSolanaAddress
           ? rozoSolanaUSDC.token
+          : hasToStellarAddress
+          ? `USDC:${STELLAR_USDC_ISSUER_PK}`
           : ROZO_SOLANA_USDC_MINT_ADDRESS,
       },
       externalId: order?.externalId ?? "",
@@ -137,23 +168,28 @@ const PayWithSolanaToken: React.FC = () => {
       setPayState(PayState.RequestingPayment);
 
       const paymentData = {
-        tokenAddress: payment.metadata.payintokenaddress as string ?? SOLANA_USDC_ASSET_CODE,
-        destAddress: isPayInSolanaOutBase
-          ? payment.metadata.receivingAddress as string
-          : destinationAddress,
+        tokenAddress:
+          (payment.metadata.payintokenaddress as string) ??
+          SOLANA_USDC_ASSET_CODE,
+        destAddress:
+          (payment.metadata.receivingAddress as string) || destinationAddress,
         usdcAmount: payment.destination.amountUnits,
         solanaAmount: roundTokenAmount(
           option.required.amount,
           option.required.token
         ),
-      }
-      
+      };
+
       if (payment.metadata?.memo) {
         Object.assign(paymentData, { memo: payment.metadata.memo as string });
       }
 
       const result = await payWithSolanaTokenImpl(option, paymentData);
-      console.log("[PAY SOLANA] Result", result, getChainExplorerTxUrl(rozoSolana.chainId, result.txHash));
+      console.log(
+        "[PAY SOLANA] Result",
+        result,
+        getChainExplorerTxUrl(rozoSolana.chainId, result.txHash)
+      );
       setTxURL(getChainExplorerTxUrl(rozoSolana.chainId, result.txHash));
 
       if (result.success) {
@@ -179,7 +215,6 @@ const PayWithSolanaToken: React.FC = () => {
       }
     }
   };
-
 
   // @NOTE: This is Daimo Pay In Solana (by default)
   // const handleTransfer = async (option: WalletPaymentOption) => {
@@ -208,10 +243,6 @@ const PayWithSolanaToken: React.FC = () => {
   //   }
   // };
 
-  // @NOTE: This is Pay In Solana by Rozo
-  // FOR TRANSFER ACTION
-  
-
   useEffect(() => {
     if (!selectedSolanaTokenOption) return;
 
@@ -234,7 +265,10 @@ const PayWithSolanaToken: React.FC = () => {
   return (
     <PageContent>
       {selectedSolanaTokenOption && (
-        <TokenLogoSpinner token={selectedSolanaTokenOption.required.token} loading={isLoading} />
+        <TokenLogoSpinner
+          token={selectedSolanaTokenOption.required.token}
+          loading={isLoading}
+        />
       )}
       <ModalContent style={{ paddingBottom: 0 }}>
         {txURL ? (

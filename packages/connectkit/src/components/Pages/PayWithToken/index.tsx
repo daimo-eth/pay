@@ -6,7 +6,6 @@ import React, { useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
 import { usePayContext } from "../../../hooks/usePayContext";
-import { TrpcClient } from "../../../utils/trpc";
 import Button from "../../Common/Button";
 import {
   Link,
@@ -36,10 +35,10 @@ const PayWithToken: React.FC = () => {
     if (state === payState) return;
     setPayStateInner(state);
     log(`[PayWithToken] payState: ${state}`);
-    (trpc as TrpcClient).nav.mutate({
-      action: "pay-with-token-state",
-      data: { state },
-    });
+    // (trpc as TrpcClient).nav.mutate({
+    //   action: "pay-with-token-state",
+    //   data: { state },
+    // });
   };
   const [txURL, setTxURL] = useState<string | undefined>();
 

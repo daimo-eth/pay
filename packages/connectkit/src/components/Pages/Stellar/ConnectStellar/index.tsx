@@ -6,16 +6,14 @@ import {
   PageContent,
 } from "../../../Common/Modal/styles";
 
-import {
-  SquircleIcon
-} from "../../../../assets/logos";
+import { Stellar } from "../../../../assets/chains";
+import { SquircleIcon } from "../../../../assets/logos";
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
-import { OptionsList } from "../../../Common/OptionsList";
-import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
-import { OrderHeader } from "../../../Common/OrderHeader";
 import { useStellar } from "../../../../provider/StellarContextProvider";
-import { Stellar } from "../../../../assets/chains";
+import { OptionsList } from "../../../Common/OptionsList";
+import { OrderHeader } from "../../../Common/OrderHeader";
+import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 import WalletPaymentSpinner from "../../../Spinners/WalletPaymentSpinner";
 
 interface Option {
@@ -42,10 +40,10 @@ const ConnectStellar: React.FC = () => {
       setIsLoading(true);
       try {
         const wallets = await kit.getSupportedWallets();
-        console.log('Stellar wallets:', wallets);
+        console.log("Stellar wallets:", wallets);
         setStellarWallets(wallets);
       } catch (error) {
-        console.error('Error fetching Stellar wallets:', error);
+        console.error("Error fetching Stellar wallets:", error);
         setStellarWallets([]);
       } finally {
         setIsLoading(false);
@@ -61,13 +59,15 @@ const ConnectStellar: React.FC = () => {
       .filter((wallet) => wallet.isAvailable)
       .map((wallet) => ({
         id: wallet.id,
-        title: wallet.name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' '),
+        title: wallet.name
+          .toLowerCase()
+          .split(" ")
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" "),
         icons: [
-          <SquircleIcon
-            key={wallet.id}
-            icon={wallet.icon}
-            alt={wallet.name}
-          />,
+          <SquircleIcon key={wallet.id} icon={wallet.icon} alt={wallet.name} />,
         ],
         onClick: async () => {
           log("wallet.name ", wallet.id);

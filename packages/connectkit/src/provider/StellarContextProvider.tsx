@@ -1,15 +1,20 @@
 import {
   ALBEDO_ID,
+  AlbedoModule,
+  FreighterModule,
   type ISupportedWallet,
+  LobstrModule,
   StellarWalletsKit,
   WalletNetwork,
-  AlbedoModule,
-  LobstrModule,
-} from '@creit.tech/stellar-wallets-kit';
-import { Asset, Horizon } from '@stellar/stellar-sdk';
-import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { DEFAULT_STELLAR_RPC_URL, STELLAR_USDC_ASSET_CODE, STELLAR_USDC_ISSUER_PK } from '../constants/rozoConfig';
+} from "@creit.tech/stellar-wallets-kit";
+import { Asset, Horizon } from "@stellar/stellar-sdk";
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  DEFAULT_STELLAR_RPC_URL,
+  STELLAR_USDC_ASSET_CODE,
+  STELLAR_USDC_ISSUER_PK,
+} from "../constants/rozoConfig";
 
 type StellarContextProvider = { children: ReactNode; stellarRpcUrl?: string };
 
@@ -19,6 +24,7 @@ type StellarContextProviderValue = {
   publicKey: string | undefined;
   setPublicKey: (publicKey: string) => void;
   account: Horizon.AccountResponse | undefined;
+  isAccountExists: boolean;
   isConnected: boolean;
   connector: ISupportedWallet | undefined;
   setConnector: (connector: ISupportedWallet) => void;
@@ -26,40 +32,43 @@ type StellarContextProviderValue = {
   convertXlmToUsdc: (amount: string) => Promise<string>;
 };
 
-
 export type StellarWalletName = ISupportedWallet;
 
 const initialContext = {
   kit: undefined,
   server: undefined,
   publicKey: undefined,
-  setPublicKey: () => { },
+  setPublicKey: () => {},
   account: undefined,
+  isAccountExists: false,
   isConnected: false,
   connector: undefined,
-  setConnector: () => { },
-  disconnect: () => { },
-  convertXlmToUsdc: () => Promise.resolve(''),
+  setConnector: () => {},
+  disconnect: () => {},
+  convertXlmToUsdc: () => Promise.resolve(""),
 };
 
-export const StellarContext = createContext<StellarContextProviderValue>(initialContext);
+export const StellarContext =
+  createContext<StellarContextProviderValue>(initialContext);
 
 export const StellarContextProvider = ({
   children,
   stellarRpcUrl,
 }: StellarContextProvider) => {
   const [publicKey, setPublicKey] = useState<string | undefined>(undefined);
-  const [accountInfo, setAccountInfo] = useState<Horizon.AccountResponse | undefined>(undefined);
-  const [connector, setConnector] = useState<ISupportedWallet | undefined>(undefined);
+  const [accountInfo, setAccountInfo] = useState<
+    Horizon.AccountResponse | undefined
+  >(undefined);
+  const [connector, setConnector] = useState<ISupportedWallet | undefined>(
+    undefined
+  );
+  const [isAccountExists, setIsAccountExists] = useState(false);
 
   const kit = new StellarWalletsKit({
     network: WalletNetwork.PUBLIC,
     selectedWalletId: ALBEDO_ID,
     // modules: allowAllModules(),
-    modules: [
-      new LobstrModule(),
-      new AlbedoModule(),
-    ]
+    modules: [new AlbedoModule(), new LobstrModule(), new FreighterModule()],
   });
 
   const server = new Horizon.Server(stellarRpcUrl ?? DEFAULT_STELLAR_RPC_URL);
@@ -69,8 +78,10 @@ export const StellarContextProvider = ({
       const data = await server.loadAccount(publicKey);
 
       setAccountInfo(data);
+      setIsAccountExists(true);
     } catch (error: any) {
       console.error(error);
+      setIsAccountExists(false);
     }
   };
 
@@ -125,6 +136,7 @@ export const StellarContextProvider = ({
         setPublicKey,
         server,
         account: accountInfo,
+        isAccountExists: isAccountExists ?? (!!accountInfo && !!publicKey),
         isConnected: !!publicKey,
         connector,
         setConnector,

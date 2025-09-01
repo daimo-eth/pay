@@ -1,12 +1,12 @@
 import { WalletPaymentOption } from "@rozoai/intent-common";
 import { useCallback, useEffect, useState } from "react";
-import { useStellar } from "../provider/StellarContextProvider";
 import {
-  STELLAR_XLM_TOKEN_INFO,
-  STELLAR_USDC_TOKEN_INFO,
   STELLAR_USDC_ASSET_CODE,
   STELLAR_USDC_ISSUER_PK,
+  STELLAR_USDC_TOKEN_INFO,
+  STELLAR_XLM_TOKEN_INFO,
 } from "../constants/rozoConfig";
+import { useStellar } from "../provider/StellarContextProvider";
 
 // Define the BigIntStr type to match the common package
 type BigIntStr = `${bigint}`;
@@ -31,8 +31,9 @@ export function useStellarPaymentOptions({
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRequesting, setIsRequesting] = useState(false);
 
-  const { server, account } = useStellar();
+  const { server, account, isAccountExists } = useStellar();
 
   // --- ⭐️ Updated function to fetch and structure balances to match JSON format ---
   /**
@@ -162,6 +163,7 @@ export function useStellarPaymentOptions({
     async (pk: string) => {
       if (!pk || !server || usdRequired === undefined) return;
 
+      setIsRequesting(true);
       setIsLoading(true);
       try {
         const structuredBalances: WalletPaymentOption[] = [];
@@ -200,23 +202,49 @@ export function useStellarPaymentOptions({
         setOptions([]);
       } finally {
         setIsLoading(false);
+        setIsRequesting(false);
       }
     },
     [
       server,
       usdRequired,
       account,
+      isAccountExists,
       createPaymentOption,
       processXlmBalance,
       processUsdcBalance,
     ]
   );
 
+  // Keep loading state until we have attempted to fetch balances
   useEffect(() => {
-    if (address && usdRequired !== undefined && account) {
+    if (
+      address &&
+      usdRequired !== undefined &&
+      account &&
+      isAccountExists &&
+      !isRequesting
+    ) {
+      // Only set loading to false if we have options or completed a fetch attempt
+      if (options !== null) {
+        setIsLoading(false);
+      }
+    }
+  }, [address, usdRequired, account, isAccountExists, isRequesting, options]);
+
+  // Reset loading state when address changes (new wallet connection)
+  useEffect(() => {
+    if (address) {
+      setIsLoading(true);
+      setOptions(null);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    if (address && usdRequired !== undefined && account && isAccountExists) {
       fetchBalances(address);
     }
-  }, [address, usdRequired, account]);
+  }, [address, usdRequired, account, isAccountExists]);
 
   return {
     options,

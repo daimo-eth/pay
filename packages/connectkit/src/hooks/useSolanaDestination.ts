@@ -58,10 +58,7 @@ export function useSolanaDestination(
   }, [isPayOutToBase, hasToSolanaAddress]);
 
   const isSolanaPayment = useMemo((): boolean => {
-    return (
-      (isPayInSolanaOutSolana || isPayInSolanaOutBase) &&
-      (payParams?.appId ?? "rozoDemo")?.toLowerCase().includes("solana")
-    );
+    return isPayInSolanaOutSolana || isPayInSolanaOutBase;
   }, [isPayInSolanaOutSolana, isPayInSolanaOutBase]);
 
   const destinationAddress = useMemo((): string | undefined => {

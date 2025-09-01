@@ -6,6 +6,7 @@ import { useConnect } from "../../../hooks/useConnect";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import { useTokenOptions } from "../../../hooks/useTokenOptions";
+import { useStellar } from "../../../provider/StellarContextProvider";
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -20,10 +21,11 @@ export default function SelectToken() {
   const { tokenMode } = paymentState;
   const { optionsList, isLoading } = useTokenOptions(tokenMode);
   const { isConnected: isEvmConnected } = useAccount();
+  const { isConnected: isStellarConnected } = useStellar();
 
   const solanaWallets = useWallet();
   const isSolConnected = solanaWallets.connected;
-  const isConnected = isEvmConnected || isSolConnected;
+  const isConnected = isEvmConnected || isSolConnected || isStellarConnected;
 
   const isAnotherMethodButtonVisible =
     optionsList.length > 0 && tokenMode !== "all";

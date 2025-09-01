@@ -219,7 +219,7 @@ export function getChainExplorerTxUrl(chainId: number, txHash: string) {
     return undefined;
   }
 
-  if (chainId === stellar.chainId) {
+  if ([stellar.chainId, rozoStellar.chainId].includes(chainId)) {
     return `${explorer}${txHash}`;
   }
 

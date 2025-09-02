@@ -12,12 +12,13 @@ import PoweredByFooter from "../../Common/PoweredByFooter";
 
 export default function ErrorPage() {
   const pay = useDaimoPay();
-  const supportUrl = getSupportUrl(pay.order?.id?.toString() ?? "", "Error");
 
   let errorBody = "Unknown error";
   if (pay.paymentState === "error") {
     errorBody = pay.paymentErrorMessage;
   }
+
+  const supportUrl = getSupportUrl(pay.order?.id?.toString() ?? "", errorBody);
 
   return (
     <PageContent>

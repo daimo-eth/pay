@@ -240,12 +240,12 @@ export const DaimoPayModal: React.FC<{
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
-    if (
-      paymentState.buttonProps &&
-      "uniquePaymentOption" in paymentState.buttonProps &&
-      paymentState.buttonProps.uniquePaymentOption
-    ) {
-      switch (paymentState.buttonProps.uniquePaymentOption) {
+    const upo = paymentState.buttonProps?.uniquePaymentOption;
+    const hasUniquePaymentOption = upo != null;
+    const isWalletsUniquePaymentOption = upo === "Wallets";
+
+    if (hasUniquePaymentOption) {
+      switch (upo) {
         case "Tron":
           // Find the Tron option from available deposit address options
           const tronOption = paymentState.depositAddressOptions.options?.find(
@@ -390,22 +390,24 @@ export const DaimoPayModal: React.FC<{
           }
           break;
         case "Coinbase":
+        case "CoinbaseApplePay":
           // Find the Coinbase option from available exchange options
           const coinbaseExchangeOptions =
             paymentState.externalPaymentOptions.options.get("exchange");
           const coinbaseOption = coinbaseExchangeOptions?.find(
-            (option) => option.id === ExternalPaymentOptions.Coinbase,
+            (option) => option.id === upo,
           );
           if (coinbaseOption) {
+            // TODO: experimental hack
             setSelectedExternalOption(coinbaseOption);
             context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
             context.setRoute(ROUTES.WAITING_EXTERNAL, {
-              event: "unique_payment_option_coinbase",
+              event: `unique_payment_option_${upo.toLowerCase()}`,
             });
           } else if (!paymentState.externalPaymentOptions.loading) {
             context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
             context.setRoute(ROUTES.SELECT_EXCHANGE, {
-              event: "unique_payment_option_coinbase_fallback",
+              event: `unique_payment_option_${upo.toLowerCase()}_fallback`,
             });
           }
           break;
@@ -440,13 +442,6 @@ export const DaimoPayModal: React.FC<{
           break;
       }
     }
-
-    const hasUniquePaymentOption =
-      paymentState.buttonProps &&
-      "uniquePaymentOption" in paymentState.buttonProps &&
-      paymentState.buttonProps.uniquePaymentOption;
-    const isWalletsUniquePaymentOption =
-      paymentState.buttonProps?.uniquePaymentOption === "Wallets";
 
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the

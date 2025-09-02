@@ -389,6 +389,7 @@ export enum ExternalPaymentOptions {
   // All exchanges
   AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
+  CoinbaseApplePay = "CoinbaseApplePay",
   Binance = "Binance",
   Lemon = "Lemon",
   // All available payment apps
@@ -407,6 +408,7 @@ export enum UniquePaymentOptions {
   Wallets = "Wallets",
   AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
+  CoinbaseApplePay = "CoinbaseApplePay",
   Binance = "Binance",
   Lemon = "Lemon",
   Tron = "Tron",

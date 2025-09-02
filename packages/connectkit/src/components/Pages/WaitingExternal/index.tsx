@@ -34,16 +34,23 @@ const WaitingExternal: React.FC = () => {
 
   useEffect(() => {
     if (!selectedExternalOption) return;
-    payWithExternal(selectedExternalOption.id).then((url) => {
-      setExternalURL(url);
-      openExternalWindow(url);
-    });
+    payWithExternal(selectedExternalOption.id)
+      .then((url) => {
+        setExternalURL(url);
+        openExternalWindow(url);
+      })
+      .catch(console.error);
   }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openExternalWindow = (url: string) => {
     if (!isExchangeApp || isMobile) {
       // for non-exchange apps: open in a new tab
       window.open(url, "_blank");
+    } else if (
+      selectedExternalOption?.id === ExternalPaymentOptions.CoinbaseApplePay
+    ) {
+      // open in current webview for now
+      window.location.href = url;
     } else {
       // for exchange apps (Binance and Coinbase): open in a popup window
       // in portrait mode in the center of the screen

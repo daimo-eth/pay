@@ -119,7 +119,7 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.SELECT_TOKEN, meta);
     } else if (context.route === ROUTES.SELECT_EXTERNAL_AMOUNT) {
       setSelectedExternalOption(undefined);
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
+      context.setRoute(context.uniquePaymentMethodPage, meta);
     } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT) {
       setSelectedDepositAddressOption(undefined);
       context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);

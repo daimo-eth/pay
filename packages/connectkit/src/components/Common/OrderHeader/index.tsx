@@ -93,14 +93,6 @@ export const OrderHeader = ({
 
   if (minified) {
     if (titleAmountContent != null) {
-      if (show === "zkp2p") {
-        return (
-          <MinifiedContainer>
-            <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
-          </MinifiedContainer>
-        );
-      }
-
       return (
         <MinifiedContainer>
           <MinifiedTitleAmount>{titleAmountContent}</MinifiedTitleAmount>
@@ -120,18 +112,6 @@ export const OrderHeader = ({
               </SubtitleContainer>
             </>
           )}
-          {show === "all" && (
-            <>
-              <CoinLogos $size={32} />
-            </>
-          )}
-        </MinifiedContainer>
-      );
-    } else {
-      return (
-        <MinifiedContainer>
-          <CoinLogos />
-          <Subtitle>{locales.tokensAccepted}</Subtitle>
         </MinifiedContainer>
       );
     }

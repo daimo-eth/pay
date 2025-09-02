@@ -145,6 +145,7 @@ type PayParamsData = {
   toSolanaAddress?: string;
   toAddress?: string;
   rozoAppId?: string;
+  metadata?: RozoPayUserMetadata;
 };
 
 /**

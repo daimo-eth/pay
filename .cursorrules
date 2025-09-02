@@ -1,0 +1,174 @@
+# RozoAI Intent Pay SDK - Cursor Rules
+
+## Project Overview
+
+RozoAI Intent Pay SDK (@rozoai/intent-pay v0.0.22) is a cross-chain crypto payment React SDK that enables seamless payments from any chain/coin with single transactions. It's a fork of Daimo Pay, originally based on ConnectKit.
+
+## Architecture & Key Components
+
+### Core Components
+
+- **RozoPayButton** (`/packages/connectkit/src/components/DaimoPayButton/`): Main payment UI component with props for appId, toChain, toToken, toAddress, etc.
+- **RozoPayProvider** (`/packages/connectkit/src/provider/DaimoPayProvider.tsx`): Context provider wrapping app with Web3, Solana, Stellar contexts
+- **RozoPayModal** (`/packages/connectkit/src/components/DaimoPayModal/`): Modal handling payment flow UI
+- **Payment FSM** (`/packages/connectkit/src/payment/paymentFsm.ts`): Finite state machine managing payment states (preview → unpaid → started → completed/bounced)
+
+### Multi-Chain Support
+
+- **EVM Chains**: Mainnet, Base, Polygon, Optimism, Arbitrum, BSC, Linea, WorldChain, Mantle, Celo via Wagmi v2
+- **Solana**: Via @solana/wallet-adapter-react with USDC support
+- **Stellar**: Via @stellar/stellar-sdk with XLM/USDC support
+
+### Payment Flow Routes (`/packages/connectkit/src/constants/routes.ts`)
+
+```
+SELECT_METHOD → SELECT_TOKEN → SELECT_AMOUNT → WAITING_WALLET → CONFIRMATION
+```
+
+Alternative flows: SELECT*EXCHANGE, SELECT_DEPOSIT_ADDRESS*\_, SOLANA\_\_, STELLAR\_\*
+
+### Key Hooks
+
+- **useRozoPay**: Main payment management (createPreviewOrder, setPayId, payWallet, etc.)
+- **useRozoPayStatus**: Payment status tracking (payment_unpaid/started/completed/bounced)
+- **useRozoPayUI**: UI state management (modal open/close)
+
+### Payment Methods Supported
+
+- Wallet connections (MetaMask, Phantom, Rabby, etc.)
+- Exchange deposits (Coinbase, Binance)
+- Deposit addresses
+- ZKP2P (Zero-Knowledge Proofs to Paypal)
+
+## Project Structure
+
+### Monorepo Layout
+
+```
+/packages/
+  /connectkit/          # Main SDK package
+    /src/
+      /components/      # React components
+        /DaimoPayButton/     # Main payment button
+        /DaimoPayModal/      # Payment modal
+        /Pages/             # Modal pages (SelectMethod, SelectToken, etc.)
+        /Common/            # Shared UI components
+      /hooks/           # React hooks for payment and UI state
+      /provider/        # Context providers (Web3, Solana, Stellar)
+      /payment/         # Payment state machine and logic
+      /constants/       # Configuration constants
+      /utils/           # Utility functions
+      /assets/          # SVG icons and graphics
+      /styles/          # Theming system
+      /localizations/   # i18n support
+  /contract/            # Smart contracts (Solidity)
+  /pay-common/          # Shared utilities
+
+/examples/
+  /nextjs-app/          # Example Next.js integration
+```
+
+### Key Configuration Files
+
+- **API Base**: `intentapiv2.rozo.ai/functions/v1/`
+- **Default Config**: `/packages/connectkit/src/defaultConfig.ts` - Auto-generates wagmi config
+- **Rozo Config**: `/packages/connectkit/src/constants/rozoConfig.ts` - API URLs, token configs
+- **Routes**: `/packages/connectkit/src/constants/routes.ts` - Payment flow navigation
+
+## Development Guidelines
+
+### Tech Stack
+
+- React 18+, TypeScript, Wagmi v2, @tanstack/react-query
+- Framer Motion (animations), Styled Components (theming)
+- Buffer polyfills, QR code generation, tRPC for API
+- Build: Rollup with TypeScript plugin
+
+### Code Patterns
+
+1. **State Management**: Uses React Context + custom hooks pattern
+2. **Payment Flow**: Finite state machine with clear state transitions
+3. **Multi-Chain**: Separate providers for each chain type (EVM/Solana/Stellar)
+4. **Theming**: Styled-components with theme provider pattern
+5. **Error Handling**: Comprehensive error states and user feedback
+
+### Entry Points
+
+- Main: `build/src/index.js` exports RozoPayProvider, RozoPayButton, hooks, utilities
+- World: `build/src/world.js` for WorldCoin minikit integration
+
+### Common Usage Pattern
+
+```tsx
+import { RozoPayProvider, RozoPayButton } from '@rozoai/intent-pay';
+
+// Wrap your app
+<RozoPayProvider config={wagmiConfig}>
+  <App />
+</RozoPayProvider>
+
+// Use the payment button
+<RozoPayButton
+  appId="your-app-id"
+  toChain={1} // Ethereum mainnet
+  toAddress="0x..."
+  toToken="0x..." // Token contract or "0x0" for ETH
+  toUnits="1000000" // Amount in token units
+  onPaymentStarted={(event) => console.log(event)}
+  onPaymentCompleted={(event) => console.log(event)}
+/>
+```
+
+### Testing & Examples
+
+- Example app: `/examples/nextjs-app/`
+- Test different payment flows in the example app
+- Always test across multiple chains and payment methods
+
+### Build Commands
+
+- `pnpm run dev`: Development mode with watch
+- `pnpm run build`: Production build
+- `pnpm run lint`: ESLint validation
+
+## Important Notes
+
+### Dependencies
+
+- Peer dependencies: React 18+, Wagmi v2, Viem v2, @tanstack/react-query v5+
+- Optional: @worldcoin/minikit-js for World ID integration
+
+### Configuration Requirements
+
+- All major EVM chains are automatically included in default config
+- Requires wagmi config with appropriate RPC endpoints
+- API authentication via appId parameter
+
+### Chain Support
+
+- EVM: Full support via Wagmi connectors
+- Solana: USDC payments via Solana wallet adapters
+- Stellar: XLM/USDC payments via Stellar SDK
+
+### Theming
+
+- 8 built-in themes: auto, web95, retro, soft, midnight, minimal, rounded, nouns
+- Custom theme support via styled-components
+- Responsive design with mobile-first approach
+
+## Debugging Tips
+
+1. **Payment State Issues**: Check the payment FSM state transitions in browser dev tools
+2. **Chain Connection Issues**: Verify required chains are included in wagmi config
+3. **API Issues**: Check network requests to `intentapiv2.rozo.ai`
+4. **UI Issues**: Inspect styled-components theme context
+5. **Multi-chain Issues**: Check specific chain provider contexts (Web3/Solana/Stellar)
+6. **Infinite Loop Issues**: Fixed in v0.0.22+ - RozoPayButton now properly handles inline objects in props like `metadata`, `preferredTokens`, etc. using JSON.stringify() in dependency arrays
+
+## Contributing
+
+- Follow existing code patterns and component structure
+- Maintain multi-chain compatibility
+- Update localization files for user-facing strings
+- Test payment flows across different chains and wallets
+- Follow TypeScript strict mode conventions

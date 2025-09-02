@@ -186,7 +186,24 @@ export function RozoPayButton(props: RozoPayButtonProps): JSX.Element {
 function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   const context = usePayContext();
 
-  // Extract payment configuration from props
+  // Simple: create stable key for object/array props to prevent infinite re-renders
+  const objectPropsKey = useMemo(() => {
+    if (!("appId" in props)) return null;
+    return JSON.stringify({
+      paymentOptions: props.paymentOptions,
+      preferredChains: props.preferredChains,
+      preferredTokens: props.preferredTokens,
+      evmChains: props.evmChains,
+      metadata: props.metadata,
+    });
+  }, [
+    "appId" in props && props.paymentOptions,
+    "appId" in props && props.preferredChains,
+    "appId" in props && props.preferredTokens,
+    "appId" in props && props.evmChains,
+    "appId" in props && props.metadata,
+  ]);
+
   const { payParams, payId } = useMemo(() => {
     if ("appId" in props) {
       const {
@@ -254,13 +271,9 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
           props.toUnits,
           props.toCallData,
           props.intent,
-          props.paymentOptions,
-          props.preferredChains,
-          props.preferredTokens,
-          props.evmChains,
           props.externalId,
-          props.metadata,
           props.refundAddress,
+          objectPropsKey, // Single dependency for all object/array props
         ]
       : []),
     ...("payId" in props ? [props.payId] : []),

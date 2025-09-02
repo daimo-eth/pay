@@ -373,7 +373,9 @@ async function runHydratePayParamsEffects(
         externalId: order?.externalId ?? "",
         metadata: {
           daimoOrderId: order?.id ?? "",
+          ...(payParams?.metadata ?? {}),
           ...(order?.metadata ?? {}),
+          ...(order.userMetadata ?? {}),
         },
       });
 

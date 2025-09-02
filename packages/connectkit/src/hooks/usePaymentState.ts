@@ -530,9 +530,7 @@ export function usePaymentState({
     [setRoute, pay, currPayParams],
   );
 
-  const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "showCoin">(
-    "evm",
-  );
+  const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
 
   return {
     buttonProps,

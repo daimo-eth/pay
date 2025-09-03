@@ -70,4 +70,4 @@ See [LICENSE](https://github.com/daimo-eth/pay/blob/master/packages/connectkit/L
 
 ## Credits
 
-Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beatiful and open-source.
+Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beautiful and open-source.

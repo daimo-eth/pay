@@ -23,36 +23,38 @@ SCRIPTS=(
     # "script/DeployUniversalAddressManager.s.sol"
 
     # Relayer
-    "script/DeployDaimoPayRelayer.s.sol" # The deployer must be the LP that calls this contract.
+    # The deployer must be the stage/dev LP that calls this contract.
+    # Production relayers can be added via grantRelayerRole.
+    # Stage/dev and production must use different relayer contract deployments.
+    # "script/DeployDaimoPayRelayer.s.sol" 
 
     # Utils
     # "script/DeployPayBalanceFactory.sol"
 )
 
 CHAINS=(
-    # "$ETHERSCAN_API_KEY_ARB,https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_BASE,https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_BSC,https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_CELO,https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_LINEA,https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_OP,https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_POLYGON,https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_SCROLL,https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "$ETHERSCAN_API_KEY_WORLD,https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
-    # # Expensive, deploy last
-    "$ETHERSCAN_API_KEY_L1,https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # Expensive, deploy last
+    # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do
-    for CHAIN in "${CHAINS[@]}"; do
-        IFS=',' read -r ETHERSCAN_API_KEY RPC_URL <<< "$CHAIN"
+    for RPC_URL in "${CHAINS[@]}"; do
         echo ""
         echo "======= RUNNING $SCRIPT ========" 
         echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
         echo "RPC_URL          : $RPC_URL"
 
-        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --etherscan-api-version v2 --broadcast"
 
         echo $FORGE_CMD
         echo ""

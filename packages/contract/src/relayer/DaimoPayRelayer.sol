@@ -15,8 +15,6 @@ import "../interfaces/IUniversalAddressManager.sol";
 contract DaimoPayRelayer is AccessControl {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant RELAYER_EOA_ROLE = keccak256("RELAYER_EOA_ROLE");
-
     // Enabled only within transactions. Otherwise zero.
     bytes32 private approvedSwapAndTipHash;
 
@@ -58,17 +56,10 @@ contract DaimoPayRelayer is AccessControl {
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(RELAYER_EOA_ROLE, admin);
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Add a new address that can trigger the relayer.
-    /// We use multiple relayer EOAs to avoid nonce contention.
-    function grantRelayerEOARole(
-        address relayer
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(RELAYER_EOA_ROLE, relayer);
-    }
+    // Role management is handled via AccessControl.grantRole/renounceRole.
 
     /// Withdraws an amount of tokens from the contract to the admin.
     function withdrawAmount(
@@ -335,7 +326,7 @@ contract DaimoPayRelayer is AccessControl {
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-start calls
@@ -370,7 +361,7 @@ contract DaimoPayRelayer is AccessControl {
         Call[] calldata calls,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public onlyRole(RELAYER_EOA_ROLE) {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-finish calls
@@ -414,7 +405,7 @@ contract DaimoPayRelayer is AccessControl {
         Call[] calldata claimCalls,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public onlyRole(RELAYER_EOA_ROLE) {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-claim calls
@@ -449,7 +440,7 @@ contract DaimoPayRelayer is AccessControl {
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-start calls
@@ -488,7 +479,7 @@ contract DaimoPayRelayer is AccessControl {
         Call[] calldata calls,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-finish calls
@@ -527,7 +518,7 @@ contract DaimoPayRelayer is AccessControl {
         uint256 sourceChainId,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public payable onlyRole(RELAYER_EOA_ROLE) {
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Execute any pre-calls provided by the relayer. These can be used
@@ -583,7 +574,7 @@ contract DaimoPayRelayer is AccessControl {
         uint256 sourceChainId,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
-    ) public onlyRole(RELAYER_EOA_ROLE) {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
         // Make pre-claim calls

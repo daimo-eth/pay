@@ -30,8 +30,12 @@ contract RelayerTest is Test {
         IDaimoPayBridger[] memory bridgers = new IDaimoPayBridger[](0);
         mockBridger = new DaimoPayBridger(toChainIds, bridgers);
 
+        // Grant DEFAULT_ADMIN_ROLE to relayer for tests
         vm.startPrank(_admin);
-        relayerContract.grantRelayerEOARole(_relayer);
+        relayerContract.grantRole(
+            relayerContract.DEFAULT_ADMIN_ROLE(),
+            _relayer
+        );
         vm.stopPrank();
 
         // Give tokens to mockSwap for swap output
@@ -57,7 +61,7 @@ contract RelayerTest is Test {
             });
     }
 
-    function testOnlyRelayerRoleCanStartIntent() public {
+    function testOnlyAdminCanStartIntent() public {
         IERC20[] memory paymentTokens = new IERC20[](1);
         paymentTokens[0] = _token1;
 
@@ -66,7 +70,7 @@ contract RelayerTest is Test {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _noRole,
-                relayerContract.RELAYER_EOA_ROLE()
+                relayerContract.DEFAULT_ADMIN_ROLE()
             )
         );
         relayerContract.startIntent({
@@ -95,13 +99,13 @@ contract RelayerTest is Test {
         vm.stopPrank();
     }
 
-    function testOnlyRelayerRoleCanFastFinish() public {
+    function testOnlyAdminCanFastFinish() public {
         vm.startPrank(_noRole);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _noRole,
-                relayerContract.RELAYER_EOA_ROLE()
+                relayerContract.DEFAULT_ADMIN_ROLE()
             )
         );
         relayerContract.fastFinish({
@@ -128,13 +132,13 @@ contract RelayerTest is Test {
         vm.stopPrank();
     }
 
-    function testOnlyRelayerRoleCanClaimAndKeep() public {
+    function testOnlyAdminCanClaimAndKeep() public {
         vm.startPrank(_noRole);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _noRole,
-                relayerContract.RELAYER_EOA_ROLE()
+                relayerContract.DEFAULT_ADMIN_ROLE()
             )
         );
         relayerContract.claimAndKeep({
@@ -159,31 +163,20 @@ contract RelayerTest is Test {
         vm.stopPrank();
     }
 
-    function testOnlyAdminCanGrantRelayerEOARole() public {
-        vm.startPrank(_noRole);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                _noRole,
-                relayerContract.DEFAULT_ADMIN_ROLE()
-            )
-        );
-        relayerContract.grantRelayerEOARole(_relayer);
-        vm.stopPrank();
-
+    function testOnlyAdminCanGrantRole() public {
+        // _relayer has DEFAULT_ADMIN_ROLE in setup; should succeed
         vm.startPrank(_relayer);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                _relayer,
-                relayerContract.DEFAULT_ADMIN_ROLE()
-            )
+        relayerContract.grantRole(
+            relayerContract.DEFAULT_ADMIN_ROLE(),
+            _relayer
         );
-        relayerContract.grantRelayerEOARole(_relayer);
         vm.stopPrank();
 
         vm.startPrank(_admin);
-        relayerContract.grantRelayerEOARole(_relayer);
+        relayerContract.grantRole(
+            relayerContract.DEFAULT_ADMIN_ROLE(),
+            _relayer
+        );
         vm.stopPrank();
     }
 
@@ -201,14 +194,8 @@ contract RelayerTest is Test {
         relayerContract.withdrawAmount(_token1, 100);
         vm.stopPrank();
 
+        // _relayer has DEFAULT_ADMIN_ROLE in setup; should succeed
         vm.startPrank(_relayer);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                _relayer,
-                relayerContract.DEFAULT_ADMIN_ROLE()
-            )
-        );
         relayerContract.withdrawAmount(_token1, 100);
         vm.stopPrank();
 
@@ -231,14 +218,8 @@ contract RelayerTest is Test {
         relayerContract.withdrawBalance(_token1);
         vm.stopPrank();
 
+        // _relayer has DEFAULT_ADMIN_ROLE in setup; should succeed
         vm.startPrank(_relayer);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                _relayer,
-                relayerContract.DEFAULT_ADMIN_ROLE()
-            )
-        );
         relayerContract.withdrawBalance(_token1);
         vm.stopPrank();
 

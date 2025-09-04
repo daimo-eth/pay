@@ -41,14 +41,14 @@ const SelectDepositAddressAmount: React.FC = () => {
     if (value !== "" && !isValidNumber(value, USD_DECIMALS)) return;
 
     setUsdInput(value);
+    const usd = Number(sanitizeNumber(value));
 
-    if (Number(value) > maxUsdLimit) {
+    if (usd > maxUsdLimit) {
       setMessage(`Maximum ${formatUsd(maxUsdLimit)}`);
     } else {
       setMessage(minimumMessage);
     }
 
-    const usd = Number(sanitizeNumber(value));
     setContinueDisabled(usd <= 0 || usd > maxUsdLimit || usd < minUsd);
   };
 

@@ -81,7 +81,7 @@ export default function DemoBasic() {
 <DaimoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
+  toAddress={"${config.recipientAddress}"}
   toUnits={"${config.amount}"}
   toToken={getAddress(${tokenVarName}.token)}
 />`;
@@ -105,7 +105,7 @@ export default function DemoBasic() {
 <DaimoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
+  toAddress={"${config.recipientAddress}"}
   toUnits={"${config.amount}"}
   toToken={getAddress(${tokenVarName}.token)}
 />`;

@@ -76,7 +76,7 @@ export default function DemoDeposit() {
 <DaimoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
+  toAddress={"${config.recipientAddress}"}
   toToken={getAddress(${tokenVarName}.token)}
   intent="Deposit"
 />`;
@@ -100,7 +100,7 @@ export default function DemoDeposit() {
 <DaimoPayButton
   appId="${APP_ID}"
   toChain={${tokenVarName}.chainId}
-  toAddress={getAddress("${config.recipientAddress}")}
+  toAddress={"${config.recipientAddress}"}
   toToken={getAddress(${tokenVarName}.token)}
   intent="Deposit"
 />`;

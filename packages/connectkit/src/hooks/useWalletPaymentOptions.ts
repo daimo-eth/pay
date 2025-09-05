@@ -66,7 +66,6 @@ export function useWalletPaymentOptions({
       setOptions(null);
       setIsLoading(true);
       try {
-        console.log("payerAddress", address);
         let newOptions = await trpc.getWalletPaymentOptions.query({
           payerAddress: address,
           // API expects undefined for deposit flow.
@@ -76,7 +75,6 @@ export function useWalletPaymentOptions({
           preferredTokens: memoizedPreferredTokens,
           evmChains: memoizedEvmChains,
         });
-        console.log("newOptions", newOptions);
         // Add passthrough tokens client-side.
         addPassthroughTokens(newOptions, passthroughTokens, destAddress);
 

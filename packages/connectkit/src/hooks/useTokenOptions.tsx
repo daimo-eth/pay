@@ -96,6 +96,7 @@ function getEvmTokenOptions(
     const title = `${titlePrice} ${option.balance.token.symbol} ${onString} ${chainName}`;
 
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+    console.log("disabledReason ", option.disabledReason);
     let subtitle =
       option.disabledReason ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;

@@ -75,7 +75,6 @@ export function useWalletPaymentOptions({
           preferredTokens: memoizedPreferredTokens,
           evmChains: memoizedEvmChains,
         });
-
         // Add passthrough tokens client-side.
         addPassthroughTokens(newOptions, passthroughTokens, destAddress);
 

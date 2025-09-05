@@ -155,9 +155,9 @@ export function usePaymentState({
   // From DaimoPayButton props
   const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
   const [currPayParams, setCurrPayParams] = useState<PayParams>();
+  const isDepositFlow = currPayParams?.toUnits == null;
 
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
-  const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
   const externalPaymentOptions = useExternalPaymentOptions({
@@ -490,9 +490,8 @@ export function usePaymentState({
 
     log("[SET PAY PARAMS] setting payParams", payParams);
     pay.reset();
-    await pay.createPreviewOrder(payParams);
     setCurrPayParams(payParams);
-    setIsDepositFlow(payParams.toUnits == null);
+    await pay.createPreviewOrder(payParams);
   };
 
   const generatePreviewOrder = async () => {
@@ -520,9 +519,8 @@ export function usePaymentState({
 
       // Set the new payParams
       if (mergedPayParams) {
-        await pay.createPreviewOrder(mergedPayParams);
         setCurrPayParams(mergedPayParams);
-        setIsDepositFlow(mergedPayParams.toUnits == null);
+        await pay.createPreviewOrder(mergedPayParams);
       }
 
       setRoute(ROUTES.SELECT_METHOD);

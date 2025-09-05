@@ -28,7 +28,6 @@ export default function SelectToken() {
 
   const isAnotherMethodButtonVisible =
     optionsList.length > 0 && tokenMode !== "all";
-
   return (
     <PageContent>
       <OrderHeader minified show={tokenMode} />

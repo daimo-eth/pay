@@ -39,7 +39,9 @@ const WaitingExternal: React.FC = () => {
     if (!selectedExternalOption) return;
     payWithExternal(selectedExternalOption.id).then((url) => {
       setExternalURL(url);
-      openExternalWindow(url);
+      if (!showQRCode) {
+        openExternalWindow(url);
+      }
     });
   }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -80,7 +82,7 @@ const WaitingExternal: React.FC = () => {
   }
 
   return showQRCode ? (
-    <ConnectWithQRCode logo={selectedExternalOption.logoURI} />
+    <ConnectWithQRCode externalUrl={externalURL ?? ""} />
   ) : (
     <PageContent>
       <ExternalPaymentSpinner

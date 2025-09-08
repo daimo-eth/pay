@@ -29,7 +29,7 @@ import {
 import useLockBodyScroll from "../../../hooks/useLockBodyScroll";
 import { usePayContext } from "../../../hooks/usePayContext";
 
-import { getChainName } from "@daimo/pay-common";
+import { ExternalPaymentOptions, getChainName } from "@daimo/pay-common";
 import { useTransition } from "react-transition-state";
 import { useAccount, useSwitchChain } from "wagmi";
 import { AuthIcon } from "../../../assets/icons";
@@ -366,6 +366,13 @@ const Modal: React.FC<ModalProps> = ({
         if (!selectedSolanaTokenOption) return undefined;
         return `${payWithString} ${selectedSolanaTokenOption.required.token.symbol}`;
       case ROUTES.WAITING_EXTERNAL:
+        if (
+          (selectedExternalOption?.id === ExternalPaymentOptions.Lemon ||
+            selectedExternalOption?.id === ExternalPaymentOptions.Binance) &&
+          !mobile
+        ) {
+          return locales.scanWithPhone;
+        }
         return selectedExternalOption?.cta;
       case ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN:
         return locales.selectChain;

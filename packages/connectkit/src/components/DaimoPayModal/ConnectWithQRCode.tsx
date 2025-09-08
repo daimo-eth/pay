@@ -28,7 +28,9 @@ import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
  * - If the pendingConnectorId is world, then show a QR that the user can scan
  *   from their phone. This deeplinks into the World Mini App
  */
-const ConnectWithQRCode: React.FC<{}> = () => {
+const ConnectWithQRCode: React.FC<{ logo: string | undefined }> = ({
+  logo,
+}) => {
   const context = usePayContext();
   const { pendingConnectorId } = context;
   const wallet = useWallet(pendingConnectorId ?? "");
@@ -47,9 +49,10 @@ const ConnectWithQRCode: React.FC<{}> = () => {
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url = wallet?.id === "world" && wallet?.getDaimoPayDeeplink
-    ? wallet.getDaimoPayDeeplink(payId)
-    : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+  const url =
+    wallet?.id === "world" && wallet?.getDaimoPayDeeplink
+      ? wallet.getDaimoPayDeeplink(payId)
+      : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
 
   return (
     <PageContent>
@@ -59,6 +62,8 @@ const ConnectWithQRCode: React.FC<{}> = () => {
           image={
             wallet?.id === "world" ? (
               <SquircleIcon icon={Logos.World} alt="World" />
+            ) : logo ? (
+              <SquircleIcon icon={logo} alt="Logo" />
             ) : (
               <div
                 style={{
@@ -89,7 +94,7 @@ const ConnectWithQRCode: React.FC<{}> = () => {
               </>
             ) : (
               <>
-                <ScanIconWithLogos logo={wallet?.icon} />
+                <ScanIconWithLogos logo={logo ?? wallet?.icon} />
                 <span>{locales.scanScreen_tooltip_default}</span>
               </>
             )

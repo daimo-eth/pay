@@ -28,17 +28,21 @@ import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
  * - If the pendingConnectorId is world, then show a QR that the user can scan
  *   from their phone. This deeplinks into the World Mini App
  */
-const ConnectWithQRCode: React.FC<{}> = () => {
+const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
+  externalUrl,
+}) => {
   const context = usePayContext();
-  const { pendingConnectorId } = context;
+  const { pendingConnectorId, paymentState } = context;
   const wallet = useWallet(pendingConnectorId ?? "");
+  const externalOption = paymentState.selectedExternalOption;
   const pay = useDaimoPay();
 
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,
   });
 
-  if (!wallet) return <>Wallet not found {pendingConnectorId}</>;
+  if (!wallet && !externalOption)
+    return <> No wallet or external option found </>;
 
   const downloads = wallet?.downloadUrls;
   const hasApps = downloads && Object.keys(downloads).length !== 0;
@@ -47,9 +51,14 @@ const ConnectWithQRCode: React.FC<{}> = () => {
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url = wallet?.id === "world" && wallet?.getDaimoPayDeeplink
-    ? wallet.getDaimoPayDeeplink(payId)
-    : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`;
+  const worldDeeplink =
+    wallet?.id === "world" && wallet?.getDaimoPayDeeplink
+      ? wallet.getDaimoPayDeeplink(payId)
+      : null;
+  const url =
+    externalUrl ?? // QR code opens eg. Binance
+    worldDeeplink ?? // open in World App
+    `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`; // browser
 
   return (
     <PageContent>
@@ -59,6 +68,8 @@ const ConnectWithQRCode: React.FC<{}> = () => {
           image={
             wallet?.id === "world" ? (
               <SquircleIcon icon={Logos.World} alt="World" />
+            ) : externalOption?.logoURI ? (
+              <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
             ) : (
               <div
                 style={{
@@ -89,7 +100,15 @@ const ConnectWithQRCode: React.FC<{}> = () => {
               </>
             ) : (
               <>
-                <ScanIconWithLogos logo={wallet?.icon} />
+                <ScanIconWithLogos
+                  logo={
+                    externalOption?.logoURI ? (
+                      <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
+                    ) : (
+                      wallet?.icon
+                    )
+                  }
+                />
                 <span>{locales.scanScreen_tooltip_default}</span>
               </>
             )

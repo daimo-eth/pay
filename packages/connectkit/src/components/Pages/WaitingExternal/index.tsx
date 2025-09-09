@@ -8,11 +8,15 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { ExternalPaymentOptions } from "@daimo/pay-common";
+import {
+  ExternalPaymentOptions,
+  shouldShowExternalQRCodeOnDesktop,
+} from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
 import Button from "../../Common/Button";
+import ConnectWithQRCode from "../../DaimoPayModal/ConnectWithQRCode";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
 
 const WaitingExternal: React.FC = () => {
@@ -23,11 +27,9 @@ const WaitingExternal: React.FC = () => {
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
     paymentState;
 
-  let isExchangeApp = false;
+  let isCoinbase = false;
   if (selectedExternalOption) {
-    isExchangeApp =
-      selectedExternalOption.id === ExternalPaymentOptions.Binance ||
-      selectedExternalOption.id === ExternalPaymentOptions.Coinbase;
+    isCoinbase = selectedExternalOption.id === ExternalPaymentOptions.Coinbase;
   }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
@@ -36,16 +38,18 @@ const WaitingExternal: React.FC = () => {
     if (!selectedExternalOption) return;
     payWithExternal(selectedExternalOption.id).then((url) => {
       setExternalURL(url);
-      openExternalWindow(url);
+      if (!shouldShowExternalQRCodeOnDesktop) {
+        openExternalWindow(url);
+      }
     });
   }, [selectedExternalOption]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openExternalWindow = (url: string) => {
-    if (!isExchangeApp || isMobile) {
+    if (!isCoinbase || isMobile) {
       // for non-exchange apps: open in a new tab
       window.open(url, "_blank");
     } else {
-      // for exchange apps (Binance and Coinbase): open in a popup window
+      // for Coinbase: open in a popup window
       // in portrait mode in the center of the screen
       let width = 500;
       let height = 700;
@@ -76,7 +80,9 @@ const WaitingExternal: React.FC = () => {
     return <PageContent></PageContent>;
   }
 
-  return (
+  return shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) ? (
+    <ConnectWithQRCode externalUrl={externalURL ?? ""} />
+  ) : (
     <PageContent>
       <ExternalPaymentSpinner
         logoURI={selectedExternalOption.logoURI}

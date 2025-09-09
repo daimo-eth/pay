@@ -29,7 +29,10 @@ import {
 import useLockBodyScroll from "../../../hooks/useLockBodyScroll";
 import { usePayContext } from "../../../hooks/usePayContext";
 
-import { ExternalPaymentOptions, getChainName } from "@daimo/pay-common";
+import {
+  getChainName,
+  shouldShowExternalQRCodeOnDesktop,
+} from "@daimo/pay-common";
 import { useTransition } from "react-transition-state";
 import { useAccount, useSwitchChain } from "wagmi";
 import { AuthIcon } from "../../../assets/icons";
@@ -331,16 +334,17 @@ const Modal: React.FC<ModalProps> = ({
     return !useInjector;
   }
 
+  const shouldShowWalletQRCodeOnDesktop =
+    context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
+    context.pendingConnectorId === "world";
+
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");
     switch (context.route) {
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
-        if (
-          context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
-          context.pendingConnectorId === "world"
-        ) {
+        if (shouldShowWalletQRCodeOnDesktop) {
           return locales.scanWithPhone;
         } else {
           return walletInfo?.name;
@@ -367,8 +371,8 @@ const Modal: React.FC<ModalProps> = ({
         return `${payWithString} ${selectedSolanaTokenOption.required.token.symbol}`;
       case ROUTES.WAITING_EXTERNAL:
         if (
-          (selectedExternalOption?.id === ExternalPaymentOptions.Lemon ||
-            selectedExternalOption?.id === ExternalPaymentOptions.Binance) &&
+          selectedExternalOption &&
+          shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) &&
           !mobile
         ) {
           return locales.scanWithPhone;

@@ -8,7 +8,10 @@ import {
   PageContent,
 } from "../../Common/Modal/styles";
 
-import { ExternalPaymentOptions } from "@daimo/pay-common";
+import {
+  ExternalPaymentOptions,
+  shouldShowExternalQRCodeOnDesktop,
+} from "@daimo/pay-common";
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
@@ -25,12 +28,8 @@ const WaitingExternal: React.FC = () => {
     paymentState;
 
   let isCoinbase = false;
-  let showQRCode = false;
   if (selectedExternalOption) {
     isCoinbase = selectedExternalOption.id === ExternalPaymentOptions.Coinbase;
-    showQRCode =
-      selectedExternalOption.id === ExternalPaymentOptions.Lemon ||
-      selectedExternalOption.id === ExternalPaymentOptions.Binance;
   }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
@@ -39,7 +38,7 @@ const WaitingExternal: React.FC = () => {
     if (!selectedExternalOption) return;
     payWithExternal(selectedExternalOption.id).then((url) => {
       setExternalURL(url);
-      if (!showQRCode) {
+      if (!shouldShowExternalQRCodeOnDesktop) {
         openExternalWindow(url);
       }
     });
@@ -81,7 +80,7 @@ const WaitingExternal: React.FC = () => {
     return <PageContent></PageContent>;
   }
 
-  return showQRCode ? (
+  return shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) ? (
     <ConnectWithQRCode externalUrl={externalURL ?? ""} />
   ) : (
     <PageContent>

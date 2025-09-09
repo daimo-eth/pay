@@ -51,11 +51,14 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const url =
-    externalUrl ??
-    (wallet?.id === "world" && wallet?.getDaimoPayDeeplink
+  const worldDeeplink =
+    wallet?.id === "world" && wallet?.getDaimoPayDeeplink
       ? wallet.getDaimoPayDeeplink(payId)
-      : `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`);
+      : null;
+  const url =
+    externalUrl ?? // QR code opens eg. Binance
+    worldDeeplink ?? // open in World App
+    `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`; // browser
 
   return (
     <PageContent>
@@ -65,7 +68,7 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
           image={
             wallet?.id === "world" ? (
               <SquircleIcon icon={Logos.World} alt="World" />
-            ) : externalOption.logoURI ? (
+            ) : externalOption?.logoURI ? (
               <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
             ) : (
               <div
@@ -99,7 +102,7 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
               <>
                 <ScanIconWithLogos
                   logo={
-                    externalOption.logoURI ? (
+                    externalOption?.logoURI ? (
                       <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
                     ) : (
                       wallet?.icon

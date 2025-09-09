@@ -403,6 +403,15 @@ export enum ExternalPaymentOptions {
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
 
+export function shouldShowExternalQRCodeOnDesktop(
+  externalOption: ExternalPaymentOptions,
+): boolean {
+  return (
+    externalOption === ExternalPaymentOptions.Lemon ||
+    externalOption === ExternalPaymentOptions.Binance
+  );
+}
+
 export enum UniquePaymentOptions {
   Wallets = "Wallets",
   AllExchanges = "AllExchanges",

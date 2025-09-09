@@ -38,7 +38,7 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
   const pay = useDaimoPay();
 
   const locales = useLocales({
-    CONNECTORNAME: wallet?.name,
+    CONNECTORNAME: wallet?.name ?? externalOption?.id,
   });
 
   if (!wallet && !externalOption)

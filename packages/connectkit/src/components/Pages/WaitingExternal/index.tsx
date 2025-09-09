@@ -80,7 +80,8 @@ const WaitingExternal: React.FC = () => {
     return <PageContent></PageContent>;
   }
 
-  return shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) ? (
+  return shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) &&
+    !isMobile ? (
     <ConnectWithQRCode externalUrl={externalURL ?? ""} />
   ) : (
     <PageContent>

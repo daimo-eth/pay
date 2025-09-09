@@ -58,6 +58,7 @@ Daimo Pay is noncustodial and runs on open-source, audited contracts. See `/pack
 
 Audits:
 
+- [Nethermind, 2025 Aug](https://github.com/user-attachments/files/22227674/NM-0585-Daimo.pdf)
 - [Nethermind, 2025 Apr](https://github.com/user-attachments/files/20544714/NM-0500-Daimo-Pay-final-report.pdf)
 
 ## Support
@@ -70,4 +71,4 @@ See [LICENSE](https://github.com/daimo-eth/pay/blob/master/packages/connectkit/L
 
 ## Credits
 
-Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beatiful and open-source.
+Daimo Pay SDK uses a fork of [ConnectKit](https://github.com/family/connectkit), developed by [Family](https://family.co). We're grateful to them for making ConnectKit open-source.

@@ -1,3 +1,4 @@
+import { solanaSOL, solanaWSOL } from "@rozoai/intent-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { injected, useAccount } from "wagmi";
 import { Ethereum, Solana } from "../../../assets/chains";
@@ -32,14 +33,18 @@ export default function SelectToken() {
 
   return (
     <PageContent>
-      <OrderHeader minified show={tokenMode} />
+      <OrderHeader minified show={tokenMode} excludeLogos={["stellar"]} />
       <OptionsList
         requiredSkeletons={4}
         isLoading={isLoading}
-        // TODO: Hide Tron and Ethereum from the token options
+        // TODO: Hide Tron, Ethereum, and native Solana tokens from the token options
         options={optionsList.filter(
           (option) =>
-            option.id !== "1-0x0000000000000000000000000000000000000000"
+            ![
+              solanaWSOL.token,
+              solanaSOL.token,
+              "1-0x0000000000000000000000000000000000000000",
+            ].includes(option.id)
         )}
         scrollHeight={
           isAnotherMethodButtonVisible && isMobileFormat ? 225 : 300

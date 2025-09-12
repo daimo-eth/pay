@@ -13,6 +13,53 @@ Onboard users from any chain, any coin into your app with one click and maximize
 - 💱 Support for all major wallets and exchanges - Rozo Pay supports payments from browser wallets like MetaMask and Rabby, as well as exchanges like Coinbase and Binance.
 - 💨 Integrate within minutes - Get up and running with Rozo Pay in as little as 10 minutes with little to no code.
 
+## Supported Infrastructure
+
+### Supported Wallets
+
+**EVM Wallets:** MetaMask, Coinbase Wallet, Trust Wallet, Rainbow Wallet, Family Wallet, Zerion, OKX, Bitget
+
+**Solana Wallets:** Phantom, Backpack, Solflare
+
+**Stellar Wallets:** Via Stellar SDK integration
+
+**Mobile Wallets:** All above wallets with mobile app support and deep-linking
+
+### Supported Chains
+
+**Currently Active in Wallet Payment Options:**
+
+- Base (Chain ID: 8453) - Primary EVM chain
+- Polygon (Chain ID: 137) - Secondary EVM chain
+- Rozo Solana - Solana integration
+- Rozo Stellar - Stellar integration
+
+**Full Supported Chain Network:**
+
+- **EVM Chains:** Ethereum (1), Arbitrum (42161), Base (8453), Polygon (137), Optimism (10), BSC (56), Linea (59144), WorldChain (480), Mantle (5000), Celo (42220)
+- **Non-EVM:** Solana, Stellar
+
+### Supported Tokens
+
+**Currently Active in Wallet Payment Options:**
+
+- Base USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+- Polygon USDC (0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174)
+- Solana USDC
+- Stellar USDC/XLM
+
+**Full Token Support Per Chain:**
+
+Each supported chain includes native tokens (ETH, MATIC, SOL, XLM), wrapped versions (WETH, WMATIC), stablecoins (USDC, USDT, DAI), and major tokens (WBTC, etc.). The SDK automatically handles token discovery and liquidity routing.
+
+### External Payment Options
+
+**Exchanges:** Coinbase, Binance, Lemon
+
+**Payment Apps:** Venmo, CashApp, MercadoPago, Revolut, Wise
+
+**Other:** RampNetwork, deposit addresses, ZKP2P (Zero-Knowledge Proofs to PayPal)
+
 and much more...
 
 ## Documentation
@@ -25,7 +72,7 @@ Check out [example](https://github.com/RozoAI/intent-pay/tree/master/examples/ne
 
 ## Demo
 
-Check out our Demo Page [demo.rozo.ai](https://demo.rozo.ai/)
+Check out our Demo Page at [demo.rozo.ai](https://demo.rozo.ai/)
 
 ### Local Development
 
@@ -70,7 +117,7 @@ Rozo Intent Pay SDK is a fork of [Daimo](https://github.com/daimo-eth/pay) devel
 
 Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) developed by [Family](https://family.co). We're grateful to them for making Connectkit fast, beatiful and open-source.
 
-# How to release `connectkit` package
+## How to release `connectkit` package
 
 ## Setup
 

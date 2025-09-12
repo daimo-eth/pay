@@ -7,20 +7,25 @@ const ExternalPaymentSpinner = ({
   logoURI,
   logoShape,
 }: {
-  logoURI: string;
+  logoURI: string | React.ReactNode;
   logoShape: "circle" | "squircle";
 }) => {
   const optionSpinner = (() => {
     if (logoShape === "circle") {
       return (
         <CircleSpinner
-          logo={<img src={logoURI} />}
+          logo={typeof logoURI === "string" ? <img src={logoURI} /> : logoURI}
           loading={false}
           unavailable={false}
         />
       );
     } else {
-      return <SquircleSpinner logo={<img src={logoURI} />} loading={false} />;
+      return (
+        <SquircleSpinner
+          logo={typeof logoURI === "string" ? <img src={logoURI} /> : logoURI}
+          loading={false}
+        />
+      );
     }
   })();
 

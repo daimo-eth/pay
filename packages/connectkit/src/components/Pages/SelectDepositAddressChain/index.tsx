@@ -8,8 +8,8 @@ import { RozoPayOrderMode } from "@rozoai/intent-common";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
-import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import PoweredByFooter from "../../Common/PoweredByFooter";
+import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 
 const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
@@ -23,7 +23,10 @@ const SelectDepositAddressChain: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified excludeLogos={["tron", "eth"]} />
+      <OrderHeader
+        minified
+        excludeLogos={["tron", "eth", "arbitrum", "optimism", "solana"]}
+      />
 
       {!depositAddressOptions.loading &&
         depositAddressOptions.options?.length === 0 && (
@@ -45,30 +48,32 @@ const SelectDepositAddressChain: React.FC = () => {
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
         options={
-
-          depositAddressOptions.options?.filter(option =>
-            !option.id.toLowerCase().includes("tron") &&
-            !option.id.toLowerCase().includes("ethereum")
-          ).map((option) => {
-            return {
-              id: option.id,
-              title: option.id,
-              icons: [option.logoURI],
-              disabled:
-                option.minimumUsd > 0 &&
-                order?.mode === RozoPayOrderMode.HYDRATED &&
-                order.usdValue < option.minimumUsd,
-              onClick: () => {
-                setSelectedDepositAddressOption(option);
-                const meta = { event: "click-option", option: option.id };
-                if (isDepositFlow) {
-                  setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
-                } else {
-                  setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, meta);
-                }
-              },
-            };
-          }) ?? []
+          depositAddressOptions.options
+            ?.filter(
+              (option) =>
+                !option.id.toLowerCase().includes("tron") &&
+                !option.id.toLowerCase().includes("ethereum")
+            )
+            .map((option) => {
+              return {
+                id: option.id,
+                title: option.id,
+                icons: [option.logoURI],
+                disabled:
+                  option.minimumUsd > 0 &&
+                  order?.mode === RozoPayOrderMode.HYDRATED &&
+                  order.usdValue < option.minimumUsd,
+                onClick: () => {
+                  setSelectedDepositAddressOption(option as any);
+                  const meta = { event: "click-option", option: option.id };
+                  if (isDepositFlow) {
+                    setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
+                  } else {
+                    setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, meta);
+                  }
+                },
+              };
+            }) ?? []
         }
       />
       <PoweredByFooter />

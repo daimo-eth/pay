@@ -76,7 +76,7 @@ export const createRozoPayment = (
 export const getRozoPayment = (
   paymentId: string
 ): Promise<ApiResponse<PaymentResponseData>> => {
-  return apiClient.get<PaymentResponseData>(`/payment-api/${paymentId}`);
+  return apiClient.get<PaymentResponseData>(`/payment-api/id/${paymentId}`);
 };
 
 /**

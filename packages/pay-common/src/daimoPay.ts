@@ -401,6 +401,8 @@ export enum DepositAddressPaymentOptions {
   OP_MAINNET = "Optimism",
   POLYGON = "Polygon",
   ETH_L1 = "Ethereum",
+  SOLANA = "Solana",
+  STELLAR = "Stellar",
 
   /** @deprecated */
   BITCOIN = "Bitcoin",

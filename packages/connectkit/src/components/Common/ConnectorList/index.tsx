@@ -34,11 +34,11 @@ const ConnectorList = () => {
   const walletsToDisplay = context.options?.hideRecentBadge
     ? wallets
     : [
-      // move last used wallet to top of list
-      // using .filter and spread to avoid mutating original array order with .sort
-      ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
-      ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
-    ];
+        // move last used wallet to top of list
+        // using .filter and spread to avoid mutating original array order with .sort
+        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
+        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+      ];
 
   // For mobile flow, we need to wait for the order to be hydrated before
   // we can deeplink to the in-wallet browser.
@@ -160,7 +160,7 @@ const ConnectorItem = ({
         {wallet.iconConnector ?? wallet.icon}
       </ConnectorIcon>
       <ConnectorLabel>
-        {isMobile ? (wallet.shortName ?? wallet.name) : wallet.name}
+        {isMobile ? wallet.shortName ?? wallet.name : wallet.name}
         {!context.options?.hideRecentBadge && isRecent && (
           <RecentlyUsedTag>
             <span>Recent</span>

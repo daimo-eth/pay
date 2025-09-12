@@ -3,7 +3,6 @@ import { Connector } from "wagmi";
 
 import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
 import Logos, { SquircleIcon } from "../assets/logos";
-import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
 import { SolanaWalletName } from "../provider/SolanaContextProvider";
@@ -63,7 +62,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       if (mobileWallets.length >= 3) return;
       const wallet = assertNotNull(
         walletConfigs[idList],
-        () => `missing ${idList}`,
+        () => `missing ${idList}`
       );
       mobileWallets.push({
         id: idList,
@@ -72,9 +71,9 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     }
 
     addIfNotPresent(
-      "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
+      "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK"
     );
-    addIfNotPresent("com.trustwallet.app");
+    addIfNotPresent("coinbaseWallet, coinbaseWalletSDK,com.coinbase.wallet");
 
     // Add other wallet
     mobileWallets.push({
@@ -101,7 +100,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           id
             .split(",")
             .map((i) => i.trim())
-            .includes(connector.id),
+            .includes(connector.id)
       );
 
       // If not found by id, attempt a fuzzy match on connector.name.
@@ -155,43 +154,43 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       return c;
     });
 
-  wallets.push({
-    id: WALLET_ID_MOBILE_WALLETS,
-    name: "Mobile Wallets",
-    shortName: "Mobile",
-    icon: (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transform: "scale(1.2)",
-          transformOrigin: "center center",
-        }}
-      >
-        <MobileWithLogos />
-      </div>
-    ),
-    iconConnector: (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transform: "scale(1.2)",
-          transformOrigin: "center center",
-        }}
-      >
-        <MobileWithLogos />
-      </div>
-    ),
-  });
+  // wallets.push({
+  //   id: WALLET_ID_MOBILE_WALLETS,
+  //   name: "Mobile Wallets",
+  //   shortName: "Mobile",
+  //   icon: (
+  //     <div
+  //       style={{
+  //         width: "100%",
+  //         height: "100%",
+  //         overflow: "hidden",
+  //         display: "flex",
+  //         alignItems: "center",
+  //         justifyContent: "center",
+  //         transform: "scale(1.2)",
+  //         transformOrigin: "center center",
+  //       }}
+  //     >
+  //       <MobileWithLogos />
+  //     </div>
+  //   ),
+  //   iconConnector: (
+  //     <div
+  //       style={{
+  //         width: "100%",
+  //         height: "100%",
+  //         overflow: "hidden",
+  //         display: "flex",
+  //         alignItems: "center",
+  //         justifyContent: "center",
+  //         transform: "scale(1.2)",
+  //         transformOrigin: "center center",
+  //       }}
+  //     >
+  //       <MobileWithLogos />
+  //     </div>
+  //   ),
+  // });
 
   if (showSolanaPaymentMethod) {
     const solanaAdapters = solanaWallet.wallets ?? [];
@@ -213,7 +212,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     });
 
     const unmatched = solanaAdapters.filter(
-      (sw) => !wallets.find((w) => w.solanaConnectorName === sw.adapter.name),
+      (sw) => !wallets.find((w) => w.solanaConnectorName === sw.adapter.name)
     );
 
     unmatched.forEach((sw) => {
@@ -236,7 +235,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       // remove duplicate ids
       .filter(
         (wallet, index, self) =>
-          self.findIndex((w) => w.id === wallet.id) === index,
+          self.findIndex((w) => w.id === wallet.id) === index
       )
       // remove wallet with id coinbaseWalletSDK if wallet with id 'com.coinbase.wallet' exists
       .filter(
@@ -244,7 +243,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           !(
             wallet.id === "coinbaseWalletSDK" &&
             self.find((w) => w.id === "com.coinbase.wallet")
-          ),
+          )
       )
       // remove wallet with id io.metamask if wallet with id 'metaMask' exists
       .filter(
@@ -252,9 +251,9 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           !(
             (wallet.id === "metaMaskSDK" || wallet.id === "metaMask") &&
             self.find(
-              (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile",
+              (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile"
             )
-          ),
+          )
       )
       // remove wallet with id 'com.warpcast.mobile' if wallet with id 'farcaster' exists
       .filter(
@@ -262,7 +261,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           !(
             wallet.id === "com.warpcast.mobile" &&
             self.find((w) => w.id === "farcaster")
-          ),
+          )
       )
       // order by isInstalled injected connectors first
       .sort((a, b) => {

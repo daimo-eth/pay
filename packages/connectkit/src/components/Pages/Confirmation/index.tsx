@@ -16,7 +16,7 @@ import {
   getChainExplorerTxUrl,
   getOrderDestChainId,
   rozoSolana,
-  stellar,
+  rozoStellar,
 } from "@rozoai/intent-common";
 import { motion } from "framer-motion";
 import {
@@ -38,6 +38,7 @@ const Confirmation: React.FC = () => {
     onSuccess,
     debugMode,
     paymentState: paymentStateContext,
+    triggerResize,
   } = usePayContext();
   const { order, paymentState, setPaymentCompleted, setPaymentRozoCompleted } =
     useRozoPay();
@@ -89,7 +90,7 @@ const Confirmation: React.FC = () => {
       // Determine chain ID based on token mode
       let chainId: number;
       if (tokenMode === "stellar") {
-        chainId = stellar.chainId;
+        chainId = rozoStellar.chainId;
       } else if (tokenMode === "solana") {
         chainId = rozoSolana.chainId;
       } else {
@@ -132,12 +133,14 @@ const Confirmation: React.FC = () => {
   const showPayoutLink = useMemo(() => {
     return (
       paymentStateContext.tokenMode === "stellar" ||
-      paymentStateContext.tokenMode === "solana"
+      paymentStateContext.tokenMode === "solana" ||
+      paymentStateContext.tokenMode === "evm"
     );
   }, [paymentStateContext]);
 
   useEffect(() => {
     if (txURL && order && done && rozoPaymentId) {
+      triggerResize();
       console.log(
         "[CONFIRMATION] Starting payout polling for order:",
         order.externalId
@@ -176,6 +179,7 @@ const Confirmation: React.FC = () => {
             setPayoutTxHash(response.data.payoutTransactionHash);
             setPayoutTxHashUrl(url);
             setPayoutLoading(false);
+            triggerResize();
             return;
           }
 

@@ -1,8 +1,29 @@
-import { supportedChains, WalletPaymentOption } from "@rozoai/intent-common";
+import {
+  base,
+  baseUSDC,
+  polygon,
+  polygonUSDC,
+  WalletPaymentOption,
+} from "@rozoai/intent-common";
 import { useEffect, useMemo, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
-/** Wallet payment options. User picks one. */
+/**
+ * Wallet payment options. User picks one.
+ *
+ * This hook manages wallet-based payment options by:
+ * 1. Fetching available payment options from the API based on user's wallet balance
+ * 2. Filtering to only show currently supported chains and tokens
+ *
+ * CURRENTLY SUPPORTED CHAINS & TOKENS IN WALLET PAYMENT OPTIONS:
+ * - Base (Chain ID: 8453) - USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+ * - Polygon (Chain ID: 137) - USDC (0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174)
+ * - Rozo Solana - USDC (native Solana USDC)
+ * - Rozo Stellar - USDC/XLM (native Stellar tokens)
+ *
+ * Note: The SDK supports many more chains/tokens (see pay-common/src/chain.ts and token.ts)
+ * but wallet payment options are currently filtered to the above for optimal user experience.
+ */
 export function useWalletPaymentOptions({
   trpc,
   address,
@@ -78,9 +99,25 @@ export function useWalletPaymentOptions({
           queryParams
         );
 
-        // Filter out chains we don't support yet.
+        // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
+        // To add more chains, add them to both arrays below and ensure they're defined in pay-common
+        const suppChains = [base, polygon];
+
+        // SUPPORTED TOKENS: Only these specific tokens are currently active
+        // Each token corresponds to its respective chain above
+        const supportedTokens = [
+          baseUSDC.token, // Base USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+          polygonUSDC.token, // Polygon USDC: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
+        ];
+
+        // Filter out chains/tokens we don't support yet in wallet payment options
+        // API may return more options, but we only show these filtered ones to users
         const isSupported = (o: WalletPaymentOption) =>
-          supportedChains.some((c) => c.chainId === o.balance.token.chainId);
+          suppChains.some(
+            (c) =>
+              c.chainId === o.balance.token.chainId &&
+              supportedTokens.includes(o.balance.token.token)
+          );
         const filteredOptions = newOptions.filter(isSupported);
         if (filteredOptions.length < newOptions.length) {
           log(

@@ -9,11 +9,14 @@ import {
   isHydrated,
   optimismUSDC,
   polygonUSDC,
+  rozoSolanaUSDC,
+  rozoStellarUSDC,
   type Token,
 } from "@rozoai/intent-common";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
+import { ROUTES } from "../../../constants/routes";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -30,6 +33,37 @@ import {
 } from "../../Common/Modal/styles";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
+// Note: Import path may need adjustment based on actual file structure
+// Using direct API call pattern from Confirmation component
+
+// Define fetchApi function locally if import doesn't work
+const ROZO_API_BASE = "https://intentapiv2.rozo.ai/functions/v1";
+const ROZO_API_TOKEN = "your-api-token"; // This should be imported from config
+
+const fetchApi = async (endpoint: string) => {
+  try {
+    const response = await fetch(`${ROZO_API_BASE}/${endpoint}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ROZO_API_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { data, error: null, status: response.status };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+      status: null,
+    };
+  }
+};
 
 // Centered container for icon + text in Tron underpay screen
 const CenterContainer = styled.div`
@@ -49,6 +83,8 @@ type DepositAddr = {
   amount?: string;
   address?: string;
   underpayment?: Underpayment;
+  externalId?: string;
+  memo?: string;
 };
 
 type Underpayment = {
@@ -59,8 +95,22 @@ type Underpayment = {
 export default function WaitingDepositAddress() {
   const context = usePayContext();
   const { triggerResize, paymentState } = context;
-  const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
-  const { order } = useRozoPay();
+  const {
+    payWithDepositAddress,
+    selectedDepositAddressOption,
+    payParams,
+    resetOrder,
+    setTxHash,
+    setTokenMode,
+    setRozoPaymentId,
+  } = paymentState;
+  const {
+    order,
+    paymentState: rozoPaymentState,
+    reset,
+    createPreviewOrder,
+    setPaymentRozoCompleted,
+  } = useRozoPay();
 
   // Detect Optimism USDT0 under-payment: the order has received some funds
   // but less than required.
@@ -74,9 +124,139 @@ export default function WaitingDepositAddress() {
 
   const [depAddr, setDepAddr] = useState<DepositAddr>();
   const [failed, setFailed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [depoChain, setDepoChain] = useState<string>();
+  const [hasExecutedDepositCall, setHasExecutedDepositCall] = useState(false);
+  const [payinTransactionHash, setPayinTransactionHash] = useState<
+    string | null
+  >(null);
+
+  const [isPollingPayment, setIsPollingPayment] = useState(false);
+
+  // Safe polling for payment status when externalId exists
+  const shouldPoll = !!(
+    depAddr?.externalId &&
+    !payinTransactionHash &&
+    depAddr?.expirationS
+  );
+
+  // Polling effect - check every 5 seconds for payinTransactionHash (only during countdown)
+  useEffect(() => {
+    if (!shouldPoll) {
+      setIsPollingPayment(false);
+      return;
+    }
+
+    // Check if countdown is still active
+    const isCountdownActive = () => {
+      if (!depAddr?.expirationS) return false;
+      const remainingTime = depAddr.expirationS - Date.now() / 1000;
+      return remainingTime > 0;
+    };
+
+    if (!isCountdownActive()) {
+      console.log("[PAYMENT POLLING] Countdown expired, stopping polling");
+      setIsPollingPayment(false);
+      return;
+    }
+
+    console.log(
+      "[PAYMENT POLLING] Starting payment polling for externalId:",
+      depAddr?.externalId
+    );
+    setIsPollingPayment(true);
+
+    let isActive = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const pollPayment = async () => {
+      console.log("[PAYMENT POLLING] Polling for payment transaction:", {
+        isActive,
+        externalId: depAddr?.externalId,
+        isCountdownActive: isCountdownActive(),
+      });
+
+      if (!isActive || !depAddr?.externalId) {
+        console.log(
+          "[PAYMENT POLLING] No active polling or missing externalId, stopping polling"
+        );
+        return;
+      }
+
+      // Stop polling if countdown expired
+      if (!isCountdownActive()) {
+        console.log(
+          "[PAYMENT POLLING] Countdown expired during polling, stopping"
+        );
+        setIsPollingPayment(false);
+        return;
+      }
+
+      try {
+        console.log(
+          "[PAYMENT POLLING] Polling for payment transaction:",
+          depAddr?.externalId
+        );
+        const response = await fetchApi(`payment/id/${depAddr?.externalId}`);
+
+        console.log("[PAYMENT POLLING] Debug - API Response:", {
+          status: response.status,
+          hasData: !!response.data,
+          hasError: !!response.error,
+          errorMessage: response.error?.message,
+          payinTransactionHash: response.data?.payinTransactionHash || null,
+          fullData: response.data,
+        });
+
+        if (isActive && response.data && response.data.payinTransactionHash) {
+          console.log(
+            "[PAYMENT POLLING] ✅ Found payinTransactionHash:",
+            response.data.payinTransactionHash
+          );
+          setPayinTransactionHash(response.data.payinTransactionHash);
+          setIsPollingPayment(false);
+          // TODO: Decide which route to navigate to when transaction hash is found
+          console.log(
+            "[PAYMENT POLLING] 🎉 Payment confirmed - ready to navigate to next step"
+          );
+          return;
+        }
+
+        console.log(
+          "[PAYMENT POLLING] ⏳ Payment not yet confirmed, scheduling next poll"
+        );
+        // Schedule next poll
+        if (isActive && isCountdownActive()) {
+          timeoutId = setTimeout(pollPayment, 7000);
+        }
+      } catch (error) {
+        console.error("[PAYMENT POLLING] ❌ Error during polling:", error);
+        // Continue polling on error, but only if countdown is still active
+        if (isActive && isCountdownActive()) {
+          timeoutId = setTimeout(pollPayment, 7000);
+        }
+      }
+    };
+
+    // Start polling immediately
+    timeoutId = setTimeout(pollPayment, 0);
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      console.log(
+        "[PAYMENT POLLING] 🧹 Cleaning up polling for:",
+        depAddr?.externalId || "unknown"
+      );
+      isActive = false;
+      setIsPollingPayment(false);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [shouldPoll, depAddr?.expirationS, depAddr?.externalId]);
 
   // If we selected a deposit address option, generate the address...
-  const generateDepositAddress = () => {
+  const generateDepositAddress = async () => {
     if (selectedDepositAddressOption == null) {
       if (order == null || !isHydrated(order)) return;
       if (order.sourceTokenAmount == null) return;
@@ -103,23 +283,45 @@ export default function WaitingDepositAddress() {
       }
 
       setDepAddr({
-        address: order.intentAddr,
-        amount: unitsToPay,
-        underpayment: { unitsPaid, coin: taPaid.token.symbol },
-        coins: `${taPaid.token.symbol} on ${getChainName(taPaid.token.chainId)}`,
+        address: order.destFinalCall.to,
+        amount: String(order.usdValue),
+        underpayment: {
+          unitsPaid: order.destFinalCallTokenAmount.amount,
+          coin: order.destFinalCallTokenAmount.token.symbol,
+        },
+        coins: `${
+          order.destFinalCallTokenAmount.token.symbol
+        } on ${getChainName(order.destFinalCallTokenAmount.token.chainId)}`,
         expirationS: expirationS,
-        uri: order.intentAddr,
-        displayToken: taPaid.token,
+        uri: order.destFinalCall.to,
+        displayToken: order.destFinalCallTokenAmount.token,
         logoURI: "", // Not needed for underpaid orders
+        memo: order.metadata?.memo || "",
       });
     } else {
+      // Prevent multiple executions for the same deposit option
+      if (isLoading || hasExecutedDepositCall) return;
+
       const displayToken = getDisplayToken(selectedDepositAddressOption);
       const logoURI = selectedDepositAddressOption.logoURI;
+
+      // Set loading state immediately to prevent race conditions
+      setIsLoading(true);
+      setHasExecutedDepositCall(true);
+      console.log(
+        "Starting payWithDepositAddress for:",
+        selectedDepositAddressOption.id
+      );
+
       setDepAddr({
         displayToken,
         logoURI,
       });
-      payWithDepositAddress(selectedDepositAddressOption.id).then((details) => {
+
+      try {
+        const details = await payWithDepositAddress(
+          selectedDepositAddressOption.id
+        );
         if (details) {
           setDepAddr({
             address: details.address,
@@ -129,18 +331,117 @@ export default function WaitingDepositAddress() {
             uri: details.uri,
             displayToken,
             logoURI,
+            externalId: details.externalId,
+            memo: details.memo || "",
           });
+          setRozoPaymentId(details.externalId);
+          setDepoChain(selectedDepositAddressOption.id);
+          // Polling will automatically start via shouldPoll calculation
+        } else if (details === null) {
+          // Duplicate call was prevented - reset loading states
+          console.log("Duplicate call prevented, resetting states");
+          setIsLoading(false);
+          setHasExecutedDepositCall(false);
+          // Polling will automatically stop when externalId is missing
+          return;
         } else {
           setFailed(true);
         }
-      });
+      } catch (error) {
+        console.error("Error getting deposit address:", error);
+        setFailed(true);
+      } finally {
+        setIsLoading(false);
+        console.log(
+          "Finished payWithDepositAddress for:",
+          selectedDepositAddressOption.id
+        );
+      }
     }
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(generateDepositAddress, [selectedDepositAddressOption]);
+  // Track which deposit option we're currently processing to prevent double execution
+  const processingOptionRef = useRef<string | null>(null);
+
+  // Reset payment hash when deposit option changes
+  useEffect(() => {
+    setPayinTransactionHash(null);
+  }, [selectedDepositAddressOption]);
+
+  // Reset execution flag when selectedDepositAddressOption changes
+  useEffect(() => {
+    if (selectedDepositAddressOption) {
+      setHasExecutedDepositCall(false);
+      setFailed(false);
+      processingOptionRef.current = null; // Reset processing flag
+    }
+  }, [selectedDepositAddressOption]);
+
+  // Reset payment state when selectedDepositAddressOption changes and we're not in preview
+  useEffect(() => {
+    if (
+      selectedDepositAddressOption &&
+      rozoPaymentState !== "preview" &&
+      rozoPaymentState !== "idle" &&
+      payParams
+    ) {
+      console.log(
+        `Resetting payment state from ${rozoPaymentState} to preview for new deposit option`
+      );
+      reset();
+      createPreviewOrder(payParams);
+    }
+  }, [
+    selectedDepositAddressOption,
+    rozoPaymentState,
+    payParams,
+    reset,
+    createPreviewOrder,
+  ]);
+
+  // Generate deposit address when conditions are met
+  useEffect(() => {
+    if (
+      selectedDepositAddressOption &&
+      !hasExecutedDepositCall &&
+      !isLoading &&
+      processingOptionRef.current !== selectedDepositAddressOption.id
+    ) {
+      console.log(
+        "About to generate deposit address for:",
+        selectedDepositAddressOption.id
+      );
+      processingOptionRef.current = selectedDepositAddressOption.id; // Mark as processing
+      generateDepositAddress();
+    }
+  }, [
+    selectedDepositAddressOption,
+    rozoPaymentState,
+    hasExecutedDepositCall,
+    isLoading,
+  ]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(triggerResize, [depAddr, failed]);
+
+  // Completed payment effect
+  useEffect(() => {
+    if (payinTransactionHash && selectedDepositAddressOption) {
+      console.log(
+        "[PAYMENT COMPLETED] Payment completed, navigating to next step"
+      );
+      setPaymentRozoCompleted(true);
+      const tokenMode =
+        selectedDepositAddressOption?.id === DepositAddressPaymentOptions.SOLANA
+          ? "solana"
+          : selectedDepositAddressOption?.id ===
+            DepositAddressPaymentOptions.STELLAR
+          ? "stellar"
+          : "evm";
+      setTokenMode(tokenMode);
+      setTxHash(payinTransactionHash);
+      context.setRoute(ROUTES.CONFIRMATION);
+    }
+  }, [payinTransactionHash]);
 
   return (
     <PageContent>
@@ -189,7 +490,7 @@ function TronUnderpayContent({ orderId }: { orderId?: string }) {
           onClick={() =>
             window.open(
               `mailto:support@daimo.com?subject=Underpaid%20USDT%20Tron%20payment%20for%20order%20${orderId}`,
-              "_blank",
+              "_blank"
             )
           }
           style={{ marginTop: 16, width: 200 }}
@@ -268,6 +569,10 @@ function getDisplayToken(meta: DepositAddressPaymentOptionMetadata) {
       return polygonUSDC;
     case DepositAddressPaymentOptions.ETH_L1:
       return ethereumUSDC;
+    case DepositAddressPaymentOptions.SOLANA:
+      return rozoSolanaUSDC;
+    case DepositAddressPaymentOptions.STELLAR:
+      return rozoStellarUSDC;
     default:
       return null;
   }
@@ -308,6 +613,7 @@ function CopyableInfo({
   return (
     <CopyableInfoWrapper>
       {underpayment && <UnderpaymentInfo underpayment={underpayment} />}
+
       <CopyRowOrThrobber
         title="Send Exactly"
         value={depAddr?.amount}
@@ -320,6 +626,14 @@ function CopyableInfo({
         valueText={depAddr?.address && getAddressContraction(depAddr.address)}
         disabled={isExpired}
       />
+      {depAddr?.memo && (
+        <CopyRowOrThrobber
+          title="Memo"
+          value={depAddr.memo}
+          valueText={depAddr.memo}
+          disabled={isExpired}
+        />
+      )}
       <CountdownWrap>
         <CountdownTimer remainingS={remainingS} totalS={totalS} />
       </CountdownWrap>

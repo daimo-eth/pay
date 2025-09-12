@@ -59,7 +59,7 @@ const PayWithSolanaToken: React.FC = () => {
     setRozoPaymentId,
     setTxHash,
   } = paymentState;
-  const { order, hydrateOrder, setPaymentRozoCompleted } = useRozoPay();
+  const { order, setPaymentRozoCompleted } = useRozoPay();
   const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment
   );

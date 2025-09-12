@@ -19,6 +19,8 @@ const SelectDepositAddressAmount: React.FC = () => {
   const { paymentState, setRoute, triggerResize } = usePayContext();
   const { selectedDepositAddressOption } = paymentState;
 
+  console.log({ selectedDepositAddressOption });
+
   const maxUsdLimit = paymentState.getOrderUsdLimit();
   const minUsd = selectedDepositAddressOption?.minimumUsd ?? 0;
   const minimumMessage =

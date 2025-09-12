@@ -10,11 +10,10 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
-  base,
-  baseUSDC,
   RozoPayTokenAmount,
-  rozoStellar,
-  stellar,
+  rozoSolana,
+  rozoSolanaUSDC,
+  rozoStellarUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import {
@@ -25,8 +24,6 @@ import {
 } from "@stellar/stellar-sdk";
 import {
   ROZO_DAIMO_APP_ID,
-  ROZO_STELLAR_ADDRESS,
-  STELLAR_USDC_ASSET_CODE,
   STELLAR_USDC_ISSUER_PK,
 } from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
@@ -47,6 +44,7 @@ enum PayState {
   CreatingPayment = "Creating Payment Record...",
   RequestingPayment = "Waiting for Payment",
   WaitingForConfirmation = "Waiting for Confirmation",
+  ProcessingPayment = "Processing Payment",
   RequestCancelled = "Payment Cancelled",
   RequestFailed = "Payment Failed",
   RequestSuccessful = "Payment Successful",
@@ -61,7 +59,7 @@ const PayWithStellarToken: React.FC = () => {
     payParams,
     setRozoPaymentId,
   } = paymentState;
-  const { order, setPaymentRozoCompleted, hydrateOrder } = useRozoPay();
+  const { order, setPaymentRozoCompleted } = useRozoPay();
 
   const [payState, setPayState] = useState<PayState>(PayState.CreatingPayment);
   const [txURL, setTxURL] = useState<string | undefined>();
@@ -73,7 +71,7 @@ const PayWithStellarToken: React.FC = () => {
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   // Get the destination address and payment direction using our custom hook
-  const { destinationAddress, isPayInStellarOutBase } =
+  const { destinationAddress, hasToStellarAddress } =
     useStellarDestination(payParams);
 
   const {
@@ -91,7 +89,6 @@ const PayWithStellarToken: React.FC = () => {
     setPayState(PayState.CreatingPayment);
 
     let amount: any = roundTokenAmount(payToken.amount, payToken.token);
-
     // Convert XLM to USDC for Pay In Stellar, Pay Out Stellar scenarios
     if (payToken.token.symbol === "XLM") {
       amount = await convertXlmToUsdc(amount);
@@ -104,22 +101,22 @@ const PayWithStellarToken: React.FC = () => {
         paymentValue: String(payToken.usd),
         currency: "USD",
       },
-      preferredChain: String(rozoStellar.chainId),
+      preferredChain: String(rozoStellarUSDC.chainId),
       preferredToken: "USDC",
       destination: {
-        destinationAddress: isPayInStellarOutBase
-          ? payParams?.toAddress
-          : destinationAddress,
-        chainId: isPayInStellarOutBase
-          ? String(base.chainId)
-          : String(stellar.chainId),
+        destinationAddress: destinationAddress,
+        chainId: hasToStellarAddress
+          ? String(rozoStellarUSDC.chainId)
+          : payParams?.toSolanaAddress
+          ? String(rozoSolana.chainId)
+          : String(payParams?.toChain),
         amountUnits: amount,
-        tokenSymbol: isPayInStellarOutBase
-          ? baseUSDC.symbol
-          : STELLAR_USDC_ASSET_CODE,
-        tokenAddress: isPayInStellarOutBase
-          ? baseUSDC.token
-          : STELLAR_USDC_ISSUER_PK,
+        tokenSymbol: "USDC",
+        tokenAddress: hasToStellarAddress
+          ? `USDC:${STELLAR_USDC_ISSUER_PK}`
+          : payParams?.toSolanaAddress
+          ? rozoSolanaUSDC.token
+          : payParams?.toToken,
       },
       externalId: order?.externalId ?? "",
       metadata: {
@@ -129,13 +126,18 @@ const PayWithStellarToken: React.FC = () => {
     });
 
     // API Call
-    const response = await createRozoPayment(paymentData);
-    if (!response?.data?.id) {
-      throw new Error(response?.error?.message ?? "Payment creation failed");
-    }
+    try {
+      const response = await createRozoPayment(paymentData);
 
-    setActiveRozoPayment(response.data);
-    return response.data;
+      if (!response?.data?.id) {
+        throw new Error(response?.error?.message ?? "Payment creation failed");
+      }
+
+      setActiveRozoPayment(response.data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   };
 
   // FOR TRANSFER ACTION
@@ -161,10 +163,8 @@ const PayWithStellarToken: React.FC = () => {
       setPayState(PayState.RequestingPayment);
 
       const paymentData = {
-        destAddress: isPayInStellarOutBase
-          ? (payment.metadata.receivingAddress as string) ??
-            ROZO_STELLAR_ADDRESS
-          : destinationAddress,
+        destAddress:
+          (payment.metadata.receivingAddress as string) || destinationAddress,
         usdcAmount: payment.destination.amountUnits,
         stellarAmount: roundTokenAmount(
           option.required.amount,
@@ -176,12 +176,11 @@ const PayWithStellarToken: React.FC = () => {
         Object.assign(paymentData, { memo: payment.metadata.memo as string });
       }
 
-      console.log("[PAY STELLAR] Payment data", paymentData);
       const result = await payWithStellarTokenImpl(option, paymentData);
+
       setSignedTx(result.signedTx);
       setPayState(PayState.WaitingForConfirmation);
     } catch (error) {
-      console.error(error);
       if (error instanceof Error && error.message.includes("declined")) {
         setPayState(PayState.RequestCancelled);
       } else {
@@ -193,31 +192,47 @@ const PayWithStellarToken: React.FC = () => {
   };
 
   const handleSubmitTx = async () => {
-    console.log("[PAY STELLAR] Submitting transaction", signedTx);
     if (signedTx && stellarServer && stellarKit) {
-      // Sign and submit transaction
-      const signedTransaction = await stellarKit.signTransaction(signedTx, {
-        address: stellarPublicKey,
-        networkPassphrase: Networks.PUBLIC,
-      });
-      const tx = TransactionBuilder.fromXDR(signedTransaction.signedTxXdr, Networks.PUBLIC);
-      const response = await stellarServer.submitTransaction(
-        tx as Transaction | FeeBumpTransaction
-      );
+      try {
+        // Sign and submit transaction
+        const signedTransaction = await stellarKit.signTransaction(signedTx, {
+          address: stellarPublicKey,
+          networkPassphrase: Networks.PUBLIC,
+        });
 
-      console.log("[PAY STELLAR] Transaction submitted", response);
-      if (response.successful) {
-        setPayState(PayState.RequestSuccessful);
-        setTxHash(response.hash);
-        setSignedTx(undefined);
-        setTimeout(() => {
-          setActiveRozoPayment(undefined);
-          setPaymentRozoCompleted(true);
-          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-stellar" });
-        }, 200);
-      } else {
+        setIsLoading(true);
+        setPayState(PayState.ProcessingPayment);
+
+        const tx = TransactionBuilder.fromXDR(
+          signedTransaction.signedTxXdr,
+          Networks.PUBLIC
+        );
+
+        const response = await stellarServer.submitTransaction(
+          tx as Transaction | FeeBumpTransaction
+        );
+
+        if (response.successful) {
+          setPayState(PayState.RequestSuccessful);
+          setTxHash(response.hash);
+          setSignedTx(undefined);
+          setTimeout(() => {
+            setActiveRozoPayment(undefined);
+            setPaymentRozoCompleted(true);
+            setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-stellar" });
+          }, 200);
+        } else {
+          setPayState(PayState.RequestFailed);
+        }
+      } catch (error) {
         setPayState(PayState.RequestFailed);
+      } finally {
+        setIsLoading(false);
       }
+    } else {
+      console.error(
+        "[PAY STELLAR] Cannot submit transaction - missing requirements"
+      );
     }
   };
 

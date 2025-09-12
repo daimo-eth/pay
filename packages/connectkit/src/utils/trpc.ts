@@ -4,7 +4,8 @@ import {
   httpBatchLink,
 } from "@trpc/client";
 
-export type TrpcClient = CreateTRPCClient<any>;
+// Type definition that allows accessing any tRPC procedure with query/mutate methods
+export type TrpcClient = CreateTRPCClient<any> & Record<string, any>;
 
 export function createTrpcClient(
   apiUrl: string,

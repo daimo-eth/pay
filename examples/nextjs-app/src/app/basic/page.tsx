@@ -7,7 +7,7 @@ import {
   knownTokens,
 } from "@rozoai/intent-common";
 import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
@@ -180,6 +180,12 @@ export default function DemoBasic() {
     setCodeSnippet(snippet);
   }, [parsedConfig, hasValidConfig]);
 
+  const metadata = useMemo(() => {
+    return {
+      orderDate: new Date().toISOString(),
+    };
+  }, [parsedConfig]);
+
   return (
     <Container className="max-w-4xl mx-auto p-6">
       <Text className="text-lg text-gray-700 mb-4">
@@ -201,6 +207,7 @@ export default function DemoBasic() {
               onPaymentStarted={printEvent}
               onPaymentCompleted={printEvent}
               resetOnSuccess={true}
+              metadata={metadata}
             />
             <button
               onClick={() => setIsConfigOpen(true)}

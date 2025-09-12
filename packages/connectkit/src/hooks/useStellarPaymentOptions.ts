@@ -178,7 +178,8 @@ export function useStellarPaymentOptions({
 
         if (nativeBalance) {
           const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
-          structuredBalances.push(xlmOption);
+          // @NOTE: We are not including XLM in the options list for now.
+          // structuredBalances.push(xlmOption);
         }
 
         // Process USDC balance

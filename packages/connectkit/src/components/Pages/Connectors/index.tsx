@@ -30,7 +30,7 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
-  const { hydrateOrder, order } = useRozoPay();
+  const { hydrateOrder, order, setRozoPaymentId } = useRozoPay();
 
   // Track if hydration has already been attempted to prevent multiple runs
   const hasHydratedRef = useRef(false);
@@ -57,13 +57,22 @@ const Wallets: React.FC = () => {
     }
   }, [context.paymentState.isDepositFlow, order, isMobile, hydrateOrder]);
 
+  useEffect(() => {
+    if (order?.externalId) {
+      setRozoPaymentId(order.externalId);
+    }
+  }, [order]);
+
   // Show new-user education buttons
   const showLearnMore = !context.options?.hideQuestionMarkCTA;
   const showGetWallet = !context.options?.hideNoWalletCTA;
 
   return (
     <PageContent>
-      <OrderHeader minified />
+      <OrderHeader
+        minified
+        excludeLogos={["tron", "eth", "arbitrum", "optimism", "stellar"]}
+      />
       <ConnectorList />
 
       {isMobile ? (

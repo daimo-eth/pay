@@ -1390,6 +1390,29 @@ export const SquircleIcon = ({
   );
 };
 
+export const Base = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="32"
+    height="32"
+    fill="none"
+    viewBox="0 0 32 32"
+  >
+    <g clipPath="url(#clip0_1249_2063)">
+      <path
+        fill="#fff"
+        d="M25.778 32H6.222A6.22 6.22 0 0 1 0 25.778V6.222A6.22 6.22 0 0 1 6.222 0h19.556A6.22 6.22 0 0 1 32 6.222v19.556A6.22 6.22 0 0 1 25.778 32"
+      ></path>
+      <rect width="20" height="20" x="6" y="6" fill="#00F" rx="1"></rect>
+    </g>
+    <defs>
+      <clipPath id="clip0_1249_2063">
+        <path fill="#fff" d="M0 0h32v32H0z"></path>
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 export default {
   Mock,
   Injected,
@@ -1428,4 +1451,5 @@ export default {
   Bitget,
   Farcaster,
   MiniPay,
+  Base,
 };

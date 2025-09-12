@@ -13,14 +13,13 @@ import {
   Stellar,
   Tron,
 } from "../../../assets/chains";
-import { USDC } from "../../../assets/coins";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
+import { useStellar } from "../../../provider/StellarContextProvider";
 import styled from "../../../styles/styled";
 import { formatUsd } from "../../../utils/format";
-import { useStellar } from "../../../provider/StellarContextProvider";
 
 /** Shows payment amount. */
 export const OrderHeader = ({
@@ -40,16 +39,20 @@ export const OrderHeader = ({
     wallet: solanaWallet,
   } = useWallet();
   const { senderEnsName } = paymentState;
-  const { isConnected: isStellarConnected, publicKey: stellarPublicKey, connector: stellarConnector } = useStellar();
+  const {
+    isConnected: isStellarConnected,
+    publicKey: stellarPublicKey,
+    connector: stellarConnector,
+  } = useStellar();
   const { order } = useRozoPay();
 
   const ethWalletDisplayName =
     senderEnsName ?? (address ? getAddressContraction(address) : "wallet");
   const solWalletDisplayName = getAddressContraction(
-    publicKey?.toBase58() ?? "",
+    publicKey?.toBase58() ?? ""
   );
   const stellarWalletDisplayName = getAddressContraction(
-    stellarPublicKey ?? "",
+    stellarPublicKey ?? ""
   );
   const orderUsd = order?.destFinalCallTokenAmount.usd;
 
@@ -71,7 +74,7 @@ export const OrderHeader = ({
   const renderIcon = (
     icon: React.ReactNode | string | undefined,
     name?: string,
-    size = 32,
+    size = 32
   ): JSX.Element | null => {
     if (!icon) {
       return null;
@@ -95,11 +98,11 @@ export const OrderHeader = ({
   let walletIcon = renderIcon(connector?.icon);
   let solanaIcon = renderIcon(
     solanaWallet?.adapter.icon || <Solana />,
-    solanaWallet?.adapter.name,
+    solanaWallet?.adapter.name
   );
   let stellarIcon = renderIcon(
     stellarConnector?.icon || <Stellar />,
-    stellarConnector?.name,
+    stellarConnector?.name
   );
 
   if (minified) {
@@ -141,37 +144,43 @@ export const OrderHeader = ({
           )}
           {show === "all" && (
             <>
-              <CoinLogos $size={32} $exclude={['stellar', ...excludeLogos]} />
+              <CoinLogos $size={32} $exclude={excludeLogos} />
             </>
           )}
         </MinifiedContainer>
       );
     } else {
-      return (
-        <MinifiedContainer>
-          <CoinLogos $exclude={excludeLogos} />
-          <Subtitle>1000+ tokens accepted</Subtitle>
-        </MinifiedContainer>
-      );
+      // return (
+      //   <MinifiedContainer>
+      //     <CoinLogos $exclude={excludeLogos} />
+      //     <Subtitle>1000+ tokens accepted</Subtitle>
+      //   </MinifiedContainer>
+      // );
     }
   } else {
     return (
       <>
         {titleAmountContent && <TitleAmount>{titleAmountContent}</TitleAmount>}
-        <AnyChainAnyCoinContainer>
+        {/* <AnyChainAnyCoinContainer>
           <CoinLogos $exclude={excludeLogos} />
           <Subtitle>1000+ tokens accepted</Subtitle>
-        </AnyChainAnyCoinContainer>
+        </AnyChainAnyCoinContainer> */}
       </>
     );
   }
 };
 
-function CoinLogos({ $size = 24, $exclude = [] }: { $size?: number, $exclude?: string[] }) {
+function CoinLogos({
+  $size = 24,
+  $exclude = [],
+}: {
+  $size?: number;
+  $exclude?: string[];
+}) {
   const logos = [
     <Ethereum key="eth" />,
     <Tron key="tron" />,
-    <USDC key="usdc" />,
+    // <USDC key="usdc" />,
     <Optimism key="optimism" />,
     <Arbitrum key="arbitrum" />,
     <Base key="base" />,
@@ -193,11 +202,15 @@ function CoinLogos({ $size = 24, $exclude = [] }: { $size?: number, $exclude?: s
   );
 
   return (
-    <Logos>{logos.filter((element) => !$exclude.includes(element?.key ?? "")).map((element, index) => logoBlock(element, index))}</Logos>
+    <Logos>
+      {logos
+        .filter((element) => !$exclude.includes(element?.key ?? ""))
+        .map((element, index) => logoBlock(element, index))}
+    </Logos>
   );
 }
 
-const TitleAmount = styled(motion.h1) <{
+const TitleAmount = styled(motion.h1)<{
   $error?: boolean;
   $valid?: boolean;
 }>`
@@ -256,7 +269,7 @@ const AnyChainAnyCoinContainer = styled(motion.div)`
   margin-bottom: 24px;
 `;
 
-const LogoContainer = styled(motion.div) <{
+const LogoContainer = styled(motion.div)<{
   $marginLeft?: number;
   $zIndex?: number;
   $size: number;

@@ -1,6 +1,5 @@
 import { baseUSDC } from "@rozoai/intent-common";
 import { useMemo } from "react";
-import { ROZO_STELLAR_ADDRESS } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 
 /**
@@ -62,18 +61,12 @@ export function useStellarDestination(
   }, [isPayInStellarOutStellar, isPayInStellarOutBase]);
 
   const destinationAddress = useMemo((): string | undefined => {
-    if (isPayInStellarOutStellar) {
-      return payParams?.toStellarAddress;
-    }
-    if (isPayInStellarOutBase) {
-      return ROZO_STELLAR_ADDRESS;
-    }
-    return undefined;
-  }, [
-    isPayInStellarOutStellar,
-    isPayInStellarOutBase,
-    payParams?.toStellarAddress,
-  ]);
+    return (
+      payParams?.toStellarAddress ||
+      payParams?.toSolanaAddress ||
+      payParams?.toAddress
+    );
+  }, [payParams]);
 
   return {
     destinationAddress,

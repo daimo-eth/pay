@@ -228,6 +228,16 @@ export type DaimoPayHydratedOrder = {
   userMetadata: DaimoPayUserMetadata | null;
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
+  /** External source type, or null. EG "untron", "zkp2p". */
+  extSourceType: string | null;
+  /** External source ID. Set when extSourceType is set. */
+  extSourceId: string | null;
+  /** Chain ID for hop transactions */
+  hopChainId: number | null;
+  /** Token for hop transactions */
+  hopToken: Address | null;
+  /** Transaction hash for hop start */
+  hopStartTxHash: Hex | null;
 };
 
 export type DaimoPayOrderWithOrg = DaimoPayOrder & {

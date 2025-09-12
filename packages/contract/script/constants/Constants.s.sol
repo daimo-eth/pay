@@ -64,6 +64,7 @@ uint32 constant ARBITRUM_DOMAIN = 3;
 uint32 constant BASE_DOMAIN = 6;
 uint32 constant POLYGON_DOMAIN = 7;
 uint32 constant LINEA_DOMAIN = 11;
+uint32 constant WORLDCHAIN_DOMAIN = 14;
 
 function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
     // Mainnets
@@ -74,6 +75,7 @@ function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
     if (chainId == BASE_MAINNET) return BASE_DOMAIN;
     if (chainId == POLYGON_MAINNET) return POLYGON_DOMAIN;
     if (chainId == LINEA_MAINNET) return LINEA_DOMAIN;
+    if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_DOMAIN;
 
     // Testnets
     if (chainId == ETH_TESTNET) return ETH_DOMAIN;
@@ -97,6 +99,8 @@ address constant LINEA_MAINNET_USDC = 0x176211869cA2b568f2A7D4EE941E073a821EE1ff
 address constant OP_MAINNET_USDC = 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85;
 address constant POLYGON_MAINNET_USDC = 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
 address constant SCROLL_MAINNET_USDC = 0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4;
+address constant WORLDCHAIN_MAINNET_USDC = 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1;
+address constant CELO_MAINNET_USDC = 0xcebA9300f2b948710d2653dD7B07f33A8B32118C;
 
 address constant ARBITRUM_TESTNET_USDC = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
 address constant AVAX_TESTNET_USDC = 0x5425890298aed601595a70AB815c96711a31Bc65;
@@ -136,7 +140,6 @@ address constant MANTLE_MAINNET_BRIDGED_USDC = 0x09Bc4E0D864854c6aFB6eB9A9cdF58a
 address constant MODE_MAINNET_BRIDGED_USDC = 0xd988097fb8612cc24eeC14542bC03424c656005f;
 address constant OP_MAINNET_BRIDGED_USDC = 0x7F5c764cBc14f9669B88837ca1490cCa17c31607;
 address constant POLYGON_MAINNET_BRIDGED_USDC = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
-address constant WORLDCHAIN_MAINNET_BRIDGED_USDC = 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1;
 
 // axlUSDC (Axelar wrapped USDC) addresses
 address constant ARBITRUM_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f405215;
@@ -237,6 +240,8 @@ function _getUSDCAddress(uint256 chainId) pure returns (address) {
     if (chainId == OP_MAINNET) return OP_MAINNET_USDC;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_USDC;
     if (chainId == SCROLL_MAINNET) return SCROLL_MAINNET_USDC;
+    if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_MAINNET_USDC;
+    if (chainId == CELO_MAINNET) return CELO_MAINNET_USDC;
 
     // Testnets
     if (chainId == ARBITRUM_TESTNET) return ARBITRUM_TESTNET_USDC;
@@ -347,7 +352,6 @@ function _getBridgedUSDCAddress(uint256 chainId) pure returns (address) {
     if (chainId == MODE_MAINNET) return MODE_MAINNET_BRIDGED_USDC;
     if (chainId == OP_MAINNET) return OP_MAINNET_BRIDGED_USDC;
     if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_BRIDGED_USDC;
-    if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_MAINNET_BRIDGED_USDC;
 
     return address(0);
 }

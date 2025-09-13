@@ -9,13 +9,15 @@ import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
+import "./constants/HopBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
 import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
 import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
 import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
+import {DEPLOY_SALT_HOP_BRIDGER} from "./DeployDaimoPayHopBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy9");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy12");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -73,11 +75,16 @@ contract DeployDaimoPayBridger is Script {
             msg.sender,
             DEPLOY_SALT_AXELAR_BRIDGER
         );
+        address hopBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_HOP_BRIDGER
+        );
 
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
         console.log("acrossBridger address:", acrossBridger);
         console.log("axelarBridger address:", axelarBridger);
+        console.log("hopBridger address:", hopBridger);
 
         // Get all supported destination chains from the generated constants
         // CCTP
@@ -99,11 +106,17 @@ contract DeployDaimoPayBridger is Script {
             axelarBridger
         );
 
+        // Hop
+        (uint256[] memory hopDestChainIds, ) = getHopBridgeRoutes(
+            block.chainid
+        );
+
         // Count total number of supported chains
         uint256 totalChains = cctpChainIds.length +
             cctpV2ChainIds.length +
             acrossChainIds.length +
-            axelarChainIds.length;
+            axelarChainIds.length +
+            hopDestChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -111,6 +124,13 @@ contract DeployDaimoPayBridger is Script {
 
         // Populate arrays with each bridger type
         uint256 index = 0;
+
+        // Add Hop routes (encode hop chain id in address slot)
+        for (uint256 i = 0; i < hopDestChainIds.length; i++) {
+            chainIds[index] = hopDestChainIds[i];
+            bridgers[index] = hopBridger;
+            index++;
+        }
 
         // Add CCTP routes
         for (uint256 i = 0; i < cctpChainIds.length; i++) {

@@ -1,0 +1,14 @@
+{
+  "lib/axelar-gmp-sdk-solidity": {
+    "rev": "b5d0b7bdda0437fce983daffb776669437b809d0"
+  },
+  "lib/forge-std": {
+    "rev": "3b20d60d14b343ee4f908cb8079495c07f5e8981"
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "a25fed3f7cdb6d6ae7a162a0ff3c09c7737aa2c7"
+  },
+  "lib/solmate": {
+    "rev": "97bdb2003b70382996a79a406813f76417b1cf90"
+  }
+}

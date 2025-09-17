@@ -62,7 +62,7 @@ function CustomQRCode({
               <QRCode
                 uri={value}
                 size={576}
-                ecl="H"
+                ecl={value?.length > 200 ? "L" : "H"}
                 clearArea={!!(imagePosition === "center" && image)}
                 image={imagePosition === "bottom right" ? image : undefined}
                 imageBackground={imageBackground}

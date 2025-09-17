@@ -659,3 +659,17 @@ const CopyIconWrap = styled.div`
   --color: var(--ck-copytoclipboard-stroke);
   --bg: var(--ck-body-background);
 `;
+
+// mock leave guard
+export async function beforeLeave(): Promise<boolean> {
+  const userConfirmed = window.confirm(
+    "Are you sure you want to leave? Your deposit address session will be cancelled.",
+  );
+
+  if (userConfirmed) {
+    // TODO: add actual API call to cancel external order
+    console.log("User confirmed leaving deposit flow");
+  }
+
+  return userConfirmed;
+}

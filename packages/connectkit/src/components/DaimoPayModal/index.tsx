@@ -37,7 +37,9 @@ import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
-import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
+import WaitingDepositAddress, {
+  beforeLeave as waitingDepositAddressBeforeLeave,
+} from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
 import ConnectUsing from "./ConnectUsing";
@@ -206,6 +208,33 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.MOBILECONNECTORS]: <MobileConnectors />,
     [ROUTES.CONNECT]: <ConnectUsing />,
     [ROUTES.SWITCHNETWORKS]: <SwitchNetworks />,
+  };
+
+  // Registry of page-level leave guards (hooks that run before navigation)
+  const leaveGuards: Partial<Record<ROUTES, () => Promise<boolean> | boolean>> =
+    {
+      [ROUTES.WAITING_DEPOSIT_ADDRESS]: waitingDepositAddressBeforeLeave,
+    };
+
+  // Helper to wrap navigation actions with leave guard check
+  const guardedAction = async (action: () => void) => {
+    const guard = leaveGuards[context.route];
+
+    // If no guard exists for current page, proceed with action
+    if (!guard) {
+      return action();
+    }
+
+    // Otherwise, all the guard and check if navigation is allowed
+    try {
+      const canProceed = await guard();
+      if (canProceed) {
+        action();
+      }
+    } catch (error) {
+      console.error("Error in leave guard:", error);
+      action();
+    }
   };
 
   function hide() {
@@ -563,9 +592,9 @@ export const DaimoPayModal: React.FC<{
         open={context.open}
         pages={pages}
         pageId={context.route}
-        onClose={closeable ? hide : undefined}
+        onClose={closeable ? () => guardedAction(hide) : undefined}
         onInfo={undefined}
-        onBack={showBackButton ? onBack : undefined}
+        onBack={showBackButton ? () => guardedAction(onBack) : undefined}
       />
     </DaimoPayThemeProvider>
   );

@@ -83,7 +83,7 @@ export const DaimoPayModal: React.FC<{
     setSelectedDepositAddressOption,
     setSelectedWallet,
   } = paymentState;
-  const { paymentState: paymentFsmState } = useDaimoPay();
+  const { paymentState: paymentFsmState, order } = useDaimoPay();
 
   const {
     isConnected: isEthConnected,
@@ -211,9 +211,11 @@ export const DaimoPayModal: React.FC<{
   };
 
   // Registry of page-level leave guards (hooks that run before navigation)
+  // For WAITING_DEPOSIT_ADDRESS, we need to pass trpc and orderId
   const leaveGuards: Partial<Record<ROUTES, () => Promise<boolean> | boolean>> =
     {
-      [ROUTES.WAITING_DEPOSIT_ADDRESS]: waitingDepositAddressBeforeLeave,
+      [ROUTES.WAITING_DEPOSIT_ADDRESS]: () =>
+        waitingDepositAddressBeforeLeave(context.trpc, order?.id?.toString()),
     };
 
   // Helper to wrap navigation actions with leave guard check

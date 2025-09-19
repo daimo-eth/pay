@@ -59,7 +59,7 @@ type Underpayment = {
 
 export default function WaitingDepositAddress() {
   const context = usePayContext();
-  const { triggerResize, paymentState } = context;
+  const { triggerResize, paymentState, trpc } = context;
   const { payWithDepositAddress, selectedDepositAddressOption } = paymentState;
   const { order } = useDaimoPay();
 
@@ -659,3 +659,26 @@ const CopyIconWrap = styled.div`
   --color: var(--ck-copytoclipboard-stroke);
   --bg: var(--ck-body-background);
 `;
+
+// Leave guard that cancels the Untron order if user confirms
+export async function beforeLeave(
+  trpc: any,
+  orderId?: string,
+): Promise<boolean> {
+  const userConfirmed = window.confirm(
+    "Are you sure you want to leave? Your deposit address session will be cancelled.",
+  );
+
+  if (userConfirmed && orderId && trpc) {
+    // Fire-and-forget: don’t block navigation while we cancel server-side
+    console.log(`Cancelling deposit address for order ${orderId}`);
+    trpc.cancelDepositAddressForOrder
+      .mutate({ orderId })
+      .catch((error: unknown) => {
+        console.error("Failed to cancel deposit address:", error);
+        // Intentionally ignore errors – we already allowed navigation
+      });
+  }
+
+  return userConfirmed;
+}

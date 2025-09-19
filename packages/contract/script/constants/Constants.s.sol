@@ -56,38 +56,6 @@ uint256 constant MODE_TESTNET = 919;
 uint256 constant OP_TESTNET = 11155420;
 uint256 constant POLYGON_TESTNET = 80002; // Polygon Amoy
 
-// ----------------- CCTP Domains ----------------- //
-uint32 constant ETH_DOMAIN = 0;
-uint32 constant AVAX_DOMAIN = 1;
-uint32 constant OP_DOMAIN = 2;
-uint32 constant ARBITRUM_DOMAIN = 3;
-uint32 constant BASE_DOMAIN = 6;
-uint32 constant POLYGON_DOMAIN = 7;
-uint32 constant LINEA_DOMAIN = 11;
-uint32 constant WORLDCHAIN_DOMAIN = 14;
-
-function _getCCTPDomain(uint256 chainId) pure returns (uint32) {
-    // Mainnets
-    if (chainId == ETH_MAINNET) return ETH_DOMAIN;
-    if (chainId == AVAX_MAINNET) return AVAX_DOMAIN;
-    if (chainId == OP_MAINNET) return OP_DOMAIN;
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_DOMAIN;
-    if (chainId == BASE_MAINNET) return BASE_DOMAIN;
-    if (chainId == POLYGON_MAINNET) return POLYGON_DOMAIN;
-    if (chainId == LINEA_MAINNET) return LINEA_DOMAIN;
-    if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_DOMAIN;
-
-    // Testnets
-    if (chainId == ETH_TESTNET) return ETH_DOMAIN;
-    if (chainId == AVAX_TESTNET) return AVAX_DOMAIN;
-    if (chainId == OP_TESTNET) return OP_DOMAIN;
-    if (chainId == ARBITRUM_TESTNET) return ARBITRUM_DOMAIN;
-    if (chainId == BASE_TESTNET) return BASE_DOMAIN;
-    if (chainId == POLYGON_TESTNET) return POLYGON_DOMAIN;
-
-    revert("Unsupported chainId for CCTP domain");
-}
-
 // ----------------- Token Addresses ----------------- //
 
 // USDC addresses
@@ -152,242 +120,6 @@ address constant MANTLE_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f40
 address constant OP_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f405215;
 address constant POLYGON_MAINNET_AXLUSDC = 0x750e4C4984a9e0f12978eA6742Bc1c5D248f40ed;
 
-// USDB
-address constant BLAST_MAINNET_USDB = 0x4300000000000000000000000000000000000003;
-
-// USDzC
-address constant ZORA_MAINNET_USDzC = 0xCccCCccc7021b32EBb4e8C08314bD62F7c653EC4;
-
-// WETH and wrapped native tokens
-address constant ARBITRUM_MAINNET_WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-address constant ARBITRUM_TESTNET_WETH = 0x980B62Da83eFf3D4576C647993b0c1D7faf17c73;
-address constant AVAX_WETH = 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
-address constant BLAST_MAINNET_WETH = 0x4300000000000000000000000000000000000004;
-address constant ETH_MAINNET_WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-address constant ETH_TESTNET_WETH = 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9;
-address constant LINEA_WETH = 0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f;
-address constant OP_STACK_WETH = 0x4200000000000000000000000000000000000006;
-address constant POLYGON_WETH = 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
-
-address constant AVAX_WAVAX = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
-address constant BSC_MAINNET_WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-address constant MANTLE_MAINNET_WMNT = 0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8;
-address constant POLYGON_WMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
-
-// ----------------- Flex Swapper ----------------- //
-
-// Ethereum Mainnet Flex Swapper Constants
-address constant ETH_MAINNET_UNISWAP_ROUTER = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-address constant ETH_MAINNET_UNISWAP_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-
-// Ethereum Sepolia Flex Swapper Constants
-address constant ETH_TESTNET_UNISWAP_ROUTER = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
-address constant ETH_TESTNET_UNISWAP_FACTORY = 0x0227628f3F023bb0B980b67D528571c95c6DaC1c;
-
-// Base Flex Swapper Constants
-address constant BASE_MAINNET_UNISWAP_ROUTER = 0x2626664c2603336E57B271c5C0b26F421741e481;
-address constant BASE_MAINNET_UNISWAP_FACTORY = 0x33128a8fC17869897dcE68Ed026d694621f6FDfD;
-
-// Base Sepolia Flex Swapper Constants
-address constant BASE_TESTNET_UNISWAP_ROUTER = 0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4;
-address constant BASE_TESTNET_UNISWAP_FACTORY = 0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24;
-
-// Op Mainnet Flex Swapper Constants
-address constant OP_MAINNET_UNISWAP_ROUTER = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-address constant OP_MAINNET_UNISWAP_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-
-// Op Sepolia Flex Swapper Constants
-address constant OP_TESTNET_UNISWAP_ROUTER = 0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4;
-address constant OP_TESTNET_UNISWAP_FACTORY = 0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24;
-
-// Arbitrum Mainnet Flex Swapper Constants
-address constant ARBITRUM_MAINNET_UNISWAP_ROUTER = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-address constant ARBITRUM_MAINNET_UNISWAP_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-
-// Arbitrum Sepolia Flex Swapper Constants
-address constant ARBITRUM_TESTNET_UNISWAP_ROUTER = 0x101F443B4d1b059569D643917553c771E1b9663E;
-address constant ARBITRUM_TESTNET_UNISWAP_FACTORY = 0x248AB79Bbb9bC29bB72f7Cd42F17e054Fc40188e;
-
-// Polygon Mainnet Flex Swapper Constants
-address constant POLYGON_MAINNET_UNISWAP_ROUTER = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-address constant POLYGON_MAINNET_UNISWAP_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-
-// Polygon Amoy Flex Swapper Constants
-address constant POLYGON_TESTNET_UNISWAP_ROUTER = address(0); // Not deployed on Amoy
-address constant POLYGON_TESTNET_UNISWAP_FACTORY = address(0); // Not deployed on Amoy
-
-// Avax C-Chain Flex Swapper Constants
-address constant AVAX_MAINNET_UNISWAP_ROUTER = 0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE;
-address constant AVAX_MAINNET_UNISWAP_FACTORY = 0x740b1c1de25031C31FF4fC9A62f554A55cdC1baD;
-
-// Avax Sepolia Flex Swapper Constants
-address constant AVAX_TESTNET_UNISWAP_ROUTER = address(0); // Not deployed
-address constant AVAX_TESTNET_UNISWAP_FACTORY = address(0); // Not deployed
-
-address constant LINEA_MAINNET_UNISWAP_ROUTER = 0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a;
-address constant LINEA_MAINNET_UNISWAP_FACTORY = 0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9;
-
-address constant BSC_MAINNET_UNISWAP_ROUTER = 0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2;
-address constant BSC_MAINNET_UNISWAP_FACTORY = 0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7;
-
-function _getUSDCAddress(uint256 chainId) pure returns (address) {
-    // Mainnets
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_USDC;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_USDC;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_USDC;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_USDC;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_USDC;
-    if (chainId == OP_MAINNET) return OP_MAINNET_USDC;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_USDC;
-    if (chainId == SCROLL_MAINNET) return SCROLL_MAINNET_USDC;
-    if (chainId == WORLDCHAIN_MAINNET) return WORLDCHAIN_MAINNET_USDC;
-    if (chainId == CELO_MAINNET) return CELO_MAINNET_USDC;
-
-    // Testnets
-    if (chainId == ARBITRUM_TESTNET) return ARBITRUM_TESTNET_USDC;
-    if (chainId == AVAX_TESTNET) return AVAX_TESTNET_USDC;
-    if (chainId == BASE_TESTNET) return BASE_TESTNET_USDC;
-    if (chainId == ETH_TESTNET) return ETH_TESTNET_USDC;
-    if (chainId == OP_TESTNET) return OP_TESTNET_USDC;
-    if (chainId == POLYGON_TESTNET) return POLYGON_TESTNET_USDC;
-
-    return address(0);
-}
-
-function _getUniswapFactoryAddress(uint256 chainId) pure returns (address) {
-    // Mainnets
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_UNISWAP_FACTORY;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_UNISWAP_FACTORY;
-    if (chainId == OP_MAINNET) return OP_MAINNET_UNISWAP_FACTORY;
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_UNISWAP_FACTORY;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_UNISWAP_FACTORY;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_UNISWAP_FACTORY;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_UNISWAP_FACTORY;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_UNISWAP_FACTORY;
-    // Testnets
-    if (chainId == ETH_TESTNET) return ETH_TESTNET_UNISWAP_FACTORY;
-    if (chainId == BASE_TESTNET) return BASE_TESTNET_UNISWAP_FACTORY;
-    if (chainId == OP_TESTNET) return OP_TESTNET_UNISWAP_FACTORY;
-    if (chainId == ARBITRUM_TESTNET) return ARBITRUM_TESTNET_UNISWAP_FACTORY;
-    if (chainId == POLYGON_TESTNET) return POLYGON_TESTNET_UNISWAP_FACTORY;
-    if (chainId == AVAX_TESTNET) return AVAX_TESTNET_UNISWAP_FACTORY;
-
-    return address(0);
-}
-
-function _getWETH(uint256 chainId) pure returns (address) {
-    // Mainnets
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_WETH;
-    if (chainId == AVAX_MAINNET) return AVAX_WETH;
-    if (chainId == BASE_MAINNET) return OP_STACK_WETH;
-    if (chainId == BLAST_MAINNET) return BLAST_MAINNET_WETH;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_WETH;
-    if (chainId == OP_MAINNET) return OP_STACK_WETH;
-    if (chainId == POLYGON_MAINNET) return POLYGON_WETH;
-    if (chainId == LINEA_MAINNET) return LINEA_WETH;
-    if (chainId == WORLDCHAIN_MAINNET) return OP_STACK_WETH;
-
-    // Testnets
-    if (chainId == ARBITRUM_TESTNET) return ARBITRUM_TESTNET_WETH;
-    if (chainId == AVAX_TESTNET) return AVAX_WETH;
-    if (chainId == BASE_TESTNET) return OP_STACK_WETH;
-    if (chainId == ETH_TESTNET) return ETH_TESTNET_WETH;
-    if (chainId == OP_TESTNET) return OP_STACK_WETH;
-    if (chainId == POLYGON_TESTNET) return POLYGON_WETH;
-
-    return address(0);
-}
-
-function _getWrappedNativeToken(uint256 chainId) pure returns (address) {
-    if (chainId == AVAX_MAINNET) return AVAX_WAVAX;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_WBNB;
-    if (chainId == POLYGON_MAINNET) return POLYGON_WMATIC;
-
-    if (chainId == AVAX_TESTNET) return AVAX_WAVAX;
-    if (chainId == POLYGON_TESTNET) return POLYGON_WMATIC;
-
-    return _getWETH(chainId);
-}
-
-// Note: There is no swapping liquidity on testnets so no need for
-// stablecoin options.
-function _getDAIAddress(uint256 chainId) pure returns (address) {
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_DAI;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_DAI;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_DAI;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_DAI;
-    if (chainId == OP_MAINNET) return OP_MAINNET_DAI;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_DAI;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_DAI;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_DAI;
-
-    if (_isTestnet(chainId)) return address(0);
-
-    return address(0);
-}
-
-function _getUSDTAddress(uint256 chainId) pure returns (address) {
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_USDT;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_USDT;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_USDT;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_USDT;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_USDT;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_USDT;
-    if (chainId == LISK_MAINNET) return LISK_MAINNET_USDT;
-    if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_USDT;
-    if (chainId == OP_MAINNET) return OP_MAINNET_USDT;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_USDT;
-
-    if (_isTestnet(chainId)) return address(0);
-
-    return address(0);
-}
-
-function _getBridgedUSDCAddress(uint256 chainId) pure returns (address) {
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_BRIDGED_USDC;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_BRIDGED_USDC;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_BRIDGED_USDC;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_BRIDGED_USDC;
-    if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_BRIDGED_USDC;
-    if (chainId == MODE_MAINNET) return MODE_MAINNET_BRIDGED_USDC;
-    if (chainId == OP_MAINNET) return OP_MAINNET_BRIDGED_USDC;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_BRIDGED_USDC;
-
-    return address(0);
-}
-
-function _getAxlUsdcAddress(uint256 chainId) pure returns (address) {
-    if (chainId == ARBITRUM_MAINNET) return ARBITRUM_MAINNET_AXLUSDC;
-    if (chainId == AVAX_MAINNET) return AVAX_MAINNET_AXLUSDC;
-    if (chainId == BASE_MAINNET) return BASE_MAINNET_AXLUSDC;
-    if (chainId == BSC_MAINNET) return BSC_MAINNET_AXLUSDC;
-    if (chainId == ETH_MAINNET) return ETH_MAINNET_AXLUSDC;
-    if (chainId == LINEA_MAINNET) return LINEA_MAINNET_AXLUSDC;
-    if (chainId == MANTLE_MAINNET) return MANTLE_MAINNET_AXLUSDC;
-    if (chainId == OP_MAINNET) return OP_MAINNET_AXLUSDC;
-    if (chainId == POLYGON_MAINNET) return POLYGON_MAINNET_AXLUSDC;
-
-    return address(0);
-}
-
-// Chainlink DataFeed aggregator addresses (tokenIn --> USD)
-address constant ETH_MAINNET_AAVE_USD_AGGREGATOR = 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9;
-
-address constant BASE_MAINNET_AAVE_USD_AGGREGATOR = 0x72484B12719E23115761D5DA1646945632979bB6;
-address constant BASE_MAINNET_DOGE_USD_AGGREGATOR = 0xbaf9327b6564454F4a3364C33eFeEf032b4b4444;
-address constant BASE_MAINNET_ETH_USD_AGGREGATOR = 0xF9680D99D6C9589e2a93a78A04A279e509205945;
-address constant BASE_MAINNET_MKR_USD_AGGREGATOR = 0xa070427bF5bA5709f70e98b94Cb2F435a242C46C;
-address constant BASE_MAINNET_MATIC_USD_AGGREGATOR = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0;
-address constant BASE_MAINNET_UNI_USD_AGGREGATOR = 0xdf0Fb4e4F928d2dCB76f438575fDD8682386e13C;
-address constant BASE_MAINNET_WBTC_USD_AGGREGATOR = 0xDE31F8bFBD8c84b5360CFACCa3539B938dd78ae6;
-
-address constant AVAX_MAINNET_AAVE_USD_AGGREGATOR = 0x3CA13391E9fb38a75330fb28f8cc2eB3D9ceceED;
-address constant AVAX_MAINNET_AVAX_USD_AGGREGATOR = 0x0A77230d17318075983913bC2145DB16C7366156;
-address constant AVAX_MAINNET_DOT_USD_AGGREGATOR = 0xD73a74314AcCb53b30cAfDA0cb61c9772B57C4a2;
-address constant AVAX_MAINNET_MATIC_USD_AGGREGATOR = 0x1db18D41E4AD2403d9f52b5624031a2D9932Fd73;
-address constant AVAX_MAINNET_MKR_USD_AGGREGATOR = 0x3E54eB0475051401D093702A5DB84EFa1Ab77b14;
-address constant AVAX_MAINNET_UNI_USD_AGGREGATOR = 0x9a1372f9b1B71B3A5a72E092AE67E172dBd7Daaa;
-
 // Check whether the chain is a testnet.
 function _isTestnet(uint256 chainId) pure returns (bool) {
     return
@@ -399,20 +131,44 @@ function _isTestnet(uint256 chainId) pure returns (bool) {
         chainId == POLYGON_TESTNET;
 }
 
-// Check whether the chain is a CCTP chain
-function _isCCTP(uint256 chainId) pure returns (bool) {
-    return
-        chainId == ETH_MAINNET ||
-        chainId == AVAX_MAINNET ||
-        chainId == OP_MAINNET ||
-        chainId == ARBITRUM_MAINNET ||
-        chainId == BASE_MAINNET ||
-        chainId == POLYGON_MAINNET;
-}
+// ----------------- Hop ----------------- //
 
-// Check whether the chain is L1.
-function _isL1(uint256 chainId) pure returns (bool) {
-    return chainId == ETH_MAINNET;
+function getUSDCDecimals(address token) pure returns (uint256) {
+    // Special case:
+    if (token == BSC_MAINNET_BRIDGED_USDC) return 18;
+
+    if (token == ARBITRUM_MAINNET_USDC) return 6;
+    if (token == AVAX_MAINNET_USDC) return 6;
+    if (token == BASE_MAINNET_USDC) return 6;
+    if (token == ETH_MAINNET_USDC) return 6;
+    if (token == LINEA_MAINNET_USDC) return 6;
+    if (token == OP_MAINNET_USDC) return 6;
+    if (token == POLYGON_MAINNET_USDC) return 6;
+    if (token == SCROLL_MAINNET_USDC) return 6;
+    if (token == WORLDCHAIN_MAINNET_USDC) return 6;
+    if (token == CELO_MAINNET_USDC) return 6;
+
+    // USDC.e or USDbC (bridged USDC) addresses
+    if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;
+    if (token == AVAX_MAINNET_BRIDGED_USDC) return 6;
+    if (token == BASE_MAINNET_BRIDGED_USDC) return 6;
+    if (token == MANTLE_MAINNET_BRIDGED_USDC) return 6;
+    if (token == MODE_MAINNET_BRIDGED_USDC) return 6;
+    if (token == OP_MAINNET_BRIDGED_USDC) return 6;
+    if (token == POLYGON_MAINNET_BRIDGED_USDC) return 6;
+
+    // axlUSDC (Axelar wrapped USDC) addresses
+    if (token == ARBITRUM_MAINNET_AXLUSDC) return 6;
+    if (token == AVAX_MAINNET_AXLUSDC) return 6;
+    if (token == BASE_MAINNET_AXLUSDC) return 6;
+    if (token == BSC_MAINNET_AXLUSDC) return 6;
+    if (token == ETH_MAINNET_AXLUSDC) return 6;
+    if (token == LINEA_MAINNET_AXLUSDC) return 6;
+    if (token == MANTLE_MAINNET_AXLUSDC) return 6;
+    if (token == OP_MAINNET_AXLUSDC) return 6;
+    if (token == POLYGON_MAINNET_AXLUSDC) return 6;
+
+    revert("Unsupported token for getUSDCDecimals");
 }
 
 // ----------------- CCTP V1 ----------------- //

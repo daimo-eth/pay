@@ -234,8 +234,6 @@ export type DaimoPayHydratedOrder = {
   extSourceId: string | null;
   /** Chain ID for hop transactions */
   hopChainId: number | null;
-  /** Token for hop transactions */
-  hopToken: Address | null;
   /** Transaction hash for hop start */
   hopStartTxHash: Hex | null;
 };

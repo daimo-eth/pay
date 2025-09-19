@@ -28,12 +28,13 @@ contract DaimoPayHopBridger is IDaimoPayBridger {
     /// For each final dest chain, we require a specific stablecoin to be on the
     /// bridgeTokenOutOptions list. We convert that amount to the correct hop-
     /// coin amount at 1:1, accounting for decimals.
-    mapping(uint256 chainId => ChainCoin chainCoin) public finalChainCoins;
+    mapping(uint256 chainId => FinalChainCoin chainCoin) public finalChainCoins;
 
-    struct ChainCoin {
-        uint256 chainId;
-        address addr;
-        uint256 decimals;
+    /// Stablecoin required on the final chain.
+    struct FinalChainCoin {
+        uint256 finalChainId;
+        address coinAddr;
+        uint256 coinDecimals;
     }
 
     constructor(
@@ -41,14 +42,16 @@ contract DaimoPayHopBridger is IDaimoPayBridger {
         address _hopCoinAddr,
         uint256 _hopCoinDecimals,
         IDaimoPayBridger _hopBridger,
-        ChainCoin[] memory _finalChainCoins
+        FinalChainCoin[] memory _finalChainCoins
     ) {
         hopChainId = _hopChainId;
         hopCoinAddr = _hopCoinAddr;
         hopCoinDecimals = _hopCoinDecimals;
         hopBridger = _hopBridger;
         for (uint256 i = 0; i < _finalChainCoins.length; i++) {
-            finalChainCoins[_finalChainCoins[i].chainId] = _finalChainCoins[i];
+            finalChainCoins[
+                _finalChainCoins[i].finalChainId
+            ] = _finalChainCoins[i];
         }
     }
 
@@ -133,13 +136,16 @@ contract DaimoPayHopBridger is IDaimoPayBridger {
         uint256 toChainId,
         TokenAmount[] calldata tokenOpts
     ) internal view returns (TokenAmount[] memory) {
-        ChainCoin memory finalCoin = finalChainCoins[toChainId];
-        require(finalCoin.addr != address(0), "DPHB: unsupported dest chain");
+        FinalChainCoin memory finalCoin = finalChainCoins[toChainId];
+        require(
+            finalCoin.coinAddr != address(0),
+            "DPHB: unsupported dest chain"
+        );
 
         uint256 finalAmount = 0;
         uint256 n = tokenOpts.length;
         for (uint256 i = 0; i < n; ++i) {
-            if (address(tokenOpts[i].token) == finalCoin.addr) {
+            if (address(tokenOpts[i].token) == finalCoin.coinAddr) {
                 finalAmount = tokenOpts[i].amount;
                 break;
             }
@@ -148,7 +154,7 @@ contract DaimoPayHopBridger is IDaimoPayBridger {
 
         uint256 convertedAmount = _convertStableAmount({
             amount: finalAmount,
-            fromDecimals: finalCoin.decimals,
+            fromDecimals: finalCoin.coinDecimals,
             toDecimals: hopCoinDecimals
         });
 

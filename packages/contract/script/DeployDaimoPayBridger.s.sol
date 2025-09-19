@@ -17,7 +17,7 @@ import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
 import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 import {DEPLOY_SALT_HOP_BRIDGER} from "./DeployDaimoPayHopBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy12");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy13");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {

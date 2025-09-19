@@ -17,7 +17,7 @@ contract DaimoPayHopBridgerHarness is DaimoPayHopBridger {
         address hopCoinAddr,
         uint256 hopCoinDecimals,
         IDaimoPayBridger hopBridger,
-        ChainCoin[] memory finalChainCoins
+        FinalChainCoin[] memory finalChainCoins
     )
         DaimoPayHopBridger(
             hopChainId,
@@ -50,12 +50,12 @@ contract DaimoPayHopBridgerTest is Test {
         usdc6 = new TestUSDC();
         usdc2 = new TestToken2Decimals();
 
-        DaimoPayHopBridger.ChainCoin[]
-            memory coins = new DaimoPayHopBridger.ChainCoin[](1);
-        coins[0] = DaimoPayHopBridger.ChainCoin({
-            chainId: DST_CHAIN,
-            addr: address(usdc6),
-            decimals: 6
+        DaimoPayHopBridger.FinalChainCoin[]
+            memory coins = new DaimoPayHopBridger.FinalChainCoin[](1);
+        coins[0] = DaimoPayHopBridger.FinalChainCoin({
+            finalChainId: DST_CHAIN,
+            coinAddr: address(usdc6),
+            coinDecimals: 6
         });
 
         hb = new DaimoPayHopBridgerHarness({
@@ -85,5 +85,33 @@ contract DaimoPayHopBridgerTest is Test {
 
         TokenAmount[] memory hopOpts = hb.expose_getHopAsset(DST_CHAIN, opts);
         assertEq(hopOpts[0].amount, 1);
+    }
+
+    function test_getHopAsset_lowToHighDecimals() public {
+        // Setup a new bridger where final coin has 2 decimals and hop coin has 6 decimals
+        DaimoPayHopBridger.FinalChainCoin[]
+            memory coins = new DaimoPayHopBridger.FinalChainCoin[](1);
+        coins[0] = DaimoPayHopBridger.FinalChainCoin({
+            finalChainId: DST_CHAIN,
+            coinAddr: address(usdc2),
+            coinDecimals: 2
+        });
+
+        DaimoPayHopBridgerHarness hb2 = new DaimoPayHopBridgerHarness({
+            hopChainId: HOP_CHAIN,
+            hopCoinAddr: address(usdc6),
+            hopCoinDecimals: 6,
+            hopBridger: IDaimoPayBridger(address(hop)),
+            finalChainCoins: coins
+        });
+
+        // 10 units of 2-dec token -> to 6-dec should multiply by 10^(6-2) = 10,000 => 100,000
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({token: IERC20(address(usdc2)), amount: 10});
+
+        TokenAmount[] memory hopOpts = hb2.expose_getHopAsset(DST_CHAIN, opts);
+        assertEq(hopOpts.length, 1);
+        assertEq(address(hopOpts[0].token), address(usdc6));
+        assertEq(hopOpts[0].amount, 100_000);
     }
 }

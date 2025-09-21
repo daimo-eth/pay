@@ -3,7 +3,6 @@ import {
   DepositAddressPaymentOptions,
   polygon,
   RozoPayOrderMode,
-  stellar,
 } from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 import { chainToLogo } from "../assets/chains";
@@ -73,11 +72,11 @@ export function useDepositAddressOptions({
             logoURI: chainToLogo[polygon.chainId],
             minimumUsd: 0,
           },
-          {
-            id: DepositAddressPaymentOptions.STELLAR,
-            logoURI: chainToLogo[stellar.chainId],
-            minimumUsd: 0,
-          },
+          // {
+          //   id: DepositAddressPaymentOptions.STELLAR,
+          //   logoURI: chainToLogo[stellar.chainId],
+          //   minimumUsd: 0,
+          // },
           // {
           //   id: "Ethereum",
           //   logoURI: "https://pay.daimo.com/chain-logos/ethereum.svg",

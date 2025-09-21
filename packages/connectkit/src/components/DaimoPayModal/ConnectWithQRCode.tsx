@@ -40,8 +40,10 @@ const ConnectWithQRCode: React.FC<{}> = () => {
   const downloads = wallet?.downloadUrls;
   const hasApps = downloads && Object.keys(downloads).length !== 0;
   const showAdditionalOptions = false;
-  const payId = pay.order ? writeRozoPayOrderID(pay.order.id) : "";
-
+  const payId =
+    pay.order && /^\d+$/.test(String(pay.order.id))
+      ? writeRozoPayOrderID(BigInt(pay.order.id))
+      : String(pay.order?.id || "");
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
   const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
   const url = `https://invoice.rozo.ai/checkout?id=${payId}&mode=${mode}`;

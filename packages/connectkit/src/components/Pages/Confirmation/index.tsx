@@ -53,6 +53,22 @@ const Confirmation: React.FC = () => {
     undefined
   );
 
+  const isMugglePay = useMemo(() => {
+    return paymentStateContext?.payParams?.appId.includes("MP");
+  }, [paymentStateContext]);
+
+  const showProcessingPayout = useMemo(() => {
+    const { payParams, selectedTokenOption } = paymentStateContext;
+
+    if (payParams && selectedTokenOption) {
+      return (
+        payParams.showProcessingPayout &&
+        // Hide Processing Payout appId contains "MP" (MugglePay)
+        !isMugglePay
+      );
+    }
+  }, [paymentStateContext, isMugglePay]);
+
   const rozoPaymentId = useMemo(() => {
     return order?.externalId || paymentStateContext.rozoPaymentId;
   }, [order, paymentStateContext]);
@@ -139,7 +155,7 @@ const Confirmation: React.FC = () => {
   }, [paymentStateContext]);
 
   useEffect(() => {
-    if (txURL && order && done && rozoPaymentId) {
+    if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
       triggerResize();
       console.log(
         "[CONFIRMATION] Starting payout polling for order:",
@@ -185,12 +201,12 @@ const Confirmation: React.FC = () => {
 
           // Schedule next poll
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 5000);
+            timeoutId = setTimeout(pollPayout, 7000);
           }
         } catch (error) {
           console.error("[CONFIRMATION] Payout polling error:", error);
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 5000);
+            timeoutId = setTimeout(pollPayout, 7000);
           }
         }
       };
@@ -205,7 +221,7 @@ const Confirmation: React.FC = () => {
         }
       };
     }
-  }, [txURL, order, done, rozoPaymentId]);
+  }, [txURL, order, done, rozoPaymentId, showProcessingPayout]);
 
   useEffect(() => {
     if (done) {
@@ -263,7 +279,7 @@ const Confirmation: React.FC = () => {
               Payment Completed
             </ModalH1>
 
-            {txURL && (
+            {showProcessingPayout && txURL && (
               <ListContainer>
                 <ListItem>
                   <ModalBody>Transfer Hash</ModalBody>
@@ -315,7 +331,7 @@ const Confirmation: React.FC = () => {
           </>
         )}
 
-        {done && generateReceiptUrl && (
+        {done && generateReceiptUrl && !isMugglePay && (
           <Button
             iconPosition="right"
             href={generateReceiptUrl}

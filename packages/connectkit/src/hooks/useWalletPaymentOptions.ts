@@ -1,11 +1,14 @@
 import {
   base,
   baseUSDC,
+  bsc,
+  bscUSDT,
   polygon,
   polygonUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { useEffect, useMemo, useState } from "react";
+import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
 
 /**
@@ -33,6 +36,7 @@ export function useWalletPaymentOptions({
   preferredTokens,
   evmChains,
   isDepositFlow,
+  payParams,
   log,
 }: {
   trpc: TrpcClient;
@@ -43,6 +47,7 @@ export function useWalletPaymentOptions({
   preferredTokens: { chain: number; address: string }[] | undefined;
   evmChains: number[] | undefined;
   isDepositFlow: boolean;
+  payParams: PayParams | undefined;
   log: (msg: string) => void;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
@@ -101,19 +106,24 @@ export function useWalletPaymentOptions({
 
         // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
         // To add more chains, add them to both arrays below and ensure they're defined in pay-common
-        const suppChains = [base, polygon];
+        const supportedChains = [base, polygon];
 
         // SUPPORTED TOKENS: Only these specific tokens are currently active
         // Each token corresponds to its respective chain above
-        const supportedTokens = [
-          baseUSDC.token, // Base USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-          polygonUSDC.token, // Polygon USDC: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
-        ];
+        const supportedTokens = [baseUSDC.token, polygonUSDC.token];
+
+        // Show BNB Options Pay In when appId contains "MP" (MugglePay)
+        if (payParams && payParams.appId.includes("MP")) {
+          supportedChains.push(bsc);
+          supportedTokens.push(bscUSDT.token);
+        }
+
+        console.log({ supportedChains, supportedTokens });
 
         // Filter out chains/tokens we don't support yet in wallet payment options
         // API may return more options, but we only show these filtered ones to users
         const isSupported = (o: WalletPaymentOption) =>
-          suppChains.some(
+          supportedChains.some(
             (c) =>
               c.chainId === o.balance.token.chainId &&
               supportedTokens.includes(o.balance.token.token)

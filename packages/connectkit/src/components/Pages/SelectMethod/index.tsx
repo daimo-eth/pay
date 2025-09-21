@@ -372,7 +372,7 @@ function getDepositAddressOption(
       <Base key="base" />,
       // <Solana key="base" />,
       <Polygon key="polygon" />,
-      <Stellar key="stellar" />,
+      // <Stellar key="stellar" />,
       // <Arbitrum key="arbitrum" />,
       // <Optimism key="optimism" />,
     ],

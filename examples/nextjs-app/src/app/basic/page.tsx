@@ -208,6 +208,7 @@ export default function DemoBasic() {
               onPaymentCompleted={printEvent}
               resetOnSuccess={true}
               metadata={metadata}
+              showProcessingPayout
             />
             <button
               onClick={() => setIsConfigOpen(true)}

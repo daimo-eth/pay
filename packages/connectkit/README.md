@@ -1,7 +1,6 @@
 # Intent Pay
 
 Rozo Intent Pay enables seamless crypto payments for your app.
-
 Onboard users from any chain, any coin into your app with one click and maximize your conversion.
 
 ## Features
@@ -29,10 +28,11 @@ Onboard users from any chain, any coin into your app with one click and maximize
 
 **Currently Active in Wallet Payment Options:**
 
-- Base (Chain ID: 8453) - Primary EVM chain
-- Polygon (Chain ID: 137) - Secondary EVM chain
-- Rozo Solana - Solana integration
-- Rozo Stellar - Stellar integration
+- Base
+- Polygon
+- BSC
+- Solana
+- Stellar
 
 **Full Supported Chain Network:**
 
@@ -43,10 +43,11 @@ Onboard users from any chain, any coin into your app with one click and maximize
 
 **Currently Active in Wallet Payment Options:**
 
-- Base USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
-- Polygon USDC (0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174)
+- Base USDC
+- Polygon USDC
+- BSC USDT
 - Solana USDC
-- Stellar USDC/XLM
+- Stellar USDC
 
 **Full Token Support Per Chain:**
 

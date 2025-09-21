@@ -15,12 +15,12 @@ export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   }
 }
 
-function getRozoPayUrl(payId: string) {
-  return rozoPayHost + "/checkout?id=" + payId;
+function getRozoPayUrl(payId: string, appId?: string) {
+  return `${rozoPayHost}/checkout?id=${payId}${appId ? `&appId=${appId}` : ""}`;
 }
 
-function getEncodedRozoPayUrl(payId: string) {
-  let url = getRozoPayUrl(payId);
+function getEncodedRozoPayUrl(payId: string, appId?: string) {
+  let url = getRozoPayUrl(payId, appId);
   let encodedUrl = encodeURIComponent(url);
   return encodedUrl;
 }
@@ -61,7 +61,7 @@ export type WalletConfigProps = {
   };
   deeplinkScheme?: string;
   // For Rozo Pay deeplinks
-  getRozoPayDeeplink?: (payId: string, ref?: string) => string;
+  getRozoPayDeeplink?: (payId: string, ref?: string, appId?: string) => string;
   // To sort mobile wallets to show in the connector list
   showInMobileConnectors?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
@@ -89,8 +89,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "cbwallet://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + getEncodedRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "cbwallet://dapp?url=" + getEncodedRozoPayUrl(payId, appId);
     },
   },
   // baseAccount: {
@@ -118,8 +118,8 @@ export const walletConfigs: {
     icon: <Logos.Backpack />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getRozoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getRozoPayUrl(payId));
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId, appId));
       return `https://backpack.app/ul/v1/browse/${url}`;
     },
   },
@@ -129,8 +129,10 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "bitkeep://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "bitkeep://bkconnect?action=dapp&url=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return (
+        "bitkeep://bkconnect?action=dapp&url=" + getRozoPayUrl(payId, appId)
+      );
     },
   },
   "co.family.wallet": {
@@ -144,8 +146,8 @@ export const walletConfigs: {
       ios: "https://family.co/download",
     },
     deeplinkScheme: "familywallet://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "familywallet://browser?url=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "familywallet://browser?url=" + getRozoPayUrl(payId, appId);
     },
     showInMobileConnectors: true,
   },
@@ -169,8 +171,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "metamask://",
-    getRozoPayDeeplink: (payId: string) => {
-      const rozoPayUrl = getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      const rozoPayUrl = getRozoPayUrl(payId, appId);
       return (
         "https://metamask.app.link/dapp/" + rozoPayUrl.replace("https://", "")
       );
@@ -182,8 +184,8 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
-    getRozoPayDeeplink: (payId: string, ref?: string) => {
-      const url = encodeURIComponent(getRozoPayUrl(payId));
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId, appId));
       const urlRef = encodeURIComponent(ref || window.location.origin);
       return `https://phantom.app/ul/browse/${url}?ref=${urlRef}`;
     },
@@ -193,7 +195,7 @@ export const walletConfigs: {
     icon: <Logos.Farcaster />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getRozoPayDeeplink: (payId: string) => {
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
       return (
         "https://farcaster.xyz/miniapps/sGRsevnRvM9P/rozo-pay/?id=" + payId
       );
@@ -204,10 +206,10 @@ export const walletConfigs: {
     icon: <Logos.MiniPay />,
     iconShape: "squircle",
     showInMobileConnectors: true,
-    getRozoPayDeeplink: (payId: string) => {
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
       return (
         "https://cash.minipay.xyz/browse?url=" +
-        encodeURIComponent(getEncodedRozoPayUrl(payId))
+        encodeURIComponent(getEncodedRozoPayUrl(payId, appId))
       );
     },
   },
@@ -228,8 +230,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "rainbow://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "rainbow://dapp?url=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "rainbow://dapp?url=" + getRozoPayUrl(payId, appId);
     },
   },
   // "io.rabby": {
@@ -257,8 +259,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "trust://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "trust://open_url?coin_id=60&url=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "trust://open_url?coin_id=60&url=" + getRozoPayUrl(payId, appId);
     },
   },
   okx: {
@@ -266,8 +268,8 @@ export const walletConfigs: {
     icon: <Logos.OKX />,
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "okx://wallet/dapp/url?dappUrl=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "okx://wallet/dapp/url?dappUrl=" + getRozoPayUrl(payId, appId);
     },
   },
   solflare: {
@@ -275,10 +277,10 @@ export const walletConfigs: {
     icon: <Logos.Solflare />,
     showInMobileConnectors: true,
     deeplinkScheme: "solflare://",
-    getRozoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getRozoPayUrl(payId));
-      const ref = encodeURIComponent(window.location.origin);
-      return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      const url = encodeURIComponent(getRozoPayUrl(payId, appId));
+      const reff = encodeURIComponent(window.location.origin);
+      return `https://solflare.com/ul/v1/browse/${url}?ref=${reff}`;
     },
     isSolanaOnly: true,
   },
@@ -295,7 +297,7 @@ export const walletConfigs: {
   //   },
   //   showInMobileConnectors: true,
   //   deeplinkScheme: "ledgerlive://",
-  //   // getRozoPayDeeplink: (payId: string) => {
+  //   // getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
   //   //   return "ledgerlive://discover/" + rozoPayUrl + payId;
   //   // },
   //   // TODO: Add Rozo Pay to Ledger Live's Discover section https://developers.ledger.com/docs/ledger-live/discover/getting-started
@@ -313,8 +315,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "zerion://",
-    getRozoPayDeeplink: (payId: string) => {
-      return "zerion://browser?url=" + getRozoPayUrl(payId);
+    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+      return "zerion://browser?url=" + getRozoPayUrl(payId, appId);
     },
   },
 } as const;

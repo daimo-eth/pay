@@ -15,7 +15,7 @@ RozoAI Intent Pay SDK (@rozoai/intent-pay v0.0.22) is a cross-chain crypto payme
 
 ### Multi-Chain Support
 
-- **EVM Chains**: Mainnet, Base, Polygon, Optimism, Arbitrum, BSC, Linea, WorldChain, Mantle, Celo via Wagmi v2
+- **EVM Chains**: Base, Polygon, BSC via Wagmi v2
 - **Solana**: Via @solana/wallet-adapter-react with USDC support
 - **Stellar**: Via @stellar/stellar-sdk with XLM/USDC support
 

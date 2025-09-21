@@ -130,6 +130,8 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   confirmationMessage?: string;
   /** Redirect URL to return to the app. E.g. after Coinbase, Binance, RampNetwork. */
   redirectReturnUrl?: string;
+  /** Optional configuration to show processing pay out loading when payment completed */
+  showProcessingPayout?: boolean;
 };
 
 export type RozoPayButtonProps = PayButtonCommonProps & {
@@ -223,6 +225,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
         externalId,
         metadata,
         refundAddress,
+        showProcessingPayout,
       } = props;
 
       return {
@@ -243,6 +246,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
           externalId,
           metadata,
           refundAddress,
+          showProcessingPayout,
         } as PayParams,
         payId: null,
       };
@@ -273,6 +277,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
           props.intent,
           props.externalId,
           props.refundAddress,
+          props.showProcessingPayout,
           objectPropsKey, // Single dependency for all object/array props
         ]
       : []),

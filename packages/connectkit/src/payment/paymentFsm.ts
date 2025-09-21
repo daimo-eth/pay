@@ -52,6 +52,8 @@ export interface PayParams {
   metadata?: RozoPayUserMetadata;
   /** The address to refund to if the payment bounces or a refund is requested. */
   refundAddress?: Address;
+  /** Optional configuration to show processing pay out loading when payment completed */
+  showProcessingPayout?: boolean;
 }
 
 export type PaymentState =

@@ -2,6 +2,7 @@ import {
   assert,
   base,
   baseUSDC,
+  bscUSDT,
   getKnownToken,
   getOrderDestChainId,
   polygonUSDC,
@@ -428,6 +429,16 @@ async function runHydratePayParamsEffects(
         console.log("[runHydratePayParamsEffects] Pay In USDC Stellar");
         preferred.preferredChain = String(rozoStellarUSDC.chainId);
         preferred.preferredToken = "USDC";
+      }
+
+      // Pay In USDT BSC
+      if (
+        walletPaymentOption &&
+        walletPaymentOption.required.token.token === bscUSDT.token
+      ) {
+        console.log("[runHydratePayParamsEffects] Pay In USDT BSC");
+        preferred.preferredChain = String(bscUSDT.chainId);
+        preferred.preferredToken = "USDT";
       }
 
       // Pay Out USDC Stellar

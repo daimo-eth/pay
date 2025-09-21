@@ -9,7 +9,7 @@ import {
 } from "@rozoai/intent-common";
 import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import { useEffect, useState } from "react";
-import { getAddress, isAddress } from "viem";
+import { Address, getAddress, isAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
@@ -204,6 +204,7 @@ import { ${tokenVarName}} from "@rozoai/intent-common";
                 printEvent(e);
                 setTxHash(e.txHash);
               }}
+              showProcessingPayout
             />
             {txHash && (
               <TextLink

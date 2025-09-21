@@ -271,6 +271,7 @@ export function usePaymentState({
     preferredTokens: pay.order?.metadata.payer?.preferredTokens,
     evmChains: pay.order?.metadata.payer?.evmChains,
     isDepositFlow,
+    payParams: currPayParams,
     log,
   });
   const solanaPaymentOptions = useSolanaPaymentOptions({
@@ -876,7 +877,8 @@ export function usePaymentState({
 
     const deeplink = wallet.getRozoPayDeeplink(
       pay.order.externalId ?? pay.rozoPaymentId ?? payId,
-      ref
+      ref,
+      currPayParams?.appId
     );
 
     // If we are in IOS, we don't open the deeplink in a new window, because it
@@ -910,11 +912,15 @@ export function usePaymentState({
       if (lockPayParams || payId == null) return;
       const paymentId = pay.order?.externalId ?? payId;
 
-      const id = readRozoPayOrderID(paymentId).toString();
+      try {
+        const id = readRozoPayOrderID(paymentId).toString();
 
-      if (pay.order?.id && BigInt(id) == pay.order.id) {
-        // Already loaded, ignore.
-        return;
+        if (pay.order?.id && BigInt(id) == pay.order.id) {
+          // Already loaded, ignore.
+          return;
+        }
+      } catch (error) {
+        console.log("setPayId", error);
       }
 
       pay.reset();

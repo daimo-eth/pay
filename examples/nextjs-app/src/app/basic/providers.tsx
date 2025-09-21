@@ -9,7 +9,6 @@ import { ROZOPAY_API_URL } from "../shared";
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     appName: "Rozo Pay Basic Demo",
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   })
 );
 

@@ -176,7 +176,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const hasAutoOpened = useRef(false);
   useEffect(() => {
     if (!props.defaultOpen || hasAutoOpened.current) return;
-    if (pay.order == null) return;
+    if (pay.order == null && pay.paymentState !== "error") return;
     show();
     hasAutoOpened.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,6 +258,15 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
       console.error(
         "[WORLD] MiniKit is not installed. Please install @worldcoin/minikit-js to use this feature.",
       );
+      return;
+    }
+    if (pay.paymentState === "error") {
+      log("[WORLD] showing payment error page");
+      const modalOptions = {
+        closeOnSuccess: props.closeOnSuccess,
+        resetOnSuccess: props.resetOnSuccess,
+      };
+      context.showPayment(modalOptions);
       return;
     }
 

@@ -176,7 +176,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
   const hasAutoOpened = useRef(false);
   useEffect(() => {
     if (!props.defaultOpen || hasAutoOpened.current) return;
-    if (pay.order == null && pay.paymentState !== "error") return;
+    if (pay.order == null) return;
     show();
     hasAutoOpened.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -296,7 +296,15 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // Optimistically assume the source payment is correct and show the
     // confirmation spinner
     showSpinner();
-  }, [pay, showSpinner, context.trpc, isMiniKitReady, log]);
+  }, [
+    pay,
+    showSpinner,
+    context.trpc,
+    isMiniKitReady,
+    log,
+    props.closeOnSuccess,
+    props.resetOnSuccess,
+  ]);
 
   return props.children({ show, isMiniKitReady });
 }

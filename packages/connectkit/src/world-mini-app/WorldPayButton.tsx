@@ -260,6 +260,15 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
       );
       return;
     }
+    if (pay.paymentState === "error") {
+      log("[WORLD] showing payment error page");
+      const modalOptions = {
+        closeOnSuccess: props.closeOnSuccess,
+        resetOnSuccess: props.resetOnSuccess,
+      };
+      context.showPayment(modalOptions);
+      return;
+    }
 
     if (
       ["payment_started", "payment_completed", "payment_bounced"].includes(
@@ -287,7 +296,15 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // Optimistically assume the source payment is correct and show the
     // confirmation spinner
     showSpinner();
-  }, [pay, showSpinner, context.trpc, isMiniKitReady, log]);
+  }, [
+    pay,
+    showSpinner,
+    context.trpc,
+    isMiniKitReady,
+    log,
+    props.closeOnSuccess,
+    props.resetOnSuccess,
+  ]);
 
   return props.children({ show, isMiniKitReady });
 }

@@ -296,6 +296,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // Optimistically assume the source payment is correct and show the
     // confirmation spinner
     showSpinner();
+    // eslint-disable-next-line
   }, [
     pay,
     showSpinner,

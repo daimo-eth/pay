@@ -83,7 +83,8 @@ export const DaimoPayModal: React.FC<{
     setSelectedDepositAddressOption,
     setSelectedWallet,
   } = paymentState;
-  const { paymentState: paymentFsmState, order } = useDaimoPay();
+  const daimo = useDaimoPay();
+  const { paymentState: paymentFsmState, order } = daimo;
 
   const {
     isConnected: isEthConnected,
@@ -94,7 +95,8 @@ export const DaimoPayModal: React.FC<{
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
 
-  //if chain is unsupported we enforce a "switch chain" prompt
+  // if chain is unsupported we enforce a "switch chain" prompt
+  // closeable is independent of the warning state; warning is handled separately below
   const closeable = !(
     context.options?.enforceSupportedChains &&
     isEthConnected &&
@@ -108,7 +110,8 @@ export const DaimoPayModal: React.FC<{
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
     context.route !== ROUTES.ERROR &&
-    paymentFsmState !== "error";
+    paymentFsmState !== "error" &&
+    paymentFsmState !== "warning";
 
   const onBack = () => {
     const meta = { event: "click-back" };
@@ -232,6 +235,10 @@ export const DaimoPayModal: React.FC<{
       const canProceed = await guard();
       if (canProceed) {
         action();
+        // Dismiss warning after navigation to avoid intermediate flash
+        if (paymentFsmState === "warning") {
+          daimo.dismissWarning();
+        }
       }
     } catch (error) {
       console.error("Error in leave guard:", error);
@@ -584,7 +591,6 @@ export const DaimoPayModal: React.FC<{
       try {
         document.head.removeChild(title);
       } catch {}
-      //if (appIcon) document.head.removeChild(icon);
     };
   }, [context.open]);
 
@@ -594,7 +600,11 @@ export const DaimoPayModal: React.FC<{
         open={context.open}
         pages={pages}
         pageId={context.route}
-        onClose={closeable ? () => guardedAction(hide) : undefined}
+        onClose={
+          closeable && paymentFsmState !== "warning"
+            ? () => guardedAction(hide)
+            : undefined
+        }
         onInfo={undefined}
         onBack={showBackButton ? () => guardedAction(onBack) : undefined}
       />

@@ -76,7 +76,10 @@ export type PaymentState =
   // Order was paid but the destination failed to process
   | { type: "payment_bounced"; order: DaimoPayHydratedOrderWithOrg }
   // An error occurred
-  | { type: "error"; order: DaimoPayOrder | undefined; message: string };
+  | { type: "error"; order: DaimoPayOrder | undefined; message: string }
+  // A non-fatal UI pause to confirm a potentially destructive action
+  // why: temporarily blocks navigation to ask user confirmation (e.g. end tron session)
+  | { type: "warning"; order: DaimoPayOrder | undefined; message: string };
 
 export type PaymentStateType = PaymentState["type"];
 
@@ -128,6 +131,18 @@ export type PaymentEvent =
       order: DaimoPayOrder | undefined;
       message: string;
     }
+  // enter the temporary confirmation screen with a user-facing message
+  | {
+      type: "warning";
+      order: DaimoPayOrder | undefined;
+      message: string;
+    }
+  // exit the warning screen; if an order snapshot is provided, resume its derived state,
+  // otherwise fall back to initial state
+  | {
+      type: "dismiss_warning";
+      order: DaimoPayOrderWithOrg | DaimoPayHydratedOrderWithOrg | undefined;
+    }
   | { type: "reset" };
 
 type PayParamsData = {
@@ -155,6 +170,7 @@ export function paymentReducer(
     case "payment_completed":
     case "payment_bounced":
     case "error":
+    case "warning":
       return reduceTerminal(state, event);
     /* satisfies exhaustiveness */
     default:
@@ -195,6 +211,12 @@ function reduceIdle(
     case "error":
       return {
         type: "error",
+        order: event.order,
+        message: event.message,
+      };
+    case "warning":
+      return {
+        type: "warning",
         order: event.order,
         message: event.message,
       };
@@ -242,6 +264,12 @@ function reducePreview(
         order: event.order,
         message: event.message,
       };
+    case "warning":
+      return {
+        type: "warning",
+        order: event.order,
+        message: event.message,
+      };
     case "reset":
       return initialPaymentState;
     default:
@@ -259,6 +287,12 @@ function reduceUnhydrated(
     case "error":
       return {
         type: "error",
+        order: event.order,
+        message: event.message,
+      };
+    case "warning":
+      return {
+        type: "warning",
         order: event.order,
         message: event.message,
       };
@@ -293,6 +327,12 @@ function reducePaymentUnpaid(
         order: event.order,
         message: event.message,
       };
+    case "warning":
+      return {
+        type: "warning",
+        order: event.order,
+        message: event.message,
+      };
     case "reset":
       return initialPaymentState;
     default:
@@ -310,6 +350,12 @@ function reducePaymentStarted(
     case "error":
       return {
         type: "error",
+        order: event.order,
+        message: event.message,
+      };
+    case "warning":
+      return {
+        type: "warning",
         order: event.order,
         message: event.message,
       };
@@ -371,11 +417,21 @@ function getStateFromHydratedOrder(order: DaimoPayOrderWithOrg): PaymentState {
 function reduceTerminal(
   state: Extract<
     PaymentState,
-    { type: "payment_completed" | "payment_bounced" | "error" }
+    { type: "payment_completed" | "payment_bounced" | "error" | "warning" }
   >,
   event: PaymentEvent,
 ): PaymentState {
   switch (event.type) {
+    case "dismiss_warning": {
+      // leave the confirmation screen and restore previous state when possible
+      if (state.type === "warning") {
+        if (event.order) {
+          return getStateFromOrder(event.order);
+        }
+        return initialPaymentState;
+      }
+      return state;
+    }
     case "reset":
       return initialPaymentState;
     // In terminal states we ignore everything except reset

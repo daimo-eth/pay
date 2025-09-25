@@ -13,7 +13,7 @@ import { useWallet } from "../../../wallets/useWallets";
 const DownloadApp = () => {
   const { pendingConnectorId } = usePayContext();
   const wallet = useWallet(pendingConnectorId ?? "");
-
+  console.log("wallet", wallet);
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,
   });
@@ -30,8 +30,8 @@ const DownloadApp = () => {
     downloads.ios && downloads.android
       ? locales.downloadAppScreen_iosAndroid
       : downloads.ios
-        ? locales.downloadAppScreen_ios
-        : locales.downloadAppScreen_android;
+      ? locales.downloadAppScreen_ios
+      : locales.downloadAppScreen_android;
 
   return (
     <PageContent>

@@ -240,8 +240,8 @@ const Modal: React.FC<ModalProps> = ({
     context.route === ROUTES.CONNECTORS
       ? 0
       : context.route === ROUTES.DOWNLOAD
-        ? 2
-        : 1;
+      ? 2
+      : 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -260,7 +260,7 @@ const Modal: React.FC<ModalProps> = ({
     height: undefined,
   });
   const [inTransition, setInTransition] = useState<boolean | undefined>(
-    undefined,
+    undefined
   );
 
   // Calculate new content bounds
@@ -290,7 +290,7 @@ const Modal: React.FC<ModalProps> = ({
       // Calculate new content bounds
       updateBounds(node);
     },
-    [open, inTransition],
+    [open, inTransition]
   );
 
   // Update layout on chain/network switch to avoid clipping
@@ -333,7 +333,6 @@ const Modal: React.FC<ModalProps> = ({
   }
 
   function getHeading() {
-    console.log('[ROUTE HEADING]', context.route);
     switch (context.route) {
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
@@ -388,7 +387,7 @@ const Modal: React.FC<ModalProps> = ({
         if (selectedTokenOption == null) return undefined;
 
         const chainName = getChainName(
-          selectedTokenOption.balance.token.chainId,
+          selectedTokenOption.balance.token.chainId
         );
         return `Pay with ${chainName} ${selectedTokenOption.balance.token.symbol}`;
       case ROUTES.CONFIRMATION:
@@ -423,10 +422,10 @@ const Modal: React.FC<ModalProps> = ({
         <Container
           style={dimensionsCSS}
           initial={false}
-        // transition={{
-        //   ease: [0.2555, 0.1111, 0.2555, 1.0001],
-        //   duration: !positionInside && state !== 'entered' ? 0 : 0.24,
-        // }}
+          // transition={{
+          //   ease: [0.2555, 0.1111, 0.2555, 1.0001],
+          //   duration: !positionInside && state !== 'entered' ? 0 : 0.24,
+          // }}
         >
           <div
             style={{
@@ -529,7 +528,7 @@ const Modal: React.FC<ModalProps> = ({
                       <InfoButton
                         disabled={inTransition}
                         aria-label={flattenChildren(
-                          locales.moreInformation,
+                          locales.moreInformation
                         ).toString()}
                         key="infoButton"
                         onClick={onInfo}

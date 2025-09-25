@@ -19,8 +19,8 @@ import { TrpcClient } from "../utils/trpc";
  * 2. Filtering to only show currently supported chains and tokens
  *
  * CURRENTLY SUPPORTED CHAINS & TOKENS IN WALLET PAYMENT OPTIONS:
- * - Base (Chain ID: 8453) - USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
- * - Polygon (Chain ID: 137) - USDC (0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174)
+ * - Base (Chain ID: 8453)
+ * - Polygon (Chain ID: 137)
  * - Rozo Solana - USDC (native Solana USDC)
  * - Rozo Stellar - USDC/XLM (native Stellar tokens)
  *

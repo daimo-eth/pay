@@ -1,9 +1,9 @@
+import { CreateConnectorFn } from "wagmi";
 import {
   coinbaseWallet,
   CoinbaseWalletParameters,
   safe,
-} from "@wagmi/connectors";
-import { CreateConnectorFn } from "wagmi";
+} from "wagmi/connectors";
 
 type DefaultConnectorsProps = {
   app: {
@@ -32,7 +32,7 @@ const defaultConnectors = ({
     connectors.push(
       safe({
         allowedDomains: [/gnosis-safe.io$/, /app.safe.global$/],
-      }),
+      })
     );
   }
 
@@ -43,7 +43,7 @@ const defaultConnectors = ({
       appLogoUrl: app.icon,
       overrideIsMetaMask: false,
       preference: coinbaseWalletPreference,
-    }),
+    })
   );
 
   return connectors;

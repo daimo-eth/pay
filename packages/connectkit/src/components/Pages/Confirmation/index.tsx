@@ -58,15 +58,21 @@ const Confirmation: React.FC = () => {
   }, [paymentStateContext]);
 
   const showProcessingPayout = useMemo(() => {
-    const { payParams, selectedTokenOption } = paymentStateContext;
+    const { payParams, selectedTokenOption, tokenMode } = paymentStateContext;
 
-    if (payParams && selectedTokenOption) {
+    if (
+      payParams &&
+      selectedTokenOption &&
+      (tokenMode === "stellar" || tokenMode === "solana" || tokenMode === "evm")
+    ) {
       return (
         payParams.showProcessingPayout &&
-        // Hide Processing Payout appId contains "MP" (MugglePay)
+        // Hide Processing Payout if appId contains "MP" (MugglePay)
         !isMugglePay
       );
     }
+
+    return false;
   }, [paymentStateContext, isMugglePay]);
 
   const rozoPaymentId = useMemo(() => {
@@ -145,14 +151,6 @@ const Confirmation: React.FC = () => {
     }
     return undefined;
   }, [rozoPaymentId]);
-
-  const showPayoutLink = useMemo(() => {
-    return (
-      paymentStateContext.tokenMode === "stellar" ||
-      paymentStateContext.tokenMode === "solana" ||
-      paymentStateContext.tokenMode === "evm"
-    );
-  }, [paymentStateContext]);
 
   useEffect(() => {
     if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
@@ -279,7 +277,7 @@ const Confirmation: React.FC = () => {
               Payment Completed
             </ModalH1>
 
-            {showProcessingPayout && txURL && (
+            {txURL && (
               <ListContainer>
                 <ListItem>
                   <ModalBody>Transfer Hash</ModalBody>
@@ -298,7 +296,7 @@ const Confirmation: React.FC = () => {
                   </ModalBody>
                 </ListItem>
 
-                {showPayoutLink && (
+                {showProcessingPayout && (
                   <ListItem>
                     <ModalBody>Receiver Hash</ModalBody>
                     <ModalBody>
@@ -331,7 +329,7 @@ const Confirmation: React.FC = () => {
           </>
         )}
 
-        {done && generateReceiptUrl && !isMugglePay && (
+        {done && generateReceiptUrl && (
           <Button
             iconPosition="right"
             href={generateReceiptUrl}

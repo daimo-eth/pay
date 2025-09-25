@@ -313,6 +313,8 @@ async function runSetPayParamsEffects(
           preferredTokens: payParams.preferredTokens,
           evmChains: payParams.evmChains,
         },
+        appId: payParams.appId ?? ROZO_DAIMO_APP_ID,
+        ...(payParams.metadata ?? {}),
       },
       externalId: payParams.externalId,
       userMetadata: payParams.metadata,
@@ -325,7 +327,7 @@ async function runSetPayParamsEffects(
       order: orderPreview as unknown as RozoPayOrderWithOrg,
       payParamsData: {
         // appId: payParams.appId,
-        appId: ROZO_DAIMO_APP_ID,
+        appId: payParams.appId ?? ROZO_DAIMO_APP_ID,
         toStellarAddress: payParams.toStellarAddress,
         toSolanaAddress: payParams.toSolanaAddress,
         toAddress: payParams.toAddress,
@@ -494,6 +496,14 @@ async function runHydratePayParamsEffects(
       }
     } catch (e) {
       console.error(e);
+      if (destination.chainId !== preferred.preferredChain) {
+        store.dispatch({
+          type: "error",
+          order: prev.order,
+          message:
+            "Failed to generate bridge payment. Please try again with a different token or chain.",
+        });
+      }
     }
   }
 
@@ -656,7 +666,7 @@ async function runHydratePayIdEffects(
     );
 
     const hydratedOrder: RozoPayHydratedOrderWithOrg = {
-      id: BigInt(orderData.data.id),
+      id: order.id ?? BigInt(orderData.data.id),
       mode: RozoPayOrderMode.HYDRATED,
       intentAddr: orderData.data.metadata.receivingAddress as `0x${string}`,
       handoffAddr: orderData.data.metadata.receivingAddress as `0x${string}`,

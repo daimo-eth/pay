@@ -350,7 +350,13 @@ export function usePaymentState({
     let hydratedOrder: RozoPayHydratedOrderWithOrg;
     const { required, fees } = walletOption;
     const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
-    if (pay.paymentState !== "payment_unpaid") {
+
+    const ableToHydrate =
+      pay.paymentState !== "payment_unpaid" ||
+      ("payinchainid" in pay.order.metadata &&
+        Number(pay.order.metadata.payinchainid) !== required.token.chainId);
+
+    if (ableToHydrate) {
       assert(
         required.token.token === fees.token.token,
         `[PAY TOKEN] required token ${debugJson(
@@ -837,7 +843,7 @@ export function usePaymentState({
         suffix: `${order.destFinalCallTokenAmount.token.symbol} ${chain.name}`,
         uri: order.destFinalCall.to,
         expirationS: Math.floor(Date.now() / 1000) + 300,
-        externalId: order.externalId,
+        externalId: order.externalId ?? "",
         memo: order.metadata?.memo || "",
       };
     } catch (error) {

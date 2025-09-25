@@ -6,7 +6,11 @@ import Logos, { SquircleIcon } from "../assets/logos";
 import { useConnectors } from "../hooks/useConnectors";
 import { usePayContext } from "../hooks/usePayContext";
 import { SolanaWalletName } from "../provider/SolanaContextProvider";
-import { isCoinbaseWalletConnector, isInjectedConnector } from "../utils";
+import {
+  isCoinbaseWalletConnector,
+  isInjectedConnector,
+  isPhantomConnector,
+} from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
 /** Special wallet ID for "other wallets" option. */
@@ -44,6 +48,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     if (!disableMobileInjector) {
       connectors.forEach((connector) => {
         if (isCoinbaseWalletConnector(connector.id)) return;
+        if (isPhantomConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
@@ -88,71 +93,79 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return mobileWallets;
   }
 
-  const wallets = connectors
-    .filter((connector) => {
-      // Skip any connectors that mention WalletConnect
-      return !connector.name?.toLowerCase().includes("walletconnect");
-    })
-    .map((connector): WalletProps => {
-      // First, attempt to find a config by matching connector.id (existing logic).
-      let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
-        (id) =>
-          id
-            .split(",")
-            .map((i) => i.trim())
-            .includes(connector.id)
-      );
+  const filteredConnectors = connectors.filter((connector) => {
+    // Skip if id === "phantom" or "injected" and connector name does NOT include "walletconnect"
+    if (
+      ["phantom"].includes(connector.id) ||
+      (connector.id === "injected" &&
+        connector.name?.toLowerCase().includes("injected") &&
+        connector.type === "injected") ||
+      connector.name?.toLowerCase().includes("walletconnect")
+    ) {
+      return false;
+    }
+    return true;
+  });
 
-      // If not found by id, attempt a fuzzy match on connector.name.
-      if (!walletConfigKey && connector.name) {
-        walletConfigKey = Object.keys(walletConfigs).find((key) => {
-          const cfgName = walletConfigs[key].name?.toLowerCase();
-          const connName = connector.name!.toLowerCase();
-          return (
-            cfgName &&
-            (cfgName.includes(connName) || connName.includes(cfgName))
-          );
-        });
-      }
+  const wallets = filteredConnectors.map((connector): WalletProps => {
+    // First, attempt to find a config by matching connector.id (existing logic).
+    let walletConfigKey: string | undefined = Object.keys(walletConfigs).find(
+      (id) =>
+        id
+          .split(",")
+          .map((i) => i.trim())
+          .includes(connector.id)
+    );
 
-      const c: WalletProps = {
-        id: connector.id,
-        name: connector.name ?? connector.id ?? connector.type,
-        icon: (
+    // If not found by id, attempt a fuzzy match on connector.name.
+    if (!walletConfigKey && connector.name) {
+      walletConfigKey = Object.keys(walletConfigs).find((key) => {
+        const cfgName = walletConfigs[key].name?.toLowerCase();
+        const connName = connector.name!.toLowerCase();
+        return (
+          cfgName && (cfgName.includes(connName) || connName.includes(cfgName))
+        );
+      });
+    }
+
+    const c: WalletProps = {
+      id: connector.id,
+      name: connector.name ?? connector.id ?? connector.type,
+      icon: (
+        <img
+          src={connector.icon}
+          alt={connector.name}
+          width={"100%"}
+          height={"100%"}
+        />
+      ),
+      connector,
+      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+      isInstalled:
+        connector.type === "mock" ||
+        (connector.type === "injected" && connector.id !== "metaMask") ||
+        connector.type === "farcasterFrame" ||
+        isCoinbaseWalletConnector(connector.id),
+    };
+
+    if (walletConfigKey) {
+      const wallet = walletConfigs[walletConfigKey];
+      return {
+        ...c,
+        iconConnector: connector.icon ? (
           <img
             src={connector.icon}
             alt={connector.name}
             width={"100%"}
             height={"100%"}
           />
-        ),
-        connector,
-        iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
-        isInstalled:
-          connector.type === "mock" ||
-          (connector.type === "injected" && connector.id !== "metaMask") ||
-          connector.type === "farcasterFrame" ||
-          isCoinbaseWalletConnector(connector.id),
+        ) : undefined,
+        ...wallet,
       };
+    }
 
-      if (walletConfigKey) {
-        const wallet = walletConfigs[walletConfigKey];
-        return {
-          ...c,
-          iconConnector: connector.icon ? (
-            <img
-              src={connector.icon}
-              alt={connector.name}
-              width={"100%"}
-              height={"100%"}
-            />
-          ) : undefined,
-          ...wallet,
-        };
-      }
-
-      return c;
-    });
+    return c;
+  });
 
   // wallets.push({
   //   id: WALLET_ID_MOBILE_WALLETS,
@@ -246,15 +259,15 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           )
       )
       // remove wallet with id io.metamask if wallet with id 'metaMask' exists
-      .filter(
-        (wallet, index, self) =>
-          !(
-            (wallet.id === "metaMaskSDK" || wallet.id === "metaMask") &&
-            self.find(
-              (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile"
-            )
-          )
-      )
+      // .filter(
+      //   (wallet, index, self) =>
+      //     !(
+      //       (wallet.id === "metaMaskSDK" || wallet.id === "metaMask") &&
+      //       self.find(
+      //         (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile"
+      //       )
+      //     )
+      // )
       // remove wallet with id 'com.warpcast.mobile' if wallet with id 'farcaster' exists
       .filter(
         (wallet, index, self) =>

@@ -2,14 +2,12 @@ import React from "react";
 import { ROUTES } from "../../constants/routes";
 import { usePayContext } from "../../hooks/usePayContext";
 
-import { OrDivider } from "../Common/Modal";
 import { ModalContent, PageContent } from "../Common/Modal/styles";
 
 import ScanIconWithLogos from "../../assets/ScanIconWithLogos";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
 import useLocales from "../../hooks/useLocales";
 import Button from "../Common/Button";
-import CopyToClipboard from "../Common/CopyToClipboard";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
@@ -46,7 +44,6 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
 
   const downloads = wallet?.downloadUrls;
   const hasApps = downloads && Object.keys(downloads).length !== 0;
-  const showAdditionalOptions = false;
   const payId = pay.order ? writeDaimoPayOrderID(pay.order.id) : "";
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
@@ -114,27 +111,7 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
             )
           }
         />
-        {showAdditionalOptions ? (
-          <OrDivider />
-        ) : (
-          hasApps && <OrDivider>{locales.dontHaveTheApp}</OrDivider>
-        )}
       </ModalContent>
-
-      {showAdditionalOptions && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 14,
-          }}
-        >
-          <CopyToClipboard variant="button" string={""}>
-            {locales.copyToClipboard}
-          </CopyToClipboard>
-        </div>
-      )}
 
       {hasApps && (
         <>

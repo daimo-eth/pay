@@ -123,7 +123,6 @@ const enUS = {
   invalidState_heading: "Invalid State",
   invalidState_description:
     "No connectors match the id given. This state should never happen.",
-  tokensAccepted: "1000+ tokens accepted",
   yourBalances: "Your balances",
   on: "on",
   moreAvailable: "More Available",

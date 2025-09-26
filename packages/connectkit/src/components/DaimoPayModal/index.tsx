@@ -37,7 +37,9 @@ import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
 import SwitchNetworks from "../Pages/SwitchNetworks";
-import WaitingDepositAddress from "../Pages/WaitingDepositAddress";
+import WaitingDepositAddress, {
+  beforeLeave as waitingDepositAddressBeforeLeave,
+} from "../Pages/WaitingDepositAddress";
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
 import ConnectUsing from "./ConnectUsing";
@@ -81,7 +83,8 @@ export const DaimoPayModal: React.FC<{
     setSelectedDepositAddressOption,
     setSelectedWallet,
   } = paymentState;
-  const { paymentState: paymentFsmState } = useDaimoPay();
+  const daimo = useDaimoPay();
+  const { paymentState: paymentFsmState, order } = daimo;
 
   const {
     isConnected: isEthConnected,
@@ -92,7 +95,8 @@ export const DaimoPayModal: React.FC<{
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
 
-  //if chain is unsupported we enforce a "switch chain" prompt
+  // if chain is unsupported we enforce a "switch chain" prompt
+  // closeable is independent of the warning state; warning is handled separately below
   const closeable = !(
     context.options?.enforceSupportedChains &&
     isEthConnected &&
@@ -106,7 +110,8 @@ export const DaimoPayModal: React.FC<{
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
     context.route !== ROUTES.ERROR &&
-    paymentFsmState !== "error";
+    paymentFsmState !== "error" &&
+    paymentFsmState !== "warning";
 
   const onBack = () => {
     const meta = { event: "click-back" };
@@ -206,6 +211,39 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.MOBILECONNECTORS]: <MobileConnectors />,
     [ROUTES.CONNECT]: <ConnectUsing />,
     [ROUTES.SWITCHNETWORKS]: <SwitchNetworks />,
+  };
+
+  // Registry of page-level leave guards (hooks that run before navigation)
+  // For WAITING_DEPOSIT_ADDRESS, we need to pass trpc and orderId
+  const leaveGuards: Partial<Record<ROUTES, () => Promise<boolean> | boolean>> =
+    {
+      [ROUTES.WAITING_DEPOSIT_ADDRESS]: () =>
+        waitingDepositAddressBeforeLeave(context.trpc, order?.id?.toString()),
+    };
+
+  // Helper to wrap navigation actions with leave guard check
+  const guardedAction = async (action: () => void) => {
+    const guard = leaveGuards[context.route];
+
+    // If no guard exists for current page, proceed with action
+    if (!guard) {
+      return action();
+    }
+
+    // Otherwise, all the guard and check if navigation is allowed
+    try {
+      const canProceed = await guard();
+      if (canProceed) {
+        action();
+        // Dismiss warning after navigation to avoid intermediate flash
+        if (paymentFsmState === "warning") {
+          daimo.dismissWarning();
+        }
+      }
+    } catch (error) {
+      console.error("Error in leave guard:", error);
+      action();
+    }
   };
 
   function hide() {
@@ -553,7 +591,6 @@ export const DaimoPayModal: React.FC<{
       try {
         document.head.removeChild(title);
       } catch {}
-      //if (appIcon) document.head.removeChild(icon);
     };
   }, [context.open]);
 
@@ -563,9 +600,13 @@ export const DaimoPayModal: React.FC<{
         open={context.open}
         pages={pages}
         pageId={context.route}
-        onClose={closeable ? hide : undefined}
+        onClose={
+          closeable && paymentFsmState !== "warning"
+            ? () => guardedAction(hide)
+            : undefined
+        }
         onInfo={undefined}
-        onBack={showBackButton ? onBack : undefined}
+        onBack={showBackButton ? () => guardedAction(onBack) : undefined}
       />
     </DaimoPayThemeProvider>
   );

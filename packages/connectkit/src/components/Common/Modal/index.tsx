@@ -213,7 +213,7 @@ const Modal: React.FC<ModalProps> = ({
     selectedSolanaTokenOption,
     selectedDepositAddressOption,
   } = context.paymentState;
-  const { order } = useDaimoPay();
+  const { order, paymentState } = useDaimoPay();
 
   const { connector } = useAccount();
   const wallet = useWallet(connector?.id ?? "");
@@ -381,6 +381,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN:
         return locales.selectChain;
       case ROUTES.WAITING_DEPOSIT_ADDRESS:
+        if (paymentState === "warning") return "End Tron USDT Session?";
         if (!selectedDepositAddressOption) return undefined;
         return `${payWithString} ${selectedDepositAddressOption.id}`;
       case ROUTES.SELECT_ZKP2P:

@@ -95,6 +95,10 @@ type DaimoPayFunctions = {
    * @deprecated
    */
   setChosenUsd: (usd: number) => void;
+  /** Set a non-fatal warning state with a message. */
+  setWarning: (message: string) => void;
+  /** Dismiss a warning and return to previous state. */
+  dismissWarning: () => void;
 };
 
 // Enforce that order is typed correctly based on paymentState.
@@ -107,7 +111,8 @@ type DaimoPayState = {
   };
 }[PaymentState["type"]];
 
-export type UseDaimoPay = DaimoPayFunctions & DaimoPayState;
+export type UseDaimoPay = DaimoPayFunctions &
+  DaimoPayState & { paymentWarningMessage: string | null };
 
 /**
  * React hook for interacting with Daimo Pay orders and payments. Use this hook
@@ -146,6 +151,8 @@ export function useDaimoPay(): UseDaimoPay {
   const paymentState = paymentFsmState.type;
   const paymentErrorMessage =
     paymentFsmState.type === "error" ? paymentFsmState.message : null;
+  const paymentWarningMessage =
+    paymentFsmState.type === "warning" ? paymentFsmState.message : null;
 
   /* --------------------------------------------------
      Order event dispatch helpers
@@ -255,10 +262,48 @@ export function useDaimoPay(): UseDaimoPay {
     [dispatch],
   );
 
+  const setWarning = useCallback(
+    (message: string) =>
+      dispatch({ type: "warning", order: order ?? undefined, message }),
+    [dispatch, order],
+  );
+
+  const dismissWarning = useCallback(() => {
+    // Narrow to a prior state that definitely includes an order with org
+    let priorOrder:
+      | Extract<
+          PaymentState,
+          {
+            type:
+              | "preview"
+              | "unhydrated"
+              | "payment_unpaid"
+              | "payment_started"
+              | "payment_completed"
+              | "payment_bounced";
+          }
+        >["order"]
+      | undefined;
+    switch (paymentFsmState.type) {
+      case "preview":
+      case "unhydrated":
+      case "payment_unpaid":
+      case "payment_started":
+      case "payment_completed":
+      case "payment_bounced":
+        priorOrder = paymentFsmState.order;
+        break;
+      default:
+        priorOrder = undefined;
+    }
+    dispatch({ type: "dismiss_warning", order: priorOrder });
+  }, [dispatch, paymentFsmState]);
+
   return {
     order,
     paymentState,
     paymentErrorMessage,
+    paymentWarningMessage,
     createPreviewOrder,
     hydrateOrder,
     setPayId,
@@ -267,5 +312,7 @@ export function useDaimoPay(): UseDaimoPay {
     paySolanaSource,
     reset,
     setChosenUsd,
+    setWarning,
+    dismissWarning,
   } as UseDaimoPay;
 }

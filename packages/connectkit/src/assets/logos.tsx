@@ -1328,7 +1328,7 @@ const Talisman = ({ ...props }) => (
   </svg>
 );
 
-const OKX = ({ ...props }) => (
+const OKX = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     id="a"

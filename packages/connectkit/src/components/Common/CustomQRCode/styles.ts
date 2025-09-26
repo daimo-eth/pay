@@ -41,6 +41,7 @@ export const QRPlaceholder = styled(motion.div)`
 
   position: absolute;
   inset: 0;
+  border-radius: var(--ck-qr-border-radius, 10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,6 +88,7 @@ export const QRPlaceholder = styled(motion.div)`
     content: "";
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     background: repeat;
     background-size: 1.888% 1.888%;
     background-image: radial-gradient(var(--color) 41%, transparent 41%);
@@ -96,6 +98,7 @@ export const QRPlaceholder = styled(motion.div)`
     content: "";
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     transform: scale(1.7) rotate(45deg);
     background-image: linear-gradient(
       90deg,

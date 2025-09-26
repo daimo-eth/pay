@@ -19,6 +19,7 @@ SCRIPTS=(
     # "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
+    # "script/DeployPayRefundFactory.s.sol"
 
     # Universal Address
     # "script/DeployUniversalAddressManager.s.sol"

@@ -186,7 +186,6 @@ type ModalProps = {
   onClose?: () => void;
   onBack?: () => void;
   onInfo?: () => void;
-
   demo?: {
     theme: string;
     mode?: string;
@@ -381,7 +380,7 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN:
         return locales.selectChain;
       case ROUTES.WAITING_DEPOSIT_ADDRESS:
-        if (paymentState === "warning") return "End Tron USDT Session?";
+        if (paymentState === "warning") return locales.leaveSession;
         if (!selectedDepositAddressOption) return undefined;
         return `${payWithString} ${selectedDepositAddressOption.id}`;
       case ROUTES.SELECT_ZKP2P:

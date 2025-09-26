@@ -133,6 +133,11 @@ const enUS = {
   scanWithPhone: "Scan with Phone",
   selectExchange: "Select Exchange",
   solanaWallet: "Solana Wallet",
+  leaveSession: "Leave Session?",
+  leaveConfirm_description:
+    "Do you want to end your Tron TRC20 USDT address? Ending it will end your current session, and you’ll need to start a new one.",
+  leaveConfirm_stay: "Stay",
+  leaveConfirm_leave: "End Session",
   selectChain: "Select Chain",
   selectApp: "Select App",
   selectAmount: "Select Amount",

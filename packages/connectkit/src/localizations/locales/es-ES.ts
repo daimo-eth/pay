@@ -134,6 +134,11 @@ const esES: LocaleProps = {
   poweredBy: "Impulsado por",
   scanWithPhone: "Escanea con móvil",
   selectExchange: "Selecciona un exchange",
+  leaveSession: "Salir de la sesión?",
+  leaveConfirm_description:
+    "¿Quieres terminar tu dirección de depósito de TRC20 USDT? Terminarla terminará tu sesión actual y tendrás que empezar una nueva.",
+  leaveConfirm_stay: "Permanecer",
+  leaveConfirm_leave: "Salir",
   solanaWallet: "Billetera Solana",
   selectChain: "Selecciona una red",
   selectApp: "Selecciona una app",

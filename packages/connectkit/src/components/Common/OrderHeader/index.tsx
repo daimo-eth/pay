@@ -3,15 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
 import React from "react";
 import { useAccount } from "wagmi";
-import {
-  Arbitrum,
-  Base,
-  Ethereum,
-  Optimism,
-  Polygon,
-  Solana,
-} from "../../../assets/chains";
-import { USDC } from "../../../assets/coins";
+import { Solana } from "../../../assets/chains";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
@@ -119,42 +111,10 @@ export const OrderHeader = ({
     return (
       <>
         {titleAmountContent && <TitleAmount>{titleAmountContent}</TitleAmount>}
-        <AnyChainAnyCoinContainer>
-          <CoinLogos />
-          <Subtitle>{locales.tokensAccepted}</Subtitle>
-        </AnyChainAnyCoinContainer>
       </>
     );
   }
 };
-
-function CoinLogos({ $size = 24 }: { $size?: number }) {
-  const logos = [
-    <Ethereum key="eth" />,
-    <USDC key="usdc" />,
-    <Optimism key="optimism" />,
-    <Arbitrum key="arbitrum" />,
-    <Base key="base" />,
-    <Polygon key="polygon" />,
-    <Solana key="solana" />,
-  ];
-
-  const logoBlock = (element: React.ReactElement, index: number) => (
-    <LogoContainer
-      key={index}
-      $marginLeft={index !== 0 ? -($size / 3) : 0}
-      $zIndex={logos.length - index}
-      $size={$size}
-      transition={{ duration: 0.5, ease: [0.175, 0.885, 0.32, 0.98] }}
-    >
-      {element}
-    </LogoContainer>
-  );
-
-  return (
-    <Logos>{logos.map((element, index) => logoBlock(element, index))}</Logos>
-  );
-}
 
 const TitleAmount = styled(motion.h1)<{
   $error?: boolean;
@@ -205,16 +165,6 @@ const MinifiedContainer = styled(motion.div)`
   margin-bottom: 24px;
 `;
 
-const AnyChainAnyCoinContainer = styled(motion.div)`
-  display: flex;
-  vertical-align: middle;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 8px;
-  margin-bottom: 24px;
-`;
-
 const LogoContainer = styled(motion.div)<{
   $marginLeft?: number;
   $zIndex?: number;
@@ -236,12 +186,6 @@ const LogoContainer = styled(motion.div)<{
     width: 100%;
     height: auto;
   }
-`;
-
-const Logos = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const SubtitleContainer = styled.div`

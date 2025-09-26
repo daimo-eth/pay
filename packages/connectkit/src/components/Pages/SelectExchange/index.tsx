@@ -1,3 +1,4 @@
+import { ExternalPaymentOptions } from "@daimo/pay-common";
 import React from "react";
 
 import { ModalH1, PageContent } from "../../Common/Modal/styles";
@@ -21,7 +22,23 @@ const SelectExchange: React.FC = () => {
     );
   }
 
-  const options = exchangeOptions.map((option) => ({
+  // For the exchange flow in unique payment option mode, we only show the Coinbase and Binance options
+  const uniquePaymentOption =
+    paymentState.buttonProps &&
+    "uniquePaymentOption" in paymentState.buttonProps
+      ? paymentState.buttonProps.uniquePaymentOption
+      : undefined;
+
+  const filtered =
+    uniquePaymentOption === "AllExchanges"
+      ? exchangeOptions.filter(
+          (o) =>
+            o.id === ExternalPaymentOptions.Coinbase ||
+            o.id === ExternalPaymentOptions.Binance,
+        )
+      : exchangeOptions;
+
+  const options = filtered.map((option) => ({
     id: option.id,
     title: option.cta,
     icons: [option.logoURI],

@@ -22,6 +22,7 @@ function CustomQRCode({
   contentPadding = 13,
 }: CustomQRCodeProps) {
   const windowSize = useWindowSize();
+  const isLong = (value?.length ?? 0) > 200;
 
   const Logo =
     windowSize.width > 920 && tooltipMessage ? (
@@ -32,6 +33,24 @@ function CustomQRCode({
       image
     );
 
+  // For bottom-right embedded image inside the QR SVG, shrink when content is long
+  const qrEmbeddedImage = isLong ? (
+    <div
+      style={{
+        width: "75%",
+        height: "75%",
+        margin: "12.5%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {image}
+    </div>
+  ) : (
+    image
+  );
+
   return (
     <QRCodeContainer>
       <QRCodeContent style={{ inset: contentPadding }}>
@@ -41,6 +60,9 @@ function CustomQRCode({
               style={{
                 background:
                   imagePosition === "center" ? imageBackground : undefined,
+                width: imagePosition === "center" && isLong ? "21%" : undefined,
+                height:
+                  imagePosition === "center" && isLong ? "21%" : undefined,
               }}
             >
               {Logo}
@@ -61,10 +83,12 @@ function CustomQRCode({
             >
               <QRCode
                 uri={value}
-                size={576}
-                ecl={value?.length > 200 ? "L" : "H"}
+                size={isLong ? 860 : 576}
+                ecl={isLong ? "L" : "H"}
                 clearArea={!!(imagePosition === "center" && image)}
-                image={imagePosition === "bottom right" ? image : undefined}
+                image={
+                  imagePosition === "bottom right" ? qrEmbeddedImage : undefined
+                }
                 imageBackground={imageBackground}
               />
             </motion.div>

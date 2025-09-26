@@ -227,22 +227,35 @@ export const DaimoPayModal: React.FC<{
 
     // If no guard exists for current page, proceed with action
     if (!guard) {
-      return action();
+      action();
+      return;
     }
 
-    // Otherwise, all the guard and check if navigation is allowed
+    // Otherwise, call the guard and check if navigation is allowed
+    let canProceed = false;
     try {
-      const canProceed = await guard();
-      if (canProceed) {
-        action();
-        // Dismiss warning after navigation to avoid intermediate flash
-        if (paymentFsmState === "warning") {
-          daimo.dismissWarning();
-        }
-      }
+      canProceed = await guard();
     } catch (error) {
-      console.error("Error in leave guard:", error);
+      console.error("error in leave guard:", error);
+      return;
+    }
+
+    if (!canProceed) return;
+
+    try {
       action();
+    } catch (error) {
+      console.error("error performing guarded action:", error);
+      return;
+    }
+
+    // dismiss warning after navigation to avoid intermediate flash
+    if (paymentFsmState === "warning") {
+      try {
+        daimo.dismissWarning();
+      } catch (error) {
+        console.error("error dismissing warning:", error);
+      }
     }
   };
 

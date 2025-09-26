@@ -11,7 +11,7 @@ import {
   polygonUSDC,
   type Token,
 } from "@daimo/pay-common";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
@@ -33,6 +33,7 @@ import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
 // Warning confirmation UI for ending a Tron deposit-address session
 import Warning from "../Warning";
+// module-level handler pointer used by the leave guard to notify the mounted component
 let handleLeavePrompt:
   | ((detail: {
       trpc: any;
@@ -40,9 +41,6 @@ let handleLeavePrompt:
       resolve: (proceed: boolean) => void;
     }) => void)
   | undefined;
-let pendingLeaveResolve: ((proceed: boolean) => void) | undefined;
-let pendingLeaveMeta: { trpc: any; orderId?: string } | undefined;
-let leavingInProgress = false;
 
 // Centered container for icon + text in Tron underpay screen
 const CenterContainer = styled.div`
@@ -91,10 +89,7 @@ export default function WaitingDepositAddress() {
 
   // If we selected a deposit address option, generate the address...
   const generateDepositAddress = () => {
-    // reset all leave/warning guards when starting a fresh address flow
-    leavingInProgress = false;
-    pendingLeaveResolve = undefined;
-    pendingLeaveMeta = undefined;
+    // when starting a fresh address flow, dismiss any warning
     if (daimo.paymentState === "warning") {
       daimo.dismissWarning();
     }
@@ -239,44 +234,60 @@ function DepositAddressInfo({
   const [remainingS, totalS] = useCountdown(depAddr?.expirationS);
   const isExpired = depAddr?.expirationS != null && remainingS === 0;
   const [showQR, setShowQR] = useState(!isMobile);
+  const pendingLeaveResolveRef = useRef<
+    ((proceed: boolean) => void) | undefined
+  >(undefined);
+  const pendingLeaveMetaRef = useRef<
+    { trpc: any; orderId?: string } | undefined
+  >(undefined);
+  const leavingInProgressRef = useRef(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(triggerResize, [isExpired, showQR]);
 
-  // Expose a module-level handler so the leave guard can call into this component without events.
-  // This avoids window listeners and enables a clean, synchronous handoff.
-  handleLeavePrompt = (detail: {
-    trpc: any;
-    orderId?: string;
-    resolve: (proceed: boolean) => void;
-  }) => {
-    const isTron =
-      payCtxState.selectedDepositAddressOption?.id ===
-      DepositAddressPaymentOptions.TRON_USDT;
+  // register a module-level handler so the guard can notify this mounted instance
+  useEffect(() => {
+    handleLeavePrompt = (detail: {
+      trpc: any;
+      orderId?: string;
+      resolve: (proceed: boolean) => void;
+    }) => {
+      const isTron =
+        payCtxState.selectedDepositAddressOption?.id ===
+        DepositAddressPaymentOptions.TRON_USDT;
 
-    if (!isTron) {
-      detail.resolve(true);
-      return;
-    }
-    const hasDepositAddress = !!depAddr?.address;
-    if (!hasDepositAddress) {
-      if (detail.orderId && detail.trpc) {
-        // Fire-and-forget: don’t block navigation while we cancel server-side
-        detail.trpc.cancelDepositAddressForOrder
-          .mutate({ orderId: detail.orderId })
-          .then(() => {})
-          .catch(() => {});
+      if (!isTron) {
+        detail.resolve(true);
+        return;
       }
-      detail.resolve(true);
-      return;
-    }
-    daimo.setWarning(
-      "Do you want to close your Tron TRC20 USDT address? Closing it will end your current session, and you’ll need to start a new one.",
-    );
-    pendingLeaveMeta = { trpc: detail.trpc, orderId: detail.orderId };
-    pendingLeaveResolve = detail.resolve;
-    leavingInProgress = false;
-  };
+      const hasDepositAddress = !!depAddr?.address;
+      if (!hasDepositAddress) {
+        if (detail.orderId && detail.trpc) {
+          // fire-and-forget: don’t block navigation while we cancel server-side
+          detail.trpc.cancelDepositAddressForOrder
+            .mutate({ orderId: detail.orderId })
+            .then(() => {})
+            .catch(() => {});
+        }
+        detail.resolve(true);
+        return;
+      }
+      daimo.setWarning(
+        "Do you want to end your Tron TRC20 USDT address? Ending it will end your current session, and you’ll need to start a new one.",
+      );
+      pendingLeaveMetaRef.current = {
+        trpc: detail.trpc,
+        orderId: detail.orderId,
+      };
+      pendingLeaveResolveRef.current = detail.resolve;
+      leavingInProgressRef.current = false;
+    };
+    return () => {
+      // clear on unmount
+      handleLeavePrompt = undefined;
+    };
+    // keep handler fresh with latest values
+  }, [depAddr?.address, payCtxState.selectedDepositAddressOption?.id, daimo]);
 
   const logoOffset = isMobile ? 4 : 0;
   const logoElement = depAddr.displayToken ? (
@@ -293,33 +304,33 @@ function DepositAddressInfo({
     return (
       <Warning
         body={<>{daimo.paymentWarningMessage}</>}
-        primaryLabel="Stay"
-        secondaryLabel="End Session"
+        primaryLabel={locales.leaveConfirm_stay}
+        secondaryLabel={locales.leaveConfirm_leave}
         onPrimary={() => {
-          pendingLeaveResolve?.(false);
-          pendingLeaveResolve = undefined;
-          pendingLeaveMeta = undefined;
-          leavingInProgress = false;
+          pendingLeaveResolveRef.current?.(false);
+          pendingLeaveResolveRef.current = undefined;
+          pendingLeaveMetaRef.current = undefined;
+          leavingInProgressRef.current = false;
           daimo.dismissWarning();
         }}
         onSecondary={async () => {
           if (
-            pendingLeaveMeta &&
-            pendingLeaveMeta.orderId &&
-            pendingLeaveMeta.trpc
+            pendingLeaveMetaRef.current &&
+            pendingLeaveMetaRef.current.orderId &&
+            pendingLeaveMetaRef.current.trpc
           ) {
             // Fire-and-forget cancellation
-            const meta = pendingLeaveMeta;
+            const meta = pendingLeaveMetaRef.current;
             meta.trpc.cancelDepositAddressForOrder
               .mutate({ orderId: meta.orderId })
               .then(() => {})
               .catch(() => {});
           }
           // Resolve first so navigation happens immediately; then clean up
-          leavingInProgress = true;
-          pendingLeaveResolve?.(true);
-          pendingLeaveResolve = undefined;
-          pendingLeaveMeta = undefined;
+          leavingInProgressRef.current = true;
+          pendingLeaveResolveRef.current?.(true);
+          pendingLeaveResolveRef.current = undefined;
+          pendingLeaveMetaRef.current = undefined;
           // Let the modal dismiss the warning after navigation to avoid flashes
         }}
       />
@@ -327,7 +338,7 @@ function DepositAddressInfo({
   }
 
   // Suppress rendering during programmatic navigation after ending session
-  if (leavingInProgress) {
+  if (leavingInProgressRef.current) {
     return null;
   }
 

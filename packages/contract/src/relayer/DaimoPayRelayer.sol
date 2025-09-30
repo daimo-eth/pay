@@ -320,6 +320,7 @@ contract DaimoPayRelayer is AccessControl {
     function startIntent(
         Call[] calldata preCalls,
         DaimoPay dp,
+        address intentAddr,
         PayIntent calldata intent,
         IERC20[] calldata paymentTokens,
         Call[] calldata startCalls,
@@ -335,6 +336,15 @@ contract DaimoPayRelayer is AccessControl {
             (bool success, ) = call.to.call{value: call.value}(call.data);
             require(success, "DPR: preCall failed");
         }
+
+        // Get native-token balance of intent addr
+        uint256 extraBalance = intentAddr.balance;
+        for (uint256 i = 0; i < startCalls.length; ++i) {
+            Call calldata call = startCalls[i];
+            extraBalance -= call.value;
+        }
+        // If we have any extra native balance, revert & retry.
+        require(extraBalance == 0, "DPR: extra native balance");
 
         dp.startIntent({
             intent: intent,

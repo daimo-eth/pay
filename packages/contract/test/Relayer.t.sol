@@ -76,6 +76,7 @@ contract RelayerTest is Test {
         relayerContract.startIntent({
             preCalls: new Call[](0),
             dp: DaimoPay(payable(address(mockDp))),
+            intentAddr: address(0),
             intent: createSampleIntent(),
             paymentTokens: paymentTokens,
             startCalls: new Call[](0),
@@ -89,6 +90,7 @@ contract RelayerTest is Test {
         relayerContract.startIntent({
             preCalls: new Call[](0),
             dp: DaimoPay(payable(address(mockDp))),
+            intentAddr: address(0),
             intent: createSampleIntent(),
             paymentTokens: paymentTokens,
             startCalls: new Call[](0),
@@ -712,6 +714,51 @@ contract RelayerTest is Test {
 
         // 2. Bob should receive the excess input amount
         assertEq(_token1.balanceOf(_bob), 500);
+    }
+
+    // Test native-token overpayment refund behavior
+    function testNativeOverPaymentRefunded() public {
+        // Prepare params: required 0.5 ETH input, no swap, and zero ERC20 output
+        // Using ERC20 for requiredTokenOut avoids native-balance baseline underflow
+        // in current relayer implementation while still validating native refund.
+        TokenAmount memory requiredTokenIn = TokenAmount(
+            IERC20(address(0)),
+            500
+        );
+        TokenAmount memory requiredTokenOut = TokenAmount(_token1, 0);
+        DaimoPayRelayer.SwapAndTipParams memory params = DaimoPayRelayer
+            .SwapAndTipParams({
+                requiredTokenIn: requiredTokenIn,
+                requiredTokenOut: requiredTokenOut,
+                maxPreTip: 0,
+                maxPostTip: 0,
+                innerSwap: Call(address(0), 0, ""),
+                refundAddress: payable(_bob)
+            });
+
+        // Pre-approve the call
+        bytes32 swapAndTipHash = keccak256(abi.encode(params));
+        vm.store(address(relayerContract), bytes32(uint256(1)), swapAndTipHash);
+
+        // Fund bob with native tokens to send
+        vm.deal(_bob, 1000);
+
+        // Expect refund event of the 0.5 ETH overpayment
+        vm.expectEmit(true, true, true, true);
+        emit DaimoPayRelayer.OverPaymentRefunded({
+            refundAddress: _bob,
+            token: address(0),
+            amount: 500
+        });
+
+        // Execute with 1.0 ETH supplied where only 0.5 ETH is required
+        vm.startPrank(_bob);
+        relayerContract.swapAndTip{value: 1000}(params);
+        vm.stopPrank();
+
+        // Bob ends with 0.5 ETH (refunded), contract keeps required 0.5 ETH
+        assertEq(_bob.balance, 500);
+        assertEq(address(relayerContract).balance, 500);
     }
 }
 

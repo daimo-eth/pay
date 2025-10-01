@@ -265,6 +265,15 @@ export function isHydrated(
   return order.mode === DaimoPayOrderMode.HYDRATED;
 }
 
+export function isDehydrated(
+  order: DaimoPayOrder,
+): order is DaimoPayDehydratedOrder {
+  return (
+    order.mode === DaimoPayOrderMode.CHOOSE_AMOUNT ||
+    order.mode === DaimoPayOrderMode.SALE
+  );
+}
+
 export type DaimoPayOrderView = {
   id: DaimoPayOrderID;
   status: DaimoPayIntentStatus;

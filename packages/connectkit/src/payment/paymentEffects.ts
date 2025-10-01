@@ -462,7 +462,7 @@ async function runHydratePayParamsEffects(
       }
 
       const paymentData = createRozoPaymentRequest({
-        appId: payParams?.rozoAppId ?? ROZO_DAIMO_APP_ID,
+        appId: payParams?.rozoAppId ?? payParams?.appId ?? ROZO_DAIMO_APP_ID,
         display: {
           intent: order?.metadata?.intent ?? "",
           paymentValue: String(toUnits),

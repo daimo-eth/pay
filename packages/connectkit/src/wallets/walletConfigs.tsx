@@ -190,17 +190,17 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${urlRef}`;
     },
   },
-  farcaster: {
-    name: "Farcaster",
-    icon: <Logos.Farcaster />,
-    iconShape: "squircle",
-    showInMobileConnectors: true,
-    getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
-      return (
-        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/rozo-pay/?id=" + payId
-      );
-    },
-  },
+  // farcaster: {
+  //   name: "Farcaster",
+  //   icon: <Logos.Farcaster />,
+  //   iconShape: "squircle",
+  //   showInMobileConnectors: true,
+  //   getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
+  //     return (
+  //       "https://farcaster.xyz/miniapps/sGRsevnRvM9P/rozo-pay/?id=" + payId
+  //     );
+  //   },
+  // },
   minipay: {
     name: "MiniPay",
     icon: <Logos.MiniPay />,
@@ -257,7 +257,7 @@ export const walletConfigs: {
         "https://play.google.com/store/apps/details?id=com.wallet.crypto.trustapp",
       ios: "https://apps.apple.com/app/trust-crypto-bitcoin-wallet/id1288339409",
     },
-    showInMobileConnectors: false,
+    showInMobileConnectors: true,
     deeplinkScheme: "trust://",
     getRozoPayDeeplink: (payId: string, ref?: string, appId?: string) => {
       return "trust://open_url?coin_id=60&url=" + getRozoPayUrl(payId, appId);

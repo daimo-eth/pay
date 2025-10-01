@@ -13,7 +13,7 @@
     "@headlessui/react": "^2.2.0",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@rozoai/intent-common": "0.0.20",
-    "@rozoai/intent-pay": "0.0.26-beta.3",
+    "@rozoai/intent-pay": "0.0.26-beta.7",
     "@tanstack/react-query": "^5.51.11",
     "autoprefixer": "^10.4.20",
     "next": "^15.3.3",

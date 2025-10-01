@@ -196,7 +196,9 @@ export function usePaymentState({
   // Browser state.
   const [platform, setPlatform] = useState<PlatformType>();
   useEffect(() => {
-    setPlatform(detectPlatform(window.navigator.userAgent));
+    if (typeof window !== "undefined") {
+      setPlatform(detectPlatform(window.navigator.userAgent));
+    }
   }, []);
 
   // Wallet state.

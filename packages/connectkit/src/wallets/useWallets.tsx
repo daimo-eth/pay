@@ -24,6 +24,7 @@ export type WalletProps = {
   isInstalled?: boolean;
   /** Name of the matching Solana wallet adapter (if any) */
   solanaConnectorName?: SolanaWalletName;
+  type?: string;
 } & WalletConfigProps;
 
 export const useWallet = (id: string): WalletProps | null => {
@@ -58,6 +59,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           shortName: connector.name,
           iconConnector: <img src={connector.icon} alt={connector.name} />,
           iconShape: "squircle",
+          type: connector.type,
         });
       });
     }
@@ -90,7 +92,16 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       showInMobileConnectors: false,
     });
 
-    return mobileWallets;
+    return mobileWallets.filter((connector) => {
+      if (
+        connector.id === "injected" &&
+        connector.shortName?.toLowerCase().includes("injected") &&
+        connector.type === "injected"
+      ) {
+        return false;
+      }
+      return true;
+    });
   }
 
   const filteredConnectors = connectors.filter((connector) => {

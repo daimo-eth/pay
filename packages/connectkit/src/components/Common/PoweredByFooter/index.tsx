@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { keyframes } from "styled-components";
+import RozoTextLogo from "../../../assets/rozo-text";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
+import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
 import { rozoPayVersion } from "../../../utils/exports";
 import IntercomInitializer from "../Intercom";
-import { usePayContext } from "../../../hooks/usePayContext";
-import RozoTextLogo from "../../../assets/rozo-text";
-import { useRozoPay } from "../../../hooks/useDaimoPay";
 
 const PoweredByFooter = ({
   preFilledMessage,
@@ -17,7 +17,10 @@ const PoweredByFooter = ({
   const handleContactClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
 
-    if (typeof window.Intercom === "function") {
+    if (
+      typeof window !== "undefined" &&
+      typeof window.Intercom === "function"
+    ) {
       context.setOpen(false);
       window.Intercom(
         "showNewMessage",

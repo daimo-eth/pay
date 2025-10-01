@@ -118,7 +118,11 @@ export function useWalletPaymentOptions({
           supportedTokens.push(bscUSDT.token);
         }
 
-        console.log({ supportedChains, supportedTokens });
+        console.log({
+          appId: payParams?.appId,
+          supportedChains,
+          supportedTokens,
+        });
 
         // Filter out chains/tokens we don't support yet in wallet payment options
         // API may return more options, but we only show these filtered ones to users
@@ -157,6 +161,7 @@ export function useWalletPaymentOptions({
     stablePreferredTokens,
     stableEvmChains,
     trpc,
+    payParams,
   ]);
 
   return {

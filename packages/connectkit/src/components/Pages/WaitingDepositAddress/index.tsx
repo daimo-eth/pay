@@ -484,12 +484,12 @@ function TronUnderpayContent({ orderId }: { orderId?: string }) {
         <ModalBody style={{ textAlign: "center" }}>
           Your funds are safe.
           <br />
-          Email support@daimo.com for a refund.
+          Email hi@rozo.ai for a refund.
         </ModalBody>
         <Button
           onClick={() =>
             window.open(
-              `mailto:support@daimo.com?subject=Underpaid%20USDT%20Tron%20payment%20for%20order%20${orderId}`,
+              `mailto:hi@rozo.ai?subject=Underpaid%20USDT%20Tron%20payment%20for%20order%20${orderId}`,
               "_blank"
             )
           }

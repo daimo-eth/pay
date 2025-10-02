@@ -1,5 +1,4 @@
-import type { Config } from "@wagmi/core";
-import { createConfig, http } from "wagmi";
+import { type Config, createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { useChainIsSupported } from "../hooks/useChainIsSupported";
 

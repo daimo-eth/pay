@@ -25,6 +25,9 @@ export default [
       "detect-browser",
       "resize-observer-polyfill",
       "qrcode",
+      "@stellar/stellar-sdk",
+      "@creit.tech/stellar-wallets-kit",
+      "@solana/spl-token",
     ],
     output: [
       {

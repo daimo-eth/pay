@@ -2,7 +2,7 @@ import { RozoPayOrderID } from "@rozoai/intent-common";
 import { rozoPayVersion } from "./exports";
 
 export function getSupportUrl(payId: RozoPayOrderID, screen: string): string {
-  const email = "support@daimo.com";
+  const email = "hi@rozo.ai";
   const subject = `Support${payId ? ` #${payId}` : ""}`;
   let body = [
     `Transaction: ${screen}`,

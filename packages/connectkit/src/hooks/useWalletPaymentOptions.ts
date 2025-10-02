@@ -19,8 +19,9 @@ import { TrpcClient } from "../utils/trpc";
  * 2. Filtering to only show currently supported chains and tokens
  *
  * CURRENTLY SUPPORTED CHAINS & TOKENS IN WALLET PAYMENT OPTIONS:
- * - Base (Chain ID: 8453) - USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
- * - Polygon (Chain ID: 137) - USDC (0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174)
+ * - Base (Chain ID: 8453) - USDC
+ * - Polygon (Chain ID: 137) - USDC
+ * - BSC (Chain ID: 56) - USDT (when conditions are met)
  * - Rozo Solana - USDC (native Solana USDC)
  * - Rozo Stellar - USDC/XLM (native Stellar tokens)
  *
@@ -112,13 +113,16 @@ export function useWalletPaymentOptions({
         // Each token corresponds to its respective chain above
         const supportedTokens = [baseUSDC.token, polygonUSDC.token];
 
-        // Show BNB Options Pay In when appId contains "MP" (MugglePay)
-        if (payParams && payParams.appId.includes("MP")) {
+        // Show BSC USDT for MugglePay apps or when BSC is preferred
+        const showBSCUSDT =
+          payParams?.appId?.includes("MP") ||
+          stablePreferredChains?.includes(bsc.chainId) ||
+          stableEvmChains?.includes(bsc.chainId);
+
+        if (showBSCUSDT) {
           supportedChains.push(bsc);
           supportedTokens.push(bscUSDT.token);
         }
-
-        console.log({ supportedChains, supportedTokens });
 
         // Filter out chains/tokens we don't support yet in wallet payment options
         // API may return more options, but we only show these filtered ones to users
@@ -128,6 +132,7 @@ export function useWalletPaymentOptions({
               c.chainId === o.balance.token.chainId &&
               supportedTokens.includes(o.balance.token.token)
           );
+
         const filteredOptions = newOptions.filter(isSupported);
         if (filteredOptions.length < newOptions.length) {
           log(
@@ -157,6 +162,7 @@ export function useWalletPaymentOptions({
     stablePreferredTokens,
     stableEvmChains,
     trpc,
+    payParams,
   ]);
 
   return {

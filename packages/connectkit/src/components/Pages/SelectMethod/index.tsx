@@ -9,6 +9,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import {
   Base,
+  BinanceSmartChain,
   Ethereum,
   Polygon,
   Solana,
@@ -261,6 +262,10 @@ export default function SelectMethod() {
     }, options: ${JSON.stringify(externalPaymentOptions.options)}`
   );
 
+  // Pay with Deposit Address
+  const depositAddressOption = getDepositAddressOption(setRoute);
+  options.push(depositAddressOption);
+
   if (showStellarPaymentMethod) {
     options.push({
       id: "stellar",
@@ -292,10 +297,6 @@ export default function SelectMethod() {
   //     },
   //   });
   // }
-
-  // Pay with Deposit Address
-  const depositAddressOption = getDepositAddressOption(setRoute);
-  options.push(depositAddressOption);
 
   // ZKP2P is currently only available on desktop. Check if the user is on
   // desktop and if any ZKP2P options are available.
@@ -369,6 +370,7 @@ function getDepositAddressOption(
     id: "depositAddress",
     title: "Pay to address",
     icons: [
+      <BinanceSmartChain key="bsc" />,
       <Base key="base" />,
       // <Solana key="base" />,
       <Polygon key="polygon" />,

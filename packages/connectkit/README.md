@@ -82,16 +82,16 @@ Clone the repository and build the SDK in `dev` mode:
 ```sh
 git clone https://github.com/RozoAI/intent-pay.git
 cd pay/packages/connectkit
-pnpm i
-pnpm run dev
+bun i
+bun run dev
 ```
 
 The rollup bundler will now watch file changes in the background. Try using one of the examples for testing:
 
 ```sh
 cd examples/nextjs
-pnpm i
-pnpm run dev
+bun i
+bun run dev
 ```
 
 Any changes will be reflected on the Pay button in the example app.
@@ -122,22 +122,22 @@ Daimo Pay SDK is a fork of [Connectkit](https://github.com/family/connectkit) de
 
 ## Setup
 
-Make sure `pnpm` is installed.
+Make sure `bun` is installed.
 
 ```sh
-pnpm -v
+bun -v
 ```
 
 If not, install it.
 
 ```sh
-npm install -g pnpm
+npm install -g bun
 ```
 
 ## Release
 
 ```sh
-pnpm run release
+bun run release
 ```
 
 Choose the version on the prompt.

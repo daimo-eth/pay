@@ -11,7 +11,35 @@ import {
 } from "wagmi";
 import { usePayContext } from "./usePayContext";
 
-export function useConnect({ ...props }: UseConnectParameters = {}) {
+// Define the return type interface to avoid TS2742 error
+interface UseConnectReturn {
+  connect: (params: {
+    connector: CreateConnectorFn | Connector;
+    chainId?: number;
+    mutation?: UseConnectParameters["mutation"];
+  }) => void;
+  connectAsync: (params: {
+    connector: CreateConnectorFn | Connector;
+    chainId?: number;
+    mutation?: UseConnectParameters["mutation"];
+  }) => Promise<any>;
+  connectors: readonly Connector[];
+  status: "idle" | "pending" | "success" | "error";
+  error: Error | null;
+  data: any;
+  failureCount: number;
+  failureReason: Error | null;
+  isPending: boolean;
+  isError: boolean;
+  isIdle: boolean;
+  isSuccess: boolean;
+  reset: () => void;
+  variables: any;
+}
+
+export function useConnect({
+  ...props
+}: UseConnectParameters = {}): UseConnectReturn {
   const context = usePayContext();
 
   const { connect, connectAsync, connectors, ...rest } = wagmiUseConnect({
@@ -23,7 +51,7 @@ export function useConnect({ ...props }: UseConnectParameters = {}) {
           if (err.message === "Proposal expired") {
             context.log(
               "[CONNECT] Connection request timed out. Please try again.",
-              err,
+              err
             );
             return;
           }
@@ -52,7 +80,7 @@ export function useConnect({ ...props }: UseConnectParameters = {}) {
           connector,
           chainId: chainId ?? context.options?.initialChainId,
         },
-        mutation,
+        mutation
       );
     },
     connectAsync: async ({
@@ -69,7 +97,7 @@ export function useConnect({ ...props }: UseConnectParameters = {}) {
           connector,
           chainId: chainId ?? context.options?.initialChainId,
         },
-        mutation,
+        mutation
       );
     },
     connectors,

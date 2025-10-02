@@ -70,7 +70,7 @@ function flattenChildren(children: React.ReactNode): ReactChildArray {
   return childrenArray.reduce((flatChildren: ReactChildArray, child) => {
     if ((child as React.ReactElement<any>).type === React.Fragment) {
       return flatChildren.concat(
-        flattenChildren((child as React.ReactElement<any>).props.children),
+        flattenChildren((child as React.ReactElement<any>).props.children)
       );
     }
     flatChildren.push(child);
@@ -83,6 +83,9 @@ export const isMetaMaskConnector = (connectorId?: string) =>
 
 export const isCoinbaseWalletConnector = (connectorId?: string) =>
   connectorId === "coinbaseWalletSDK";
+
+export const isPhantomConnector = (connectorId?: string) =>
+  connectorId === "phantom";
 
 export const isLedgerConnector = (connectorId?: string) =>
   connectorId === "ledger";

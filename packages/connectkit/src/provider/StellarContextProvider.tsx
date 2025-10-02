@@ -63,13 +63,24 @@ export const StellarContextProvider = ({
     undefined
   );
   const [isAccountExists, setIsAccountExists] = useState(false);
+  const [kit, setKit] = useState<StellarWalletsKit | undefined>(undefined);
 
-  const kit = new StellarWalletsKit({
-    network: WalletNetwork.PUBLIC,
-    selectedWalletId: ALBEDO_ID,
-    // modules: allowAllModules(),
-    modules: [new AlbedoModule(), new LobstrModule(), new FreighterModule()],
-  });
+  // Initialize kit only on client side to avoid SSR issues
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stellarKit = new StellarWalletsKit({
+        network: WalletNetwork.PUBLIC,
+        selectedWalletId: ALBEDO_ID,
+        // modules: allowAllModules(),
+        modules: [
+          new AlbedoModule(),
+          new LobstrModule(),
+          new FreighterModule(),
+        ],
+      });
+      setKit(stellarKit);
+    }
+  }, []);
 
   const server = new Horizon.Server(stellarRpcUrl ?? DEFAULT_STELLAR_RPC_URL);
 
@@ -116,7 +127,9 @@ export const StellarContextProvider = ({
       setPublicKey(undefined);
       setConnector(undefined);
       setAccountInfo(undefined);
-      await kit.disconnect();
+      if (kit) {
+        await kit.disconnect();
+      }
     } catch (error: any) {
       console.error(error);
     }

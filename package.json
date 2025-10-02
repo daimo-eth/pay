@@ -5,26 +5,30 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "pnpm --filter @rozoai/intent-common build && pnpm --filter @rozoai/intent-pay build",
-    "dev": "pnpm --parallel --filter '@rozoai/*' dev",
-    "dev:common": "pnpm --filter @rozoai/intent-common build --watch",
-    "dev:pay": "pnpm --filter @rozoai/intent-pay dev",
-    "dev:example": "pnpm --filter @rozoai/pay-nextjs-app-example dev",
-    "install:local": "pnpm install",
-    "release": "pnpm build && pnpm --filter @rozoai/intent-common publish && pnpm --filter @rozoai/intent-pay release",
-    "clean": "pnpm dlx rimraf '**/node_modules'",
-    "clean:full": "pnpm clean && pnpm dlx rimraf pnpm-lock.yaml",
-    "clean:deps": "pnpm dlx rimraf '**/node_modules' '**/dist' '**/build' '**/.next'"
+    "build": "bun --filter @rozoai/intent-common build && bun --filter @rozoai/intent-pay build",
+    "dev": "bun --concurrent --filter '@rozoai/*' dev",
+    "dev:common": "bun --filter @rozoai/intent-common build --watch",
+    "dev:pay": "bun --filter @rozoai/intent-pay dev",
+    "dev:example": "bun --filter @rozoai/pay-nextjs-app-example dev",
+    "install:local": "bun install",
+    "release": "bun build && bun --filter @rozoai/intent-common publish && bun --filter @rozoai/intent-pay release",
+    "clean": "bunx rimraf '**/node_modules'",
+    "clean:full": "bun clean && bunx rimraf bun-lock.yaml",
+    "clean:deps": "bunx rimraf '**/node_modules' '**/dist' '**/build' '**/.next'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "bun@1.2.23",
   "devDependencies": {
     "bumpp": "^10.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "viem": "^2.31.6",
     "wagmi": "^2.15.6"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/nextjs-app"
+  ]
 }

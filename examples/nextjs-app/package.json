@@ -2,7 +2,7 @@
   "name": "@rozoai/pay-nextjs-app-example",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo --port 3001",
     "dev:local": "NEXT_USE_LOCAL_PACKAGES=true next dev",
     "build": "next build",
     "start": "next start",
@@ -11,9 +11,12 @@
   "dependencies": {
     "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
+    "@rainbow-me/rainbowkit": "^2.2.8",
     "@rozoai/intent-common": "0.0.20",
-    "@rozoai/intent-pay": "0.0.25",
+    "@rozoai/intent-pay": "0.0.26-beta.12",
     "@tanstack/react-query": "^5.51.11",
+    "clsx": "^2.1.1",
+    "styled-components": "^6.1.19",
     "autoprefixer": "^10.4.20",
     "next": "^15.3.3",
     "postcss": "^8.4.49",

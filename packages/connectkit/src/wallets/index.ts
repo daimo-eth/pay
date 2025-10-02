@@ -1,5 +1,4 @@
-import { injected } from "@wagmi/connectors";
-import { CreateConnectorFn } from "wagmi";
+import { CreateConnectorFn, injected } from "wagmi";
 
 import { walletConfigs } from "./walletConfigs";
 

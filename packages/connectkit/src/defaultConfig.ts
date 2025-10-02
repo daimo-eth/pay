@@ -1,19 +1,5 @@
-import { type CreateConfigParameters } from "@wagmi/core";
-import { CreateConnectorFn, http } from "wagmi";
-import {
-  arbitrum,
-  base,
-  bsc,
-  celo,
-  Chain,
-  linea,
-  mainnet,
-  mantle,
-  optimism,
-  polygon,
-  sepolia,
-  worldchain,
-} from "wagmi/chains";
+import { type CreateConfigParameters, CreateConnectorFn, http } from "wagmi";
+import { base, bsc, Chain, polygon } from "wagmi/chains";
 import { CoinbaseWalletParameters } from "wagmi/connectors";
 
 import defaultConnectors from "./defaultConnectors";
@@ -38,17 +24,17 @@ type DefaultConfigProps = {
 } & Partial<CreateConfigParameters>;
 
 export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
-  mainnet,
+  // mainnet,
   base,
   polygon,
-  optimism,
-  arbitrum,
-  linea,
+  // optimism,
+  // arbitrum,
+  // linea,
   bsc,
-  sepolia,
-  worldchain,
-  mantle,
-  celo,
+  // sepolia,
+  // worldchain,
+  // mantle,
+  // celo,
 ];
 
 /** Rozo Pay recommended config, for use with wagmi's createConfig(). */

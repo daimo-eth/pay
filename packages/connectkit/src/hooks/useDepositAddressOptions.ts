@@ -1,5 +1,6 @@
 import {
   base,
+  bsc,
   DepositAddressPaymentOptions,
   polygon,
   RozoPayOrderMode,
@@ -53,9 +54,14 @@ export function useDepositAddressOptions({
           //   minimumUsd: 0,
           // },
           {
+            id: DepositAddressPaymentOptions.BSC,
+            logoURI: chainToLogo[bsc.chainId],
+            minimumUsd: 0.1,
+          },
+          {
             id: DepositAddressPaymentOptions.BASE,
             logoURI: chainToLogo[base.chainId],
-            minimumUsd: 0,
+            minimumUsd: 0.1,
           },
           // {
           //   id: DepositAddressPaymentOptions.SOLANA,
@@ -70,7 +76,7 @@ export function useDepositAddressOptions({
           {
             id: DepositAddressPaymentOptions.POLYGON,
             logoURI: chainToLogo[polygon.chainId],
-            minimumUsd: 0,
+            minimumUsd: 0.1,
           },
           // {
           //   id: DepositAddressPaymentOptions.STELLAR,

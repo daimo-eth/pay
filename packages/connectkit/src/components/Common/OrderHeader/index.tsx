@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import {
   Arbitrum,
   Base,
+  BinanceSmartChain,
   Ethereum,
   Optimism,
   Polygon,
@@ -183,6 +184,7 @@ function CoinLogos({
     // <USDC key="usdc" />,
     <Optimism key="optimism" />,
     <Arbitrum key="arbitrum" />,
+    <BinanceSmartChain key="bsc" />,
     <Base key="base" />,
     <Polygon key="polygon" />,
     <Solana key="solana" />,

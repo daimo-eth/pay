@@ -397,6 +397,7 @@ export type ExternalPaymentOptionData = {
 export enum DepositAddressPaymentOptions {
   TRON_USDT = "USDT on Tron",
   BASE = "Base",
+  BSC = "BSC",
   ARBITRUM = "Arbitrum",
   OP_MAINNET = "Optimism",
   POLYGON = "Polygon",

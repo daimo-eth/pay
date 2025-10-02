@@ -399,6 +399,12 @@ const Modal: React.FC<ModalProps> = ({
     }
   }
 
+  useEffect(() => {
+    if (context.debugMode) {
+      context.log(`[ROUTE HEADING] ${context.route}`);
+    }
+  }, [context.route, context.debugMode]);
+
   const Content = (
     <ResetContainer
       $useTheme={demo?.theme ?? themeContext.theme}

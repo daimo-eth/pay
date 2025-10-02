@@ -40,7 +40,6 @@ const ConnectStellar: React.FC = () => {
       setIsLoading(true);
       try {
         const wallets = await kit.getSupportedWallets();
-        console.log("Stellar wallets:", wallets);
         setStellarWallets(wallets);
       } catch (error) {
         console.error("Error fetching Stellar wallets:", error);

@@ -1,6 +1,7 @@
 import {
   arbitrumUSDC,
   baseUSDC,
+  bscUSDT,
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
   ethereumUSDC,
@@ -17,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
+import { ROZO_API_TOKEN } from "../../../constants/rozoConfig";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -38,7 +40,7 @@ import TokenChainLogo from "../../Common/TokenChainLogo";
 
 // Define fetchApi function locally if import doesn't work
 const ROZO_API_BASE = "https://intentapiv2.rozo.ai/functions/v1";
-const ROZO_API_TOKEN = "your-api-token"; // This should be imported from config
+// const ROZO_API_TOKEN = "your-api-token"; // This should be imported from config
 
 const fetchApi = async (endpoint: string) => {
   try {
@@ -197,7 +199,12 @@ export default function WaitingDepositAddress() {
           "[PAYMENT POLLING] Polling for payment transaction:",
           depAddr?.externalId
         );
-        const response = await fetchApi(`payment/id/${depAddr?.externalId}`);
+        const isMugglePay = depAddr?.externalId.includes("mugglepay_order");
+        const endpoint = isMugglePay
+          ? `payment-api/${depAddr?.externalId}`
+          : `payment/id/${depAddr?.externalId}`;
+
+        const response = await fetchApi(endpoint);
 
         console.log("[PAYMENT POLLING] Debug - API Response:", {
           status: response.status,
@@ -208,12 +215,18 @@ export default function WaitingDepositAddress() {
           fullData: response.data,
         });
 
-        if (isActive && response.data && response.data.payinTransactionHash) {
+        const payInHash = isMugglePay
+          ? response.data?.metadata?.source_tx_hash
+          : response.data?.payinTransactionHash;
+
+        console.log({ response: response.data });
+
+        if (isActive && response.data && payInHash) {
           console.log(
             "[PAYMENT POLLING] ✅ Found payinTransactionHash:",
-            response.data.payinTransactionHash
+            payInHash
           );
-          setPayinTransactionHash(response.data.payinTransactionHash);
+          setPayinTransactionHash(payInHash);
           setIsPollingPayment(false);
           // TODO: Decide which route to navigate to when transaction hash is found
           console.log(
@@ -323,6 +336,10 @@ export default function WaitingDepositAddress() {
           selectedDepositAddressOption.id
         );
         if (details) {
+          const shouldShowMemo = ![DepositAddressPaymentOptions.BSC].includes(
+            selectedDepositAddressOption.id
+          );
+
           setDepAddr({
             address: details.address,
             amount: details.amount,
@@ -332,7 +349,7 @@ export default function WaitingDepositAddress() {
             displayToken,
             logoURI,
             externalId: details.externalId,
-            memo: details.memo || "",
+            memo: shouldShowMemo ? details.memo || "" : undefined,
           });
           setRozoPaymentId(details.externalId);
           setDepoChain(selectedDepositAddressOption.id);
@@ -359,6 +376,7 @@ export default function WaitingDepositAddress() {
       }
     }
   };
+
   // Track which deposit option we're currently processing to prevent double execution
   const processingOptionRef = useRef<string | null>(null);
 
@@ -573,6 +591,8 @@ function getDisplayToken(meta: DepositAddressPaymentOptionMetadata) {
       return rozoSolanaUSDC;
     case DepositAddressPaymentOptions.STELLAR:
       return rozoStellarUSDC;
+    case DepositAddressPaymentOptions.BSC:
+      return bscUSDT;
     default:
       return null;
   }

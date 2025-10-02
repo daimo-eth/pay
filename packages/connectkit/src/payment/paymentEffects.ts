@@ -1,11 +1,7 @@
 import {
   assert,
-  base,
-  baseUSDC,
-  bscUSDT,
   getKnownToken,
   getOrderDestChainId,
-  polygonUSDC,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -13,21 +9,19 @@ import {
   RozoPayOrderStatusDest,
   RozoPayOrderStatusSource,
   RozoPayOrderWithOrg,
-  rozoSolanaUSDC,
-  rozoStellar,
-  rozoStellarUSDC,
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress, parseUnits } from "viem";
-import {
-  ROZO_DAIMO_APP_ID,
-  STELLAR_USDC_ISSUER_PK,
-} from "../constants/rozoConfig";
+import { ROZO_DAIMO_APP_ID } from "../constants/rozoConfig";
 import {
   createRozoPayment,
   createRozoPaymentRequest,
   getRozoPayment,
   PaymentResponseData,
 } from "../utils/api";
+import {
+  createPaymentBridgeConfig,
+  formatPaymentResponseDataToHydratedOrder,
+} from "../utils/bridge";
 import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
 import { PaymentEvent, PaymentState } from "./paymentFsm";
@@ -384,126 +378,53 @@ async function runHydratePayParamsEffects(
    * @link https://github.com/RozoAI/rozo-payment-manager/tree/staging?tab=readme-ov-file#supported-chains-and-tokens
    */
   let rozoPaymentId: string | undefined = order?.externalId ?? undefined;
-  let preferred = {
-    preferredChain: String(toChain),
-    preferredToken: "USDC",
-  };
-  let destination = {
-    destinationAddress: payParams?.toAddress,
-    chainId: String(toChain),
-    amountUnits: toUnits,
-    tokenSymbol: "USDC",
-    tokenAddress: toToken as string,
-  };
+  let rozoPaymentResponse: PaymentResponseData | undefined = undefined;
 
-  let rozoPaymentData: undefined | PaymentResponseData;
-  if (toChain === base.chainId && toToken === baseUSDC.token) {
-    try {
-      // Pay In USDC Polygon
-      if (
-        walletPaymentOption &&
-        walletPaymentOption.required.token.token === polygonUSDC.token
-      ) {
-        console.log("[runHydratePayParamsEffects] Pay In USDC Polygon");
-        preferred.preferredChain = String(polygonUSDC.chainId);
-        preferred.preferredToken = "USDC";
+  const { preferred, destination } = createPaymentBridgeConfig({
+    toChain: toChain,
+    toToken: toToken,
+    toAddress: toAddress,
+    toSolanaAddress: payParams?.toSolanaAddress,
+    toStellarAddress: payParams?.toStellarAddress,
+    toUnits: toUnits,
+    walletPaymentOption: walletPaymentOption,
+  });
 
-        Object.assign(preferred, {
-          preferredTokenAddress: polygonUSDC.token as `0x${string}`,
-        });
-      }
+  const paymentData = createRozoPaymentRequest({
+    appId: payParams?.rozoAppId ?? payParams?.appId ?? ROZO_DAIMO_APP_ID,
+    display: {
+      intent: order?.metadata?.intent ?? "",
+      paymentValue: String(toUnits),
+      currency: "USD",
+    },
+    ...preferred,
+    destination,
+    externalId: order?.externalId ?? "",
+    metadata: {
+      daimoOrderId: order?.id ?? "",
+      ...(payParams?.metadata ?? {}),
+      ...(order?.metadata ?? {}),
+      ...(order.userMetadata ?? {}),
+    },
+  });
 
-      // Pay In USDC Solana
-      if (
-        walletPaymentOption &&
-        walletPaymentOption.required.token.token === rozoSolanaUSDC.token
-      ) {
-        console.log("[runHydratePayParamsEffects] Pay In USDC Solana");
-        preferred.preferredChain = String(rozoSolanaUSDC.chainId);
-        preferred.preferredToken = "USDC";
-      }
-
-      // Pay In USDC Stellar
-      if (
-        walletPaymentOption &&
-        walletPaymentOption.required.token.token === rozoStellarUSDC.token
-      ) {
-        console.log("[runHydratePayParamsEffects] Pay In USDC Stellar");
-        preferred.preferredChain = String(rozoStellarUSDC.chainId);
-        preferred.preferredToken = "USDC";
-      }
-
-      // Pay In USDT BSC
-      if (
-        walletPaymentOption &&
-        walletPaymentOption.required.token.token === bscUSDT.token
-      ) {
-        console.log("[runHydratePayParamsEffects] Pay In USDT BSC");
-        preferred.preferredChain = String(bscUSDT.chainId);
-        preferred.preferredToken = "USDT";
-      }
-
-      // Pay Out USDC Stellar
-      if (payParams?.toStellarAddress) {
-        console.log("[runHydratePayParamsEffects] Pay Out USDC Stellar");
-        destination.destinationAddress = payParams?.toStellarAddress;
-        destination.chainId = String(rozoStellar.chainId);
-        destination.tokenSymbol = "USDC";
-        destination.tokenAddress = `USDC:${STELLAR_USDC_ISSUER_PK}`;
-      } else if (payParams?.toSolanaAddress) {
-        // Pay Out USDC Solana
-        console.log("[runHydratePayParamsEffects] Pay Out USDC Solana");
-        destination.destinationAddress = payParams?.toSolanaAddress;
-        destination.chainId = String(rozoSolanaUSDC.chainId);
-        destination.tokenSymbol = "USDC";
-        destination.tokenAddress = rozoSolanaUSDC.token;
-      } else {
-        console.log("[runHydratePayParamsEffects] Pay Out USDC Base");
-      }
-
-      const paymentData = createRozoPaymentRequest({
-        appId: payParams?.rozoAppId ?? payParams?.appId ?? ROZO_DAIMO_APP_ID,
-        display: {
-          intent: order?.metadata?.intent ?? "",
-          paymentValue: String(toUnits),
-          currency: "USD",
-        },
-        ...preferred,
-        destination,
-        externalId: order?.externalId ?? "",
-        metadata: {
-          daimoOrderId: order?.id ?? "",
-          ...(payParams?.metadata ?? {}),
-          ...(order?.metadata ?? {}),
-          ...(order.userMetadata ?? {}),
-        },
+  try {
+    const rozoPayment = await createRozoPayment(paymentData);
+    if (!rozoPayment?.data?.id) {
+      throw new Error(rozoPayment?.error?.message ?? "Payment creation failed");
+    }
+    rozoPaymentResponse = rozoPayment.data;
+    rozoPaymentId = rozoPayment.data.id;
+  } catch (e) {
+    console.error(e);
+    if (destination.chainId !== preferred.preferredChain) {
+      store.dispatch({
+        type: "error",
+        order: prev.order,
+        message:
+          "Failed to generate bridge payment. Please try again with a different token or chain.",
       });
-
-      const rozoPayment = await createRozoPayment(paymentData);
-      if (!rozoPayment?.data?.id) {
-        throw new Error(
-          rozoPayment?.error?.message ?? "Payment creation failed"
-        );
-      }
-      rozoPaymentData = rozoPayment.data;
-      rozoPaymentId = rozoPayment.data.id;
-      if (rozoPayment.data.metadata.receivingAddress) {
-        toAddress = rozoPayment.data.metadata.receivingAddress as `0x${string}`;
-      } else {
-        console.log(
-          "[runHydratePayParamsEffects] toAddress is not set, nothing changes"
-        );
-      }
-    } catch (e) {
-      console.error(e);
-      if (destination.chainId !== preferred.preferredChain) {
-        store.dispatch({
-          type: "error",
-          order: prev.order,
-          message:
-            "Failed to generate bridge payment. Please try again with a different token or chain.",
-        });
-      }
+      return;
     }
   }
 
@@ -539,96 +460,15 @@ async function runHydratePayParamsEffects(
     //   refundAddress: event.refundAddress ?? prev.order.refundAddr ?? undefined,
     // });
 
-    const token = getKnownToken(toChain, toToken);
+    if (
+      typeof rozoPaymentResponse === "undefined" ||
+      rozoPaymentResponse === null
+    ) {
+      throw new Error("Payment data not found");
+    }
 
-    const hydratedOrder: RozoPayHydratedOrderWithOrg = {
-      id: BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),
-      mode: RozoPayOrderMode.HYDRATED,
-      intentAddr: toAddress,
-      handoffAddr: toAddress,
-      escrowContractAddress: toAddress,
-      bridgerContractAddress: toAddress,
-      bridgeTokenOutOptions: [
-        {
-          token: {
-            chainId: toChain,
-            token: toToken,
-            symbol: "USDC",
-            usd: 1,
-            priceFromUsd: 1,
-            decimals: order.destFinalCallTokenAmount.token.decimals,
-            displayDecimals: 2,
-            logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-            logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
-            maxAcceptUsd: 100000,
-            maxSendUsd: 0,
-          },
-          amount: order.destFinalCallTokenAmount.amount,
-          usd: Number(toUnits),
-        },
-      ],
-      selectedBridgeTokenOutAddr: null,
-      selectedBridgeTokenOutAmount: null,
-      destFinalCallTokenAmount: {
-        token: {
-          chainId: toChain,
-          token: toToken,
-          symbol: "USDC",
-          usd: 1,
-          priceFromUsd: 1,
-          decimals: order.destFinalCallTokenAmount.token.decimals,
-          displayDecimals: 2,
-          logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-          logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
-          maxAcceptUsd: 100000,
-          maxSendUsd: 0,
-        },
-        amount: parseUnits(
-          toUnits,
-          token?.decimals ?? 18
-        ).toString() as `${bigint}`,
-        usd: Number(toUnits),
-      },
-      usdValue: Number(toUnits),
-      destFinalCall: {
-        to: toAddress,
-        value: BigInt("0"),
-        data: "0x",
-      },
-      refundAddr: (order.refundAddr as `0x${string}`) || null,
-      nonce: order.nonce,
-      sourceTokenAmount: null,
-      sourceFulfillerAddr: null,
-      sourceInitiateTxHash: null,
-      sourceStartTxHash: null,
-      sourceStatus: RozoPayOrderStatusSource.WAITING_PAYMENT,
-      destStatus: RozoPayOrderStatusDest.PENDING,
-      intentStatus: RozoPayIntentStatus.UNPAID,
-      destFastFinishTxHash: null,
-      destClaimTxHash: null,
-      // passedToAddress: null,
-      redirectUri: null,
-      // sourceInitiateUpdatedAt: null,
-      createdAt: Math.floor(Date.now() / 1000),
-      lastUpdatedAt: Math.floor(Date.now() / 1000),
-      orgId: order.orgId,
-      metadata: {
-        daimoOrderId: order?.id ?? null,
-        ...(payParams?.metadata ?? {}),
-        ...(order?.metadata ?? {}),
-        ...(order.userMetadata ?? {}),
-        ...(rozoPaymentData?.metadata ?? {}),
-      } as any,
-      externalId: rozoPaymentId ?? null,
-      userMetadata: null,
-      expirationTs: BigInt("1756990145"),
-      org: {
-        orgId:
-          order.orgId ??
-          "organization-live-099b8b4a-a4b3-42aa-b315-5bf402ed7e01",
-        name: "Pay Rozo",
-      },
-    };
+    const hydratedOrder =
+      formatPaymentResponseDataToHydratedOrder(rozoPaymentResponse);
 
     console.log("hydratedOrder", hydratedOrder);
 
@@ -679,13 +519,13 @@ async function runHydratePayIdEffects(
           token: {
             chainId: order.destFinalCallTokenAmount.token.chainId,
             token: order.destFinalCallTokenAmount.token.token,
-            symbol: "USDC",
+            symbol: order.destFinalCallTokenAmount.token.symbol,
             usd: 1,
             priceFromUsd: 1,
             decimals: token?.decimals ?? 18,
             displayDecimals: 2,
-            logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-            logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
+            logoSourceURI: order.destFinalCallTokenAmount.token.logoSourceURI,
+            logoURI: order.destFinalCallTokenAmount.token.logoURI,
             maxAcceptUsd: 100000,
             maxSendUsd: 0,
           },
@@ -700,13 +540,13 @@ async function runHydratePayIdEffects(
         token: {
           chainId: order.destFinalCallTokenAmount.token.chainId,
           token: order.destFinalCallTokenAmount.token.token,
-          symbol: "USDC",
+          symbol: order.destFinalCallTokenAmount.token.symbol,
           usd: 1,
           priceFromUsd: 1,
           decimals: token?.decimals ?? 18,
           displayDecimals: 2,
-          logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-          logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
+          logoSourceURI: order.destFinalCallTokenAmount.token.logoSourceURI,
+          logoURI: order.destFinalCallTokenAmount.token.logoURI,
           maxAcceptUsd: 100000,
           maxSendUsd: 0,
         },
@@ -738,22 +578,19 @@ async function runHydratePayIdEffects(
       // sourceInitiateUpdatedAt: null,
       createdAt: order.createdAt,
       lastUpdatedAt: Math.floor(Date.now() / 1000),
-      orgId:
-        orderData.data.id ??
-        "organization-live-099b8b4a-a4b3-42aa-b315-5bf402ed7e01",
+      orgId: orderData.data.id,
       metadata: {
-        daimoOrderId: order?.id ?? null,
         ...(orderData.data.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order.userMetadata ?? {}),
+        daimoOrderId: order?.id ?? null,
       } as any,
-      externalId: orderData.data.externalId ?? orderData.data.id ?? null,
+      externalId:
+        orderData.data.externalId?.toString() ?? orderData.data.id ?? null,
       userMetadata: null,
       expirationTs: orderData.data.expirationTs as unknown as bigint,
       org: {
-        orgId:
-          orderData.data.id ??
-          "organization-live-099b8b4a-a4b3-42aa-b315-5bf402ed7e01",
+        orgId: orderData.data.id,
         name: "Pay Rozo",
       },
     };

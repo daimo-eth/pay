@@ -16,6 +16,7 @@ import {
   polygonUSDC,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
+  rozoSolana,
   rozoSolanaUSDC,
   rozoStellarUSDC,
   Token,
@@ -57,11 +58,17 @@ import bs58 from "bs58";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import {
+  ROZO_DAIMO_APP_ID,
   STELLAR_USDC_ASSET_CODE,
   STELLAR_USDC_ISSUER_PK,
 } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
+import { createRozoPayment, createRozoPaymentRequest } from "../utils/api";
+import {
+  createPaymentBridgeConfig,
+  formatPaymentResponseDataToHydratedOrder,
+} from "../utils/bridge";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -334,6 +341,71 @@ export function usePaymentState({
       : DEFAULT_USD_LIMIT;
   };
 
+  const handleCreateRozoPayment = async (walletOption: WalletPaymentOption) => {
+    const payParams = currPayParams;
+    const order = pay.order;
+
+    const hasToStellarAddress = payParams?.toStellarAddress;
+    const destinationAddress =
+      payParams?.toStellarAddress ||
+      payParams?.toSolanaAddress ||
+      payParams?.toAddress;
+
+    const chainId = hasToStellarAddress
+      ? String(rozoStellarUSDC.chainId)
+      : payParams?.toSolanaAddress
+      ? String(rozoSolana.chainId)
+      : String(payParams?.toChain);
+
+    const tokenAddress = hasToStellarAddress
+      ? `USDC:${STELLAR_USDC_ISSUER_PK}`
+      : payParams?.toSolanaAddress
+      ? rozoSolanaUSDC.token
+      : payParams?.toToken;
+
+    const { preferred, destination } = createPaymentBridgeConfig({
+      toChain: Number(chainId),
+      toToken: tokenAddress ?? "",
+      toAddress: destinationAddress,
+      toSolanaAddress: payParams?.toSolanaAddress,
+      toStellarAddress: payParams?.toStellarAddress,
+      toUnits: payParams?.toUnits ?? "",
+      walletPaymentOption: walletOption,
+    });
+
+    const paymentData = createRozoPaymentRequest({
+      appId: payParams?.appId ?? ROZO_DAIMO_APP_ID,
+      display: {
+        intent: order?.metadata?.intent ?? "",
+        paymentValue: String(payParams?.toUnits ?? ""),
+        currency: "USD",
+      },
+      ...preferred,
+      destination,
+      externalId: order?.externalId ?? "",
+      metadata: {
+        daimoOrderId: order?.id ?? "",
+        ...(payParams?.metadata ?? {}),
+        ...(order?.metadata ?? {}),
+        ...(order?.userMetadata ?? {}),
+      },
+    });
+
+    // API Call
+    try {
+      const response = await createRozoPayment(paymentData);
+
+      if (!response?.data?.id) {
+        throw new Error(response?.error?.message ?? "Payment creation failed");
+      }
+
+      setRozoPaymentId(response.data.id);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
     walletOption: WalletPaymentOption
@@ -352,13 +424,8 @@ export function usePaymentState({
     let hydratedOrder: RozoPayHydratedOrderWithOrg;
     const { required, fees } = walletOption;
     const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
-
-    const ableToHydrate =
-      pay.paymentState !== "payment_unpaid" ||
-      ("payinchainid" in pay.order.metadata &&
-        Number(pay.order.metadata.payinchainid) !== required.token.chainId);
-
-    if (ableToHydrate) {
+    console.log("[PAY TOKEN] pay:", pay);
+    if (pay.paymentState !== "payment_unpaid") {
       assert(
         required.token.token === fees.token.token,
         `[PAY TOKEN] required token ${debugJson(
@@ -366,10 +433,22 @@ export function usePaymentState({
         )} does not match fees token ${debugJson(fees)}`
       );
 
-      // Will refund to ethWalletAddress if refundAddress was not set in payParams
-      // and provide walletOption to hydrateOrder
-      const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
-      hydratedOrder = res.order;
+      console.log("[PAY TOKEN] hydrated order:", pay.order);
+      console.log("[PAY TOKEN] required:", required);
+
+      if (
+        "payinchainid" in pay.order.metadata &&
+        Number(pay.order.metadata.payinchainid) !== required.token.chainId
+      ) {
+        console.log("[PAY TOKEN] creating rozo payment");
+        const res = await handleCreateRozoPayment(walletOption);
+        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+      } else {
+        // Will refund to ethWalletAddress if refundAddress was not set in payParams
+        // and provide walletOption to hydrateOrder
+        const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
+        hydratedOrder = res.order;
+      }
 
       log(
         `[PAY TOKEN] hydrated order: ${debugJson(
@@ -377,8 +456,19 @@ export function usePaymentState({
         )}, paying ${paymentAmount} of token ${required.token.token}`
       );
     } else {
-      hydratedOrder = pay.order;
+      if (
+        "payinchainid" in pay.order.metadata &&
+        Number(pay.order.metadata.payinchainid) !== required.token.chainId
+      ) {
+        console.log("[PAY TOKEN] creating rozo payment");
+        const res = await handleCreateRozoPayment(walletOption);
+        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+      } else {
+        hydratedOrder = pay.order;
+      }
     }
+
+    console.log("[PAY TOKEN] hydrated order:", hydratedOrder);
 
     const paymentTxHash = await (async () => {
       try {

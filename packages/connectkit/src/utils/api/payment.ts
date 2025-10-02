@@ -47,13 +47,38 @@ export interface PaymentRequestData {
  */
 export interface PaymentResponseData {
   id: string;
-  status: string;
+  status: "payment_unpaid" | string;
   createdAt: string;
-  display: PaymentDisplay;
+  display: {
+    intent: string;
+    currency: string;
+    paymentValue?: string;
+  };
   source: PaymentSource | null;
-  destination: PaymentDestination;
-  externalId: string;
-  metadata: Record<string, unknown>;
+  destination: {
+    destinationAddress: string;
+    txHash: string | null;
+    chainId: string;
+    amountUnits: string;
+    tokenSymbol: string;
+    tokenAddress: string;
+  };
+  metadata: {
+    daimoOrderId: string;
+    intent: string;
+    items: unknown[];
+    payer: Record<string, unknown>;
+    appId: string;
+    orderDate: string;
+    webhookUrl: string;
+    provider: string;
+    receivingAddress: string;
+    memo: string | null;
+    payinchainid: string;
+    payintokenaddress: string;
+    [key: string]: unknown;
+  };
+  url: string;
   [key: string]: unknown;
 }
 

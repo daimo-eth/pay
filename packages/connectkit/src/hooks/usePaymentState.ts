@@ -442,6 +442,11 @@ export function usePaymentState({
       ) {
         console.log("[PAY TOKEN] creating rozo payment");
         const res = await handleCreateRozoPayment(walletOption);
+        setPayId(res.id);
+        hydratedOrder = formatPaymentResponseDataToHydratedOrder({
+          ...res,
+          externalId: res.id,
+        });
         hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
       } else {
         // Will refund to ethWalletAddress if refundAddress was not set in payParams
@@ -462,7 +467,11 @@ export function usePaymentState({
       ) {
         console.log("[PAY TOKEN] creating rozo payment");
         const res = await handleCreateRozoPayment(walletOption);
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+        setPayId(res.id);
+        hydratedOrder = formatPaymentResponseDataToHydratedOrder({
+          ...res,
+          externalId: res.id,
+        });
       } else {
         hydratedOrder = pay.order;
       }

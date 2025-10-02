@@ -467,8 +467,10 @@ async function runHydratePayParamsEffects(
       throw new Error("Payment data not found");
     }
 
-    const hydratedOrder =
-      formatPaymentResponseDataToHydratedOrder(rozoPaymentResponse);
+    const hydratedOrder = formatPaymentResponseDataToHydratedOrder({
+      ...rozoPaymentResponse,
+      externalId: rozoPaymentId,
+    });
 
     console.log("hydratedOrder", hydratedOrder);
 

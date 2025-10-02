@@ -59,6 +59,7 @@
     "@stellar/stellar-sdk": "^13.3.0",
     "@trpc/client": "^11.0.0-next-beta.318",
     "@trpc/server": "^11.0.0-next-beta.318",
+    "@worldcoin/minikit-js": "^1.9.7",
     "alchemy-sdk": "^3.6.3",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
@@ -74,7 +75,6 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
-    "@worldcoin/minikit-js": ">=1.9.6",
     "react": "18.x || 19.x",
     "react-dom": "18.x || 19.x",
     "viem": "2.x",

@@ -173,9 +173,9 @@ import { RozoPayProvider, RozoPayButton } from '@rozoai/intent-pay';
 
 ### Build Commands
 
-- `pnpm run dev`: Development mode with watch
-- `pnpm run build`: Production build
-- `pnpm run lint`: ESLint validation
+- `bun run dev`: Development mode with watch
+- `bun run build`: Production build
+- `bun run lint`: ESLint validation
 
 ## Important Notes
 

@@ -173,9 +173,6 @@ export function useStellarPaymentOptions({
           (b) => b.asset_type === "native"
         );
 
-        console.log("Balances:", account?.balances);
-        console.log("Native Balance:", nativeBalance);
-
         if (nativeBalance) {
           const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
           // @NOTE: We are not including XLM in the options list for now.
@@ -194,10 +191,6 @@ export function useStellarPaymentOptions({
         structuredBalances.push(usdcOption);
 
         setOptions(structuredBalances);
-        console.log(
-          "Structured Balances:",
-          JSON.stringify(structuredBalances, null, 2)
-        );
       } catch (error) {
         console.error("Error fetching balances:", error);
         setOptions([]);

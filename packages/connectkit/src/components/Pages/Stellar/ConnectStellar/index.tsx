@@ -36,7 +36,7 @@ const ConnectStellar: React.FC = () => {
   // Fetch Stellar wallets when the kit is available
   useEffect(() => {
     const fetchStellarWallets = async () => {
-      if (!kit) return;
+      if (!kit || typeof window === "undefined") return;
       setIsLoading(true);
       try {
         const wallets = await kit.getSupportedWallets();
@@ -90,7 +90,7 @@ const ConnectStellar: React.FC = () => {
 
   return (
     <PageContent>
-      {isLoading ? (
+      {isLoading || !kit ? (
         <WalletPaymentSpinner
           logo={<Stellar />}
           logoShape="circle"

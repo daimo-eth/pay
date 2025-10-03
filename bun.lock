@@ -41,7 +41,7 @@
     },
     "packages/connectkit": {
       "name": "@rozoai/intent-pay",
-      "version": "0.0.27",
+      "version": "0.0.28",
       "dependencies": {
         "@albedo-link/intent": "^0.13.0",
         "@creit.tech/stellar-wallets-kit": "^1.7.6",

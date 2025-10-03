@@ -2,8 +2,6 @@ import {
   base,
   baseUSDC,
   bscUSDT,
-  getChainById,
-  getKnownToken,
   polygonUSDC,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -79,7 +77,12 @@ export function createPaymentBridgeConfig({
     tokenAddress: toToken,
   };
 
-  // Only apply bridge logic for Base USDC destination
+  /**
+   * IMPORTANT: Because we only support PAY OUT USDC BASE & STELLAR
+   * So, We force toChain and toToken to Base USDC as default PayParams
+   *
+   * @TODO: Adjust this when we support another PAY OUT chain
+   */
   if (toChain === base.chainId && toToken === baseUSDC.token) {
     // Determine preferred payment method based on wallet selection
     if (walletPaymentOption) {
@@ -156,18 +159,6 @@ export function createPaymentBridgeConfig({
 export function formatPaymentResponseDataToHydratedOrder(
   order: PaymentResponseData
 ): RozoPayHydratedOrderWithOrg {
-  const destChain = getChainById(Number(order.destination.chainId));
-  const destToken = getKnownToken(
-    destChain.chainId,
-    order.destination.tokenAddress
-  );
-
-  if (!destToken) {
-    throw new Error(
-      `Token ${order.destination.tokenSymbol} not found for chain ${destChain.chainId}`
-    );
-  }
-
   const destAddress = order.metadata.receivingAddress as `0x${string}`;
 
   return {
@@ -177,47 +168,49 @@ export function formatPaymentResponseDataToHydratedOrder(
     handoffAddr: destAddress,
     escrowContractAddress: destAddress,
     bridgerContractAddress: destAddress,
+    // @TODO: use correct destination token
     bridgeTokenOutOptions: [
       {
         token: {
-          chainId: destChain.chainId,
-          token: destToken.token ?? "",
-          symbol: destToken.symbol ?? "",
+          chainId: baseUSDC.chainId,
+          token: baseUSDC.token,
+          symbol: baseUSDC.symbol,
           usd: 1,
           priceFromUsd: 1,
-          decimals: destToken.decimals ?? 18,
+          decimals: baseUSDC.decimals,
           displayDecimals: 2,
-          logoSourceURI: destToken.logoSourceURI ?? "",
-          logoURI: destToken.logoURI ?? "",
+          logoSourceURI: baseUSDC.logoSourceURI,
+          logoURI: baseUSDC.logoURI,
           maxAcceptUsd: 100000,
           maxSendUsd: 0,
         },
         amount: parseUnits(
           order.destination.amountUnits,
-          destToken.decimals ?? 18
+          baseUSDC.decimals
         ).toString() as `${bigint}`,
         usd: Number(order.destination.amountUnits),
       },
     ],
     selectedBridgeTokenOutAddr: null,
     selectedBridgeTokenOutAmount: null,
+    // @TODO: use correct destination token
     destFinalCallTokenAmount: {
       token: {
-        chainId: destChain.chainId,
-        token: destToken.token ?? "",
-        symbol: "USDC",
+        chainId: baseUSDC.chainId,
+        token: baseUSDC.token,
+        symbol: baseUSDC.symbol,
         usd: 1,
         priceFromUsd: 1,
-        decimals: destToken.decimals ?? 18,
+        decimals: baseUSDC.decimals,
         displayDecimals: 2,
-        logoSourceURI: destToken.logoSourceURI ?? "",
-        logoURI: destToken.logoURI ?? "",
+        logoSourceURI: baseUSDC.logoSourceURI,
+        logoURI: baseUSDC.logoURI,
         maxAcceptUsd: 100000,
         maxSendUsd: 0,
       },
       amount: parseUnits(
         order.destination.amountUnits,
-        destToken.decimals ?? 18
+        baseUSDC.decimals
       ).toString() as `${bigint}`,
       usd: Number(order.destination.amountUnits),
     },
@@ -252,7 +245,7 @@ export function formatPaymentResponseDataToHydratedOrder(
     } as any,
     externalId: order.externalId as string | null,
     userMetadata: order.userMetadata as RozoPayUserMetadata | null,
-    expirationTs: BigInt("1756990145"),
+    expirationTs: BigInt(Math.floor(Date.now() / 1000 + 5 * 60).toString()),
     org: {
       orgId: order.orgId as string,
       name: "Pay Rozo",

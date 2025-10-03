@@ -2,6 +2,7 @@ import {
   assert,
   assertNotNull,
   baseUSDC,
+  bscUSDT,
   debugJson,
   DepositAddressPaymentOptionData,
   DepositAddressPaymentOptionMetadata,
@@ -915,6 +916,8 @@ export function usePaymentState({
         token = rozoStellarUSDC;
       } else if (option === DepositAddressPaymentOptions.POLYGON) {
         token = polygonUSDC;
+      } else if (option === DepositAddressPaymentOptions.BSC) {
+        token = bscUSDT;
       }
 
       console.log("[PAY DEPOSIT ADDRESS] hydrating order");
@@ -941,7 +944,7 @@ export function usePaymentState({
       return {
         address: order.destFinalCall.to,
         amount: String(order.usdValue),
-        suffix: `${order.destFinalCallTokenAmount.token.symbol} ${chain.name}`,
+        suffix: `${token.symbol} ${chain.name}`,
         uri: order.destFinalCall.to,
         expirationS: Math.floor(Date.now() / 1000) + 300,
         externalId: order.externalId ?? "",

@@ -497,6 +497,7 @@ export function usePaymentState({
           return await writeContractAsync({
             abi: erc20Abi,
             address: getAddress(required.token.token),
+            chainId: required.token.chainId,
             functionName: "transfer",
             args: [hydratedOrder.destFinalCall.to, paymentAmount],
           });

@@ -95,7 +95,7 @@ const Confirmation: React.FC = () => {
     const isRozoPayment =
       tokenMode === "stellar" ||
       tokenMode === "solana" ||
-      (tokenMode === "evm" &&
+      (["evm", "all"].includes(tokenMode) &&
         order &&
         order.destFinalCallTokenAmount?.token.token === baseUSDC.token);
 

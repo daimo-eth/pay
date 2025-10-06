@@ -4,15 +4,11 @@ import { motion } from "framer-motion";
 import React from "react";
 import { useAccount } from "wagmi";
 import {
-  Arbitrum,
   Base,
   BinanceSmartChain,
-  Ethereum,
-  Optimism,
   Polygon,
   Solana,
   Stellar,
-  Tron,
 } from "../../../assets/chains";
 import defaultTheme from "../../../constants/defaultTheme";
 import { ROUTES } from "../../../constants/routes";
@@ -179,11 +175,11 @@ function CoinLogos({
   $exclude?: string[];
 }) {
   const logos = [
-    <Ethereum key="eth" />,
-    <Tron key="tron" />,
+    // <Ethereum key="eth" />,
+    // <Tron key="tron" />,
     // <USDC key="usdc" />,
-    <Optimism key="optimism" />,
-    <Arbitrum key="arbitrum" />,
+    // <Optimism key="optimism" />,
+    // <Arbitrum key="arbitrum" />,
     <BinanceSmartChain key="bsc" />,
     <Base key="base" />,
     <Polygon key="polygon" />,

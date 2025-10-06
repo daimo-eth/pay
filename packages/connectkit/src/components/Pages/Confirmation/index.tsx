@@ -58,11 +58,10 @@ const Confirmation: React.FC = () => {
   }, [paymentStateContext]);
 
   const showProcessingPayout = useMemo(() => {
-    const { payParams, selectedTokenOption, tokenMode } = paymentStateContext;
+    const { payParams, tokenMode } = paymentStateContext;
 
     if (
       payParams &&
-      selectedTokenOption &&
       (tokenMode === "stellar" || tokenMode === "solana" || tokenMode === "evm")
     ) {
       return (
@@ -82,16 +81,6 @@ const Confirmation: React.FC = () => {
   const { done, txURL, rawPayInHash } = useMemo(() => {
     const { tokenMode, txHash } = paymentStateContext;
 
-    console.log("[CONFIRMATION] tokenMode", {
-      tokenMode,
-      txHash,
-      rozoPaymentId,
-      paymentState,
-      order,
-      paymentStateContext,
-      isConfirming,
-    });
-
     const isRozoPayment =
       tokenMode === "stellar" ||
       tokenMode === "solana" ||
@@ -102,10 +91,10 @@ const Confirmation: React.FC = () => {
     if (isRozoPayment && txHash) {
       // Add delay before setting payment completed to show confirming state
       if (isConfirming) {
-        setTimeout(() => {
-          setPaymentCompleted(txHash, rozoPaymentId);
-          setIsConfirming(false);
-        }, 1000);
+        // setTimeout(() => {
+        setPaymentCompleted(txHash, rozoPaymentId);
+        setIsConfirming(false);
+        // }, 300);
         return { done: false, txURL: undefined };
       }
 
@@ -141,7 +130,7 @@ const Confirmation: React.FC = () => {
     }
 
     return { done: false, txURL: undefined, rawPayInHash: undefined };
-  }, [paymentState, order, paymentStateContext, isConfirming]);
+  }, [paymentState, order, paymentStateContext, isConfirming, rozoPaymentId]);
 
   const generateReceiptUrl = useMemo(() => {
     if (rozoPaymentId) {
@@ -199,12 +188,12 @@ const Confirmation: React.FC = () => {
 
           // Schedule next poll
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 7000);
+            timeoutId = setTimeout(pollPayout, 6000);
           }
         } catch (error) {
           console.error("[CONFIRMATION] Payout polling error:", error);
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 7000);
+            timeoutId = setTimeout(pollPayout, 6000);
           }
         }
       };

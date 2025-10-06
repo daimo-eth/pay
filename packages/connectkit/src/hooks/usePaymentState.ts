@@ -26,7 +26,6 @@ import {
 } from "@rozoai/intent-common";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
-  Connection,
   PublicKey,
   Transaction,
   TransactionInstruction,
@@ -194,6 +193,8 @@ export function usePaymentState({
   log: (...args: any[]) => void;
   redirectReturnUrl?: string;
 }): PaymentState {
+  // Cache for payment validation to avoid repeated checks
+  const paymentValidationCache = useRef<Map<string, boolean>>(new Map());
   const pay = useRozoPay();
 
   // Track deposit address calls to prevent duplicates
@@ -342,6 +343,25 @@ export function usePaymentState({
       : DEFAULT_USD_LIMIT;
   };
 
+  // Cached validation helper to avoid repeated checks
+  const validatePaymentRequirements = useCallback(
+    (walletOption: WalletPaymentOption, paymentState: string) => {
+      const cacheKey = `${walletOption.required.token.token}-${walletOption.fees.token.token}-${paymentState}`;
+
+      if (paymentValidationCache.current.has(cacheKey)) {
+        return paymentValidationCache.current.get(cacheKey)!;
+      }
+
+      const isValid =
+        paymentState === "payment_unpaid" ||
+        walletOption.required.token.token === walletOption.fees.token.token;
+
+      paymentValidationCache.current.set(cacheKey, isValid);
+      return isValid;
+    },
+    []
+  );
+
   const handleCreateRozoPayment = async (walletOption: WalletPaymentOption) => {
     const payParams = currPayParams;
     const order = pay.order;
@@ -422,84 +442,63 @@ export function usePaymentState({
       `[PAY TOKEN] paymentState is ${pay.paymentState}, must be preview or unhydrated or payment_unpaid`
     );
 
-    let hydratedOrder: RozoPayHydratedOrderWithOrg;
     const { required, fees } = walletOption;
     const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
-    console.log("[PAY TOKEN] pay:", pay);
-    if (pay.paymentState !== "payment_unpaid") {
-      assert(
-        required.token.token === fees.token.token,
+
+    // Early validation using cached validation
+    if (!validatePaymentRequirements(walletOption, pay.paymentState)) {
+      throw new Error(
         `[PAY TOKEN] required token ${debugJson(
           required
         )} does not match fees token ${debugJson(fees)}`
       );
-
-      console.log("[PAY TOKEN] hydrated order:", pay.order);
-      console.log("[PAY TOKEN] required:", required);
-
-      if (
-        "payinchainid" in pay.order.metadata &&
-        Number(pay.order.metadata.payinchainid) !== required.token.chainId
-      ) {
-        console.log("[PAY TOKEN] creating rozo payment");
-        const res = await handleCreateRozoPayment(walletOption);
-        setPayId(res.id);
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder({
-          ...res,
-          externalId: res.id,
-        });
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
-      } else {
-        // Will refund to ethWalletAddress if refundAddress was not set in payParams
-        // and provide walletOption to hydrateOrder
-        const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
-        hydratedOrder = res.order;
-      }
-
-      log(
-        `[PAY TOKEN] hydrated order: ${debugJson(
-          hydratedOrder
-        )}, paying ${paymentAmount} of token ${required.token.token}`
-      );
-    } else {
-      if (
-        "payinchainid" in pay.order.metadata &&
-        Number(pay.order.metadata.payinchainid) !== required.token.chainId
-      ) {
-        console.log("[PAY TOKEN] creating rozo payment");
-        const res = await handleCreateRozoPayment(walletOption);
-        setPayId(res.id);
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder({
-          ...res,
-          externalId: res.id,
-        });
-      } else {
-        hydratedOrder = pay.order;
-      }
     }
 
-    console.log("[PAY TOKEN] hydrated order:", hydratedOrder);
+    // Check if we need to create a new Rozo payment (cache this check)
+    const needsRozoPayment =
+      "payinchainid" in pay.order.metadata &&
+      Number(pay.order.metadata.payinchainid) !== required.token.chainId;
 
+    // Prepare transaction parameters early (before async operations)
+    const isNativeToken = required.token.token === zeroAddress;
+    const tokenAddress = isNativeToken
+      ? null
+      : getAddress(required.token.token);
+
+    // Get hydrated order efficiently with parallel preparation
+    let hydratedOrder: RozoPayHydratedOrderWithOrg;
+
+    if (pay.paymentState === "payment_unpaid") {
+      // Order is already hydrated, use it directly
+      hydratedOrder = pay.order;
+    } else if (needsRozoPayment) {
+      // Create Rozo payment and hydrate in one step
+      const res = await handleCreateRozoPayment(walletOption);
+      setPayId(res.id);
+      hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+    } else {
+      // Hydrate existing order
+      const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
+      hydratedOrder = res.order;
+    }
+
+    const destinationAddress = hydratedOrder.destFinalCall.to;
+
+    // Execute transaction with optimized error handling
     const paymentTxHash = await (async () => {
       try {
-        console.log("[PAY TOKEN] sending token", {
-          required,
-          hydratedOrder,
-          paymentAmount,
-        });
-
-        if (required.token.token === zeroAddress) {
+        if (isNativeToken) {
           return await sendTransactionAsync({
-            to: hydratedOrder.destFinalCall.to,
+            to: destinationAddress,
             value: paymentAmount,
           });
         } else {
           return await writeContractAsync({
             abi: erc20Abi,
-            address: getAddress(required.token.token),
+            address: tokenAddress!,
             chainId: required.token.chainId,
             functionName: "transfer",
-            args: [hydratedOrder.destFinalCall.to, paymentAmount],
+            args: [destinationAddress, paymentAmount],
           });
         }
       } catch (e) {
@@ -508,22 +507,9 @@ export function usePaymentState({
       }
     })();
 
-    try {
-      //   await pay.payEthSource({
-      //     paymentTxHash,
-      //     sourceChainId: required.token.chainId,
-      //     payerAddress: ethWalletAddress as `0x${string}`,
-      //     sourceToken: getAddress(required.token.token),
-      //     sourceAmount: paymentAmount,
-      //   });
-      setTxHash(paymentTxHash);
-      return { txHash: paymentTxHash, success: true };
-    } catch {
-      console.error(
-        `[PAY TOKEN] could not verify payment tx on chain: ${paymentTxHash}`
-      );
-      return { txHash: paymentTxHash, success: false };
-    }
+    // Set transaction hash and return result
+    setTxHash(paymentTxHash);
+    return { txHash: paymentTxHash, success: true };
   };
 
   // @NOTE: This is Pay In Solana by Daimo (default)
@@ -630,12 +616,6 @@ export function usePaymentState({
       });
 
       console.log("[PAY SOLANA] Setting up transaction...");
-
-      const newConnection = new Connection(
-        "https://api.mainnet-beta.solana.com",
-        "confirmed"
-      );
-      console.log("[PAY SOLANA] Connected to Solana mainnet");
 
       const instructions: TransactionInstruction[] = [];
 
@@ -790,7 +770,6 @@ export function usePaymentState({
       const token = walletPaymentOption.required.token;
 
       const destinationAddress = rozoPayment.destAddress;
-      // const amount = rozoPayment.amount;
 
       // Setup Stellar payment
       await stellarKit.setWallet(String(stellarConnector?.id ?? ALBEDO_ID));

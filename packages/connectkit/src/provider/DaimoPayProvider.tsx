@@ -367,10 +367,10 @@ const RozoPayUIProvider = ({
     log,
     displayError: (message: string | React.ReactNode | null, code?: any) => {
       setErrorMessage(message);
-      console.log("---------ROZO PAY DEBUG---------");
-      console.log(message);
+      log("---------ROZO PAY DEBUG---------");
+      log(JSON.stringify(message, null, 2));
       if (code) console.table(code);
-      console.log("---------/ROZO PAY DEBUG---------");
+      log("---------/ROZO PAY DEBUG---------");
     },
     resize,
     triggerResize: () => onResize((prev) => prev + 1),

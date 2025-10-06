@@ -17,8 +17,8 @@
         "@farcaster/frame-sdk": "^0.0.26",
         "@headlessui/react": "^2.2.0",
         "@rainbow-me/rainbowkit": "^2.2.8",
-        "@rozoai/intent-common": "0.0.21",
-        "@rozoai/intent-pay": "0.0.26",
+        "@rozoai/intent-common": "0.0.22",
+        "@rozoai/intent-pay": "0.0.29-beta.6",
         "@tanstack/react-query": "^5.51.11",
         "autoprefixer": "^10.4.20",
         "clsx": "^2.1.1",
@@ -41,12 +41,12 @@
     },
     "packages/connectkit": {
       "name": "@rozoai/intent-pay",
-      "version": "0.0.28",
+      "version": "0.0.29-beta.6",
       "dependencies": {
         "@albedo-link/intent": "^0.13.0",
         "@creit.tech/stellar-wallets-kit": "^1.7.6",
         "@rollup/plugin-typescript": "^12.1.2",
-        "@rozoai/intent-common": "0.0.21",
+        "@rozoai/intent-common": "0.0.22",
         "@solana/spl-token": "^0.4.13",
         "@solana/wallet-adapter-base": "^0.9.23",
         "@solana/wallet-adapter-react": "^0.15.35",
@@ -93,7 +93,7 @@
     },
     "packages/pay-common": {
       "name": "@rozoai/intent-common",
-      "version": "0.0.21",
+      "version": "0.0.22",
       "dependencies": {
         "@scure/base": "^1.2.4",
         "viem": "^2.23.14",

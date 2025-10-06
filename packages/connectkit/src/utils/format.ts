@@ -68,7 +68,8 @@ export function roundTokenAmount(
 ): string {
   return roundDecimals(
     Number(formatUnits(BigInt(amount), token.decimals)),
-    token.displayDecimals,
+    // token.displayDecimals,
+    USD_DECIMALS, // @NOTE: Force 2 decimal places
     round
   );
 }
@@ -81,7 +82,9 @@ export function roundTokenAmountUnits(
   token: RozoPayToken,
   round: "up" | "down" | "nearest" = "down"
 ): string {
-  return roundDecimals(amountUnits, token.displayDecimals, round);
+  // return roundDecimals(amountUnits, token.displayDecimals, round);
+  // @NOTE: Force 2 decimal places
+  return roundDecimals(amountUnits, USD_DECIMALS, round);
 }
 
 /**

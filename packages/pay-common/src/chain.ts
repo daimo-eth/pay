@@ -22,7 +22,7 @@ export const base: Chain = {
 export const bsc: Chain = {
   type: "evm",
   chainId: 56,
-  name: "BNB Smart Chain",
+  name: "BNB",
   cctpDomain: null,
 };
 

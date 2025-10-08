@@ -4,10 +4,7 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { ModalContent, ModalH1, PageContent } from "../../Common/Modal/styles";
 
-import {
-  DaimoPayOrderMode,
-  DepositAddressPaymentOptions,
-} from "@daimo/pay-common";
+import { DepositAddressPaymentOptions } from "@daimo/pay-common";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { OptionsList } from "../../Common/OptionsList";
 import { OrderHeader } from "../../Common/OrderHeader";
@@ -17,6 +14,7 @@ const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
   const pay = useDaimoPay();
   const { order } = pay;
+  const orderUsd = order?.destFinalCallTokenAmount.usd;
   const {
     isDepositFlow,
     setSelectedDepositAddressOption,
@@ -52,8 +50,8 @@ const SelectDepositAddressChain: React.FC = () => {
             const disabled =
               // Disable if usd below min
               (option.minimumUsd > 0 &&
-                order?.mode === DaimoPayOrderMode.HYDRATED &&
-                order.usdValue < option.minimumUsd) ||
+                orderUsd != null &&
+                orderUsd < option.minimumUsd) ||
               // Disable if TRON_USDT unavailable
               (option.id === DepositAddressPaymentOptions.TRON_USDT &&
                 untronAvailable === false);

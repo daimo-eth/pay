@@ -14,13 +14,13 @@ const SelectDepositAddressChain: React.FC = () => {
   const { setRoute, paymentState } = usePayContext();
   const pay = useDaimoPay();
   const { order } = pay;
-  const orderUsd = order?.destFinalCallTokenAmount.usd;
   const {
     isDepositFlow,
     setSelectedDepositAddressOption,
     depositAddressOptions,
     untronAvailable,
   } = paymentState;
+  const orderUsd = isDepositFlow ? null : order?.destFinalCallTokenAmount.usd;
 
   return (
     <PageContent>

@@ -10,3 +10,9 @@
 [submodule "packages/contract/lib/solmate"]
 	path = packages/contract/lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "packages/contract/lib/devtools"]
+	path = packages/contract/lib/devtools
+	url = https://github.com/LayerZero-Labs/devtools
+[submodule "packages/contract/lib/LayerZero-v2"]
+	path = packages/contract/lib/LayerZero-v2
+	url = https://github.com/LayerZero-Labs/LayerZero-v2

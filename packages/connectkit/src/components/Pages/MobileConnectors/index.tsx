@@ -27,9 +27,6 @@ const MobileConnectors: React.FC = () => {
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
       if (!wallet.showInMobileConnectors) return false;
-      // If the mobile wallet supports solana only, don't show it if we are not supporting solana has a payment method
-      if (wallet.isSolanaOnly && !context.paymentState.showSolanaPaymentMethod)
-        return false;
       return true;
     }) ?? [];
 

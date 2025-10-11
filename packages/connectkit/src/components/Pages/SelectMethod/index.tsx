@@ -44,7 +44,6 @@ export default function SelectMethod() {
   } = useWallet();
   const { setRoute, paymentState, log, disableMobileInjector } =
     usePayContext();
-  const { showSolanaPaymentMethod } = paymentState;
   const { disconnectAsync } = useDisconnect();
 
   const { externalPaymentOptions, senderEnsName } = paymentState;
@@ -58,8 +57,7 @@ export default function SelectMethod() {
     isSolanaConnected && (!isMobile || !disableMobileInjector);
 
   const getConnectedWalletOptions = () => {
-    const showChainLogo =
-      isEthConnected && isSolanaConnected && showSolanaPaymentMethod;
+    const showChainLogo = isEthConnected && isSolanaConnected;
 
     const connectedOptions: Option[] = [];
 
@@ -119,7 +117,7 @@ export default function SelectMethod() {
       connectedOptions.push(connectedEthWalletOption);
     }
 
-    if (showConnectedSolana && showSolanaPaymentMethod) {
+    if (showConnectedSolana) {
       const solWalletDisplayName = getAddressContraction(
         publicKey?.toBase58() ?? "",
       );

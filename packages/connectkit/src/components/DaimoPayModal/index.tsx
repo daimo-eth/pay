@@ -75,7 +75,6 @@ export const DaimoPayModal: React.FC<{
   const {
     generatePreviewOrder,
     isDepositFlow,
-    showSolanaPaymentMethod,
     setPaymentWaitingMessage,
     setSelectedExternalOption,
     setSelectedTokenOption,
@@ -530,7 +529,6 @@ export const DaimoPayModal: React.FC<{
       (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
       isSolanaConnected &&
       !isEthConnected &&
-      showSolanaPaymentMethod &&
       !disableMobileInjector &&
       !isSolanaLoading &&
       solanaOptionsCount > 0
@@ -553,7 +551,6 @@ export const DaimoPayModal: React.FC<{
     paymentState.externalPaymentOptions.loading,
     paymentState.depositAddressOptions.options,
     paymentState.depositAddressOptions.loading,
-    showSolanaPaymentMethod,
     address,
     chain?.id,
     connector?.id,

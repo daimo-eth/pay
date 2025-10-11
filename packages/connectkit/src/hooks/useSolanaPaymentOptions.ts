@@ -8,20 +8,16 @@ export function useSolanaPaymentOptions({
   address,
   usdRequired,
   isDepositFlow,
-  showSolanaPaymentMethod,
 }: {
   trpc: TrpcClient;
   address: string | undefined;
   usdRequired: number | undefined;
   isDepositFlow: boolean;
-  showSolanaPaymentMethod: boolean;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!showSolanaPaymentMethod) return;
-
     const refreshWalletPaymentOptions = async () => {
       if (address == null || usdRequired == null) return;
 
@@ -43,7 +39,7 @@ export function useSolanaPaymentOptions({
 
     refreshWalletPaymentOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, usdRequired, isDepositFlow, showSolanaPaymentMethod]);
+  }, [address, usdRequired, isDepositFlow]);
 
   return {
     options,

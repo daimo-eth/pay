@@ -43,13 +43,13 @@
     },
     "packages/connectkit": {
       "name": "@rozoai/intent-pay",
-      "version": "0.0.29-beta.20",
+      "version": "0.0.29-beta.21",
       "dependencies": {
         "@albedo-link/intent": "^0.13.0",
         "@creit.tech/stellar-wallets-kit": "^1.9.5",
         "@reown/appkit": "^1.7.0",
         "@rollup/plugin-typescript": "^12.1.2",
-        "@rozoai/intent-common": "w0.0.23-beta.2",
+        "@rozoai/intent-common": "0.0.23-beta.2",
         "@solana/spl-token": "^0.4.13",
         "@solana/wallet-adapter-base": "^0.9.23",
         "@solana/wallet-adapter-react": "^0.15.35",

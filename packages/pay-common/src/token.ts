@@ -11,6 +11,7 @@ import {
   polygon,
   scroll,
   solana,
+  tron,
   worldchain,
 } from "./chain";
 
@@ -686,6 +687,22 @@ export const solanaUSDC: Token = token({
 const solanaTokens: Token[] = [solanaUSDC, solanaWSOL, solanaSOL];
 
 //
+// Tron
+//
+
+export const tronUSDT: Token = token({
+  chainId: tron.chainId,
+  token: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const tronTokens: Token[] = [tronUSDT];
+
+//
 // Worldchain
 //
 
@@ -748,6 +765,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [scroll.chainId, scrollTokens],
   [solana.chainId, solanaTokens],
   [worldchain.chainId, worldchainTokens],
+  [tron.chainId, tronTokens],
 ]);
 
 /**

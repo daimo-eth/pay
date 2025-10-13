@@ -1,5 +1,5 @@
 export type Chain = {
-  type: "evm" | "solana";
+  type: "evm" | "solana" | "tron";
   chainId: number;
   name: string;
   cctpDomain: number | null;
@@ -68,18 +68,29 @@ export const scroll: Chain = {
   cctpDomain: null,
 };
 
-export const solana: Chain = {
-  type: "solana",
-  chainId: 501,
-  name: "Solana",
-  cctpDomain: 5,
-};
-
 export const worldchain: Chain = {
   type: "evm",
   chainId: 480,
   name: "Worldchain",
   cctpDomain: 14,
+};
+
+//
+// Non-EVM chains: source only
+//
+
+export const tron: Chain = {
+  type: "tron",
+  chainId: 728126428,
+  name: "Tron",
+  cctpDomain: null,
+};
+
+export const solana: Chain = {
+  type: "solana",
+  chainId: 501,
+  name: "Solana",
+  cctpDomain: 5,
 };
 
 export const supportedChains: Chain[] = [
@@ -92,8 +103,9 @@ export const supportedChains: Chain[] = [
   optimism,
   polygon,
   scroll,
-  solana,
   worldchain,
+  solana,
+  tron,
 ];
 
 // https://developers.circle.com/stablecoins/supported-domains

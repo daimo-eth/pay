@@ -1,64 +1,106 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 import {IOFT, SendParam, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Bridges assets to a destination chain using the LayerZero protocol.
-/// @dev Assumes the local token is ERC20 and maintains a 1:1 value with the
-/// destination token. Strict output is enforced via `minAmountLD`.
+/// @notice Base contract for bridging via LayerZero OFT v2 with pluggable
+/// accounting and options.
+/// @dev Subclasses implement `_computeAccounting` to define how much to pull,
+/// what to send, guarantees, and any LZ options.
 abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
     using SafeERC20 for IERC20;
 
-    /// @notice Per-destination configuration for bridging.
     struct LZBridgeRoute {
         /// @notice LayerZero endpoint ID for the destination chain.
         uint32 dstEid;
-        /// @notice OFT/OFTAdapter/Stargate token contract on the source chain.
+        /// @notice OFT/OFTAdapter/Stargate application on the source chain.
         address app;
-        /// @notice Token address expected on the destination chain.
+        /// @notice Expected token address on the destination chain.
         address bridgeTokenOut;
-        /// @notice Token this contract must custody before calling `app`.
+        /// @notice Token address custodied on the source chain.
         address bridgeTokenIn;
     }
 
-    /// @notice Mapping of EVM chain ID to its bridge route configuration.
+    /// @notice Accounting policy returned by subclasses to parameterize a send.
+    /// @dev Decides how much to pull, what to send, receive guarantees, and LZ options.
+    struct Accounting {
+        /// @notice Amount pulled from the caller and approved to `app` (local decimals).
+        uint256 inAmountLD;
+        /// @notice Amount sent via OFT (SendParam.amountLD).
+        uint256 sendAmountLD;
+        /// @notice Minimum amount guaranteed to arrive (SendParam.minAmountLD).
+        uint256 minAmountLD;
+        /// @notice LayerZero v2 options (SendParam.extraOptions).
+        bytes extraOptions;
+        /// @notice Optional compose message for OFT.
+        bytes composeMsg;
+        /// @notice Optional OFT command bytes.
+        bytes oftCmd;
+        /// @notice If true, fees are quoted/paid in ZRO; otherwise in native.
+        bool payInZRO;
+    }
+
+    /// @notice Mapping of destination EVM chain ID to configured LayerZero route.
     mapping(uint256 => LZBridgeRoute) public bridgeRouteMapping;
 
-    /// @notice Initializes bridge routes for destination chains.
     /// @param _toChainIds Destination EVM chain IDs.
-    /// @param _routes Route configurations corresponding to `_toChainIds`.
+    /// @param _routes Route definitions aligned 1:1 with `_toChainIds`.
     constructor(uint256[] memory _toChainIds, LZBridgeRoute[] memory _routes) {
         uint256 n = _toChainIds.length;
         require(n == _routes.length, "wrong routes length");
-        for (uint256 i = 0; i < n; ++i) {
+        for (uint256 i = 0; i < n; ++i)
             bridgeRouteMapping[_toChainIds[i]] = _routes[i];
-        }
     }
 
+    /// @notice Accept native tokens for paying LayerZero fees and refunds.
     receive() external payable {}
 
-    // External functions
+    // External interface
 
-    /// @inheritdoc IDaimoPayBridger
+    /// @notice Returns the input token and amount required for a desired
+    /// bridged amount on the destination chain.
+    /// @param toChainId Destination EVM chain ID.
+    /// @param bridgeTokenOutOptions Candidate destination token/amount options.
+    /// One option must match the configured `bridgeTokenOut` for `toChainId`.
+    /// @return bridgeTokenIn The source token address to transfer in.
+    /// @return inAmount The amount of `bridgeTokenIn` to transfer from caller.
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount) {
-        (LZBridgeRoute memory r, uint256 outAmount) = _getBridgeData(
+        (LZBridgeRoute memory r, uint256 desiredOutLD) = _resolveRouteAndOut(
             toChainId,
             bridgeTokenOutOptions
         );
-        return (r.bridgeTokenIn, outAmount);
+        Accounting memory a = _computeAccounting({
+            toChainId: toChainId,
+            toAddress: address(0), // not needed for quoting input
+            r: r,
+            desiredOutLD: desiredOutLD,
+            extraData: bytes("")
+        });
+        return (r.bridgeTokenIn, a.inAmountLD);
     }
 
-    /// @inheritdoc IDaimoPayBridger
+    /// @notice Sends tokens to another chain via LayerZero OFT.
+    /// @dev Pulls the required input from the caller, approves the OFT app,
+    /// quotes fees, and performs the send. If paying fees in native, any
+    /// leftover native balance is refunded to `refundAddress`.
+    /// @param toChainId Destination EVM chain ID (must differ from source).
+    /// @param toAddress Recipient address on the destination chain.
+    /// @param bridgeTokenOutOptions Candidate destination token/amount options;
+    /// one must match the configured route token for `toChainId`.
+    /// @param refundAddress Address to receive any leftover native fee refunds.
+    /// @param extraData Opaque data forwarded to the subclass accounting logic.
+    /// @custom:reverts same chain if `toChainId == block.chainid`.
+    /// @custom:reverts route not found or bad bridge token if options mismatch.
+    /// @custom:reverts insufficient native fee if paying in native without coverage.
     function sendToChain(
         uint256 toChainId,
         address toAddress,
@@ -67,186 +109,132 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "same chain");
-
-        (LZBridgeRoute memory r, uint256 outAmount) = _getBridgeData(
+        (LZBridgeRoute memory r, uint256 desiredOutLD) = _resolveRouteAndOut(
             toChainId,
             bridgeTokenOutOptions
         );
 
-        (SendParam memory sp, bool payInZRO) = _buildParams(
-            toChainId,
-            toAddress,
-            r,
-            outAmount,
-            extraData
-        );
+        Accounting memory a = _computeAccounting({
+            toChainId: toChainId,
+            toAddress: toAddress,
+            r: r,
+            desiredOutLD: desiredOutLD,
+            extraData: extraData
+        });
 
-        sp.minAmountLD = _computeMinAmountLD(
-            toChainId,
-            r,
-            outAmount,
-            extraData,
-            sp
-        );
+        // Build OFT params from the accounting policy.
+        SendParam memory sp = SendParam({
+            dstEid: r.dstEid,
+            to: _toB32(toAddress),
+            amountLD: a.sendAmountLD,
+            minAmountLD: a.minAmountLD,
+            extraOptions: a.extraOptions,
+            composeMsg: a.composeMsg,
+            oftCmd: a.oftCmd
+        });
 
-        MessagingFee memory fee = _quoteSend(r, sp, payInZRO);
-        if (!payInZRO) {
+        // Quote LZ fee & ensure native coverage if paying in native.
+        MessagingFee memory fee = IOFT(r.app).quoteSend(sp, a.payInZRO); // standard OFT v2 path
+        if (!a.payInZRO)
             require(
                 address(this).balance >= fee.nativeFee,
                 "insufficient native fee"
             );
-        }
 
-        IERC20(r.bridgeTokenIn).safeTransferFrom({
-            from: msg.sender,
-            to: address(this),
-            value: outAmount
-        });
+        // Custody + approve exactly what the accounting says.
+        IERC20(r.bridgeTokenIn).safeTransferFrom(
+            msg.sender,
+            address(this),
+            a.inAmountLD
+        );
+        IERC20(r.bridgeTokenIn).forceApprove(r.app, a.inAmountLD);
 
-        _prepareCustodyAndApprove(r, outAmount);
-
-        _dispatchSend(r, sp, fee, refundAddress);
+        IOFT(r.app).send{value: fee.nativeFee}(sp, fee, refundAddress);
 
         emit BridgeInitiated({
             fromAddress: msg.sender,
             fromToken: r.bridgeTokenIn,
-            fromAmount: outAmount,
+            fromAmount: a.inAmountLD,
             toChainId: toChainId,
             toAddress: toAddress,
             toToken: r.bridgeTokenOut,
-            toAmount: outAmount,
+            toAmount: desiredOutLD,
             refundAddress: refundAddress
         });
 
-        if (!payInZRO && address(this).balance > 0) {
-            unchecked {
-                (bool s, ) = refundAddress.call{value: address(this).balance}(
-                    ""
-                );
-                // best-effort refund; ignore failure
-                s;
-            }
+        if (!a.payInZRO && address(this).balance > 0) {
+            // best-effort native refund
+            (bool success, ) = refundAddress.call{value: address(this).balance}(
+                ""
+            );
+            require(success, "LayerZeroBridger: native refund failed");
         }
     }
 
-    /// @notice Prepares token custody and approvals prior to sending.
-    /// @dev Default behavior approves `app` to pull `bridgeTokenIn`. OFT may no-op; Adapters/Stargate require approval.
-    /// @param r The resolved bridge route.
-    /// @param amountLD Amount to approve in local decimals.
-    function _prepareCustodyAndApprove(
-        LZBridgeRoute memory r,
-        uint256 amountLD
-    ) internal virtual {
-        IERC20(r.bridgeTokenIn).forceApprove({spender: r.app, value: amountLD});
-    }
+    // Hooks for subclasses
 
-    /// @notice Builds the OFT `SendParam` and selects the fee payment mode.
-    /// @dev Subclasses may parse `extraData` to populate options or compose payloads.
-    /// @param toAddress Destination recipient address.
-    /// @param r The resolved bridge route.
-    /// @param amountLD Amount to bridge in local decimals.
-    /// @return sp The constructed send parameters.
-    /// @return payInZRO If true, pay message fees in ZRO.
-    function _buildParams(
-        uint256 /*toChainId*/,
+    /// @notice Core policy hook implemented by subclasses.
+    /// @dev Computes `Accounting` given the desired destination amount and context.
+    /// Default behavior is 1:1: pull/send/guarantee `desiredOutLD` with no options
+    /// and pay fees in native.
+    /// @param toChainId Destination EVM chain ID.
+    /// @param toAddress Recipient address on the destination chain.
+    /// @param r Resolved LayerZero route for the destination.
+    /// @param desiredOutLD Desired receive amount on the destination (local decimals).
+    /// @param extraData Opaque data for subclass-specific policy.
+    /// @return a The computed accounting policy for the send.
+    function _computeAccounting(
+        uint256 toChainId,
         address toAddress,
         LZBridgeRoute memory r,
-        uint256 amountLD,
-        bytes calldata /*extraData*/
-    ) internal virtual returns (SendParam memory sp, bool payInZRO) {
-        sp = SendParam({
-            dstEid: r.dstEid,
-            to: _toB32(toAddress),
-            amountLD: amountLD,
-            minAmountLD: amountLD,
-            extraOptions: bytes(""),
-            composeMsg: bytes(""),
-            oftCmd: bytes("")
-        });
-        payInZRO = false;
-    }
-
-    /// @notice Dispatches the send using the route application.
-    /// @dev Default implementation calls `OFT.send`; subclasses may override for Stargate or adapters.
-    /// @param r The resolved bridge route.
-    /// @param sp The send parameters.
-    /// @param fee The messaging fees to pay.
-    /// @param refundAddress Address to receive any unused native fee refund.
-    function _dispatchSend(
-        LZBridgeRoute memory r,
-        SendParam memory sp,
-        MessagingFee memory fee,
-        address refundAddress
-    ) internal virtual {
-        IOFT(r.app).send{value: fee.nativeFee}(sp, fee, refundAddress);
-    }
-
-    /// @notice Computes the minimum acceptable destination amount.
-    /// @dev Default implementation enforces an exact output guarantee.
-    /// @param desiredOutLD Desired destination amount in local decimals.
-    /// @return The minimum acceptable destination amount.
-    function _computeMinAmountLD(
-        uint256 /*toChainId*/,
-        LZBridgeRoute memory /*r*/,
         uint256 desiredOutLD,
-        bytes calldata /*extraData*/,
-        SendParam memory /*sp*/
-    ) internal view virtual returns (uint256) {
-        return desiredOutLD;
+        bytes memory extraData
+    ) internal view virtual returns (Accounting memory a) {
+        // Reference arguments to avoid compiler warnings
+        toChainId;
+        toAddress;
+        r;
+        desiredOutLD;
+        extraData;
+        // Default = 1:1 OFT: pull desiredOut, send desiredOut, guarantee desiredOut
+        a.inAmountLD = desiredOutLD;
+        a.sendAmountLD = desiredOutLD;
+        a.minAmountLD = desiredOutLD;
+        a.extraOptions = bytes(""); // caller can pass via extraData in a subclass if desired
+        a.composeMsg = bytes("");
+        a.oftCmd = bytes("");
+        a.payInZRO = false;
     }
 
-    /// @notice Quotes message fees for the given send parameters.
-    /// @dev Default implementation calls `OFT.quoteSend` on the route app.
-    /// @param r The resolved bridge route.
-    /// @param sp The send parameters to quote.
-    /// @param payInZRO If true, quote fees in ZRO.
-    /// @return fee The quoted messaging fees.
-    function _quoteSend(
-        LZBridgeRoute memory r,
-        SendParam memory sp,
-        bool payInZRO
-    ) internal view virtual returns (MessagingFee memory fee) {
-        return IOFT(r.app).quoteSend(sp, payInZRO);
-    }
+    // Internal helpers
 
-    /// @notice Resolves the bridge route and output amount for a destination chain.
+    /// @notice Resolves the route for `toChainId` and extracts the desired
+    /// destination amount from the provided options.
     /// @param toChainId Destination EVM chain ID.
     /// @param bridgeTokenOutOptions Candidate destination token/amount options.
-    /// @return route The resolved route configuration.
-    /// @return outAmount The selected output amount for the destination token.
-    function _getBridgeData(
+    /// @return route The configured route for `toChainId`.
+    /// @return outAmount Desired destination amount (local decimals).
+    function _resolveRouteAndOut(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
     ) internal view returns (LZBridgeRoute memory route, uint256 outAmount) {
         route = bridgeRouteMapping[toChainId];
         require(route.bridgeTokenOut != address(0), "route not found");
-
-        uint256 idx = _findBridgeTokenOut(
-            bridgeTokenOutOptions,
-            route.bridgeTokenOut
-        );
-        require(idx < bridgeTokenOutOptions.length, "bad bridge token");
-
+        uint256 n = bridgeTokenOutOptions.length;
+        uint256 idx = n;
+        for (uint256 i = 0; i < n; ++i)
+            if (
+                address(bridgeTokenOutOptions[i].token) == route.bridgeTokenOut
+            ) {
+                idx = i;
+                break;
+            }
+        require(idx < n, "bad bridge token");
         outAmount = bridgeTokenOutOptions[idx].amount;
         require(outAmount > 0, "zero amount");
     }
 
-    /// @notice Finds the index of the desired destination token in the options.
-    /// @param opts Candidate token/amount pairs.
-    /// @param bridgeTokenOut Destination token address to match.
-    /// @return idx Index in `opts` if found; `opts.length` if not found.
-    function _findBridgeTokenOut(
-        TokenAmount[] calldata opts,
-        address bridgeTokenOut
-    ) internal pure returns (uint256 idx) {
-        uint256 n = opts.length;
-        for (uint256 i = 0; i < n; ++i) {
-            if (address(opts[i].token) == bridgeTokenOut) return i;
-        }
-        return n;
-    }
-
-    /// @notice Converts an address to a left-padded bytes32.
+    /// @dev Casts an EVM address to 32-byte representation used by OFT.
     function _toB32(address a) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(a)));
     }

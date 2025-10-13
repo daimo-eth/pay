@@ -23,7 +23,11 @@ import {
   SkeletonLabel,
 } from "./styles";
 
-const ConnectorList = () => {
+const ConnectorList = ({
+  customDeeplink = null,
+}: {
+  customDeeplink?: string | null;
+}) => {
   const context = usePayContext();
   const { isMobile } = useIsMobile();
 
@@ -42,9 +46,13 @@ const ConnectorList = () => {
 
   // For mobile flow, we need to wait for the order to be hydrated before
   // we can deeplink to the in-wallet browser.
+  // If customDeeplink is provided, we don't need to wait for hydration
   const shouldWaitForHydration =
-    isMobile && !context.paymentState.isDepositFlow;
-  const ready = !shouldWaitForHydration || paymentState === "payment_unpaid";
+    !customDeeplink && isMobile && !context.paymentState.isDepositFlow;
+  const ready =
+    customDeeplink ||
+    !shouldWaitForHydration ||
+    paymentState === "payment_unpaid";
 
   return (
     <ScrollArea mobileDirection={"horizontal"}>
@@ -71,6 +79,7 @@ const ConnectorList = () => {
               key={wallet.id}
               wallet={wallet}
               isRecent={wallet.id === lastConnectorId}
+              customDeeplink={customDeeplink}
             />
           ))}
         </ConnectorsContainer>
@@ -84,9 +93,11 @@ export default ConnectorList;
 const ConnectorItem = ({
   wallet,
   isRecent,
+  customDeeplink = null,
 }: {
   wallet: WalletProps;
   isRecent?: boolean;
+  customDeeplink?: string | null;
 }) => {
   const { isMobile } = useIsMobile();
   const context = usePayContext();
@@ -104,7 +115,6 @@ const ConnectorItem = ({
 
   const onClick = () => {
     const meta = { event: "connector-list-click", walletId: wallet.id };
-    console.log("wallet", wallet);
 
     // Desktop multi-chain wallet flow: prompt for chain selection.
     if (wallet.solanaConnectorName && !isMobile) {
@@ -143,7 +153,10 @@ const ConnectorItem = ({
       wallet.getRozoPayDeeplink != null &&
       !wallet.connector
     ) {
-      context.paymentState.openInWalletBrowser(wallet);
+      context.paymentState.openInWalletBrowser({
+        wallet,
+        customDeeplink: customDeeplink ?? undefined,
+      });
     } else {
       if (shouldConnectImmediately) {
         connect({ connector: wallet.connector! });

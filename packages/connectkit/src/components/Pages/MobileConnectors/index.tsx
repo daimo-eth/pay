@@ -1,6 +1,7 @@
 import React from "react";
 
 import { ROUTES } from "../../../constants/routes";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import {
   WalletConfigProps,
@@ -19,6 +20,7 @@ import {
 const MobileConnectors: React.FC = () => {
   const context = usePayContext();
   const { paymentState, setRoute } = context;
+  const { order } = useRozoPay();
 
   // filter out installed wallets
   const walletsIdsToDisplay =
@@ -29,7 +31,10 @@ const MobileConnectors: React.FC = () => {
       if (wallet.isSolanaOnly && !context.paymentState.showSolanaPaymentMethod)
         return false;
       // If the mobile wallet supports stellar only, don't show it if we are not supporting stellar has a payment method
-      if (wallet.isStellarOnly && !context.paymentState.showStellarPaymentMethod)
+      if (
+        wallet.isStellarOnly &&
+        !context.paymentState.showStellarPaymentMethod
+      )
         return false;
       return true;
     }) ?? [];
@@ -43,7 +48,10 @@ const MobileConnectors: React.FC = () => {
       context.paymentState.setSelectedWallet(wallet);
       setRoute(ROUTES.SELECT_WALLET_AMOUNT);
     } else {
-      paymentState.openInWalletBrowser(wallet);
+      paymentState.openInWalletBrowser({
+        wallet,
+        customDeeplink: order?.metadata?.customDeeplinkUrl,
+      });
     }
   };
 
@@ -62,14 +70,14 @@ const MobileConnectors: React.FC = () => {
                     const nameA = walletA.name ?? walletA.shortName ?? a;
                     const nameB = walletB.name ?? walletB.shortName ?? b;
                     return nameA.localeCompare(nameB);
-                  },
+                  }
                 )
                 .filter(
                   (walletId) =>
                     !(
                       walletId === "coinbaseWallet" ||
                       walletId === "com.coinbase.wallet"
-                    ),
+                    )
                 )
                 .map((walletId, i) => {
                   const wallet = walletConfigs[walletId];

@@ -184,6 +184,7 @@ export default function DemoBasic() {
   const metadata = useMemo(() => {
     return {
       orderDate: new Date().toISOString(),
+      // customDeeplinkUrl: `https://ns.rozo.ai/ns/zen?amount=${parsedConfig?.amount}`,
     };
   }, [parsedConfig]);
 
@@ -206,7 +207,10 @@ export default function DemoBasic() {
               toUnits={parsedConfig.amount}
               toToken={getAddress(parsedConfig.tokenAddress)}
               onPaymentStarted={printEvent}
-              onPaymentCompleted={printEvent}
+              onPaymentCompleted={(e) => {
+                console.log("onPaymentCompleted", e);
+                printEvent(e);
+              }}
               resetOnSuccess={true}
               metadata={metadata}
               showProcessingPayout

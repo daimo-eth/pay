@@ -39,7 +39,6 @@ export function useWalletPaymentOptions({
   isDepositFlow,
   payParams,
   log,
-  enableCaching = true,
 }: {
   trpc: TrpcClient;
   address: string | undefined;
@@ -51,7 +50,6 @@ export function useWalletPaymentOptions({
   isDepositFlow: boolean;
   payParams: PayParams | undefined;
   log: (msg: string) => void;
-  enableCaching?: boolean;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,14 +59,6 @@ export function useWalletPaymentOptions({
 
   // Track if we're currently making an API call to prevent concurrent requests
   const isApiCallInProgress = useRef<boolean>(false);
-
-  // Cache balance data separately from payment amount to avoid unnecessary refetches
-  const cachedBalanceData = useRef<WalletPaymentOption[] | null>(null);
-  const lastBalanceParams = useRef<string | null>(null);
-  const cacheTimestamp = useRef<number | null>(null);
-
-  // Cache expiration time: 5 minutes
-  const CACHE_EXPIRY_MS = 5 * 60 * 1000;
 
   // Extract appId to avoid payParams object recreation causing re-runs
   const stableAppId = useMemo(() => {
@@ -99,18 +89,13 @@ export function useWalletPaymentOptions({
     const refreshWalletPaymentOptions = async () => {
       if (address == null || usdRequired == null || destChainId == null) return;
 
-      // Create separate keys for balance data vs payment amount
-      const balanceParamsKey = JSON.stringify({
+      const fullParamsKey = JSON.stringify({
         address,
         destChainId,
         memoizedPreferredChains,
         memoizedPreferredTokens,
         memoizedEvmChains,
         stableAppId,
-      });
-
-      const fullParamsKey = JSON.stringify({
-        ...JSON.parse(balanceParamsKey),
         usdRequired,
         isDepositFlow,
       });
@@ -125,130 +110,11 @@ export function useWalletPaymentOptions({
         return;
       }
 
-      // Check if we can reuse cached balance data (only payment amount changed)
-      // Cache expires after 1 minute to ensure balance data is fresh
-      const isCacheValid =
-        enableCaching &&
-        cacheTimestamp.current !== null &&
-        Date.now() - cacheTimestamp.current < CACHE_EXPIRY_MS;
-
-      const canReuseCache =
-        enableCaching &&
-        cachedBalanceData.current !== null &&
-        lastBalanceParams.current === balanceParamsKey &&
-        lastExecutedParams.current !== null &&
-        isCacheValid;
-
-      log(
-        `[WALLET CACHE] Cache check: enableCaching=${enableCaching}, hasCachedData=${
-          cachedBalanceData.current !== null
-        }, balanceParamsMatch=${
-          lastBalanceParams.current === balanceParamsKey
-        }, isCacheValid=${isCacheValid}, cacheAgeSeconds=${
-          cacheTimestamp.current
-            ? Math.round((Date.now() - cacheTimestamp.current) / 1000)
-            : null
-        }, canReuseCache=${canReuseCache}, usdRequired=${usdRequired}`
-      );
-
-      if (cacheTimestamp.current && !isCacheValid && enableCaching) {
-        log(
-          `[WALLET CACHE] Cache expired after ${Math.round(
-            (Date.now() - cacheTimestamp.current) / 1000
-          )} seconds`
-        );
-      }
-
-      if (!enableCaching) {
-        log(
-          "[WALLET CACHE] Caching is disabled - will always fetch fresh data"
-        );
-      }
-
-      if (canReuseCache && cachedBalanceData.current) {
-        log("[WALLET CACHE] Using cached data, updating payment amount only");
-        // Reuse cached balance data and just update the payment amount
-        const updatedOptions = cachedBalanceData.current.map((option) => {
-          const newRequiredAmount = isDepositFlow
-            ? 0n
-            : (BigInt(
-                Math.floor(
-                  usdRequired * Math.pow(10, option.required.token.decimals)
-                )
-              ) as unknown as `${bigint}`);
-
-          // Recalculate disabledReason based on new payment amount
-          let newDisabledReason: string | undefined;
-          if (option.balance.usd < usdRequired) {
-            newDisabledReason = `Balance too low: $${option.balance.usd.toFixed(
-              2
-            )}`;
-          } else if (option.balance.usd < option.minimumRequired.usd) {
-            newDisabledReason = `Balance too low: $${option.balance.usd.toFixed(
-              2
-            )}`;
-          } else {
-            newDisabledReason = undefined;
-          }
-
-          // Log if disabledReason changed
-          if (option.disabledReason !== newDisabledReason) {
-            log(
-              `[WALLET CACHE] Updated disabledReason for ${option.balance.token.symbol}: ${option.disabledReason} -> ${newDisabledReason}`
-            );
-          }
-
-          return {
-            ...option,
-            required: {
-              ...option.required,
-              usd: usdRequired,
-              amount: newRequiredAmount,
-            },
-            disabledReason: newDisabledReason,
-          };
-        }) as WalletPaymentOption[];
-
-        // Apply the same filtering logic
-        const supportedChainsList = [base, polygon];
-        const supportedTokens = [baseUSDC.token, polygonUSDC.token];
-        const showBSCUSDT =
-          stableAppId?.includes("MP") ||
-          memoizedPreferredChains?.includes(bsc.chainId) ||
-          memoizedEvmChains?.includes(bsc.chainId);
-
-        if (showBSCUSDT) {
-          supportedChainsList.push(bsc);
-          supportedTokens.push(bscUSDT.token);
-        }
-
-        const isSupported = (o: WalletPaymentOption) =>
-          supportedChainsList.some(
-            (c) =>
-              c.chainId === o.balance.token.chainId &&
-              supportedTokens.includes(o.balance.token.token)
-          );
-
-        const filteredOptions = updatedOptions.filter(isSupported);
-        setOptions(filteredOptions);
-        lastExecutedParams.current = fullParamsKey;
-        log("[WALLET CACHE] Cache hit - no API call needed");
-        return;
-      }
-
-      // Need to fetch fresh data from API
-      log(
-        enableCaching
-          ? "[WALLET CACHE] Cache miss - fetching fresh data from API"
-          : "[WALLET CACHE] Caching disabled - fetching fresh data from API"
-      );
       lastExecutedParams.current = fullParamsKey;
-      if (enableCaching) {
-        lastBalanceParams.current = balanceParamsKey;
-      }
       isApiCallInProgress.current = true;
       setOptions(null);
       setIsLoading(true);
+
       try {
         const newOptions = await trpc.getWalletPaymentOptions.query({
           payerAddress: address,
@@ -259,17 +125,6 @@ export function useWalletPaymentOptions({
           preferredTokens: memoizedPreferredTokens,
           evmChains: memoizedEvmChains,
         });
-
-        // Cache the raw balance data (before filtering) with timestamp (only if caching is enabled)
-        if (enableCaching) {
-          cachedBalanceData.current = newOptions;
-          cacheTimestamp.current = Date.now();
-          log(
-            `[WALLET CACHE] Cached fresh data with timestamp: ${new Date(
-              cacheTimestamp.current
-            ).toLocaleTimeString()}`
-          );
-        }
 
         // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
         // To add more chains, add them to both arrays below and ensure they're defined in pay-common
@@ -309,10 +164,10 @@ export function useWalletPaymentOptions({
 
         setOptions(filteredOptions);
         log(
-          `[WALLET CACHE] API call completed, filtered options: ${filteredOptions.length}`
+          `[WALLET] API call completed, filtered options: ${filteredOptions.length}`
         );
       } catch (error) {
-        log(`[WALLET CACHE] API call failed: ${error}`);
+        log(`[WALLET] API call failed: ${error}`);
       } finally {
         isApiCallInProgress.current = false;
         setIsLoading(false);
@@ -332,6 +187,7 @@ export function useWalletPaymentOptions({
     memoizedEvmChains,
     stableAppId,
     trpc,
+    log,
   ]);
 
   return {

@@ -139,6 +139,10 @@ export const zRozoPayOrderMetadata = z.object({
     .optional()
     .describe(""),
   memo: z.string().optional().describe("Memo for the payment."),
+  customDeeplinkUrl: z
+    .string()
+    .optional()
+    .describe("Custom deeplink URL for the payment."),
 });
 
 export type RozoPayOrderMetadata = z.infer<typeof zRozoPayOrderMetadata>;
@@ -515,6 +519,7 @@ export type PaymentCompletedEvent = {
   chainId: number;
   txHash: Hex;
   payment: RozoPayOrderView;
+  rozoPaymentId?: string;
 };
 
 export type PaymentBouncedEvent = {
@@ -524,6 +529,7 @@ export type PaymentBouncedEvent = {
   chainId: number;
   txHash: Hex;
   payment: RozoPayOrderView;
+  rozoPaymentId?: string;
 };
 
 export type PaymentRefundedEvent = {

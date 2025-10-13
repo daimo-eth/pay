@@ -219,8 +219,6 @@ export default function WaitingDepositAddress() {
           ? response.data?.metadata?.source_tx_hash
           : response.data?.payinTransactionHash;
 
-        console.log({ response: response.data });
-
         if (isActive && response.data && payInHash) {
           console.log(
             "[PAYMENT POLLING] ✅ Found payinTransactionHash:",
@@ -369,10 +367,6 @@ export default function WaitingDepositAddress() {
         setFailed(true);
       } finally {
         setIsLoading(false);
-        console.log(
-          "Finished payWithDepositAddress for:",
-          selectedDepositAddressOption.id
-        );
       }
     }
   };

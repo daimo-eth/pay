@@ -132,14 +132,32 @@ const Confirmation: React.FC = () => {
     return { done: false, txURL: undefined, rawPayInHash: undefined };
   }, [paymentState, order, paymentStateContext, isConfirming, rozoPaymentId]);
 
+  const receiptUrl = useMemo(() => {
+    if (
+      order &&
+      "metadata" in order &&
+      "receiptUrl" in order.metadata &&
+      typeof order.metadata.receiptUrl === "string"
+    ) {
+      const url = new URL(order.metadata.receiptUrl as string);
+      return url.toString();
+    }
+    return undefined;
+  }, [order]);
+
   const generateReceiptUrl = useMemo(() => {
+    // If the receiptUrl is set, use it
+    if (receiptUrl) {
+      return receiptUrl;
+    }
+
     if (rozoPaymentId) {
       const url = new URL(`${ROZO_INVOICE_URL}/receipt`);
       url.searchParams.set("id", rozoPaymentId);
       return url.toString();
     }
     return undefined;
-  }, [rozoPaymentId]);
+  }, [rozoPaymentId, receiptUrl]);
 
   useEffect(() => {
     if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
@@ -212,15 +230,13 @@ const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (done) {
-      if (
-        paymentStateContext.tokenMode === "stellar" ||
-        paymentStateContext.tokenMode === "solana"
-      ) {
-        setPaymentRozoCompleted(true);
+      if (rawPayInHash && rozoPaymentId) {
+        setPaymentCompleted(rawPayInHash ?? "", rozoPaymentId ?? "");
       }
+      setPaymentRozoCompleted(true);
       onSuccess();
     }
-  }, [done, onSuccess, paymentStateContext]);
+  }, [done, onSuccess, paymentStateContext, rawPayInHash, rozoPaymentId]);
 
   useEffect(() => {
     if (debugMode) {

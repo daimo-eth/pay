@@ -45,7 +45,7 @@ const SelectWalletAmount: React.FC = () => {
       setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
       setRoute(ROUTES.CONNECT);
     } else {
-      openInWalletBrowser(selectedWallet, amountUsd);
+      openInWalletBrowser({ wallet: selectedWallet, amountUsd });
     }
   };
 

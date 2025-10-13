@@ -13,10 +13,12 @@ export function useDepositAddressOptions({
   trpc,
   usdRequired,
   mode,
+  appId,
 }: {
   trpc: TrpcClient;
   usdRequired: number | undefined;
   mode: RozoPayOrderMode | undefined;
+  appId?: string;
 }) {
   const [options, setOptions] = useState<
     {
@@ -53,11 +55,15 @@ export function useDepositAddressOptions({
           //   logoURI: "https://pay.daimo.com/chain-logos/arbitrum.svg",
           //   minimumUsd: 0,
           // },
-          {
-            id: DepositAddressPaymentOptions.BSC,
-            logoURI: chainToLogo[bsc.chainId],
-            minimumUsd: 0.1,
-          },
+          ...(appId?.includes("MP")
+            ? [
+                {
+                  id: DepositAddressPaymentOptions.BSC,
+                  logoURI: chainToLogo[bsc.chainId],
+                  minimumUsd: 0.1,
+                },
+              ]
+            : []),
           {
             id: DepositAddressPaymentOptions.BASE,
             logoURI: chainToLogo[base.chainId],

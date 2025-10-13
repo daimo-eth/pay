@@ -169,15 +169,15 @@ export function useStellarPaymentOptions({
         const structuredBalances: WalletPaymentOption[] = [];
 
         // Process XLM (native) balance
-        const nativeBalance = account?.balances.find(
-          (b) => b.asset_type === "native"
-        );
+        // const nativeBalance = account?.balances.find(
+        //   (b) => b.asset_type === "native"
+        // );
 
-        if (nativeBalance) {
-          const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
-          // @NOTE: We are not including XLM in the options list for now.
-          // structuredBalances.push(xlmOption);
-        }
+        // if (nativeBalance) {
+        // const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
+        // @NOTE: We are not including XLM in the options list for now.
+        // structuredBalances.push(xlmOption);
+        // }
 
         // Process USDC balance
         const usdcBalance = account?.balances.find(

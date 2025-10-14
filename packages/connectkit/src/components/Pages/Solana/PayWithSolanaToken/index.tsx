@@ -56,10 +56,11 @@ const PayWithSolanaToken: React.FC = () => {
     selectedSolanaTokenOption,
     payWithSolanaTokenRozo: payWithSolanaTokenImpl,
     payParams,
+    rozoPaymentId,
     setRozoPaymentId,
     setTxHash,
   } = paymentState;
-  const { order, setPaymentRozoCompleted } = useRozoPay();
+  const { order, setPaymentRozoCompleted, setPaymentCompleted } = useRozoPay();
   const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment
   );
@@ -196,8 +197,8 @@ const PayWithSolanaToken: React.FC = () => {
         setPayState(PayState.RequestSuccessful);
         setTxHash(result.txHash);
         setTimeout(() => {
-          setActiveRozoPayment(undefined);
           setPaymentRozoCompleted(true);
+          setPaymentCompleted(result.txHash, rozoPaymentId);
           setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
         }, 200);
       } else {

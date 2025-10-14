@@ -7,6 +7,7 @@ import {
   STELLAR_XLM_TOKEN_INFO,
 } from "../constants/rozoConfig";
 import { useStellar } from "../provider/StellarContextProvider";
+import { createRefreshFunction } from "./refreshUtils";
 
 // Define the BigIntStr type to match the common package
 type BigIntStr = `${bigint}`;
@@ -169,15 +170,15 @@ export function useStellarPaymentOptions({
         const structuredBalances: WalletPaymentOption[] = [];
 
         // Process XLM (native) balance
-        const nativeBalance = account?.balances.find(
-          (b) => b.asset_type === "native"
-        );
+        // const nativeBalance = account?.balances.find(
+        //   (b) => b.asset_type === "native"
+        // );
 
-        if (nativeBalance) {
-          const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
-          // @NOTE: We are not including XLM in the options list for now.
-          // structuredBalances.push(xlmOption);
-        }
+        // if (nativeBalance) {
+        // const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
+        // @NOTE: We are not including XLM in the options list for now.
+        // structuredBalances.push(xlmOption);
+        // }
 
         // Process USDC balance
         const usdcBalance = account?.balances.find(
@@ -240,8 +241,21 @@ export function useStellarPaymentOptions({
     }
   }, [address, usdRequired, account, isAccountExists]);
 
+  // Create refresh function using shared utility
+  const refreshOptions = createRefreshFunction(
+    () =>
+      address && usdRequired !== undefined
+        ? fetchBalances(address)
+        : Promise.resolve(),
+    {
+      lastExecutedParams: { current: null },
+      isApiCallInProgress: { current: false },
+    }
+  );
+
   return {
     options,
     isLoading,
+    refreshOptions,
   };
 }

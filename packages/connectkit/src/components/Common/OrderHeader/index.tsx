@@ -52,6 +52,7 @@ export const OrderHeader = ({
     stellarPublicKey ?? ""
   );
   const orderUsd = order?.destFinalCallTokenAmount.usd;
+  const appId = paymentState.payParams?.appId;
 
   const titleAmountContent = (() => {
     if (paymentState.isDepositFlow) {
@@ -141,7 +142,7 @@ export const OrderHeader = ({
           )}
           {show === "all" && (
             <>
-              <CoinLogos $size={32} $exclude={excludeLogos} />
+              <CoinLogos $size={32} $exclude={excludeLogos} appId={appId} />
             </>
           )}
         </MinifiedContainer>
@@ -170,9 +171,11 @@ export const OrderHeader = ({
 function CoinLogos({
   $size = 24,
   $exclude = [],
+  appId,
 }: {
   $size?: number;
   $exclude?: string[];
+  appId?: string;
 }) {
   const logos = [
     // <Ethereum key="eth" />,
@@ -180,12 +183,15 @@ function CoinLogos({
     // <USDC key="usdc" />,
     // <Optimism key="optimism" />,
     // <Arbitrum key="arbitrum" />,
-    <BinanceSmartChain key="bsc" />,
     <Base key="base" />,
     <Polygon key="polygon" />,
     <Solana key="solana" />,
     <Stellar key="stellar" />,
   ];
+
+  if (appId?.includes("MP")) {
+    logos.push(<BinanceSmartChain key="bsc" />);
+  }
 
   const logoBlock = (element: React.ReactElement, index: number) => (
     <LogoContainer

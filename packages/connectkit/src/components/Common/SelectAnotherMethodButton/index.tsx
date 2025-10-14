@@ -68,7 +68,7 @@ export default function SelectAnotherMethodButton() {
     return icons;
   }
 
-  function getBestPaymentMethodIcons() {
+  function getBestPaymentMethodIcons(appId?: string) {
     let icons = (externalPaymentOptions.options.get("external") ?? [])
       .filter((option) => option.id !== ExternalPaymentOptions.Rozo)
       .map((option) => (
@@ -88,8 +88,11 @@ export default function SelectAnotherMethodButton() {
       const additionalIcons: JSX.Element[] = [];
       if (showStellarPaymentMethod) additionalIcons.push(<Stellar />);
       if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
-      if (includeDepositAddressOption && additionalIcons.length < 3)
-        additionalIcons.push(<BinanceSmartChain />);
+      if (includeDepositAddressOption && additionalIcons.length < 3) {
+        if (appId?.includes("MP")) {
+          additionalIcons.push(<BinanceSmartChain />);
+        }
+      }
       /* if (includeDepositAddressOption && additionalIcons.length < 3)
         additionalIcons.push(<Tron />); */
       if (additionalIcons.length < 3)

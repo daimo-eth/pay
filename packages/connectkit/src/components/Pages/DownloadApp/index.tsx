@@ -13,7 +13,6 @@ import { useWallet } from "../../../wallets/useWallets";
 const DownloadApp = () => {
   const { pendingConnectorId } = usePayContext();
   const wallet = useWallet(pendingConnectorId ?? "");
-  console.log("wallet", wallet);
   const locales = useLocales({
     CONNECTORNAME: wallet?.name,
   });

@@ -37,6 +37,7 @@ import {
   useAccount,
   useEnsName,
   useSendTransaction,
+  useSwitchChain,
   useWriteContract,
 } from "wagmi";
 
@@ -172,12 +173,28 @@ export interface PaymentState {
       memo?: string;
     }
   ) => Promise<{ signedTx: string; success: boolean }>;
-  openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
+  openInWalletBrowser: ({
+    wallet,
+    amountUsd,
+    customDeeplink,
+  }: {
+    wallet: WalletConfigProps;
+    amountUsd?: number;
+    customDeeplink?: string;
+  }) => void;
   senderEnsName: string | undefined;
   setTxHash: (txHash: string) => void;
   txHash: string | undefined;
   setRozoPaymentId: (paymentId: string) => void;
   rozoPaymentId: string | undefined;
+
+  // Wallet addresses for refresh coordination
+  ethWalletAddress: string | undefined;
+  solanaPubKey: string | undefined;
+  stellarPubKey: string | undefined;
+
+  // Order amount for refresh coordination
+  orderUsdAmount: number | undefined;
 }
 
 export function usePaymentState({
@@ -216,6 +233,8 @@ export function usePaymentState({
     chainId: ethereum.chainId,
     address: ethWalletAddress,
   });
+  const { switchChainAsync } = useSwitchChain();
+
   const { sendTransactionAsync } = useSendTransaction();
   const { writeContractAsync } = useWriteContract();
 
@@ -300,6 +319,7 @@ export function usePaymentState({
     trpc,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     mode: pay.order?.mode,
+    appId: currPayParams?.appId,
   });
 
   const chainOrderUsdLimits = useOrderUsdLimits({ trpc });
@@ -493,6 +513,7 @@ export function usePaymentState({
             value: paymentAmount,
           });
         } else {
+          await switchChainAsync({ chainId: required.token.chainId });
           return await writeContractAsync({
             abi: erc20Abi,
             address: tokenAddress!,
@@ -942,21 +963,31 @@ export function usePaymentState({
 
   const { isIOS } = useIsMobile();
 
-  const openInWalletBrowser = (
-    wallet: WalletConfigProps,
-    amountUsd?: number
-  ) => {
+  const openInWalletBrowser = ({
+    wallet,
+    amountUsd,
+    customDeeplink,
+  }: {
+    wallet: WalletConfigProps;
+    amountUsd?: number;
+    customDeeplink?: string;
+  }) => {
     const paymentState = pay.paymentState;
-    assert(
-      paymentState === "payment_unpaid",
-      `[OPEN IN WALLET BROWSER] paymentState is ${paymentState}, must be payment_unpaid`
-    );
+    let payId = "";
+
+    if (!customDeeplink) {
+      assert(
+        paymentState === "payment_unpaid",
+        `[OPEN IN WALLET BROWSER] paymentState is ${paymentState}, must be payment_unpaid`
+      );
+
+      payId = writeRozoPayOrderID(pay.order.id);
+    }
+
     assert(
       wallet.getRozoPayDeeplink != null,
       `openInWalletBrowser: missing deeplink for ${wallet.name}`
     );
-
-    const payId = writeRozoPayOrderID(pay.order.id);
 
     let ref: string | undefined = undefined;
 
@@ -965,11 +996,12 @@ export function usePaymentState({
       ref = isIOS ? "1598432977" : "app.phantom";
     }
 
-    const deeplink = wallet.getRozoPayDeeplink(
-      pay.order.externalId ?? pay.rozoPaymentId ?? payId,
+    const deeplink = wallet.getRozoPayDeeplink({
+      payId: pay.order?.externalId ?? pay.rozoPaymentId ?? payId,
       ref,
-      currPayParams?.appId
-    );
+      appId: currPayParams?.appId,
+      customDeeplink,
+    });
 
     // If we are in IOS, we don't open the deeplink in a new window, because it
     // will not work, the link will be opened in the page WAITING_WALLET
@@ -1076,6 +1108,10 @@ export function usePaymentState({
     undefined
   );
 
+  const orderUsdAmount = useMemo(() => {
+    return !isDepositFlow ? Number(currPayParams?.toUnits) : undefined;
+  }, [isDepositFlow, currPayParams]);
+
   return {
     buttonProps,
     setButtonProps,
@@ -1124,5 +1160,9 @@ export function usePaymentState({
     setTxHash,
     setRozoPaymentId,
     rozoPaymentId,
+    ethWalletAddress,
+    solanaPubKey,
+    stellarPubKey,
+    orderUsdAmount,
   };
 }

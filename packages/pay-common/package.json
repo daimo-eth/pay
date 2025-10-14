@@ -1,6 +1,6 @@
 {
   "name": "@rozoai/intent-common",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "Intent Pay shared types and utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

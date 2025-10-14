@@ -24,6 +24,7 @@ export function Columns({ children }: { children: React.ReactNode }) {
 }
 
 export function printEvent(e: RozoPayEvent) {
+  console.log("printEvent", e);
   const url = getChainExplorerByChainId(e.chainId);
   console.log(`${e.type} payment ${e.paymentId}: ${url}/tx/${e.txHash}`);
 }

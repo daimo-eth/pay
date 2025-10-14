@@ -95,4 +95,16 @@ export const isSafeConnector = (connectorId?: string) => connectorId === "safe";
 export const isInjectedConnector = (connectorId?: string) =>
   connectorId === "injected";
 
+export function parseError(e: any) {
+  return {
+    code: e?.error?.code || e?.code || -1,
+    message:
+      e?.error?.message ||
+      e?.message ||
+      (typeof e === "string" && e) ||
+      "Unhandled error from the wallet",
+    ext: e?.error?.ext || e?.ext,
+  };
+}
+
 export { flattenChildren, nFormatter, truncateENSAddress, truncateEthAddress };

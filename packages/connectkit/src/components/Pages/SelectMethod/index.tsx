@@ -60,8 +60,12 @@ export default function SelectMethod() {
     publicKey: stellarPublicKey,
   } = useStellar();
 
-  const { externalPaymentOptions, senderEnsName, showStellarPaymentMethod } =
-    paymentState;
+  const {
+    externalPaymentOptions,
+    senderEnsName,
+    showStellarPaymentMethod,
+    payParams,
+  } = paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
   // Desktop: Always show connected wallets when available
@@ -263,7 +267,10 @@ export default function SelectMethod() {
   );
 
   // Pay with Deposit Address
-  const depositAddressOption = getDepositAddressOption(setRoute);
+  const depositAddressOption = getDepositAddressOption(
+    setRoute,
+    payParams?.appId
+  );
   options.push(depositAddressOption);
 
   if (showStellarPaymentMethod) {
@@ -364,13 +371,14 @@ function getBestUnconnectedWalletIcons(
 }
 
 function getDepositAddressOption(
-  setRoute: (route: ROUTES, data?: Record<string, any>) => void
+  setRoute: (route: ROUTES, data?: Record<string, any>) => void,
+  appId?: string
 ) {
   return {
     id: "depositAddress",
     title: "Pay to address",
     icons: [
-      <BinanceSmartChain key="bsc" />,
+      appId?.includes("MP") ? <BinanceSmartChain key="bsc" /> : null,
       <Base key="base" />,
       // <Solana key="base" />,
       <Polygon key="polygon" />,

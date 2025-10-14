@@ -27,6 +27,8 @@ export default [
       "qrcode",
       "@stellar/stellar-sdk",
       "@creit.tech/stellar-wallets-kit",
+      "@reown/appkit",
+      "@walletconnect/sign-client",
       "@solana/spl-token",
     ],
     output: [

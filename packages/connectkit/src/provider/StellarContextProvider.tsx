@@ -15,6 +15,10 @@ import {
   STELLAR_USDC_ASSET_CODE,
   STELLAR_USDC_ISSUER_PK,
 } from "../constants/rozoConfig";
+import {
+  WalletConnectAllowedMethods,
+  WalletConnectModule,
+} from "../utils/stellar";
 
 type StellarContextProvider = { children: ReactNode; stellarRpcUrl?: string };
 
@@ -76,6 +80,15 @@ export const StellarContextProvider = ({
           new AlbedoModule(),
           new LobstrModule(),
           new FreighterModule(),
+          new WalletConnectModule({
+            url: "https://rozo.ai",
+            projectId: "ab8fa47f01e6a72c58bbb76577656051",
+            method: WalletConnectAllowedMethods.SIGN_AND_SUBMIT,
+            description: `Rozo Pay`,
+            name: "Rozo Pay",
+            icons: ["https://rozo.ai/rozo-logo.png"],
+            network: WalletNetwork.PUBLIC,
+          }),
         ],
       });
       setKit(stellarKit);

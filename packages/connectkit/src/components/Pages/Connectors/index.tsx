@@ -32,6 +32,10 @@ const Wallets: React.FC = () => {
   const { isMobile } = useIsMobile();
   const { hydrateOrder, order, setRozoPaymentId } = useRozoPay();
 
+  const hasCustomDeeplink = React.useMemo(() => {
+    return order?.metadata && order?.metadata.customDeeplinkUrl != null;
+  }, [order?.metadata]);
+
   // Track if hydration has already been attempted to prevent multiple runs
   const hasHydratedRef = useRef(false);
   const lastOrderIdRef = useRef<bigint | null>(null);
@@ -49,13 +53,18 @@ const Wallets: React.FC = () => {
       !context.paymentState.isDepositFlow &&
       order != null &&
       order.mode !== RozoPayOrderMode.HYDRATED &&
-      isMobile
+      isMobile &&
+      !hasCustomDeeplink
     ) {
       console.log("HYDRATING ORDER", order, context);
       hasHydratedRef.current = true;
       hydrateOrder();
     }
-  }, [context.paymentState.isDepositFlow, order, isMobile, hydrateOrder]);
+
+    if (hasCustomDeeplink) {
+      hasHydratedRef.current = true;
+    }
+  }, [context.paymentState.isDepositFlow, order, isMobile, hasCustomDeeplink]);
 
   useEffect(() => {
     if (order?.externalId) {
@@ -73,7 +82,11 @@ const Wallets: React.FC = () => {
         minified
         excludeLogos={["tron", "eth", "arbitrum", "optimism", "stellar"]}
       />
-      <ConnectorList />
+      <ConnectorList
+        customDeeplink={
+          hasCustomDeeplink ? order?.metadata?.customDeeplinkUrl : null
+        }
+      />
 
       {isMobile ? (
         <>

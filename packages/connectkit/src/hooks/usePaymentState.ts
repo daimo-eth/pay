@@ -57,7 +57,7 @@ export interface PaymentState {
   setButtonProps: (props: PayButtonPaymentProps | undefined) => void;
 
   /// Pay ID for loading an existing order
-  setPayId: (id: string | undefined) => void;
+  setPayId: (id: string | undefined) => Promise<void>;
   /// Pay params for creating an order on the fly,
   setPayParams: (payParams: PayParams | undefined) => Promise<void>;
 
@@ -460,7 +460,7 @@ export function usePaymentState({
 
   const setPayId = useCallback(
     async (payId: string | undefined) => {
-      if (lockPayParams || payId == null) return;
+      if (payId == null) return;
       const id = readDaimoPayOrderID(payId).toString();
 
       if (pay.order?.id && BigInt(id) == pay.order.id) {
@@ -469,10 +469,10 @@ export function usePaymentState({
       }
 
       pay.reset();
-      pay.setPayId(payId);
+      await pay.setPayId(payId);
       setIsDepositFlow(false);
     },
-    [lockPayParams, pay],
+    [pay],
   );
 
   /** Called whenever params change. */

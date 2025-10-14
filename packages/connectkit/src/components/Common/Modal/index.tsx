@@ -692,7 +692,7 @@ const Page: React.FC<PageProps> = ({
 export const OrDivider = ({ children }: { children?: React.ReactNode }) => {
   const locales = useLocales();
   return (
-    <TextWithHr>
+    <TextWithHr style={{ marginTop: 16 }}>
       <span>{children ?? locales.or}</span>
     </TextWithHr>
   );

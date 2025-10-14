@@ -187,6 +187,14 @@ export interface PaymentState {
   txHash: string | undefined;
   setRozoPaymentId: (paymentId: string) => void;
   rozoPaymentId: string | undefined;
+
+  // Wallet addresses for refresh coordination
+  ethWalletAddress: string | undefined;
+  solanaPubKey: string | undefined;
+  stellarPubKey: string | undefined;
+
+  // Order amount for refresh coordination
+  orderUsdAmount: number | undefined;
 }
 
 export function usePaymentState({
@@ -1100,6 +1108,10 @@ export function usePaymentState({
     undefined
   );
 
+  const orderUsdAmount = useMemo(() => {
+    return !isDepositFlow ? Number(currPayParams?.toUnits) : undefined;
+  }, [isDepositFlow, currPayParams]);
+
   return {
     buttonProps,
     setButtonProps,
@@ -1148,5 +1160,9 @@ export function usePaymentState({
     setTxHash,
     setRozoPaymentId,
     rozoPaymentId,
+    ethWalletAddress,
+    solanaPubKey,
+    stellarPubKey,
+    orderUsdAmount,
   };
 }

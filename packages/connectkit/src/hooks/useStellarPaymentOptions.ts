@@ -7,6 +7,7 @@ import {
   STELLAR_XLM_TOKEN_INFO,
 } from "../constants/rozoConfig";
 import { useStellar } from "../provider/StellarContextProvider";
+import { createRefreshFunction } from "./refreshUtils";
 
 // Define the BigIntStr type to match the common package
 type BigIntStr = `${bigint}`;
@@ -240,8 +241,21 @@ export function useStellarPaymentOptions({
     }
   }, [address, usdRequired, account, isAccountExists]);
 
+  // Create refresh function using shared utility
+  const refreshOptions = createRefreshFunction(
+    () =>
+      address && usdRequired !== undefined
+        ? fetchBalances(address)
+        : Promise.resolve(),
+    {
+      lastExecutedParams: { current: null },
+      isApiCallInProgress: { current: false },
+    }
+  );
+
   return {
     options,
     isLoading,
+    refreshOptions,
   };
 }

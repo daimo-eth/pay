@@ -261,8 +261,9 @@ export const walletConfigs: {
       appId?: string;
       customDeeplink?: string;
     }) => {
-      const url =
-        customDeeplink ?? encodeURIComponent(getRozoPayUrl(payId, appId));
+      const url = encodeURIComponent(
+        customDeeplink ?? getRozoPayUrl(payId, appId)
+      );
       const urlRef = encodeURIComponent(ref || window.location.origin);
       return `https://phantom.app/ul/browse/${url}?ref=${urlRef}`;
     },

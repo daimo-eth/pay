@@ -7,9 +7,10 @@ import {
   polygonUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
+import { createRefreshFunction } from "./refreshUtils";
 
 /**
  * Wallet payment options. User picks one.
@@ -85,113 +86,102 @@ export function useWalletPaymentOptions({
     [JSON.stringify(evmChains)]
   );
 
+  // Smart clearing: only clear if we don't have data for this address
   useEffect(() => {
-    const refreshWalletPaymentOptions = async () => {
-      if (address == null || usdRequired == null || destChainId == null) return;
+    if (address && !options) {
+      // Only set loading if we don't have options yet
+      setIsLoading(true);
+    }
+  }, [address, options]);
 
-      const fullParamsKey = JSON.stringify({
-        address,
+  // Shared fetch function for wallet payment options
+  const fetchWalletPaymentOptions = useCallback(async () => {
+    if (address == null || usdRequired == null || destChainId == null) return;
+
+    setOptions(null);
+    setIsLoading(true);
+
+    try {
+      const newOptions = await trpc.getWalletPaymentOptions.query({
+        payerAddress: address,
+        usdRequired: isDepositFlow ? undefined : usdRequired,
         destChainId,
-        memoizedPreferredChains,
-        memoizedPreferredTokens,
-        memoizedEvmChains,
-        stableAppId,
-        usdRequired,
-        isDepositFlow,
+        preferredChains: memoizedPreferredChains,
+        preferredTokens: memoizedPreferredTokens,
+        evmChains: memoizedEvmChains,
       });
 
-      // Skip if we've already executed with these exact parameters
-      if (lastExecutedParams.current === fullParamsKey) {
-        return;
+      // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
+      const supportedChainsList = [base, polygon];
+      const supportedTokens = [baseUSDC.token, polygonUSDC.token];
+
+      // Show BSC USDT for MugglePay apps or when BSC is preferred
+      const showBSCUSDT =
+        stableAppId?.includes("MP") ||
+        memoizedPreferredChains?.includes(bsc.chainId) ||
+        memoizedEvmChains?.includes(bsc.chainId);
+
+      if (showBSCUSDT) {
+        supportedChainsList.push(bsc);
+        supportedTokens.push(bscUSDT.token);
       }
 
-      // Skip if we're already making an API call to prevent concurrent requests
-      if (isApiCallInProgress.current) {
-        return;
-      }
-
-      lastExecutedParams.current = fullParamsKey;
-      isApiCallInProgress.current = true;
-      setOptions(null);
-      setIsLoading(true);
-
-      try {
-        const newOptions = await trpc.getWalletPaymentOptions.query({
-          payerAddress: address,
-          // API expects undefined for deposit flow.
-          usdRequired: isDepositFlow ? undefined : usdRequired,
-          destChainId,
-          preferredChains: memoizedPreferredChains,
-          preferredTokens: memoizedPreferredTokens,
-          evmChains: memoizedEvmChains,
-        });
-
-        // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
-        // To add more chains, add them to both arrays below and ensure they're defined in pay-common
-        const supportedChainsList = [base, polygon];
-
-        // SUPPORTED TOKENS: Only these specific tokens are currently active
-        // Each token corresponds to its respective chain above
-        const supportedTokens = [baseUSDC.token, polygonUSDC.token];
-
-        // Show BSC USDT for MugglePay apps or when BSC is preferred
-        const showBSCUSDT =
-          stableAppId?.includes("MP") ||
-          memoizedPreferredChains?.includes(bsc.chainId) ||
-          memoizedEvmChains?.includes(bsc.chainId);
-
-        if (showBSCUSDT) {
-          supportedChainsList.push(bsc);
-          supportedTokens.push(bscUSDT.token);
-        }
-
-        // Filter out chains/tokens we don't support yet in wallet payment options
-        // API may return more options, but we only show these filtered ones to users
-        const isSupported = (o: WalletPaymentOption) =>
-          supportedChainsList.some(
-            (c) =>
-              c.chainId === o.balance.token.chainId &&
-              supportedTokens.includes(o.balance.token.token)
-          );
-        const filteredOptions = newOptions.filter(isSupported);
-        if (filteredOptions.length < newOptions.length) {
-          log(
-            `[WALLET]: skipping ${
-              newOptions.length - filteredOptions.length
-            } unsupported-chain balances on ${address}`
-          );
-        }
-
-        setOptions(filteredOptions);
-        log(
-          `[WALLET] API call completed, filtered options: ${filteredOptions.length}`
+      // Filter out chains/tokens we don't support yet in wallet payment options
+      const isSupported = (o: WalletPaymentOption) =>
+        supportedChainsList.some(
+          (c) =>
+            c.chainId === o.balance.token.chainId &&
+            supportedTokens.includes(o.balance.token.token)
         );
-      } catch (error) {
-        log(`[WALLET] API call failed: ${error}`);
-      } finally {
-        isApiCallInProgress.current = false;
-        setIsLoading(false);
+      const filteredOptions = newOptions.filter(isSupported);
+      if (filteredOptions.length < newOptions.length) {
+        log(
+          `[WALLET]: skipping ${
+            newOptions.length - filteredOptions.length
+          } unsupported-chain balances on ${address}`
+        );
       }
-    };
 
-    if (address != null && usdRequired != null && destChainId != null) {
-      refreshWalletPaymentOptions();
+      setOptions(filteredOptions);
+      log(
+        `[WALLET]: loaded ${filteredOptions.length} payment options for ${address}`
+      );
+    } catch (error) {
+      console.error(error);
+      setOptions([]);
+    } finally {
+      isApiCallInProgress.current = false;
+      setIsLoading(false);
     }
   }, [
     address,
-    usdRequired,
     destChainId,
-    isDepositFlow,
     memoizedPreferredChains,
     memoizedPreferredTokens,
     memoizedEvmChains,
     stableAppId,
+    usdRequired,
+    isDepositFlow,
     trpc,
     log,
   ]);
 
+  // Create refresh function using shared utility
+  const refreshOptions = createRefreshFunction(fetchWalletPaymentOptions, {
+    lastExecutedParams,
+    isApiCallInProgress,
+  });
+
+  // Initial fetch when hook mounts with valid parameters or when key parameters change
+  useEffect(() => {
+    if (address != null && usdRequired != null && destChainId != null) {
+      refreshOptions();
+    }
+  }, [address, usdRequired, destChainId]);
+
   return {
     options,
     isLoading,
+    refreshOptions,
   };
 }

@@ -163,7 +163,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         });
 
         if (!accounting.payInZRO && address(this).balance > 0) {
-            // best-effort native refund
+            // native coin refund
             (bool success, ) = refundAddress.call{value: address(this).balance}(
                 ""
             );

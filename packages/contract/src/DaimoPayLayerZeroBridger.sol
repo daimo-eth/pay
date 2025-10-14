@@ -135,11 +135,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
 
         // Quote LZ fee & ensure native coverage if paying in native.
         MessagingFee memory fee = IOFT(route.app).quoteSend(sp, accounting.payInZRO); // standard OFT v2 path
-        if (!accounting.payInZRO)
-            require(
-                address(this).balance >= fee.nativeFee,
-                "insufficient native fee"
-            );
+        require(accounting.payInZRO || address(this).balance >= fee.nativeFee, "insufficient native fee");
 
         // Custody + approve exactly what the accounting says.
         IERC20(route.bridgeTokenIn).safeTransferFrom(
@@ -189,22 +185,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         LZBridgeRoute memory route,
         uint256 desiredOutLD,
         bytes memory extraData
-    ) internal view virtual returns (Accounting memory accounting) {
-        // Reference arguments to avoid compiler warnings
-        toChainId;
-        toAddress;
-        route;
-        desiredOutLD;
-        extraData;
-        // Default = 1:1 OFT: pull desiredOut, send desiredOut, guarantee desiredOut
-        accounting.inAmountLD = desiredOutLD;
-        accounting.sendAmountLD = desiredOutLD;
-        accounting.minAmountLD = desiredOutLD;
-        accounting.extraOptions = bytes(""); // caller can pass via extraData in accounting subclass if desired
-        accounting.composeMsg = bytes("");
-        accounting.oftCmd = bytes("");
-        accounting.payInZRO = false;
-    }
+    ) internal view virtual returns (Accounting memory accounting);
 
     // Internal helpers
 
@@ -221,14 +202,12 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         route = bridgeRouteMapping[toChainId];
         require(route.bridgeTokenOut != address(0), "route not found");
         uint256 n = bridgeTokenOutOptions.length;
-        uint256 idx = n;
-        for (uint256 i = 0; i < n; ++i)
+        uint256 idx = 0;
+        for (; idx < n; ++idx) {
             if (
-                address(bridgeTokenOutOptions[i].token) == route.bridgeTokenOut
-            ) {
-                idx = i;
-                break;
-            }
+                address(bridgeTokenOutOptions[idx].token) == route.bridgeTokenOut
+            ) break;
+        }
         require(idx < n, "bad bridge token");
         outAmount = bridgeTokenOutOptions[idx].amount;
         require(outAmount > 0, "zero amount");

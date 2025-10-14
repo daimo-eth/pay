@@ -93,8 +93,8 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
 
         (, uint256 amountIn) = bridger.getBridgeTokenIn(DEST_CHAIN, opts);
 
-        // Calculate expected: 10M * 10000 / 9990
-        uint256 expected = uint256(10_000_000 * 10_000 + 9_990 - 1) / 9_990;
+        // expected literal from 10M gross-up with 10 bps fee
+        uint256 expected = 10_010_011;
         assertEq(amountIn, expected);
     }
 

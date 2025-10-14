@@ -50,6 +50,31 @@ function getLegacyMeshBridgeRoutes(
         return (chainIds, bridgeRoutes);
     }
 
+    // Source chain 42220
+    if (sourceChainId == 42220) {
+        chainIds = new uint256[](2);
+        bridgeRoutes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](2);
+
+        // 42220 -> 1
+        chainIds[0] = 1;
+        bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30101,
+            app: 0xf10E161027410128E63E75D0200Fb6d34b2db243,
+            bridgeTokenOut: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
+            bridgeTokenIn: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e
+        });
+        // 42220 -> 42161
+        chainIds[1] = 42161;
+        bridgeRoutes[1] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30110,
+            app: 0xf10E161027410128E63E75D0200Fb6d34b2db243,
+            bridgeTokenOut: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            bridgeTokenIn: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e
+        });
+
+        return (chainIds, bridgeRoutes);
+    }
+
     // If source chain not found, return empty arrays
     return (new uint256[](0), new DaimoPayLayerZeroBridger.LZBridgeRoute[](0));
 }

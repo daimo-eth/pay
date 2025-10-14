@@ -27,7 +27,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         address bridgeTokenIn;
     }
 
-    /// @notice Accounting policy returned by subclasses to parameterize a send.
+    /// @notice Accounting policy returned by subclasses to parameterize accounting send.
     /// @dev Decides how much to pull, what to send, receive guarantees, and LZ options.
     struct Accounting {
         /// @notice Amount pulled from the caller and approved to `app` (local decimals).
@@ -63,7 +63,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
 
     // External interface
 
-    /// @notice Returns the input token and amount required for a desired
+    /// @notice Returns the input token and amount required for accounting desired
     /// bridged amount on the destination chain.
     /// @param toChainId Destination EVM chain ID.
     /// @param bridgeTokenOutOptions Candidate destination token/amount options.
@@ -74,18 +74,18 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount) {
-        (LZBridgeRoute memory r, uint256 desiredOutLD) = _resolveRouteAndOut(
+        (LZBridgeRoute memory route, uint256 desiredOutLD) = _resolveRouteAndOut(
             toChainId,
             bridgeTokenOutOptions
         );
-        Accounting memory a = _computeAccounting({
+        Accounting memory accounting = _computeAccounting({
             toChainId: toChainId,
             toAddress: address(0), // not needed for quoting input
-            r: r,
+            route: route,
             desiredOutLD: desiredOutLD,
             extraData: bytes("")
         });
-        return (r.bridgeTokenIn, a.inAmountLD);
+        return (route.bridgeTokenIn, accounting.inAmountLD);
     }
 
     /// @notice Sends tokens to another chain via LayerZero OFT.
@@ -109,60 +109,60 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "same chain");
-        (LZBridgeRoute memory r, uint256 desiredOutLD) = _resolveRouteAndOut(
+        (LZBridgeRoute memory route, uint256 desiredOutLD) = _resolveRouteAndOut(
             toChainId,
             bridgeTokenOutOptions
         );
 
-        Accounting memory a = _computeAccounting({
+        Accounting memory accounting = _computeAccounting({
             toChainId: toChainId,
             toAddress: toAddress,
-            r: r,
+            route: route,
             desiredOutLD: desiredOutLD,
             extraData: extraData
         });
 
         // Build OFT params from the accounting policy.
         SendParam memory sp = SendParam({
-            dstEid: r.dstEid,
+            dstEid: route.dstEid,
             to: _toB32(toAddress),
-            amountLD: a.sendAmountLD,
-            minAmountLD: a.minAmountLD,
-            extraOptions: a.extraOptions,
-            composeMsg: a.composeMsg,
-            oftCmd: a.oftCmd
+            amountLD: accounting.sendAmountLD,
+            minAmountLD: accounting.minAmountLD,
+            extraOptions: accounting.extraOptions,
+            composeMsg: accounting.composeMsg,
+            oftCmd: accounting.oftCmd
         });
 
         // Quote LZ fee & ensure native coverage if paying in native.
-        MessagingFee memory fee = IOFT(r.app).quoteSend(sp, a.payInZRO); // standard OFT v2 path
-        if (!a.payInZRO)
+        MessagingFee memory fee = IOFT(route.app).quoteSend(sp, accounting.payInZRO); // standard OFT v2 path
+        if (!accounting.payInZRO)
             require(
                 address(this).balance >= fee.nativeFee,
                 "insufficient native fee"
             );
 
         // Custody + approve exactly what the accounting says.
-        IERC20(r.bridgeTokenIn).safeTransferFrom(
+        IERC20(route.bridgeTokenIn).safeTransferFrom(
             msg.sender,
             address(this),
-            a.inAmountLD
+            accounting.inAmountLD
         );
-        IERC20(r.bridgeTokenIn).forceApprove(r.app, a.inAmountLD);
+        IERC20(route.bridgeTokenIn).forceApprove(route.app, accounting.inAmountLD);
 
-        IOFT(r.app).send{value: fee.nativeFee}(sp, fee, refundAddress);
+        IOFT(route.app).send{value: fee.nativeFee}(sp, fee, refundAddress);
 
         emit BridgeInitiated({
             fromAddress: msg.sender,
-            fromToken: r.bridgeTokenIn,
-            fromAmount: a.inAmountLD,
+            fromToken: route.bridgeTokenIn,
+            fromAmount: accounting.inAmountLD,
             toChainId: toChainId,
             toAddress: toAddress,
-            toToken: r.bridgeTokenOut,
+            toToken: route.bridgeTokenOut,
             toAmount: desiredOutLD,
             refundAddress: refundAddress
         });
 
-        if (!a.payInZRO && address(this).balance > 0) {
+        if (!accounting.payInZRO && address(this).balance > 0) {
             // best-effort native refund
             (bool success, ) = refundAddress.call{value: address(this).balance}(
                 ""
@@ -179,31 +179,31 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
     /// and pay fees in native.
     /// @param toChainId Destination EVM chain ID.
     /// @param toAddress Recipient address on the destination chain.
-    /// @param r Resolved LayerZero route for the destination.
+    /// @param route Resolved LayerZero route for the destination.
     /// @param desiredOutLD Desired receive amount on the destination (local decimals).
     /// @param extraData Opaque data for subclass-specific policy.
-    /// @return a The computed accounting policy for the send.
+    /// @return accounting The computed accounting policy for the send.
     function _computeAccounting(
         uint256 toChainId,
         address toAddress,
-        LZBridgeRoute memory r,
+        LZBridgeRoute memory route,
         uint256 desiredOutLD,
         bytes memory extraData
-    ) internal view virtual returns (Accounting memory a) {
+    ) internal view virtual returns (Accounting memory accounting) {
         // Reference arguments to avoid compiler warnings
         toChainId;
         toAddress;
-        r;
+        route;
         desiredOutLD;
         extraData;
         // Default = 1:1 OFT: pull desiredOut, send desiredOut, guarantee desiredOut
-        a.inAmountLD = desiredOutLD;
-        a.sendAmountLD = desiredOutLD;
-        a.minAmountLD = desiredOutLD;
-        a.extraOptions = bytes(""); // caller can pass via extraData in a subclass if desired
-        a.composeMsg = bytes("");
-        a.oftCmd = bytes("");
-        a.payInZRO = false;
+        accounting.inAmountLD = desiredOutLD;
+        accounting.sendAmountLD = desiredOutLD;
+        accounting.minAmountLD = desiredOutLD;
+        accounting.extraOptions = bytes(""); // caller can pass via extraData in accounting subclass if desired
+        accounting.composeMsg = bytes("");
+        accounting.oftCmd = bytes("");
+        accounting.payInZRO = false;
     }
 
     // Internal helpers
@@ -235,7 +235,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
     }
 
     /// @dev Casts an EVM address to 32-byte representation used by OFT.
-    function _toB32(address a) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(a)));
+    function _toB32(address accounting) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(accounting)));
     }
 }

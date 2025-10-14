@@ -22,12 +22,12 @@ contract DaimoPayLegacyMeshBridger is DaimoPayLayerZeroBridger {
     function _computeAccounting(
         uint256 /*toChainId*/,
         address /*toAddress*/,
-        LZBridgeRoute memory r,
+        LZBridgeRoute memory route,
         uint256 desiredOutLD,
         bytes memory /*extraData*/
     ) internal view override returns (Accounting memory a) {
         // Legacy Mesh takes feeBps on amountLD -> gross up to preserve exact-out
-        uint16 bps = IUsdtOFT(r.app).feeBps();
+        uint16 bps = IUsdtOFT(route.app).feeBps();
         require(bps < 10_000, "bad fee");
         uint256 denom = 10_000 - bps;
         uint256 gross = (desiredOutLD * 10_000 + denom - 1) / denom; // ceil div

@@ -174,11 +174,6 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == OP_MAINNET_AXLUSDC) return 6;
     if (token == POLYGON_MAINNET_AXLUSDC) return 6;
 
-    // Legacy Mesh USDT addresses (6 decimals)
-    if (token == ETH_MAINNET_LEGACY_MESH_USDT_OFT) return 6;
-    if (token == ARBITRUM_MAINNET_LEGACY_MESH_USDT_OFT) return 6;
-    if (token == CELO_MAINNET_LEGACY_MESH_USDT_OFT) return 6;
-
     revert("Unsupported token for getUSDCDecimals");
 }
 

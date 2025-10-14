@@ -1,7 +1,7 @@
 import { worldchainUSDC } from "@daimo/pay-common";
 import { MiniKit } from "@worldcoin/minikit-js";
 import { useCallback, useEffect, useState } from "react";
-import { Address } from "viem";
+import { Address, getAddress } from "viem";
 import { ROUTES } from "../constants/routes";
 import { useDaimoPay } from "../hooks/useDaimoPay";
 import { usePayContext } from "../hooks/usePayContext";
@@ -60,26 +60,15 @@ export function useWithdrawToWorld() {
         return null;
       }
 
-      // Create a payId to withdraw to the user's world wallet
-      const resp = await fetch("https://pay.daimo.com/api/payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Api-Key": appId,
-        },
-        body: JSON.stringify({
-          display: { intent: "Withdraw to World App" },
-          destination: {
-            destinationAddress: worldUser.walletAddress,
-            chainId: worldchainUSDC.chainId,
-            tokenAddress: worldchainUSDC.token,
-            amountUnits: toUnits,
-          },
-        }),
+      // Create a payment to withdraw to the user's world wallet
+      await paymentState.setPayParams({
+        appId,
+        toChain: worldchainUSDC.chainId,
+        toToken: getAddress(worldchainUSDC.token),
+        toUnits,
+        toAddress: getAddress(worldUser.walletAddress),
+        intent: "Withdraw to World App",
       });
-      const respJson = await resp.json();
-      const payId = respJson.id;
-      await paymentState.setPayId(payId);
 
       // Hydrate the order and return the intent address
       const hydratedState = await pay.hydrateOrder();

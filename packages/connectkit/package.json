@@ -52,7 +52,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
-    "@worldcoin/minikit-js": ">=1.9.6",
+    "@worldcoin/minikit-js": ">=1.9.8",
     "react": "18.x || 19.x",
     "react-dom": "18.x || 19.x",
     "viem": ">=2.22.0",

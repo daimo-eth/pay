@@ -249,7 +249,8 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     };
     context.showPayment(modalOptions);
     context.setRoute(ROUTES.CONFIRMATION);
-  }, [context, pay.order?.id, log, props.closeOnSuccess, props.resetOnSuccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay.order?.id, log, props.closeOnSuccess, props.resetOnSuccess]);
 
   // Show the Worldcoin payment drawer and pop open the Daimo Pay modal
   const show = useCallback(async () => {
@@ -296,7 +297,7 @@ function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
     // Optimistically assume the source payment is correct and show the
     // confirmation spinner
     showSpinner();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     pay,
     showSpinner,

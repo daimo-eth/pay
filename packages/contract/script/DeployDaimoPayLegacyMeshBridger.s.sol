@@ -8,7 +8,7 @@ import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
-    "DaimoPayLegacyMeshBridger-deploy1"
+    "DaimoPayLegacyMeshBridger-deploy2"
 );
 
 contract DeployDaimoPayLegacyMeshBridger is Script {
@@ -17,10 +17,6 @@ contract DeployDaimoPayLegacyMeshBridger is Script {
             uint256[] memory chainIds,
             DaimoPayLayerZeroBridger.LZBridgeRoute[] memory bridgeRoutes
         ) = getLegacyMeshBridgeRoutes(block.chainid);
-
-        if (chainIds.length == 0) {
-            revert("No Legacy Mesh bridge routes found");
-        }
 
         // Log route details
         for (uint256 i = 0; i < bridgeRoutes.length; ++i) {

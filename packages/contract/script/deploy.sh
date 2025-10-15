@@ -16,7 +16,8 @@ SCRIPTS=(
     # "script/DeployDaimoPayAcrossBridger.s.sol"
     # "script/DeployDaimoPayAxelarBridger.s.sol"
     # "script/DeployDaimoPayHopBridger.s.sol"
-    # "script/DeployDaimoPayBridger.s.sol"
+    # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
+    "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
@@ -55,7 +56,7 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
         echo "RPC_URL          : $RPC_URL"
 
-        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --etherscan-api-version v2 --broadcast"
+        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
 
         echo $FORGE_CMD
         echo ""

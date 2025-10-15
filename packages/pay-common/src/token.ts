@@ -819,8 +819,8 @@ const knownTokensByChain = new Map<number, Token[]>([
   [mantle.chainId, mantleTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
-  [solana.chainId, solanaTokens],
-  [stellar.chainId, stellarTokens],
+  [rozoSolana.chainId, solanaTokens],
+  [rozoStellar.chainId, stellarTokens],
   [worldchain.chainId, worldchainTokens],
 ]);
 

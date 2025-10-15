@@ -2,6 +2,7 @@ import {
   base,
   baseUSDC,
   bscUSDT,
+  getKnownToken,
   polygonUSDC,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -31,7 +32,7 @@ export interface PaymentBridgeConfig {
 export interface PreferredPaymentConfig {
   preferredChain: string;
   preferredToken: "USDC" | "USDT" | "XLM";
-  preferredTokenAddress?: `0x${string}`;
+  preferredTokenAddress?: string;
 }
 
 export interface DestinationConfig {
@@ -94,7 +95,7 @@ export function createPaymentBridgeConfig({
         preferred = {
           preferredChain: String(polygonUSDC.chainId),
           preferredToken: "USDC",
-          preferredTokenAddress: polygonUSDC.token as `0x${string}`,
+          preferredTokenAddress: polygonUSDC.token,
         };
       }
       // Pay In USDC Solana
@@ -103,6 +104,7 @@ export function createPaymentBridgeConfig({
         preferred = {
           preferredChain: String(rozoSolanaUSDC.chainId),
           preferredToken: "USDC",
+          preferredTokenAddress: rozoSolanaUSDC.token,
         };
       }
       // Pay In USDC Stellar
@@ -111,6 +113,7 @@ export function createPaymentBridgeConfig({
         preferred = {
           preferredChain: String(rozoStellarUSDC.chainId),
           preferredToken: "USDC",
+          preferredTokenAddress: rozoStellarUSDC.token,
         };
       }
       // Pay In USDT BSC
@@ -119,6 +122,7 @@ export function createPaymentBridgeConfig({
         preferred = {
           preferredChain: String(bscUSDT.chainId),
           preferredToken: "USDT",
+          preferredTokenAddress: bscUSDT.token,
         };
       }
     }
@@ -161,6 +165,14 @@ export function formatPaymentResponseDataToHydratedOrder(
 ): RozoPayHydratedOrderWithOrg {
   const destAddress = order.metadata.receivingAddress as `0x${string}`;
 
+  const requiredChain = order.metadata.preferredChain || baseUSDC.chainId;
+  const chain = getKnownToken(
+    Number(requiredChain),
+    order.metadata.preferredTokenAddress
+  );
+
+  console.log("[formatPaymentResponseDataToHydratedOrder] chain", chain);
+
   return {
     id: BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),
     mode: RozoPayOrderMode.HYDRATED,
@@ -196,21 +208,21 @@ export function formatPaymentResponseDataToHydratedOrder(
     // @TODO: use correct destination token
     destFinalCallTokenAmount: {
       token: {
-        chainId: baseUSDC.chainId,
-        token: baseUSDC.token,
-        symbol: baseUSDC.symbol,
+        chainId: chain ? chain.chainId : baseUSDC.chainId,
+        token: chain ? chain.token : baseUSDC.token,
+        symbol: chain ? chain.symbol : baseUSDC.symbol,
         usd: 1,
         priceFromUsd: 1,
-        decimals: baseUSDC.decimals,
+        decimals: chain ? chain.decimals : baseUSDC.decimals,
         displayDecimals: 2,
-        logoSourceURI: baseUSDC.logoSourceURI,
-        logoURI: baseUSDC.logoURI,
+        logoSourceURI: chain ? chain.logoSourceURI : baseUSDC.logoSourceURI,
+        logoURI: chain ? chain.logoURI : baseUSDC.logoURI,
         maxAcceptUsd: 100000,
         maxSendUsd: 0,
       },
       amount: parseUnits(
         order.destination.amountUnits,
-        baseUSDC.decimals
+        chain ? chain.decimals : baseUSDC.decimals
       ).toString() as `${bigint}`,
       usd: Number(order.destination.amountUnits),
     },

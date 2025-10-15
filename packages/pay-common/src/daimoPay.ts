@@ -250,6 +250,8 @@ export function isHydrated(order: RozoPayOrder): order is RozoPayHydratedOrder {
   return order.mode === RozoPayOrderMode.HYDRATED;
 }
 
+type RozoAddress = Address | SolanaPublicKey | StellarPublicKey;
+
 export type RozoPayOrderView = {
   id: RozoPayOrderID;
   status: RozoPayIntentStatus;
@@ -260,20 +262,20 @@ export type RozoPayOrderView = {
     currency: "USD";
   };
   source: {
-    payerAddress: Address | SolanaPublicKey | StellarPublicKey | null;
+    payerAddress: RozoAddress | null;
     txHash: Hex | string | null;
     chainId: string;
     amountUnits: string;
     tokenSymbol: string;
-    tokenAddress: Address | string;
+    tokenAddress: RozoAddress | string;
   } | null;
   destination: {
-    destinationAddress: Address;
+    destinationAddress: RozoAddress;
     txHash: Hex | null;
     chainId: string;
     amountUnits: string;
     tokenSymbol: string;
-    tokenAddress: Address;
+    tokenAddress: RozoAddress;
     callData: Hex | null;
   };
   externalId: string | null;
@@ -339,7 +341,7 @@ export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
         order.destFinalCallTokenAmount.token.decimals
       ),
       tokenSymbol: order.destFinalCallTokenAmount.token.symbol,
-      tokenAddress: getAddress(order.destFinalCallTokenAmount.token.token),
+      tokenAddress: order.destFinalCallTokenAmount.token.token,
       callData: order.destFinalCall.data,
     },
     externalId: order.externalId,

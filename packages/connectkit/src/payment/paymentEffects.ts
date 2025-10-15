@@ -402,6 +402,9 @@ async function runHydratePayParamsEffects(
     externalId: order?.externalId ?? "",
     metadata: {
       daimoOrderId: order?.id ?? "",
+      preferredChain: preferred.preferredChain,
+      preferredToken: preferred.preferredToken,
+      preferredTokenAddress: preferred.preferredTokenAddress,
       ...(payParams?.metadata ?? {}),
       ...(order?.metadata ?? {}),
       ...(order.userMetadata ?? {}),
@@ -466,6 +469,11 @@ async function runHydratePayParamsEffects(
     ) {
       throw new Error("Payment data not found");
     }
+
+    console.log(
+      "[runHydratePayParamsEffects] rozoPaymentResponse",
+      rozoPaymentResponse
+    );
 
     const hydratedOrder = formatPaymentResponseDataToHydratedOrder({
       ...rozoPaymentResponse,

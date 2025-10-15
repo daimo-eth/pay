@@ -12,9 +12,11 @@ import {
 import {
   assert,
   baseUSDC,
+  bscUSDT,
   getAddressContraction,
   getChainExplorerTxUrl,
   getOrderDestChainId,
+  polygonUSDC,
   rozoSolana,
   rozoStellar,
 } from "@rozoai/intent-common";
@@ -31,6 +33,8 @@ import styled from "../../../styles/styled";
 import { fetchApi } from "../../../utils/api/base";
 import Button from "../../Common/Button";
 import PoweredByFooter from "../../Common/PoweredByFooter";
+
+const poolDelay = 4000;
 
 const Confirmation: React.FC = () => {
   const {
@@ -54,7 +58,11 @@ const Confirmation: React.FC = () => {
   );
 
   const isMugglePay = useMemo(() => {
-    return paymentStateContext?.payParams?.appId.includes("MP");
+    return (
+      paymentStateContext?.payParams?.appId.includes("MP") &&
+      paymentStateContext.selectedTokenOption?.required.token.token ===
+        bscUSDT.token
+    );
   }, [paymentStateContext]);
 
   const showProcessingPayout = useMemo(() => {
@@ -86,7 +94,9 @@ const Confirmation: React.FC = () => {
       tokenMode === "solana" ||
       (["evm", "all"].includes(tokenMode) &&
         order &&
-        order.destFinalCallTokenAmount?.token.token === baseUSDC.token);
+        [baseUSDC.token, bscUSDT.token, polygonUSDC.token].includes(
+          order.destFinalCallTokenAmount?.token.token
+        ));
 
     if (isRozoPayment && txHash) {
       // Add delay before setting payment completed to show confirming state
@@ -206,12 +216,12 @@ const Confirmation: React.FC = () => {
 
           // Schedule next poll
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 6000);
+            timeoutId = setTimeout(pollPayout, poolDelay);
           }
         } catch (error) {
           console.error("[CONFIRMATION] Payout polling error:", error);
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 6000);
+            timeoutId = setTimeout(pollPayout, poolDelay);
           }
         }
       };
@@ -469,20 +479,23 @@ const LoadingText = styled.span`
   font-size: 14px;
   font-weight: 400;
   font-style: italic;
-  animation: colorPulse 2s ease-in-out infinite;
+  color: transparent;
+  background: linear-gradient(90deg, #333, #999, #fff, #999, #333);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shine 10s ease-in-out infinite;
 
-  @keyframes colorPulse {
-    0%,
-    100% {
-      color: var(--ck-body-color-muted);
+  @keyframes shine {
+    0% {
+      background-position: -300% 0;
     }
     50% {
-      color: var(--ck-body-action-color);
+      background-position: 300% 0;
     }
-  }
-
-  @media only screen and (max-width: ${defaultTheme.mobileWidth}px) {
-    font-size: 13px;
+    100% {
+      background-position: -300% 0;
+    }
   }
 `;
 

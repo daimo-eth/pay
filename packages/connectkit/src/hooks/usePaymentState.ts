@@ -513,7 +513,9 @@ export function usePaymentState({
             value: paymentAmount,
           });
         } else {
-          await switchChainAsync({ chainId: required.token.chainId });
+          if (required.token.chainId !== bscUSDT.chainId) {
+            await switchChainAsync({ chainId: required.token.chainId });
+          }
           return await writeContractAsync({
             abi: erc20Abi,
             address: tokenAddress!,
@@ -649,7 +651,7 @@ export function usePaymentState({
         tokenMint: mintAddress.toString(),
         fromKey: fromKey.toString(),
         toKey: toKey.toString(),
-        amount: rozoPayment.solanaAmount,
+        amount: rozoPayment.usdcAmount,
         memo: rozoPayment.memo,
       });
 
@@ -694,7 +696,7 @@ export function usePaymentState({
 
       // Add transfer instruction
       console.log("[PAY SOLANA] Adding transfer instruction...");
-      const transferAmount = parseFloat(rozoPayment.solanaAmount) * 1_000_000;
+      const transferAmount = parseFloat(rozoPayment.usdcAmount) * 1_000_000;
       console.log(
         "[PAY SOLANA] Transfer amount (with decimals):",
         transferAmount

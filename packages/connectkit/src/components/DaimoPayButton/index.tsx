@@ -6,7 +6,6 @@ import { TextContainer } from "./styles";
 import {
   assertNotNull,
   ExternalPaymentOptionsString,
-  getOrderDestChainId,
   getOrderSourceChainId,
   getRozoPayOrderView,
   PaymentBouncedEvent,
@@ -416,6 +415,12 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
+    console.log("[PAY BUTTON] onPaymentCompleted or onPaymentBounced", {
+      order,
+      payState,
+      paymentRozoCompleted,
+    });
+
     if (sentComplete.current) return;
 
     if (!paymentRozoCompleted) {
@@ -433,7 +438,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     const event = {
       type: eventType,
       paymentId: writeRozoPayOrderID(order.id),
-      chainId: getOrderDestChainId(order),
+      chainId: order.destFinalCallTokenAmount.token.chainId,
       txHash: assertNotNull(
         getDestinationTxHash(order),
         `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
@@ -441,6 +446,11 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       payment: getRozoPayOrderView(order),
       rozoPaymentId: rozoPaymentId ?? order.externalId,
     };
+
+    console.log("[PAY BUTTON] Event", {
+      order,
+      event,
+    });
 
     if (payState === "payment_completed" || paymentRozoCompleted) {
       onPaymentCompleted?.(event as PaymentCompletedEvent);

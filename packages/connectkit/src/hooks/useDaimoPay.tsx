@@ -60,6 +60,15 @@ type RozoPayFunctions = {
     walletPaymentOption?: WalletPaymentOption
   ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
 
+  /**
+   * Hydrate the current order, bypassing the normal hydration process.
+   * This is used for Rozo payments.
+   */
+  hydrateOrderRozo: (
+    refundAddress?: Address,
+    walletPaymentOption?: WalletPaymentOption
+  ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
+
   /** Trigger search for payment on the current order. */
   paySource: () => void;
 
@@ -244,7 +253,11 @@ export function useRozoPay(): UseRozoPay {
         orderId: order?.id,
       });
 
-      dispatch({ type: "hydrate_order", refundAddress, walletPaymentOption });
+      dispatch({
+        type: "hydrate_order",
+        refundAddress,
+        walletPaymentOption,
+      });
 
       console.log(
         "[HYDRATE ORDER] Dispatched hydrate_order event, waiting for payment_unpaid state"
@@ -266,6 +279,31 @@ export function useRozoPay(): UseRozoPay {
       return hydratedOrderState;
     },
     [dispatch, store, paymentFsmState.type, order?.id]
+  );
+
+  const hydrateOrderRozo = useCallback(
+    async (
+      refundAddress?: Address,
+      walletPaymentOption?: WalletPaymentOption
+    ) => {
+      dispatch({
+        type: "hydrate_order",
+        refundAddress,
+        walletPaymentOption,
+      });
+
+      const hydratedOrderState = await waitForPaymentState(
+        store,
+        "payment_unpaid"
+      );
+
+      console.log("[HYDRATE ORDER ROZO] Successfully hydrated order:", {
+        hydratedOrderState,
+      });
+
+      return hydratedOrderState;
+    },
+    []
   );
 
   const paySource = useCallback(
@@ -429,6 +467,7 @@ export function useRozoPay(): UseRozoPay {
     paymentErrorMessage,
     createPreviewOrder,
     hydrateOrder,
+    hydrateOrderRozo,
     setPayId,
     paySource,
     payEthSource,

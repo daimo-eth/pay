@@ -12,10 +12,25 @@ bytes32 constant DEPLOY_SALT_PAY_INTENT_FACTORY = keccak256(
 
 contract DeployPayIntentFactory is Script {
     function run() public {
+        runWithSalt(DEPLOY_SALT_PAY_INTENT_FACTORY);
+    }
+
+    // Example: run with a random salt:
+    //   forge script script/DeployPayIntentFactory.s.sol:DeployPayIntentFactory \
+    //     --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify \
+    //     --sig "runWithRandomSalt()"
+    function runWithRandomSalt() public {
+        bytes32 salt = keccak256(
+            abi.encode(block.number, block.timestamp, msg.sender, gasleft())
+        );
+        runWithSalt(salt);
+    }
+
+    function runWithSalt(bytes32 deploySalt) public {
         vm.startBroadcast();
 
         address intentFactory = CREATE3.deploy(
-            DEPLOY_SALT_PAY_INTENT_FACTORY,
+            deploySalt,
             abi.encodePacked(type(PayIntentFactory).creationCode, abi.encode())
         );
 

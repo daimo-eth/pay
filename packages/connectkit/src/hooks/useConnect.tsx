@@ -80,7 +80,7 @@ export function useConnect({
           connector,
           chainId: chainId ?? context.options?.initialChainId,
         },
-        mutation
+        mutation as any
       );
     },
     connectAsync: async ({
@@ -97,7 +97,7 @@ export function useConnect({
           connector,
           chainId: chainId ?? context.options?.initialChainId,
         },
-        mutation
+        mutation as any
       );
     },
     connectors,

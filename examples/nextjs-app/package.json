@@ -9,6 +9,7 @@
     "lint": "next lint --max-warnings=0"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^1.9.5",
     "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
     "@rainbow-me/rainbowkit": "^2.2.8",

@@ -30,6 +30,9 @@ export default [
       "@reown/appkit",
       "@walletconnect/sign-client",
       "@solana/spl-token",
+      "bs58",
+      "@reown/appkit/networks",
+      "@worldcoin/minikit-js",
     ],
     output: [
       {

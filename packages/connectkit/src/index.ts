@@ -33,3 +33,6 @@ export * from "./types";
 // TODO: expose this more selectively.
 export { usePayContext } from "./hooks/usePayContext";
 export { PayContext as RozoPayContext } from "./provider/PayContext";
+
+// Stellar integration
+export { useRozoConnectStellar } from "./provider/StellarContextProvider";

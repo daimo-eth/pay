@@ -80,7 +80,7 @@ const Wallets: React.FC = () => {
     <PageContent>
       <OrderHeader
         minified
-        excludeLogos={["tron", "eth", "arbitrum", "optimism", "stellar"]}
+        excludeLogos={["tron", "eth", "arbitrum", "optimism"]}
       />
       <ConnectorList
         customDeeplink={

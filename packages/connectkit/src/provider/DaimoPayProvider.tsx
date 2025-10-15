@@ -15,6 +15,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { WagmiContext } from "wagmi";
 
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { RozoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
@@ -245,7 +246,7 @@ const RozoPayUIProvider = ({
       setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
     }
     setPaymentCompleted(true);
-  }, [modalOptions?.closeOnSuccess, setOpen, setPaymentCompleted]);
+  }, [modalOptions?.closeOnSuccess]);
 
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
@@ -414,6 +415,7 @@ type RozoPayProviderProps = {
    */
   solanaRpcUrl?: string;
   stellarRpcUrl?: string;
+  stellarKit?: StellarWalletsKit;
   /** Custom Pay API, useful for test and staging. */
   payApiUrl?: string;
 } & useConnectCallbackProps;
@@ -431,8 +433,11 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
 
   return (
     <PaymentProvider payApiUrl={payApiUrl} log={log}>
-      <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-        <StellarContextProvider stellarRpcUrl={props.stellarRpcUrl}>
+      <SolanaContextProvider rpcUrl={props.solanaRpcUrl}>
+        <StellarContextProvider
+          rpcUrl={props.stellarRpcUrl}
+          kit={props.stellarKit}
+        >
           <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
         </StellarContextProvider>
       </SolanaContextProvider>

@@ -30,7 +30,7 @@ const MobileConnectors: React.FC = () => {
       return true;
     }) ?? [];
 
-  const goToWallet = (wallet: WalletConfigProps) => {
+  const goToWallet = async (wallet: WalletConfigProps) => {
     if (wallet.getDaimoPayDeeplink == null) {
       console.error(`wallet ${wallet.name} has no deeplink`);
       return;
@@ -39,7 +39,7 @@ const MobileConnectors: React.FC = () => {
       context.paymentState.setSelectedWallet(wallet);
       setRoute(ROUTES.SELECT_WALLET_AMOUNT);
     } else {
-      paymentState.openInWalletBrowser(wallet);
+      await paymentState.openInWalletBrowser(wallet);
     }
   };
 

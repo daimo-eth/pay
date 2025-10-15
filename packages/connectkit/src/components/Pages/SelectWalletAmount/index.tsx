@@ -40,15 +40,15 @@ const SelectWalletAmount: React.FC = () => {
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
-    await hydrateOrder();
     if (
       selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
       (selectedWallet.id === "world" && !isMobile)
     ) {
+      await hydrateOrder();
       setPendingConnectorId(selectedWallet.id);
       setRoute(ROUTES.CONNECT);
     } else {
-      openInWalletBrowser(selectedWallet, amountUsd);
+      await openInWalletBrowser(selectedWallet, amountUsd);
     }
   };
 

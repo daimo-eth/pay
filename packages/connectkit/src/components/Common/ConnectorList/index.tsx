@@ -102,7 +102,7 @@ const ConnectorItem = ({
     (isBaseAccountConnector(wallet.connector?.id) ||
       isGeminiConnector(wallet.connector?.id));
 
-  const onClick = () => {
+  const onClick = async () => {
     const meta = { event: "connector-list-click", walletId: wallet.id };
 
     // Desktop multi-chain wallet flow: prompt for chain selection.
@@ -148,7 +148,7 @@ const ConnectorItem = ({
       wallet.getDaimoPayDeeplink != null &&
       !wallet.connector
     ) {
-      context.paymentState.openInWalletBrowser(wallet);
+      await context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {
         connect({ connector: wallet.connector! });

@@ -105,7 +105,10 @@ export interface PaymentState {
   payWithSolanaToken: (
     inputToken: SolanaPublicKey,
   ) => Promise<{ txHash: string; success: boolean }>;
-  openInWalletBrowser: (wallet: WalletConfigProps, amountUsd?: number) => void;
+  openInWalletBrowser: (
+    wallet: WalletConfigProps,
+    amountUsd?: number,
+  ) => Promise<void>;
   senderEnsName: string | undefined;
 }
 
@@ -416,19 +419,26 @@ export function usePaymentState({
 
   const { isIOS } = useIsMobile();
 
-  const openInWalletBrowser = (
+  const openInWalletBrowser = async (
     wallet: WalletConfigProps,
     amountUsd?: number,
   ) => {
     const paymentState = pay.paymentState;
     assert(
-      paymentState === "payment_unpaid",
-      `[OPEN IN WALLET BROWSER] paymentState is ${paymentState}, must be payment_unpaid`,
+      paymentState === "preview" ||
+        paymentState === "unhydrated" ||
+        paymentState === "payment_unpaid",
+      `[OPEN IN WALLET BROWSER] paymentState is ${paymentState}, must be preview or unhydrated or payment_unpaid`,
     );
     assert(
       wallet.getDaimoPayDeeplink != null,
       `openInWalletBrowser: missing deeplink for ${wallet.name}`,
     );
+
+    // hydrate order if not already hydrated
+    if (pay.paymentState !== "payment_unpaid") {
+      await pay.hydrateOrder();
+    }
 
     const payId = writeDaimoPayOrderID(pay.order.id);
     const deeplink = wallet.getDaimoPayDeeplink(payId);

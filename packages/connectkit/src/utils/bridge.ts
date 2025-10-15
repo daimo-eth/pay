@@ -113,7 +113,7 @@ export function createPaymentBridgeConfig({
         preferred = {
           preferredChain: String(rozoStellarUSDC.chainId),
           preferredToken: "USDC",
-          preferredTokenAddress: rozoStellarUSDC.token,
+          preferredTokenAddress: `USDC:${rozoStellarUSDC.token}`,
         };
       }
       // Pay In USDT BSC
@@ -166,12 +166,13 @@ export function formatPaymentResponseDataToHydratedOrder(
   const destAddress = order.metadata.receivingAddress as `0x${string}`;
 
   const requiredChain = order.metadata.preferredChain || baseUSDC.chainId;
+
   const chain = getKnownToken(
     Number(requiredChain),
-    order.metadata.preferredTokenAddress
+    Number(requiredChain) === rozoStellar.chainId
+      ? STELLAR_USDC_ISSUER_PK
+      : order.metadata.preferredTokenAddress
   );
-
-  console.log("[formatPaymentResponseDataToHydratedOrder] chain", chain);
 
   return {
     id: BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),

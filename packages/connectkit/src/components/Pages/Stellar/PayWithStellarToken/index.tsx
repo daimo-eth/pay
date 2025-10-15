@@ -10,6 +10,7 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  RozoPayHydratedOrderWithOrg,
   RozoPayTokenAmount,
   rozoSolana,
   rozoSolanaUSDC,
@@ -32,7 +33,6 @@ import { useStellar } from "../../../../provider/StellarContextProvider";
 import {
   createRozoPayment,
   createRozoPaymentRequest,
-  PaymentResponseData,
 } from "../../../../utils/api";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
@@ -60,14 +60,16 @@ const PayWithStellarToken: React.FC = () => {
     setRozoPaymentId,
     rozoPaymentId,
   } = paymentState;
-  const { order, setPaymentRozoCompleted, setPaymentCompleted } = useRozoPay();
+  const {
+    order,
+    setPaymentRozoCompleted,
+    setPaymentCompleted,
+    hydrateOrderRozo,
+  } = useRozoPay();
 
   const [payState, setPayState] = useState<PayState>(PayState.CreatingPayment);
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [activeRozoPayment, setActiveRozoPayment] = useState<
-    PaymentResponseData | undefined
-  >();
   const [signedTx, setSignedTx] = useState<string | undefined>();
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -134,7 +136,6 @@ const PayWithStellarToken: React.FC = () => {
         throw new Error(response?.error?.message ?? "Payment creation failed");
       }
 
-      setActiveRozoPayment(response.data);
       return response.data;
     } catch (error) {
       throw error;
@@ -149,27 +150,36 @@ const PayWithStellarToken: React.FC = () => {
         throw new Error("Stellar destination address is required");
       }
 
-      // await hydrateOrder(undefined, option);
+      const { required } = option;
 
-      let payment: PaymentResponseData | undefined = activeRozoPayment;
+      let payment: RozoPayHydratedOrderWithOrg | undefined;
       if (!payment) {
         // Use destinationAddress directly as it's now the middleware address
-        payment = await handleCreatePayment(
-          option.required,
-          destinationAddress
-        );
+        // payment = await handleCreatePayment(
+        //   option.required,
+        //   destinationAddress
+        // );
+        const hydratedOrder = await hydrateOrderRozo(undefined, option);
+        if (!hydratedOrder.order) {
+          throw new Error("Hydrated order not found");
+        }
+
+        payment = hydratedOrder.order as any;
       }
 
-      setRozoPaymentId(payment.id as string);
+      if (!payment) {
+        throw new Error("Payment not found");
+      }
+
+      setRozoPaymentId(payment.externalId as string);
       setPayState(PayState.RequestingPayment);
 
       const paymentData = {
-        destAddress:
-          (payment.metadata.receivingAddress as string) || destinationAddress,
-        usdcAmount: payment.destination.amountUnits,
+        destAddress: (payment.destFinalCall.to as string) || destinationAddress,
+        usdcAmount: String(payment.destFinalCallTokenAmount.usd),
         stellarAmount: roundTokenAmount(
-          option.required.amount,
-          option.required.token
+          payment.destFinalCallTokenAmount.amount,
+          payment.destFinalCallTokenAmount.token
         ),
       };
 

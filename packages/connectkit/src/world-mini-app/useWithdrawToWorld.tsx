@@ -5,6 +5,7 @@ import { Address, getAddress } from "viem";
 import { ROUTES } from "../constants/routes";
 import { useDaimoPay } from "../hooks/useDaimoPay";
 import { usePayContext } from "../hooks/usePayContext";
+import { DaimoPayModalOptions } from "../types";
 import { useWorldSignIn } from "./useWorldSignIn";
 
 export function useWithdrawToWorld() {
@@ -14,6 +15,10 @@ export function useWithdrawToWorld() {
   const pay = useDaimoPay();
   const context = usePayContext();
   const { paymentState, log } = context;
+  const [modalOptions, setModalOptions] = useState<DaimoPayModalOptions>({
+    closeOnSuccess: false,
+    resetOnSuccess: false,
+  });
 
   // Install Minikit if not already installed
   useEffect(() => {
@@ -27,11 +32,10 @@ export function useWithdrawToWorld() {
 
   const showSpinner = useCallback(() => {
     log(`[WORLD] showing spinner ${pay.order?.id}`);
-    const modalOptions = { closeOnSuccess: false, resetOnSuccess: false };
     context.showPayment(modalOptions);
     context.setRoute(ROUTES.CONFIRMATION);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pay.order?.id]);
+  }, [pay.order?.id, modalOptions]);
 
   // Auto-open spinner when payment starts
   useEffect(() => {
@@ -44,9 +48,13 @@ export function useWithdrawToWorld() {
     async ({
       appId,
       toUnits,
+      closeOnSuccess = false,
+      resetOnSuccess = false,
     }: {
       appId: string;
       toUnits: string;
+      closeOnSuccess?: boolean;
+      resetOnSuccess?: boolean;
     }): Promise<Address | null> => {
       if (!isMiniKitReady) {
         console.error("[WORLD_WITHDRAW] MiniKit is not installed");
@@ -76,6 +84,7 @@ export function useWithdrawToWorld() {
       log(
         `[WORLD_WITHDRAW] hydrated order ${pay.order?.id} with intent address ${intentAddress}. Polling for payment`,
       );
+      setModalOptions({ closeOnSuccess, resetOnSuccess });
       return intentAddress;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

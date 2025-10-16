@@ -9,7 +9,7 @@ type UseRozoPayUI = {
 export function useRozoPayUI(): UseRozoPayUI {
   const context = useContext(PayContext);
   if (!context) {
-    throw new Error("useRozoPayUI must be used within a RozoPayUIProvider");
+    throw new Error("useRozoPayUI must be used within a RozoPayProvider");
   }
 
   return {

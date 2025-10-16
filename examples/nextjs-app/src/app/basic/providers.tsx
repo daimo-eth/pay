@@ -21,7 +21,7 @@ export function Providers(props: { children: ReactNode }) {
   return (
     <WagmiProvider config={rozoPayConfig}>
       <QueryClientProvider client={queryClient}>
-        <RozoPayProvider payApiUrl={ROZOPAY_API_URL} debugMode={true}>
+        <RozoPayProvider payApiUrl={ROZOPAY_API_URL} debugMode={false}>
           {/* <RainbowKitProvider
             showRecentTransactions={false}
             modalSize="compact"

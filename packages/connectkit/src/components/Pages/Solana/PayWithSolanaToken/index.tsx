@@ -35,7 +35,7 @@ enum PayState {
 }
 
 const PayWithSolanaToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const {
     selectedSolanaTokenOption,
     payWithSolanaTokenRozo: payWithSolanaTokenImpl,
@@ -96,7 +96,7 @@ const PayWithSolanaToken: React.FC = () => {
         payment = hydratedOrder.order as any;
       }
 
-      console.log("[PAY SOLANA] Payment:", { payment });
+      log("[PAY SOLANA] Payment:", { payment });
 
       if (!payment) {
         throw new Error("Payment not found");
@@ -117,10 +117,10 @@ const PayWithSolanaToken: React.FC = () => {
         Object.assign(paymentData, { memo: payment.metadata.memo as string });
       }
 
-      console.log("[PAY SOLANA] Rozo payment:", { paymentData });
+      log("[PAY SOLANA] Rozo payment:", { paymentData });
 
       const result = await payWithSolanaTokenImpl(option, paymentData);
-      console.log(
+      log(
         "[PAY SOLANA] Result",
         result,
         getChainExplorerTxUrl(rozoSolana.chainId, result.txHash)

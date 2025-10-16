@@ -108,7 +108,6 @@ export class WalletConnectModule implements ModuleInterface {
         },
       })
         .then((client) => {
-          console.log("WalletConnect is ready.");
           this.client = client as never;
 
           // Create Stellar network configuration

@@ -56,7 +56,7 @@ const Wallets: React.FC = () => {
       isMobile &&
       !hasCustomDeeplink
     ) {
-      console.log("HYDRATING ORDER", order, context);
+      context.log("HYDRATING ORDER", order, context);
       hasHydratedRef.current = true;
       hydrateOrder();
     }

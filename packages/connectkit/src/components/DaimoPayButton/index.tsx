@@ -415,7 +415,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
   useEffect(() => {
-    console.log("[PAY BUTTON] onPaymentCompleted or onPaymentBounced", {
+    context.log("[PAY BUTTON] onPaymentCompleted or onPaymentBounced", {
       order,
       payState,
       paymentRozoCompleted,
@@ -447,7 +447,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       rozoPaymentId: rozoPaymentId ?? order.externalId,
     };
 
-    console.log("[PAY BUTTON] Event", {
+    context.log("[PAY BUTTON] Event", {
       order,
       event,
     });

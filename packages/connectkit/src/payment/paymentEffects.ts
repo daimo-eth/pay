@@ -434,13 +434,6 @@ async function runHydratePayParamsEffects(
   // END ROZO API CALL
 
   try {
-    console.log("[runHydratePayParamsEffects] creating order", {
-      order,
-      toAddress,
-      toChain,
-      toToken,
-      toUnits,
-    });
     // const { hydratedOrder } = await trpc.createOrder.mutate({
     //   // appId: prev.payParamsData.appId,
     //   appId: ROZO_DAIMO_APP_ID,
@@ -470,17 +463,10 @@ async function runHydratePayParamsEffects(
       throw new Error("Payment data not found");
     }
 
-    console.log(
-      "[runHydratePayParamsEffects] rozoPaymentResponse",
-      rozoPaymentResponse
-    );
-
     const hydratedOrder = formatPaymentResponseDataToHydratedOrder({
       ...rozoPaymentResponse,
       externalId: rozoPaymentId,
     });
-
-    console.log("hydratedOrder", hydratedOrder);
 
     store.dispatch({
       type: "order_hydrated",

@@ -342,10 +342,6 @@ export function usePaymentState({
   // Clear processing set when selectedDepositAddressOption changes to allow retries
   useEffect(() => {
     depositAddressCallRef.current.clear();
-    console.log(
-      "[PAY DEPOSIT ADDRESS] Cleared processing set for new option:",
-      selectedDepositAddressOption?.id
-    );
   }, [selectedDepositAddressOption]);
 
   const [selectedWallet, setSelectedWallet] = useState<WalletConfigProps>();
@@ -633,12 +629,12 @@ export function usePaymentState({
         throw new Error("Solana services not initialized");
       }
 
-      console.log("[PAY SOLANA] Starting Solana payment transaction", {
+      log("[PAY SOLANA] Starting Solana payment transaction", {
         pay,
         rozoPayment,
       });
 
-      console.log("[PAY SOLANA] Setting up transaction...");
+      log("[PAY SOLANA] Setting up transaction...");
 
       const instructions: TransactionInstruction[] = [];
 
@@ -647,7 +643,7 @@ export function usePaymentState({
       const fromKey = new PublicKey(payerPublicKey);
       const toKey = new PublicKey(rozoPayment.destAddress);
 
-      console.log("[PAY SOLANA] Transaction details:", {
+      log("[PAY SOLANA] Transaction details:", {
         tokenMint: mintAddress.toString(),
         fromKey: fromKey.toString(),
         toKey: toKey.toString(),
@@ -656,7 +652,7 @@ export function usePaymentState({
       });
 
       // Get token accounts for sender and recipient
-      console.log("[PAY SOLANA] Deriving associated token accounts...");
+      log("[PAY SOLANA] Deriving associated token accounts...");
       const senderTokenAccount = await getAssociatedTokenAddress(
         mintAddress,
         fromKey
@@ -665,24 +661,21 @@ export function usePaymentState({
         mintAddress,
         toKey
       );
-      console.log(
-        "[PAY SOLANA] Sender token account:",
-        senderTokenAccount.toString()
-      );
-      console.log(
+      log("[PAY SOLANA] Sender token account:", senderTokenAccount.toString());
+      log(
         "[PAY SOLANA] Recipient token account:",
         recipientTokenAccount.toString()
       );
 
       // Check if recipient token account exists
-      console.log("[PAY SOLANA] Checking if recipient token account exists...");
+      log("[PAY SOLANA] Checking if recipient token account exists...");
       const recipientTokenInfo = await connection.getAccountInfo(
         recipientTokenAccount
       );
 
       // Create recipient token account if it doesn't exist
       if (!recipientTokenInfo) {
-        console.log("[PAY SOLANA] Creating recipient token account...");
+        log("[PAY SOLANA] Creating recipient token account...");
         instructions.push(
           createAssociatedTokenAccountInstruction(
             payerPublicKey,
@@ -695,12 +688,9 @@ export function usePaymentState({
       }
 
       // Add transfer instruction
-      console.log("[PAY SOLANA] Adding transfer instruction...");
+      log("[PAY SOLANA] Adding transfer instruction...");
       const transferAmount = parseFloat(rozoPayment.usdcAmount) * 1_000_000;
-      console.log(
-        "[PAY SOLANA] Transfer amount (with decimals):",
-        transferAmount
-      );
+      log("[PAY SOLANA] Transfer amount (with decimals):", transferAmount);
 
       instructions.push(
         createTransferCheckedInstruction(
@@ -715,7 +705,7 @@ export function usePaymentState({
 
       // Add memo if provided
       if (rozoPayment.memo) {
-        console.log("[PAY SOLANA] Adding memo instruction:", rozoPayment.memo);
+        log("[PAY SOLANA] Adding memo instruction:", rozoPayment.memo);
         instructions.push(
           new TransactionInstruction({
             keys: [
@@ -730,10 +720,10 @@ export function usePaymentState({
       }
 
       // Create and partially sign transaction
-      console.log("[PAY SOLANA] Building transaction...");
+      log("[PAY SOLANA] Building transaction...");
       const { blockhash, lastValidBlockHeight } =
         await connection.getLatestBlockhash("confirmed");
-      console.log("[PAY SOLANA] Got blockhash:", blockhash);
+      log("[PAY SOLANA] Got blockhash:", blockhash);
 
       const transaction = new Transaction();
       transaction.recentBlockhash = blockhash;
@@ -742,7 +732,7 @@ export function usePaymentState({
       instructions.forEach((instruction) => transaction.add(instruction));
 
       // Serialize the transaction
-      console.log("[PAY SOLANA] Serializing transaction...");
+      log("[PAY SOLANA] Serializing transaction...");
       const serializedTransaction = bs58.encode(
         transaction.serialize({
           requireAllSignatures: false,
@@ -750,10 +740,10 @@ export function usePaymentState({
         })
       );
 
-      console.log("[PAY SOLANA] Sending transaction to wallet for signing...");
+      log("[PAY SOLANA] Sending transaction to wallet for signing...");
       const tx = Transaction.from(bs58.decode(serializedTransaction));
       const txHash = await solanaWallet.sendTransaction(tx, connection);
-      console.log("[PAY SOLANA] Transaction sent! Hash:", txHash);
+      log("[PAY SOLANA] Transaction sent! Hash:", txHash);
       return { txHash: txHash, success: true };
     } catch (error) {
       console.error(error);
@@ -846,10 +836,7 @@ export function usePaymentState({
 
       const transactionBuilder = transaction.build();
 
-      console.log(
-        "[PAY STELLAR] Transaction built",
-        transactionBuilder.toXDR()
-      );
+      log("[PAY STELLAR] Transaction built", transactionBuilder.toXDR());
       return { signedTx: transactionBuilder.toXDR(), success: true };
 
       // const submittedTx = await stellarServer.submitTransaction(tx);
@@ -862,7 +849,7 @@ export function usePaymentState({
 
       // return { txHash: submittedTx?.hash ?? "", success: true };
     } catch (error: any) {
-      console.log("[PAY STELLAR] Error", error);
+      log("[PAY STELLAR] Error", error);
       throw new Error(error.message);
     }
   };
@@ -900,7 +887,7 @@ export function usePaymentState({
   ) => {
     // Prevent duplicate calls for the same option
     if (depositAddressCallRef.current.has(option)) {
-      console.log(
+      log(
         `[PAY DEPOSIT ADDRESS] Already processing ${option}, skipping duplicate call`
       );
       return null;
@@ -908,7 +895,7 @@ export function usePaymentState({
 
     // Mark this option as being processed
     depositAddressCallRef.current.add(option);
-    console.log(`[PAY DEPOSIT ADDRESS] Starting processing for ${option}`);
+    log(`[PAY DEPOSIT ADDRESS] Starting processing for ${option}`);
 
     try {
       let token: Token = baseUSDC;
@@ -923,7 +910,7 @@ export function usePaymentState({
         token = bscUSDT;
       }
 
-      console.log("[PAY DEPOSIT ADDRESS] hydrating order");
+      log("[PAY DEPOSIT ADDRESS] hydrating order");
 
       const { order } = await pay.hydrateOrder(undefined, {
         required: {
@@ -959,7 +946,7 @@ export function usePaymentState({
     } finally {
       // Remove from processing set when done (allow retries after completion/failure)
       depositAddressCallRef.current.delete(option);
-      console.log(`[PAY DEPOSIT ADDRESS] Finished processing for ${option}`);
+      log(`[PAY DEPOSIT ADDRESS] Finished processing for ${option}`);
     }
   };
 
@@ -1044,7 +1031,7 @@ export function usePaymentState({
           return;
         }
       } catch (error) {
-        console.log("setPayId", error);
+        log("setPayId", error);
       }
 
       pay.reset();

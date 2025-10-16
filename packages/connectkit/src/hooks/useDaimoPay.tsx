@@ -246,22 +246,11 @@ export function useRozoPay(): UseRozoPay {
       refundAddress?: Address,
       walletPaymentOption?: WalletPaymentOption
     ) => {
-      console.log("[HYDRATE ORDER] Starting hydration with:", {
-        refundAddress,
-        walletPaymentOption,
-        currentState: paymentFsmState.type,
-        orderId: order?.id,
-      });
-
       dispatch({
         type: "hydrate_order",
         refundAddress,
         walletPaymentOption,
       });
-
-      console.log(
-        "[HYDRATE ORDER] Dispatched hydrate_order event, waiting for payment_unpaid state"
-      );
 
       // Wait for the order to enter the "payment_unpaid" state, which means it
       // has been successfully hydrated.
@@ -269,12 +258,6 @@ export function useRozoPay(): UseRozoPay {
         store,
         "payment_unpaid"
       );
-
-      console.log("[HYDRATE ORDER] Successfully hydrated order:", {
-        state: hydratedOrderState.type,
-        orderId: hydratedOrderState.order?.id,
-        usdValue: hydratedOrderState.order?.usdValue,
-      });
 
       return hydratedOrderState;
     },
@@ -296,10 +279,6 @@ export function useRozoPay(): UseRozoPay {
         store,
         "payment_unpaid"
       );
-
-      console.log("[HYDRATE ORDER ROZO] Successfully hydrated order:", {
-        hydratedOrderState,
-      });
 
       return hydratedOrderState;
     },

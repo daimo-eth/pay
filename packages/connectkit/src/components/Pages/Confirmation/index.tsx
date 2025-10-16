@@ -43,6 +43,7 @@ const Confirmation: React.FC = () => {
     debugMode,
     paymentState: paymentStateContext,
     triggerResize,
+    ...context
   } = usePayContext();
   const { order, paymentState, setPaymentCompleted, setPaymentRozoCompleted } =
     useRozoPay();
@@ -172,7 +173,7 @@ const Confirmation: React.FC = () => {
   useEffect(() => {
     if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
       triggerResize();
-      console.log(
+      context.log(
         "[CONFIRMATION] Starting payout polling for order:",
         order.externalId
       );
@@ -185,12 +186,12 @@ const Confirmation: React.FC = () => {
         if (!isActive || !rozoPaymentId) return;
 
         try {
-          console.log(
+          context.log(
             "[CONFIRMATION] Polling for payout transaction:",
             rozoPaymentId
           );
           const response = await fetchApi(`payment/id/${rozoPaymentId}`);
-          console.log("[CONFIRMATION] Payout polling response:", response.data);
+          context.log("[CONFIRMATION] Payout polling response:", response.data);
 
           if (
             isActive &&
@@ -201,7 +202,7 @@ const Confirmation: React.FC = () => {
               Number(response.data.destination.chainId),
               response.data.payoutTransactionHash
             );
-            console.log(
+            context.log(
               "[CONFIRMATION] Found payout transaction:",
               response.data.payoutTransactionHash,
               "URL:",
@@ -250,7 +251,7 @@ const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (debugMode) {
-      console.log(`[ORDER] Order: `, order);
+      context.log(`[ORDER] Order: `, order);
     }
   }, [order, debugMode]);
 

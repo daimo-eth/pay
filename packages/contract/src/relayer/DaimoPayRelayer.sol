@@ -108,6 +108,17 @@ contract DaimoPayRelayer is AccessControl {
             addr: address(this)
         });
         (uint256 preTipAmount, uint256 suppliedAmountIn) = _collectSwapInput(p);
+        // For native same-token flows, the contract balance already includes
+        // msg.value at function entry. Adjust the pre-swap baseline so that
+        // swapAmountOut reflects only net output from the swap and tips.
+        if (
+            p.requiredTokenIn.token == p.requiredTokenOut.token &&
+            address(p.requiredTokenIn.token) == address(0)
+        ) {
+            unchecked {
+                preSwapBalance -= suppliedAmountIn;
+            }
+        }
         _refundOverPayment(p, suppliedAmountIn);
 
         //////////////////////////////////////////////////////////////
@@ -188,7 +199,7 @@ contract DaimoPayRelayer is AccessControl {
                 addr: address(this)
             });
             require(
-                balance >= p.requiredTokenIn.amount,
+                balance >= preTipAmount,
                 "DPR: balance less than required input"
             );
         }
@@ -232,7 +243,7 @@ contract DaimoPayRelayer is AccessControl {
                 addr: address(this)
             });
             require(
-                balance >= p.requiredTokenIn.amount,
+                balance >= preTipAmount,
                 "DPR: balance less than required input"
             );
         }
@@ -320,6 +331,7 @@ contract DaimoPayRelayer is AccessControl {
     function startIntent(
         Call[] calldata preCalls,
         DaimoPay dp,
+        address intentAddr,
         PayIntent calldata intent,
         IERC20[] calldata paymentTokens,
         Call[] calldata startCalls,
@@ -335,6 +347,15 @@ contract DaimoPayRelayer is AccessControl {
             (bool success, ) = call.to.call{value: call.value}(call.data);
             require(success, "DPR: preCall failed");
         }
+
+        // Get native-token balance of intent addr
+        uint256 extraBalance = intentAddr.balance;
+        for (uint256 i = 0; i < startCalls.length; ++i) {
+            Call calldata call = startCalls[i];
+            extraBalance -= call.value;
+        }
+        // If we have any extra native balance, revert & retry.
+        require(extraBalance == 0, "DPR: extra native balance");
 
         dp.startIntent({
             intent: intent,

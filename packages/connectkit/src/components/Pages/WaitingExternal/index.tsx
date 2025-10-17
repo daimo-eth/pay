@@ -15,6 +15,7 @@ import {
 import { ExternalLinkIcon } from "../../../assets/icons";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useLocales from "../../../hooks/useLocales";
+import styled from "../../../styles/styled";
 import Button from "../../Common/Button";
 import ConnectWithQRCode from "../../DaimoPayModal/ConnectWithQRCode";
 import ExternalPaymentSpinner from "../../Spinners/ExternalPaymentSpinner";
@@ -28,11 +29,14 @@ const WaitingExternal: React.FC = () => {
     paymentState;
 
   let isCoinbase = false;
+  let isBinance = false;
   if (selectedExternalOption) {
     isCoinbase = selectedExternalOption.id === ExternalPaymentOptions.Coinbase;
+    isBinance = selectedExternalOption.id === ExternalPaymentOptions.Binance;
   }
 
   const [externalURL, setExternalURL] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     if (!selectedExternalOption) return;
@@ -70,6 +74,21 @@ const WaitingExternal: React.FC = () => {
     }
   };
 
+  const regenerateOrder = async () => {
+    if (!selectedExternalOption) return;
+    setIsRegenerating(true);
+    setExternalURL(null);
+
+    try {
+      const newUrl = await payWithExternal(selectedExternalOption.id);
+      setExternalURL(newUrl);
+    } catch (error) {
+      console.error("failed to regenerate order:", error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const waitingMessageLength = paymentWaitingMessage?.length;
 
   useEffect(() => {
@@ -82,7 +101,23 @@ const WaitingExternal: React.FC = () => {
 
   return shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id) &&
     !isMobile ? (
-    <ConnectWithQRCode externalUrl={externalURL ?? ""} />
+    <>
+      <ConnectWithQRCode externalUrl={externalURL ?? ""} />
+      {isBinance && paymentWaitingMessage && !isRegenerating && (
+        <RegenerateContainer>
+          <RegenerateLink
+            as="button"
+            onClick={regenerateOrder}
+            disabled={isRegenerating}
+          >
+            <span>
+              {locales.notWorking}{" "}
+              <Underline>{locales.regenerateOrder}</Underline>
+            </span>
+          </RegenerateLink>
+        </RegenerateContainer>
+      )}
+    </>
   ) : (
     <PageContent>
       <ExternalPaymentSpinner
@@ -107,8 +142,69 @@ const WaitingExternal: React.FC = () => {
       >
         {selectedExternalOption.cta}
       </Button>
+      {isBinance && paymentWaitingMessage && (
+        <RegenerateContainer>
+          <RegenerateLink
+            as="button"
+            onClick={regenerateOrder}
+            disabled={isRegenerating}
+          >
+            <span>
+              {isRegenerating ? (
+                <>{locales.generatingNewOrder}</>
+              ) : (
+                <>
+                  {locales.notWorking}{" "}
+                  <Underline>{locales.regenerateOrder}</Underline>
+                </>
+              )}
+            </span>
+          </RegenerateLink>
+        </RegenerateContainer>
+      )}
     </PageContent>
   );
 };
+
+const RegenerateContainer = styled.div`
+  text-align: center;
+  margin-top: 16px;
+  margin-bottom: -4px;
+`;
+
+const RegenerateLink = styled.a`
+  appearance: none;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--ck-body-color-muted);
+  text-decoration-color: var(--ck-body-color-muted);
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  span {
+    opacity: 1;
+    transition: opacity 300ms ease;
+  }
+`;
+
+const Underline = styled.span`
+  text-underline-offset: 2px;
+  text-decoration: underline;
+`;
 
 export default WaitingExternal;

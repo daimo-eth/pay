@@ -154,6 +154,9 @@ const esES: LocaleProps = {
   sendOnlyOnce: "Enviar solo una vez",
   showQR: "Mostrar QR",
   hideQR: "Ocultar QR",
+  notWorking: "¿No funciona?",
+  regenerateOrder: "Regenerar orden",
+  generatingNewOrder: "Generando nueva orden...",
 };
 
 export default esES;

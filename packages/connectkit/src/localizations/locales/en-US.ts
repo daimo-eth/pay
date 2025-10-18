@@ -152,6 +152,9 @@ const enUS = {
   sendOnlyOnce: "Send only once",
   showQR: "Show QR",
   hideQR: "Hide QR",
+  notWorking: "Not Working?",
+  regenerateOrder: "Regenerate Order",
+  generatingNewOrder: "Generating New Order...",
 };
 
 export default enUS;

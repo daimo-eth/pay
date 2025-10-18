@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 
 import {
@@ -27,6 +28,7 @@ const WaitingExternal: React.FC = () => {
   const locales = useLocales();
   const { selectedExternalOption, payWithExternal, paymentWaitingMessage } =
     paymentState;
+  const { order } = useDaimoPay();
 
   let isCoinbase = false;
   let isBinance = false;
@@ -76,16 +78,16 @@ const WaitingExternal: React.FC = () => {
 
   const regenerateOrder = async () => {
     if (!selectedExternalOption) return;
+
     setIsRegenerating(true);
     setExternalURL(null);
-
     try {
-      const newUrl = await payWithExternal(selectedExternalOption.id);
-      setExternalURL(newUrl);
+      payWithExternal(selectedExternalOption.id).then((url) => {
+        setExternalURL(url);
+        setIsRegenerating(false);
+      });
     } catch (error) {
       console.error("failed to regenerate order:", error);
-    } finally {
-      setIsRegenerating(false);
     }
   };
 

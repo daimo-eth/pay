@@ -41,7 +41,6 @@ import {
   useWriteContract,
 } from "wagmi";
 
-import { ALBEDO_ID } from "@creit.tech/stellar-wallets-kit";
 import {
   createAssociatedTokenAccountInstruction,
   createTransferCheckedInstruction,
@@ -785,7 +784,7 @@ export function usePaymentState({
       const destinationAddress = rozoPayment.destAddress;
 
       // Setup Stellar payment
-      await stellarKit.setWallet(String(stellarConnector?.id ?? ALBEDO_ID));
+      await stellarKit.setWallet(String(stellarConnector?.id ?? "freighter"));
       const sourceAccount = await stellarServer.loadAccount(stellarPublicKey);
       const destAsset = new Asset(
         STELLAR_USDC_ASSET_CODE,

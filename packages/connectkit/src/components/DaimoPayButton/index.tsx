@@ -414,27 +414,31 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   // Emit onPaymentComplete or onPaymentBounced handler when payment state
   // changes to payment_completed or payment_bounced
   const sentComplete = useRef(false);
+  const lastRozoPaymentId = useRef<string | null>(null);
+
   useEffect(() => {
-    context.log("[PAY BUTTON] onPaymentCompleted or onPaymentBounced", {
-      order,
-      payState,
-      paymentRozoCompleted,
-    });
-
-    if (sentComplete.current) return;
-
-    if (!paymentRozoCompleted) {
-      if (payState !== "payment_completed" && payState !== "payment_bounced")
-        return;
+    // Reset sentComplete flag when rozoPaymentId changes
+    const currentRozoPaymentId = rozoPaymentId ?? order?.externalId;
+    if (currentRozoPaymentId !== lastRozoPaymentId.current) {
+      sentComplete.current = false;
+      lastRozoPaymentId.current = currentRozoPaymentId || null;
     }
 
+    if (sentComplete.current) return;
     if (!order) return;
 
+    // Check if payment is completed (either through payState or paymentRozoCompleted)
+    const isPaymentCompleted =
+      payState === "payment_completed" || paymentRozoCompleted;
+    const isPaymentBounced = payState === "payment_bounced";
+
+    if (!isPaymentCompleted && !isPaymentBounced) return;
+
     sentComplete.current = true;
-    const eventType =
-      payState === "payment_completed"
-        ? RozoPayEventType.PaymentCompleted
-        : RozoPayEventType.PaymentBounced;
+    const eventType = isPaymentCompleted
+      ? RozoPayEventType.PaymentCompleted
+      : RozoPayEventType.PaymentBounced;
+
     const event = {
       type: eventType,
       paymentId: writeRozoPayOrderID(order.id),
@@ -452,13 +456,12 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       event,
     });
 
-    if (payState === "payment_completed" || paymentRozoCompleted) {
+    if (isPaymentCompleted) {
       onPaymentCompleted?.(event as PaymentCompletedEvent);
-    } else if (payState === "payment_bounced") {
+    } else if (isPaymentBounced) {
       onPaymentBounced?.(event as PaymentBouncedEvent);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order, payState, paymentRozoCompleted]);
+  }, [order, payState, paymentRozoCompleted, rozoPaymentId]);
 
   // Open the modal by default if the defaultOpen prop is true
   const hasAutoOpened = useRef(false);

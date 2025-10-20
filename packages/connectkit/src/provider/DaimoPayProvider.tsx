@@ -15,7 +15,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { WagmiContext } from "wagmi";
 
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
+import type { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { RozoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";

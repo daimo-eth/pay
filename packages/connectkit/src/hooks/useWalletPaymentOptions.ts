@@ -8,6 +8,7 @@ import {
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getAddress } from "viem";
 import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
 import { createRefreshFunction } from "./refreshUtils";
@@ -22,7 +23,7 @@ import { createRefreshFunction } from "./refreshUtils";
  * CURRENTLY SUPPORTED CHAINS & TOKENS IN WALLET PAYMENT OPTIONS:
  * - Base (Chain ID: 8453) - USDC
  * - Polygon (Chain ID: 137) - USDC
- * - BSC (Chain ID: 56) - USDT (when conditions are met)
+ * - BSC (Chain ID: 56) - USDT (when MugglePay app, BSC preferred, or user has BSC USDT balance, even if disabled)
  * - Rozo Solana - USDC (native Solana USDC)
  * - Rozo Stellar - USDC/XLM (native Stellar tokens)
  *
@@ -115,7 +116,18 @@ export function useWalletPaymentOptions({
       const supportedChainsList = [base, polygon];
       const supportedTokens = [baseUSDC.token, polygonUSDC.token];
 
-      // Show BSC USDT for MugglePay apps or when BSC is preferred
+      // Check if user has BSC USDT balance (including disabled options)
+      const hasBSCUSDTBalance = newOptions.some(
+        (option) =>
+          Number(option.balance.token.chainId) === bsc.chainId &&
+          getAddress(option.balance.token.token) === getAddress(bscUSDT.token)
+      );
+
+      // Show BSC USDT in these cases:
+      // 1. MugglePay apps (MP prefix in appId)
+      // 2. BSC is in preferred chains
+      // 3. BSC is in evmChains
+      // 4. User actually has BSC USDT balance (regardless of preferences or disabled state)
       const showBSCUSDT =
         stableAppId?.includes("MP") ||
         memoizedPreferredChains?.includes(bsc.chainId) ||
@@ -135,16 +147,27 @@ export function useWalletPaymentOptions({
         );
       const filteredOptions = newOptions.filter(isSupported);
       if (filteredOptions.length < newOptions.length) {
+        const skippedOptions = newOptions.filter((o) => !isSupported(o));
+        const skippedChains = Array.from(
+          new Set(skippedOptions.map((o) => o.balance.token.chainId))
+        );
         log(
           `[WALLET]: skipping ${
             newOptions.length - filteredOptions.length
-          } unsupported-chain balances on ${address}`
+          } unsupported-chain balances on ${address}: chains [${skippedChains.join(
+            ", "
+          )}]`
         );
       }
 
       setOptions(filteredOptions);
+      const loadedChains = Array.from(
+        new Set(filteredOptions.map((o) => o.balance.token.chainId))
+      );
       log(
-        `[WALLET]: loaded ${filteredOptions.length} payment options for ${address}`
+        `[WALLET]: loaded ${
+          filteredOptions.length
+        } payment options for ${address} on chains [${loadedChains.join(", ")}]`
       );
     } catch (error) {
       console.error(error);

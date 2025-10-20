@@ -13,7 +13,7 @@ import { Address, getAddress, isAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
-import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
+import { APP_ID, Container, usePersistedConfig } from "../shared";
 
 type Config = {
   recipientAddress: string;
@@ -195,6 +195,10 @@ export default function DemoBasic() {
         chain. Configure the recipient to make a payment to yourself.
       </Text>
 
+      {/* StellarWalletsKit Tests */}
+      {/* <StellarConflictTest />
+      <StellarIntegrationTest /> */}
+
       <div className="flex flex-col items-center gap-8">
         {Boolean(hasValidConfig) && parsedConfig ? (
           <>
@@ -206,10 +210,8 @@ export default function DemoBasic() {
               toSolanaAddress={parsedConfig.recipientSolanaAddress}
               toUnits={parsedConfig.amount}
               toToken={getAddress(parsedConfig.tokenAddress)}
-              onPaymentStarted={printEvent}
               onPaymentCompleted={(e) => {
                 console.log("onPaymentCompleted", e);
-                printEvent(e);
               }}
               resetOnSuccess={true}
               metadata={metadata}

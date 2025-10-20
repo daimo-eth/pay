@@ -1,9 +1,6 @@
-import {
-  allowAllModules,
-  FREIGHTER_ID,
-  type ISupportedWallet,
+import type {
+  ISupportedWallet,
   StellarWalletsKit,
-  WalletNetwork,
 } from "@creit.tech/stellar-wallets-kit";
 import { Asset, Horizon } from "@stellar/stellar-sdk";
 import type { ReactNode } from "react";
@@ -14,20 +11,17 @@ import {
   STELLAR_USDC_ISSUER_PK,
 } from "../constants/rozoConfig";
 import * as LocalStorage from "../utils/localstorage";
-import {
-  WalletConnectAllowedMethods,
-  WalletConnectModule,
-} from "../utils/stellar";
+import { getStellarKitInstance } from "../utils/stellar/singleton-import";
 
 type StellarContextProvider = {
   children: ReactNode;
   rpcUrl?: string;
-  kit?: StellarWalletsKit; // Allow users to provide their own kit
+  kit?: StellarWalletsKit; // OPTIONAL - if provided, uses this; otherwise creates singleton
 };
 
 type StellarContextProviderValue = {
   kit: StellarWalletsKit | undefined;
-  server: Horizon.Server | undefined;
+  server: Horizon.Server;
   publicKey: string | undefined;
   setPublicKey: (publicKey: string) => void;
   account: Horizon.AccountResponse | undefined;
@@ -41,12 +35,11 @@ type StellarContextProviderValue = {
 
 export type StellarWalletName = ISupportedWallet;
 
-// LocalStorage key for Stellar wallet persistence
 const STELLAR_WALLET_STORAGE_KEY = "rozo-stellar-wallet";
 
 const initialContext = {
   kit: undefined,
-  server: undefined,
+  server: undefined as any,
   publicKey: undefined,
   setPublicKey: () => {},
   account: undefined,
@@ -64,7 +57,7 @@ export const StellarContext =
 export const StellarContextProvider = ({
   children,
   rpcUrl,
-  kit: stellarKit,
+  kit: externalKit,
 }: StellarContextProvider) => {
   const [publicKey, setPublicKey] = useState<string | undefined>(undefined);
   const [accountInfo, setAccountInfo] = useState<
@@ -74,52 +67,75 @@ export const StellarContextProvider = ({
     undefined
   );
   const [isAccountExists, setIsAccountExists] = useState(false);
-  const [kit, setKit] = useState<StellarWalletsKit | undefined>(undefined);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [internalKit, setInternalKit] = useState<StellarWalletsKit | undefined>(
+    undefined
+  );
+  const [kitError, setKitError] = useState<string | undefined>(undefined);
 
-  // Initialize kit only on client side to avoid SSR issues
+  const kit = externalKit || internalKit;
+
+  // Initialize kit using singleton pattern
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Use user-provided kit if available, otherwise create our own
-      if (stellarKit) {
-        setKit(stellarKit);
-      } else {
-        const stellarKit = new StellarWalletsKit({
-          network: WalletNetwork.PUBLIC,
-          selectedWalletId: FREIGHTER_ID,
-          // modules: allowAllModules(),
-          modules: [
-            ...allowAllModules(),
-            new WalletConnectModule({
-              url: "https://rozo.ai",
-              projectId: "ab8fa47f01e6a72c58bbb76577656051",
-              method: WalletConnectAllowedMethods.SIGN_AND_SUBMIT,
-              description: `Visa Layer for Stablecoins`,
-              name: "Rozo",
-              icons: ["https://rozo.ai/rozo-logo.png"],
-              network: WalletNetwork.PUBLIC,
-            }),
-          ],
-        });
-        setKit(stellarKit);
-      }
+    // Skip if external kit provided or already initialized
+    if (externalKit || internalKit) {
+      return;
     }
-  }, [stellarKit]);
 
-  // Auto-reconnect to previously connected wallet on app load
+    // Skip on server-side
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let mounted = true;
+
+    getStellarKitInstance()
+      .then((kitInstance) => {
+        if (mounted) {
+          setInternalKit(kitInstance);
+        }
+      })
+      .catch((error) => {
+        console.error("[Rozo] Failed to initialize Stellar kit:", error);
+        if (mounted) {
+          setKitError(error.message);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [externalKit, internalKit]);
+
+  // Show error if kit initialization failed
   useEffect(() => {
-    if (kit && !isInitialized && typeof window !== "undefined") {
+    if (kitError) {
+      console.error(
+        "❌ Stellar kit initialization failed:\n" +
+          kitError +
+          "\n\n" +
+          "To fix this, provide your own kit instance:\n\n" +
+          'import { StellarWalletsKit, WalletNetwork, allowAllModules } from "@creit.tech/stellar-wallets-kit";\n\n' +
+          "const kit = new StellarWalletsKit({\n" +
+          "  network: WalletNetwork.PUBLIC,\n" +
+          "  modules: allowAllModules(),\n" +
+          "});\n\n" +
+          "<RozoPayProvider stellarKit={kit}>{children}</RozoPayProvider>"
+      );
+    }
+  }, [kitError]);
+
+  // Auto-reconnect to previously connected wallet
+  useEffect(() => {
+    if (kit && typeof window !== "undefined") {
       const savedWallet = LocalStorage.get(STELLAR_WALLET_STORAGE_KEY);
 
       if (savedWallet && savedWallet.length > 0) {
-        const lastWallet = savedWallet[0]; // Get the most recent wallet
+        const lastWallet = savedWallet[0];
 
         if (lastWallet.walletId && lastWallet.publicKey) {
           try {
-            // Set the wallet in the kit
             kit.setWallet(lastWallet.walletId);
 
-            // Update context state
             setConnector({
               id: lastWallet.walletId,
               name: lastWallet.walletName || lastWallet.walletId,
@@ -127,7 +143,6 @@ export const StellarContextProvider = ({
             } as ISupportedWallet);
             setPublicKey(lastWallet.publicKey);
           } catch (error) {
-            // If wallet is no longer available, clear the saved data
             console.warn(
               "Previously connected Stellar wallet is no longer available:",
               error
@@ -136,10 +151,8 @@ export const StellarContextProvider = ({
           }
         }
       }
-
-      setIsInitialized(true);
     }
-  }, [kit, isInitialized, setConnector, setPublicKey]);
+  }, [kit]);
 
   const server = useMemo(
     () => new Horizon.Server(rpcUrl ?? DEFAULT_STELLAR_RPC_URL),
@@ -149,7 +162,6 @@ export const StellarContextProvider = ({
   const getAccountInfo = async (publicKey: string) => {
     try {
       const data = await server.loadAccount(publicKey);
-
       setAccountInfo(data);
       setIsAccountExists(true);
     } catch (error: any) {
@@ -172,7 +184,6 @@ export const StellarContextProvider = ({
         throw new Error("No exchange rate found for XLM swap");
       }
 
-      // Apply 5% slippage tolerance
       const bestPath = pathResults.records[0];
       const estimatedDestMinAmount = (
         parseFloat(bestPath.destination_amount) * 0.94
@@ -189,8 +200,6 @@ export const StellarContextProvider = ({
       setPublicKey(undefined);
       setConnector(undefined);
       setAccountInfo(undefined);
-
-      // Clear saved wallet from localStorage
       LocalStorage.clear(STELLAR_WALLET_STORAGE_KEY);
 
       if (kit) {
@@ -242,16 +251,11 @@ export const StellarContextProvider = ({
 export const useStellar = () => {
   const context = useContext(StellarContext);
   if (!context) {
-    throw new Error("useStellar must be used within a RozoPayProvider");
+    throw new Error("useStellar must be used within a StellarContextProvider");
   }
   return context;
 };
 
-/**
- * Simplified hook for connecting to Stellar wallets with better DX
- * Automatically handles wallet selection and state updates
- * Branded as Rozo for the Intent Pay SDK
- */
 export const useRozoConnectStellar = () => {
   const {
     kit,
@@ -268,7 +272,7 @@ export const useRozoConnectStellar = () => {
 
   const connect = async () => {
     if (!kit) {
-      setError("Stellar kit not initialized");
+      setError("Stellar kit not initialized yet. Please wait...");
       return;
     }
 
@@ -282,11 +286,9 @@ export const useRozoConnectStellar = () => {
             kit.setWallet(option.id);
             const { address } = await kit.getAddress();
 
-            // Update context state automatically
             setConnector(option);
             setPublicKey(address);
 
-            // Save wallet connection to localStorage for persistence
             LocalStorage.add(STELLAR_WALLET_STORAGE_KEY, {
               walletId: option.id,
               walletName: option.name,
@@ -307,15 +309,12 @@ export const useRozoConnectStellar = () => {
   };
 
   return {
-    // Connection state
     isConnected,
     isConnecting,
     publicKey,
     account,
     connector,
     error,
-
-    // Actions
     connect,
     disconnect: async () => {
       setError(null);
@@ -323,3 +322,8 @@ export const useRozoConnectStellar = () => {
     },
   };
 };
+
+export type {
+  ISupportedWallet,
+  StellarWalletsKit,
+} from "@creit.tech/stellar-wallets-kit";

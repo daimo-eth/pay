@@ -1,8 +1,4 @@
-import {
-  ModuleInterface,
-  ModuleType,
-  WalletNetwork,
-} from "@creit.tech/stellar-wallets-kit";
+import type { ModuleInterface } from "@creit.tech/stellar-wallets-kit";
 import { createAppKit } from "@reown/appkit";
 import { SignClient } from "@walletconnect/sign-client";
 import { ISignClient } from "@walletconnect/types/dist/types/sign-client/client";
@@ -52,12 +48,12 @@ export interface IParsedWalletConnectSession {
   }>;
 }
 
-export const WALLET_CONNECT_ID = "wallet_connect";
+const PUBLIC_NETWORK_NAME = "Public Global Stellar Network ; September 2015";
 
 export class WalletConnectModule implements ModuleInterface {
-  moduleType: ModuleType = ModuleType.BRIDGE_WALLET;
+  moduleType: any = "BRIDGE_WALLET";
 
-  productId: string = WALLET_CONNECT_ID;
+  productId: string = "wallet_connect";
   productName: string = "Wallet Connect";
   productUrl: string = "https://walletconnect.com/";
   productIcon: string =
@@ -112,7 +108,7 @@ export class WalletConnectModule implements ModuleInterface {
 
           // Create Stellar network configuration
           const stellarNetwork = defineStellarChain(
-            wcParams.network === WalletNetwork.PUBLIC
+            wcParams.network === PUBLIC_NETWORK_NAME
               ? STELLAR_NETWORKS.pubnet
               : STELLAR_NETWORKS.testnet
           );
@@ -172,7 +168,7 @@ export class WalletConnectModule implements ModuleInterface {
         const signedTxXdr = await this.client!.request({
           topic: targetSession.id,
           chainId:
-            opts?.networkPassphrase === WalletNetwork.PUBLIC
+            opts?.networkPassphrase === PUBLIC_NETWORK_NAME
               ? WalletConnectTargetChain.PUBLIC
               : WalletConnectTargetChain.TESTNET,
           request: {
@@ -245,7 +241,7 @@ export class WalletConnectModule implements ModuleInterface {
           stellar: {
             methods: [this.wcParams.method],
             chains: [
-              this.wcParams.network === WalletNetwork.PUBLIC
+              this.wcParams.network === PUBLIC_NETWORK_NAME
                 ? WalletConnectTargetChain.PUBLIC
                 : WalletConnectTargetChain.TESTNET,
             ],
@@ -341,7 +337,7 @@ export interface IWalletConnectConstructorParams {
   url: string;
   icons: string[];
   method: WalletConnectAllowedMethods;
-  network: WalletNetwork;
+  network: string;
   sessionId?: string;
   client?: typeof SignClient;
   modal?: ReturnType<typeof createAppKit>;

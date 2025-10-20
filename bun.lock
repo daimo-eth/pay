@@ -44,7 +44,7 @@
     },
     "packages/connectkit": {
       "name": "@rozoai/intent-pay",
-      "version": "0.0.31-beta.4",
+      "version": "0.0.31",
       "dependencies": {
         "@albedo-link/intent": "^0.13.0",
         "@reown/appkit": "^1.7.0",

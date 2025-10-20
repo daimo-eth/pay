@@ -1,6 +1,7 @@
 import json from "@rollup/plugin-json";
 import typescript from "@rollup/plugin-typescript";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
+import { visualizer } from "rollup-plugin-visualizer";
 
 /** @type {import('rollup').RollupOptions[]} */
 export default [
@@ -49,6 +50,12 @@ export default [
         declaration: true,
         declarationDir: "build",
         rootDir: "src",
+      }),
+
+      visualizer({
+        filename: "bundle-analysis.html",
+        gzipSize: true,
+        brotliSize: true,
       }),
     ],
   },

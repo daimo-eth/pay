@@ -67,6 +67,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
     isLoading ||= stellarPaymentOptions.isLoading;
     hasAnyData ||= (stellarPaymentOptions.options?.length ?? 0) > 0;
   }
+
   optionsList.sort((a, b) => {
     const dDisabled = (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0);
     if (dDisabled !== 0) return dDisabled;

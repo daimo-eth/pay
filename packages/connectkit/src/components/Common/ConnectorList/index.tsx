@@ -94,7 +94,6 @@ const ConnectorItem = ({
   const redirectToMoreWallets =
     isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
   const redirectToMobileWallets = wallet.id === WALLET_ID_MOBILE_WALLETS;
-  const redirectToWorld = wallet.id === "world";
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -128,12 +127,18 @@ const ConnectorItem = ({
         context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
         context.setRoute(ROUTES.CONNECT, meta);
       }
-    } else if (redirectToWorld) {
+    } else if (
+      !isMobile &&
+      wallet.getDaimoPayDeeplink &&
+      wallet.id &&
+      !wallet.connector
+    ) {
+      // wallets with deeplinks but no connector (World, MiniPay, etc) - show QR on desktop
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else {
-        context.setPendingConnectorId("world");
+        context.setPendingConnectorId(wallet.id);
         context.setRoute(ROUTES.CONNECT, meta);
       }
     } else if (

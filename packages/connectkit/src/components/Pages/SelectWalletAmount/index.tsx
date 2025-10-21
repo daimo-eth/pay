@@ -40,15 +40,18 @@ const SelectWalletAmount: React.FC = () => {
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
-    if (
-      selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
-      (selectedWallet.id === "world" && !isMobile)
-    ) {
-      await hydrateOrder();
+    await hydrateOrder();
+
+    // show QR code on desktop for wallets with deeplinks
+    if (!isMobile && selectedWallet.getDaimoPayDeeplink && selectedWallet.id) {
+      setPendingConnectorId(selectedWallet.id);
+      setRoute(ROUTES.CONNECT);
+    } else if (selectedWallet.id === WALLET_ID_MOBILE_WALLETS) {
       setPendingConnectorId(selectedWallet.id);
       setRoute(ROUTES.CONNECT);
     } else {
-      await openInWalletBrowser(selectedWallet, amountUsd);
+      // mobile wallets: open in browser
+      openInWalletBrowser(selectedWallet, amountUsd);
     }
   };
 

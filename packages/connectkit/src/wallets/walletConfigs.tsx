@@ -58,10 +58,14 @@ export type WalletConfigProps = {
     safari?: string;
   };
   deeplinkScheme?: string;
-  // For Daimo Pay deeplinks
-  getDaimoPayDeeplink?: (payId: string) => string;
+  // For Daimo Pay deeplinks. Platform parameter: 'android' | 'ios' | 'other'
+  getDaimoPayDeeplink?: (payId: string, platform?: string) => string;
   // To sort mobile wallets to show in the connector list
   showInMobileConnectors?: boolean;
+  // Show wallet on Android. Defaults to true if not specified.
+  showOnAndroid?: boolean;
+  // Show wallet on iOS. Defaults to true if not specified.
+  showOnIOS?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
   isSolanaOnly?: boolean;
 };
@@ -84,6 +88,8 @@ export const walletConfigs: {
         "https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad",
     },
     showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     deeplinkScheme: "cbwallet://",
     getDaimoPayDeeplink: (payId: string) => {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
@@ -104,6 +110,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "cbwallet://",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
@@ -114,6 +122,8 @@ export const walletConfigs: {
     icon: <Logos.Backpack />,
     iconShape: "squircle",
     showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       const url = encodeURIComponent(getDaimoPayUrl(payId));
       return `https://backpack.app/ul/v1/browse/${url}`;
@@ -124,6 +134,8 @@ export const walletConfigs: {
     icon: <Logos.Bitget />,
     iconShape: "squircle",
     showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     deeplinkScheme: "bitkeep://",
     getDaimoPayDeeplink: (payId: string) => {
       return "bitkeep://bkconnect?action=dapp&url=" + getDaimoPayUrl(payId);
@@ -134,6 +146,8 @@ export const walletConfigs: {
     shortName: "Family",
     icon: <Logos.Family />,
     iconShape: "squircle",
+    showOnAndroid: false,
+    showOnIOS: true,
     downloadUrls: {
       download: "https://connect.family.co/v0/download/family",
       website: "https://family.co",
@@ -151,6 +165,8 @@ export const walletConfigs: {
     icon: <Logos.MetaMask />,
     iconConnector: <Logos.MetaMask />,
     iconShouldShrink: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     downloadUrls: {
       download: "https://connect.family.co/v0/download/metamask",
       website: "https://metamask.io/download/",
@@ -178,6 +194,8 @@ export const walletConfigs: {
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       const url = encodeURIComponent(getDaimoPayUrl(payId));
       const ref = encodeURIComponent(window.location.origin);
@@ -197,6 +215,8 @@ export const walletConfigs: {
     // Temporarily hidden from mobile connectors to make room for World wallet.
     // Will re-enable once /pay flow is fixed for Farcaster and we support more mobile wallets.
     showInMobileConnectors: false,
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
@@ -208,6 +228,8 @@ export const walletConfigs: {
     icon: <Logos.MiniPay />,
     iconShape: "squircle",
     showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://cash.minipay.xyz/browse?url=" +
@@ -232,6 +254,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "rainbow://",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return "rainbow://dapp?url=" + getDaimoPayUrl(payId);
     },
@@ -251,6 +275,7 @@ export const walletConfigs: {
   "com.trustwallet.app": {
     name: "Trust Wallet",
     shortName: "Trust",
+
     icon: <Logos.Trust />,
     iconConnector: <Logos.Trust />,
     downloadUrls: {
@@ -261,6 +286,8 @@ export const walletConfigs: {
     },
     showInMobileConnectors: false,
     deeplinkScheme: "trust://",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return "trust://open_url?coin_id=60&url=" + getDaimoPayUrl(payId);
     },
@@ -270,6 +297,8 @@ export const walletConfigs: {
     icon: <Logos.OKX />,
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       return "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId);
     },
@@ -278,6 +307,8 @@ export const walletConfigs: {
     name: "Solflare",
     icon: <Logos.Solflare />,
     showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
     deeplinkScheme: "solflare://",
     getDaimoPayDeeplink: (payId: string) => {
       const url = encodeURIComponent(getDaimoPayUrl(payId));
@@ -313,6 +344,8 @@ export const walletConfigs: {
     showInMobileConnectors: true,
     iconShape: "squircle",
     deeplinkScheme: "world",
+    showOnAndroid: true,
+    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
       const path = "/pay?id=" + payId;
       const url =
@@ -333,8 +366,14 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
     deeplinkScheme: "zerion://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "zerion://browser?url=" + getDaimoPayUrl(payId);
+    showOnAndroid: true,
+    showOnIOS: true,
+    getDaimoPayDeeplink: (payId: string, platform?: string) => {
+      const payUrl = getDaimoPayUrl(payId);
+      if (platform === "android") {
+        return "https://link.zerion.io/?url=" + encodeURIComponent(payUrl);
+      }
+      return "zerion://browser?url=" + payUrl;
     },
   },
 } as const;

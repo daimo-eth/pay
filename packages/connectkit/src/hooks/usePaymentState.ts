@@ -10,6 +10,7 @@ import {
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
   isNativeToken,
+  PaymentOptionsConfig,
   PlatformType,
   readDaimoPayOrderID,
   SolanaPublicKey,
@@ -158,8 +159,10 @@ export function usePaymentState({
   const externalPaymentOptions = useExternalPaymentOptions({
     trpc,
     // allow <DaimoPayButton payId={...} paymentOptions={override} />
-    filterIds:
-      buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions,
+    paymentOptionsConfig: (buttonProps?.paymentOptions ??
+      pay.order?.metadata.payer?.paymentOptions) as
+      | PaymentOptionsConfig
+      | undefined,
     platform,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     mode: pay.order?.mode,
@@ -441,10 +444,11 @@ export function usePaymentState({
     }
 
     const payId = writeDaimoPayOrderID(pay.order.id);
-    const deeplink = wallet.getDaimoPayDeeplink(payId);
-    // If we are in IOS, we don't open the deeplink in a new window, because it
-    // will not work, the link will be opened in the page WAITING_WALLET
-    if (!isIOS) {
+    const deeplink = wallet.getDaimoPayDeeplink(payId, platform);
+    // open in new window only on mobile (Android)
+    // on iOS, the link is shown in WAITING_WALLET page
+    // on desktop, QR code is shown in WAITING_WALLET page
+    if (platform === "android") {
       window.open(deeplink, "_blank");
     }
     setSelectedWallet(wallet);

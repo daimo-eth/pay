@@ -1,7 +1,7 @@
 import React from "react";
 
 import { ROUTES } from "../../../constants/routes";
-import { useConnect } from "../../../hooks/useConnect";
+import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import {
   WalletConfigProps,
@@ -20,15 +20,51 @@ import {
 const MobileConnectors: React.FC = () => {
   const context = usePayContext();
   const { paymentState, setRoute } = context;
-  const { connect, connectors } = useConnect();
+  const { isAndroid, isIOS } = useIsMobile();
 
   // filter out installed wallets
-  const walletsIdsToDisplay =
+  const availableWalletIds =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
       if (!wallet.showInMobileConnectors) return false;
+      // filter by platform
+      if (isAndroid && wallet.showOnAndroid === false) return false;
+      if (isIOS && wallet.showOnIOS === false) return false;
       return true;
     }) ?? [];
+
+  // apply ordering from parsedConfig if available
+  const { parsedConfig } = paymentState.externalPaymentOptions;
+  const { walletOrder } = parsedConfig;
+
+  let walletsIdsToDisplay = availableWalletIds;
+  if (walletOrder.length > 0) {
+    const ordered: string[] = [];
+    const remaining = [...availableWalletIds];
+
+    // add wallets in order specified
+    for (const optionId of walletOrder) {
+      const walletId = Object.keys(walletConfigs).find((id) => {
+        const wallet = walletConfigs[id];
+        const optionLower = optionId.toLowerCase();
+        return (
+          wallet.name?.toLowerCase() === optionLower ||
+          wallet.shortName?.toLowerCase() === optionLower ||
+          wallet.name?.toLowerCase().includes(optionLower) ||
+          id.toLowerCase() === optionLower ||
+          id.toLowerCase().includes(optionLower)
+        );
+      });
+      if (walletId && remaining.includes(walletId)) {
+        ordered.push(walletId);
+        const idx = remaining.indexOf(walletId);
+        remaining.splice(idx, 1);
+      }
+    }
+
+    // add remaining wallets
+    walletsIdsToDisplay = [...ordered, ...remaining];
+  }
 
   const goToWallet = async (wallet: WalletConfigProps) => {
     if (wallet.getDaimoPayDeeplink == null) {
@@ -38,6 +74,10 @@ const MobileConnectors: React.FC = () => {
     if (paymentState.isDepositFlow) {
       context.paymentState.setSelectedWallet(wallet);
       setRoute(ROUTES.SELECT_WALLET_AMOUNT);
+    } else if (!isIOS && !isAndroid && wallet.id) {
+      // on desktop, show QR code
+      context.setPendingConnectorId(wallet.id);
+      setRoute(ROUTES.CONNECT);
     } else {
       await paymentState.openInWalletBrowser(wallet);
     }
@@ -50,16 +90,6 @@ const MobileConnectors: React.FC = () => {
           <ScrollArea height={340}>
             <WalletList>
               {walletsIdsToDisplay
-                .sort(
-                  // sort by name
-                  (a, b) => {
-                    const walletA = walletConfigs[a];
-                    const walletB = walletConfigs[b];
-                    const nameA = walletA.name ?? walletA.shortName ?? a;
-                    const nameB = walletB.name ?? walletB.shortName ?? b;
-                    return nameA.localeCompare(nameB);
-                  },
-                )
                 .filter(
                   (walletId) =>
                     !(

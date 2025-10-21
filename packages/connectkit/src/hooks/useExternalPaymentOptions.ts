@@ -2,44 +2,48 @@ import {
   DaimoPayOrderMode,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  isAddressOption,
+  isExchangeOption,
+  isPaymentAppOption,
+  isWalletOption,
+  ParsedPaymentOptions,
+  parsePaymentOptions,
+  PaymentOptionsConfig,
   PlatformType,
 } from "@daimo/pay-common";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
-
-const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
-  ExternalPaymentOptions,
-).filter(
-  (opt) =>
-    // Solana and ExternalChains are handled in the SelectMethod component.
-    opt !== ExternalPaymentOptions.ExternalChains &&
-    opt !== ExternalPaymentOptions.Daimo,
-);
 
 export function useExternalPaymentOptions({
   trpc,
-  filterIds,
+  paymentOptionsConfig,
   platform,
   usdRequired,
   mode,
 }: {
   trpc: TrpcClient;
-  filterIds: string[] | undefined;
+  paymentOptionsConfig: PaymentOptionsConfig | undefined;
   platform: PlatformType | undefined;
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
 }): {
-  /// Exteral options, organized by optionType
+  /// External options, organized by optionType
   options: Map<
     "external" | "zkp2p" | "exchange",
     ExternalPaymentOptionMetadata[]
   >;
   loading: boolean;
+  parsedConfig: ParsedPaymentOptions;
 } {
   const [options, setOptions] = useState<
     Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
+
+  const parsedConfig = useMemo(
+    () => parsePaymentOptions(paymentOptionsConfig),
+    [paymentOptionsConfig],
+  );
 
   useEffect(() => {
     const refreshExternalPaymentOptions = async (
@@ -56,27 +60,56 @@ export function useExternalPaymentOptions({
           usdRequired: usd,
         });
 
-        // Filter out options not in options JSON
-        const enabledExtPaymentOptions =
-          filterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
+        const { topLevelOptions, walletOrder, exchangeOrder, addressOrder } =
+          parsedConfig;
 
-        const hasAllPaymentApps = enabledExtPaymentOptions.includes(
+        const hasAllWallets = topLevelOptions.includes(
+          ExternalPaymentOptions.AllWallets,
+        );
+        const hasAllExchanges = topLevelOptions.includes(
+          ExternalPaymentOptions.AllExchanges,
+        );
+        const hasAllPaymentApps = topLevelOptions.includes(
           ExternalPaymentOptions.AllPaymentApps,
         );
-        const hasAllExchanges = enabledExtPaymentOptions.includes(
-          ExternalPaymentOptions.AllExchanges,
+        const hasAllAddress = topLevelOptions.includes(
+          ExternalPaymentOptions.AllAddress,
         );
 
         const filteredOptions = newOptions.filter(
-          (option: ExternalPaymentOptionMetadata) =>
-            enabledExtPaymentOptions.includes(option.id) ||
-            (hasAllPaymentApps && option.optionType === "zkp2p") ||
-            (hasAllExchanges && option.optionType === "exchange"),
+          (option: ExternalPaymentOptionMetadata) => {
+            if (topLevelOptions.includes(option.id)) return true;
+            if (hasAllWallets && isWalletOption(option.id)) return true;
+            if (hasAllExchanges && isExchangeOption(option.id)) return true;
+            if (hasAllPaymentApps && isPaymentAppOption(option.id)) return true;
+            if (hasAllAddress && isAddressOption(option.id)) return true;
+            return false;
+          },
         );
+
+        // apply ordering
+        const applyOrdering = (
+          opts: ExternalPaymentOptionMetadata[],
+          order: ExternalPaymentOptions[],
+        ): ExternalPaymentOptionMetadata[] => {
+          if (order.length === 0) return opts;
+          const ordered: ExternalPaymentOptionMetadata[] = [];
+          const remaining = [...opts];
+          for (const orderId of order) {
+            const idx = remaining.findIndex((o) => o.id === orderId);
+            if (idx !== -1) {
+              ordered.push(remaining[idx]);
+              remaining.splice(idx, 1);
+            }
+          }
+          return ordered;
+        };
+
         const optionsByType: Map<
           "external" | "zkp2p" | "exchange",
           ExternalPaymentOptionMetadata[]
         > = new Map();
+
         filteredOptions.forEach((option) => {
           const { optionType } = option;
           if (!optionsByType.has(optionType)) {
@@ -84,6 +117,28 @@ export function useExternalPaymentOptions({
           }
           optionsByType.get(optionType)!.push(option);
         });
+
+        // apply wallet ordering
+        if (walletOrder.length > 0) {
+          const external = optionsByType.get("external") || [];
+          optionsByType.set("external", applyOrdering(external, walletOrder));
+        }
+
+        // apply exchange ordering
+        if (exchangeOrder.length > 0) {
+          const exchanges = optionsByType.get("exchange") || [];
+          optionsByType.set(
+            "exchange",
+            applyOrdering(exchanges, exchangeOrder),
+          );
+        }
+
+        // apply zkp2p ordering (payment apps)
+        const zkp2pOrder = topLevelOptions.filter(isPaymentAppOption);
+        if (zkp2pOrder.length > 0) {
+          const zkp2p = optionsByType.get("zkp2p") || [];
+          optionsByType.set("zkp2p", applyOrdering(zkp2p, zkp2pOrder));
+        }
 
         setOptions(optionsByType);
       } catch (error) {
@@ -96,12 +151,8 @@ export function useExternalPaymentOptions({
     if (usdRequired != null && mode != null) {
       refreshExternalPaymentOptions(usdRequired, mode);
     }
-    // TODO: this is an ugly way to handle polling/refresh
-    // Notice the load-bearing JSON.stringify() to prevent a visible infinite
-    // refresh glitch on the SelectMethod screen. Replace this useEffect().
-    //
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
+  }, [usdRequired, JSON.stringify(parsedConfig), platform, mode, trpc]);
 
-  return { options, loading };
+  return { options, loading, parsedConfig };
 }

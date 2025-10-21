@@ -28,6 +28,10 @@ import {
 
 import useLockBodyScroll from "../../../hooks/useLockBodyScroll";
 import { usePayContext } from "../../../hooks/usePayContext";
+import {
+  useWallet,
+  WALLET_ID_MOBILE_WALLETS,
+} from "../../../wallets/useWallets";
 
 import {
   getChainName,
@@ -42,10 +46,6 @@ import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
 import { CustomTheme } from "../../../types";
-import {
-  useWallet,
-  WALLET_ID_MOBILE_WALLETS,
-} from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
@@ -333,9 +333,11 @@ const Modal: React.FC<ModalProps> = ({
     return !useInjector;
   }
 
+  // show QR code for mobile wallets connector or any wallet with deeplink
+  const pendingWallet = useWallet(context.pendingConnectorId ?? "");
   const shouldShowWalletQRCodeOnDesktop =
     context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
-    context.pendingConnectorId === "world";
+    (pendingWallet?.getDaimoPayDeeplink != null && !mobile);
 
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");
@@ -343,11 +345,18 @@ const Modal: React.FC<ModalProps> = ({
       case ROUTES.ABOUT:
         return locales.aboutScreen_heading;
       case ROUTES.CONNECT:
+        console.log(
+          "shouldShowWalletQRCodeOnDesktop ",
+          shouldShowWalletQRCodeOnDesktop,
+        );
+        console.log("pendingWallet ", pendingWallet?.getDaimoPayDeeplink);
         if (shouldShowWalletQRCodeOnDesktop) {
           return locales.scanWithPhone;
         } else {
           return walletInfo?.name;
         }
+      case ROUTES.WAITING_WALLET:
+        return null;
       case ROUTES.SELECT_EXCHANGE:
         return locales.selectExchange;
       case ROUTES.SOLANA_CONNECTOR:

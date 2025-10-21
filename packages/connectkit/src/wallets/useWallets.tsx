@@ -43,6 +43,12 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   // Solana wallets available in the session (desktop & mobile)
   const solanaWallet = useSolanaWalletAdapter();
   const locales = useLocales();
+
+  // get wallet ordering from payment options
+  const walletOrder =
+    context.paymentState?.externalPaymentOptions?.parsedConfig?.walletOrder ??
+    [];
+
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
 
@@ -68,6 +74,50 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       });
     }
 
+    // if wallet order is specified, use that order
+    if (walletOrder.length > 0) {
+      for (const optionId of walletOrder) {
+        const walletId = Object.keys(walletConfigs).find((id) => {
+          const wallet = walletConfigs[id];
+          const optionLower = optionId.toLowerCase();
+          return (
+            wallet.name?.toLowerCase() === optionLower ||
+            wallet.shortName?.toLowerCase() === optionLower ||
+            wallet.name?.toLowerCase().includes(optionLower) ||
+            id.toLowerCase() === optionLower ||
+            id.toLowerCase().includes(optionLower)
+          );
+        });
+        if (walletId && !mobileWallets.find((w) => w.id === walletId)) {
+          const wallet = walletConfigs[walletId];
+          mobileWallets.push({
+            id: walletId,
+            ...wallet,
+          });
+        }
+      }
+
+      // if we have more than 3 wallets, only keep first 3 and add "Other"
+      if (mobileWallets.length > 3) {
+        const otherWalletsString = flattenChildren(locales.otherWallets).join(
+          "",
+        );
+        const otherString = flattenChildren(locales.other).join("");
+        mobileWallets.splice(3, mobileWallets.length - 3);
+        mobileWallets.push({
+          id: WALLET_ID_OTHER_WALLET,
+          name: otherWalletsString,
+          shortName: otherString,
+          iconConnector: <Logos.OtherWallets />,
+          iconShape: "square",
+          showInMobileConnectors: false,
+        });
+      }
+
+      return mobileWallets;
+    }
+
+    // default mobile wallet order (when no wallet order specified)
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
       if (mobileWallets.length >= 3) return;
@@ -163,7 +213,29 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     return c;
   });
 
-  wallets.push(walletConfigs.world as WalletProps);
+  // add wallets from walletOrder (for desktop)
+  if (walletOrder.length > 0) {
+    for (const optionId of walletOrder) {
+      const walletId = Object.keys(walletConfigs).find((id) => {
+        const wallet = walletConfigs[id];
+        const optionLower = optionId.toLowerCase();
+        return (
+          wallet.name?.toLowerCase() === optionLower ||
+          wallet.shortName?.toLowerCase() === optionLower ||
+          wallet.name?.toLowerCase().includes(optionLower) ||
+          id.toLowerCase() === optionLower ||
+          id.toLowerCase().includes(optionLower)
+        );
+      });
+      if (walletId && !wallets.find((w) => w.id === walletId)) {
+        const wallet = walletConfigs[walletId];
+        wallets.push({
+          id: walletId,
+          ...wallet,
+        });
+      }
+    }
+  }
 
   wallets.push({
     id: WALLET_ID_MOBILE_WALLETS,

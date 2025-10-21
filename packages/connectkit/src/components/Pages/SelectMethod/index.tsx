@@ -4,7 +4,12 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import { getAddressContraction } from "@daimo/pay-common";
+import {
+  ExternalPaymentOptions,
+  getAddressContraction,
+  isAddressOption,
+  isWalletOption,
+} from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
@@ -42,8 +47,14 @@ export default function SelectMethod() {
     disconnect: disconnectSolana,
     publicKey,
   } = useWallet();
-  const { setRoute, paymentState, log, disableMobileInjector } =
-    usePayContext();
+  const {
+    setRoute,
+    paymentState,
+    log,
+    disableMobileInjector,
+    setPendingConnectorId,
+    setUniquePaymentMethodPage,
+  } = usePayContext();
   const { disconnectAsync } = useDisconnect();
 
   const { externalPaymentOptions, senderEnsName } = paymentState;
@@ -187,6 +198,21 @@ export default function SelectMethod() {
     },
   };
 
+  log(
+    `[SELECT_METHOD] loading: ${externalPaymentOptions.loading}, options: ${JSON.stringify(
+      externalPaymentOptions.options,
+    )}`,
+  );
+
+  // Build options based on parsedConfig order (max 4)
+  const { parsedConfig } = externalPaymentOptions;
+  const { topLevelOptions } = parsedConfig;
+
+  const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
+  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
+  const externalOptions = externalPaymentOptions.options.get("external") ?? [];
+  const allOptions = [...exchangeOptions, ...zkp2pOptions, ...externalOptions];
+
   const options: {
     id: string;
     title: string;
@@ -195,52 +221,178 @@ export default function SelectMethod() {
     onClick: () => void;
     disabled?: boolean;
   }[] = [];
+
+  // always show connected wallets first
   options.push(...connectedWalletOptions);
-  options.push(unconnectedWalletOption);
 
-  log(
-    `[SELECT_METHOD] loading: ${externalPaymentOptions.loading}, options: ${JSON.stringify(
-      externalPaymentOptions.options,
-    )}`,
-  );
+  // build options from topLevelOptions in order (max 4)
+  const displayedOptions = new Set<string>();
+  for (const option of topLevelOptions.slice(0, 4)) {
+    if (displayedOptions.has(option)) continue;
 
-  // Pay with Exchange
-  const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
-
-  const showExchangePaymentMethod = exchangeOptions.length > 0;
-  if (showExchangePaymentMethod) {
-    options.push({
-      id: "exchange",
-      title: locales.payWithExchange,
-      icons: exchangeOptions.slice(0, 3).map((option) => option.logoURI),
-      onClick: () => {
-        setRoute(ROUTES.SELECT_EXCHANGE, {
-          event: "click-option",
-          option: "exchange",
+    if (option === ExternalPaymentOptions.AllWallets) {
+      options.push(unconnectedWalletOption);
+      displayedOptions.add(option);
+    } else if (option === ExternalPaymentOptions.AllExchanges) {
+      if (exchangeOptions.length > 0) {
+        options.push({
+          id: "exchange",
+          title: locales.payWithExchange,
+          icons: exchangeOptions.slice(0, 3).map((opt) => opt.logoURI),
+          onClick: () => {
+            setRoute(ROUTES.SELECT_EXCHANGE, {
+              event: "click-option",
+              option: "exchange",
+            });
+          },
         });
-      },
-    });
+        displayedOptions.add(option);
+      }
+    } else if (option === ExternalPaymentOptions.AllAddress) {
+      const depositAddressOption = getDepositAddressOption(setRoute, locales);
+      options.push(depositAddressOption);
+      displayedOptions.add(option);
+    } else if (option === ExternalPaymentOptions.AllPaymentApps) {
+      if (!isMobile && zkp2pOptions.length > 0) {
+        options.push({
+          id: "ZKP2P",
+          title: locales.payViaPaymentApp,
+          icons: zkp2pOptions.slice(0, 2).map((opt) => opt.logoURI),
+          onClick: () => {
+            setRoute(ROUTES.SELECT_ZKP2P);
+          },
+        });
+        displayedOptions.add(option);
+      }
+    } else {
+      // handle specific options (Tron, Binance, Lemon, MiniPay, etc)
+
+      // check if it's a wallet option (MiniPay, World, etc)
+      if (isWalletOption(option)) {
+        const walletId = Object.keys(walletConfigs).find((id) => {
+          const wallet = walletConfigs[id];
+          const optionLower = option.toLowerCase();
+          return (
+            wallet.name?.toLowerCase() === optionLower ||
+            wallet.shortName?.toLowerCase() === optionLower ||
+            wallet.name?.toLowerCase().includes(optionLower) ||
+            id.toLowerCase() === optionLower ||
+            id.toLowerCase().includes(optionLower)
+          );
+        });
+        if (walletId) {
+          const wallet = walletConfigs[walletId];
+          options.push({
+            id: option,
+            title: `${payWithString} ${wallet.shortName ?? wallet.name}`,
+            icons: [wallet.icon],
+            onClick: () => {
+              paymentState.setSelectedWallet(wallet);
+              if (paymentState.isDepositFlow) {
+                // clicking from SelectMethod, back should return to SelectMethod
+                setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+                setRoute(ROUTES.SELECT_WALLET_AMOUNT, {
+                  event: "click-option",
+                  option,
+                });
+              } else if (!isMobile && wallet.getDaimoPayDeeplink && wallet.id) {
+                // on desktop with deeplink: show QR code
+                setPendingConnectorId(wallet.id);
+                setRoute(ROUTES.CONNECT, {
+                  event: "click-option",
+                  option,
+                });
+              } else if (isMobile && wallet.getDaimoPayDeeplink) {
+                // on mobile: open in wallet browser
+                paymentState.openInWalletBrowser(wallet);
+              } else {
+                setRoute(ROUTES.CONNECTORS, {
+                  event: "click-option",
+                  option,
+                });
+              }
+            },
+          });
+          displayedOptions.add(option);
+        }
+      } else if (isAddressOption(option)) {
+        // check if it's a deposit address option (Tron, Base, etc)
+        const depositOptionMap = new Map<ExternalPaymentOptions, string>([
+          [ExternalPaymentOptions.Tron, "USDT on Tron"],
+          [ExternalPaymentOptions.Base, "Base"],
+          [ExternalPaymentOptions.Arbitrum, "Arbitrum"],
+          [ExternalPaymentOptions.Optimism, "Optimism"],
+          [ExternalPaymentOptions.Polygon, "Polygon"],
+          [ExternalPaymentOptions.Ethereum, "Ethereum"],
+        ]);
+        const mappedOptionId = depositOptionMap.get(option);
+        const depositAddressOption =
+          mappedOptionId &&
+          paymentState.depositAddressOptions.options?.find(
+            (opt) => opt.id === mappedOptionId,
+          );
+        if (depositAddressOption) {
+          options.push({
+            id: depositAddressOption.id,
+            title: depositAddressOption.id,
+            icons: [depositAddressOption.logoURI],
+            onClick: () => {
+              paymentState.setSelectedDepositAddressOption(
+                depositAddressOption,
+              );
+              if (paymentState.isDepositFlow) {
+                // clicking from SelectMethod, back should return to SelectMethod
+                setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+                setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
+                  event: "click-option",
+                  option: depositAddressOption.id,
+                });
+              } else {
+                setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
+                  event: "click-option",
+                  option: depositAddressOption.id,
+                });
+              }
+            },
+          });
+          displayedOptions.add(option);
+        }
+      } else {
+        // check external payment options (exchanges, payment apps, etc)
+        const specificOption = allOptions.find((opt) => opt.id === option);
+        if (specificOption) {
+          options.push({
+            id: specificOption.id,
+            title: specificOption.cta,
+            icons: [specificOption.logoURI],
+            onClick: () => {
+              paymentState.setSelectedExternalOption(specificOption);
+              const meta = { event: "click-option", option: specificOption.id };
+              if (paymentState.isDepositFlow) {
+                setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
+              } else {
+                setRoute(ROUTES.WAITING_EXTERNAL, meta);
+              }
+            },
+            disabled: specificOption.disabled,
+            subtitle: specificOption.message,
+          });
+          displayedOptions.add(option);
+        }
+      }
+    }
   }
 
-  const depositAddressOption = getDepositAddressOption(setRoute, locales);
-  options.push(depositAddressOption);
-
-  // ZKP2P is currently only available on desktop. Check if the user is on
-  // desktop and if any ZKP2P options are available.
-  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
-  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
-  if (showZkp2pPaymentMethod) {
-    options.push({
-      id: "ZKP2P",
-      title: locales.payViaPaymentApp,
-      icons: zkp2pOptions.slice(0, 2).map((option) => option.logoURI),
-      onClick: () => {
-        setRoute(ROUTES.SELECT_ZKP2P);
-      },
-    });
+  // only add wallet option if it was in the configured payment options
+  // (this respects user's explicit choice to exclude wallets)
+  if (
+    !displayedOptions.has(ExternalPaymentOptions.AllWallets) &&
+    topLevelOptions.includes(ExternalPaymentOptions.AllWallets)
+  ) {
+    options.push(unconnectedWalletOption);
   }
 
-  // Order disabled to bottom
+  // order disabled to bottom
   options.sort((a, b) => (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0));
 
   return (

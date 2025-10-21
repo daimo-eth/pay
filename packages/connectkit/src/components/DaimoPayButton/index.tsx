@@ -8,14 +8,13 @@ import {
   DaimoPayEventType,
   DaimoPayOrderView,
   DaimoPayUserMetadata,
-  ExternalPaymentOptionsString,
   getDaimoPayOrderView,
   getOrderDestChainId,
   getOrderSourceChainId,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
+  PaymentOptionsConfig,
   PaymentStartedEvent,
-  UniquePaymentOptionsString,
   writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { AnimatePresence, Variants } from "framer-motion";
@@ -64,9 +63,10 @@ export type PayButtonPaymentProps =
        */
       intent?: string;
       /**
-       * Payment options. By default, all are enabled.
+       * Payment options configuration. Max 4 options. Defaults to ['AllWallets', 'AllExchanges', 'AllAddress'].
+       * Can be a simple array like ['AllWallets', 'Tron', 'Binance'] or nested arrays for ordering [wallets, exchanges, addresses].
        */
-      paymentOptions?: ExternalPaymentOptionsString[];
+      paymentOptions?: PaymentOptionsConfig;
       /**
        * Preferred chain IDs. Assets on these chains will appear first.
        */
@@ -96,16 +96,12 @@ export type PayButtonPaymentProps =
        * token, it is sent directly to `toAddress` with no swapping or bridging.
        */
       passthroughTokens?: PassthroughToken[];
-      /** Only show one payment option to the user. */
-      uniquePaymentOption?: UniquePaymentOptionsString;
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
       payId: string;
-      /** Payment options. By default, all are enabled. */
-      paymentOptions?: ExternalPaymentOptionsString[];
-      /** Only show one payment option to the user. */
-      uniquePaymentOption?: UniquePaymentOptionsString;
+      /** Payment options configuration. Max 4 options. Defaults to ['AllWallets', 'AllExchanges', 'AllAddress']. */
+      paymentOptions?: PaymentOptionsConfig;
     };
 
 /**
@@ -217,7 +213,6 @@ function DaimoPayButtonCustom(props: DaimoPayButtonCustomProps): JSX.Element {
           metadata: props.metadata,
           refundAddress: props.refundAddress,
           passthroughTokens: props.passthroughTokens,
-          uniquePaymentOption: props.uniquePaymentOption,
         }
       : null;
   let payId = "payId" in props ? props.payId : null;

@@ -156,6 +156,9 @@ const ptBR: LocaleProps = {
   sendOnlyOnce: "Enviar apenas uma vez",
   showQR: "Mostrar QR",
   hideQR: "Ocultar QR",
+  notWorking: "Não está funcionando?",
+  regenerateOrder: "Regenerar pedido",
+  generatingNewOrder: "Gerando novo pedido...",
 };
 
 export default ptBR;

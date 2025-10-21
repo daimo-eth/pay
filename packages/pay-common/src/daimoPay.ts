@@ -129,10 +129,10 @@ export const zDaimoPayOrderMetadata = z.object({
           "Filter to only allow payments on these EVM chains. Defaults to all chains.",
         ),
       paymentOptions: z
-        .array(z.string())
+        .array(z.union([z.string(), z.array(z.string())]))
         .optional()
         .describe(
-          "Payment options like Coinbase, Binance, etc. Defaults to all available options.",
+          "Payment options configuration. Each item can be a string or array of strings for ordering. Max 4 top-level options. Defaults to ['AllWallets', 'AllExchanges', 'AllAddress'].",
         ),
       passthroughTokens: z
         .array(
@@ -401,14 +401,35 @@ export type ExternalPaymentOptionMetadata = {
 };
 
 export enum ExternalPaymentOptions {
-  Daimo = "Daimo",
-  ExternalChains = "ExternalChains",
-  // All exchanges
+  // Wallets options
+  AllWallets = "AllWallets",
+  Metamask = "Metamask",
+  Trust = "Trust",
+  Rainbow = "Rainbow",
+  BaseApp = "BaseApp",
+  Backpack = "Backpack",
+  Bitget = "Bitget",
+  Family = "Family",
+  Phantom = "Phantom",
+  MiniPay = "MiniPay",
+  OKX = "OKX",
+  Solflare = "Solflare",
+  World = "World",
+  Zerion = "Zerion",
+  //Exchange options
   AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
   Binance = "Binance",
   Lemon = "Lemon",
-  // All available payment apps
+  // Pay to Address options
+  AllAddress = "AllAddress",
+  Tron = "Tron",
+  Base = "Base",
+  Arbitrum = "Arbitrum",
+  Optimism = "Optimism",
+  Polygon = "Polygon",
+  Ethereum = "Ethereum",
+  //Payment apps options (only available on desktop)
   AllPaymentApps = "AllPaymentApps",
   Venmo = "Venmo",
   CashApp = "CashApp",
@@ -429,22 +450,144 @@ export function shouldShowExternalQRCodeOnDesktop(
   );
 }
 
-export enum UniquePaymentOptions {
-  Wallets = "Wallets",
-  AllExchanges = "AllExchanges",
-  Coinbase = "Coinbase",
-  Binance = "Binance",
-  Lemon = "Lemon",
-  Tron = "Tron",
-  Base = "Base",
-  Arbitrum = "Arbitrum",
-  Optimism = "Optimism",
-  Polygon = "Polygon",
-  Ethereum = "Ethereum",
-  ManualAddress = "ManualAddress",
+export function isWalletOption(option: ExternalPaymentOptions): boolean {
+  return (
+    option === ExternalPaymentOptions.AllWallets ||
+    option === ExternalPaymentOptions.Metamask ||
+    option === ExternalPaymentOptions.Trust ||
+    option === ExternalPaymentOptions.Rainbow ||
+    option === ExternalPaymentOptions.BaseApp ||
+    option === ExternalPaymentOptions.Backpack ||
+    option === ExternalPaymentOptions.Bitget ||
+    option === ExternalPaymentOptions.Family ||
+    option === ExternalPaymentOptions.Phantom ||
+    option === ExternalPaymentOptions.MiniPay ||
+    option === ExternalPaymentOptions.OKX ||
+    option === ExternalPaymentOptions.Solflare ||
+    option === ExternalPaymentOptions.World ||
+    option === ExternalPaymentOptions.Zerion
+  );
 }
 
-export type UniquePaymentOptionsString = `${UniquePaymentOptions}`;
+export function isExchangeOption(option: ExternalPaymentOptions): boolean {
+  return (
+    option === ExternalPaymentOptions.AllExchanges ||
+    option === ExternalPaymentOptions.Coinbase ||
+    option === ExternalPaymentOptions.Binance ||
+    option === ExternalPaymentOptions.Lemon
+  );
+}
+
+export function isAddressOption(option: ExternalPaymentOptions): boolean {
+  return (
+    option === ExternalPaymentOptions.AllAddress ||
+    option === ExternalPaymentOptions.Tron ||
+    option === ExternalPaymentOptions.Base ||
+    option === ExternalPaymentOptions.Arbitrum ||
+    option === ExternalPaymentOptions.Optimism ||
+    option === ExternalPaymentOptions.Polygon ||
+    option === ExternalPaymentOptions.Ethereum
+  );
+}
+
+export function isPaymentAppOption(option: ExternalPaymentOptions): boolean {
+  return (
+    option === ExternalPaymentOptions.AllPaymentApps ||
+    option === ExternalPaymentOptions.Venmo ||
+    option === ExternalPaymentOptions.CashApp ||
+    option === ExternalPaymentOptions.MercadoPago ||
+    option === ExternalPaymentOptions.Revolut ||
+    option === ExternalPaymentOptions.Wise ||
+    option === ExternalPaymentOptions.Zelle
+  );
+}
+
+export type PaymentOptionItem =
+  | ExternalPaymentOptionsString
+  | ExternalPaymentOptionsString[];
+
+export type PaymentOptionsConfig = PaymentOptionItem[];
+
+export type ParsedPaymentOptions = {
+  topLevelOptions: ExternalPaymentOptions[];
+  walletOrder: ExternalPaymentOptions[];
+  exchangeOrder: ExternalPaymentOptions[];
+  addressOrder: ExternalPaymentOptions[];
+  isSingleOption: boolean;
+};
+
+export const DEFAULT_PAYMENT_OPTIONS: ExternalPaymentOptionsString[] = [
+  "AllWallets",
+  "AllExchanges",
+  "AllAddress",
+];
+
+export function parsePaymentOptions(
+  config?: PaymentOptionsConfig,
+): ParsedPaymentOptions {
+  if (!config || config.length === 0) {
+    config = DEFAULT_PAYMENT_OPTIONS;
+  }
+
+  const isSingleOption = config.length === 1 && typeof config[0] === "string";
+
+  const topLevelOptions: ExternalPaymentOptions[] = [];
+  const walletOrder: ExternalPaymentOptions[] = [];
+  const exchangeOrder: ExternalPaymentOptions[] = [];
+  const addressOrder: ExternalPaymentOptions[] = [];
+
+  for (const item of config) {
+    if (Array.isArray(item)) {
+      // nested array - determine category and add to ordering
+      const options = item
+        .map(
+          (opt) =>
+            ExternalPaymentOptions[opt as keyof typeof ExternalPaymentOptions],
+        )
+        .filter((opt) => opt != null);
+
+      if (options.length === 0) continue;
+
+      // determine category from first option
+      const firstOption = options[0];
+      if (isWalletOption(firstOption)) {
+        walletOrder.push(...options);
+        if (!topLevelOptions.includes(ExternalPaymentOptions.AllWallets)) {
+          topLevelOptions.push(ExternalPaymentOptions.AllWallets);
+        }
+      } else if (isExchangeOption(firstOption)) {
+        exchangeOrder.push(...options);
+        if (!topLevelOptions.includes(ExternalPaymentOptions.AllExchanges)) {
+          topLevelOptions.push(ExternalPaymentOptions.AllExchanges);
+        }
+      } else if (isAddressOption(firstOption)) {
+        addressOrder.push(...options);
+        if (!topLevelOptions.includes(ExternalPaymentOptions.AllAddress)) {
+          topLevelOptions.push(ExternalPaymentOptions.AllAddress);
+        }
+      } else if (isPaymentAppOption(firstOption)) {
+        if (!topLevelOptions.includes(ExternalPaymentOptions.AllPaymentApps)) {
+          topLevelOptions.push(ExternalPaymentOptions.AllPaymentApps);
+        }
+      }
+    } else {
+      // simple string option
+      const option =
+        ExternalPaymentOptions[item as keyof typeof ExternalPaymentOptions];
+      if (option != null && !topLevelOptions.includes(option)) {
+        topLevelOptions.push(option);
+      }
+    }
+  }
+
+  return {
+    topLevelOptions: topLevelOptions.slice(0, 4),
+    walletOrder,
+    exchangeOrder,
+    addressOrder,
+    isSingleOption,
+  };
+}
 
 export type ExternalPaymentOptionData = {
   url: string;

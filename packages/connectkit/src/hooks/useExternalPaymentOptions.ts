@@ -2,9 +2,11 @@ import {
   DaimoPayOrderMode,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  parsePaymentOptions,
+  PaymentOptionsConfig,
   PlatformType,
 } from "@daimo/pay-common";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 
 const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
@@ -24,22 +26,29 @@ export function useExternalPaymentOptions({
   mode,
 }: {
   trpc: TrpcClient;
-  filterIds: string[] | undefined;
+  filterIds: PaymentOptionsConfig | undefined;
   platform: PlatformType | undefined;
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
 }): {
-  /// Exteral options, organized by optionType
+  /// External options, organized by optionType
   options: Map<
     "external" | "zkp2p" | "exchange",
     ExternalPaymentOptionMetadata[]
   >;
   loading: boolean;
+  parsedConfig: ReturnType<typeof parsePaymentOptions>;
 } {
   const [options, setOptions] = useState<
     Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
+
+  // Parse payment options configuration
+  const parsedConfig = useMemo(
+    () => parsePaymentOptions(filterIds),
+    [JSON.stringify(filterIds)],
+  );
 
   useEffect(() => {
     const refreshExternalPaymentOptions = async (
@@ -103,5 +112,5 @@ export function useExternalPaymentOptions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
 
-  return { options, loading };
+  return { options, loading, parsedConfig };
 }

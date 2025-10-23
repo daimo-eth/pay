@@ -417,7 +417,7 @@ export function usePaymentState({
     return "error" in result ? null : result;
   };
 
-  const { isIOS } = useIsMobile();
+  const { isIOS, isAndroid } = useIsMobile();
 
   const openInWalletBrowser = async (
     wallet: WalletConfigProps,
@@ -441,7 +441,8 @@ export function usePaymentState({
     }
 
     const payId = writeDaimoPayOrderID(pay.order.id);
-    const deeplink = wallet.getDaimoPayDeeplink(payId);
+    const platform = isAndroid ? "android" : isIOS ? "ios" : "other";
+    const deeplink = wallet.getDaimoPayDeeplink(payId, platform);
     // If we are in IOS, we don't open the deeplink in a new window, because it
     // will not work, the link will be opened in the page WAITING_WALLET
     if (!isIOS) {

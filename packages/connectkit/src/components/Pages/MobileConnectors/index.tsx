@@ -1,7 +1,7 @@
 import React from "react";
 
 import { ROUTES } from "../../../constants/routes";
-import { useConnect } from "../../../hooks/useConnect";
+import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import {
   WalletConfigProps,
@@ -20,13 +20,21 @@ import {
 const MobileConnectors: React.FC = () => {
   const context = usePayContext();
   const { paymentState, setRoute } = context;
-  const { connect, connectors } = useConnect();
+  const { isIOS, isAndroid } = useIsMobile();
 
-  // filter out installed wallets
   const walletsIdsToDisplay =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
+
       if (!wallet.showInMobileConnectors) return false;
+      if (!wallet.getDaimoPayDeeplink) return false;
+
+      const showOnAndroid = wallet.showOnAndroid ?? true;
+      const showOnIOS = wallet.showOnIOS ?? true;
+
+      if (isAndroid && !showOnAndroid) return false;
+      if (isIOS && !showOnIOS) return false;
+
       return true;
     }) ?? [];
 

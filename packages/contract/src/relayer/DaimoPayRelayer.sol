@@ -338,13 +338,13 @@ contract DaimoPayRelayer is AccessControl {
         }
 
         // Get native-token balance of intent addr
-        uint256 extraBalance = intentAddr.balance;
+        uint256 totCallVal = 0;
         for (uint256 i = 0; i < startCalls.length; ++i) {
             Call calldata call = startCalls[i];
-            extraBalance -= call.value;
+            totCallVal += call.value;
         }
         // If we have any extra native balance, revert & retry.
-        require(extraBalance == 0, "DPR: extra native balance");
+        require(totCallVal == intentAddr.balance, "DPR: wrong native balance");
 
         dp.startIntent({
             intent: intent,

@@ -2,6 +2,10 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
+import {
+  DepositAddressPaymentOptions,
+  ExternalPaymentOptions,
+} from "@daimo/pay-common";
 import { ROUTES } from "../../constants/routes";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
@@ -100,6 +104,7 @@ export const DaimoPayModal: React.FC<{
 
   const showBackButton =
     closeable &&
+    context.route !== context.uniquePaymentMethodPage &&
     context.route !== ROUTES.SELECT_METHOD &&
     context.route !== ROUTES.CONFIRMATION &&
     context.route !== ROUTES.SELECT_TOKEN &&
@@ -118,19 +123,10 @@ export const DaimoPayModal: React.FC<{
       context.setRoute(ROUTES.SELECT_TOKEN, meta);
     } else if (context.route === ROUTES.SELECT_EXTERNAL_AMOUNT) {
       setSelectedExternalOption(undefined);
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
-    } else if (context.route === ROUTES.SELECT_EXCHANGE) {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
+      context.setRoute(context.uniquePaymentMethodPage, meta);
     } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT) {
       setSelectedDepositAddressOption(undefined);
       context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
-    } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN) {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
-    } else if (context.route === ROUTES.SELECT_ZKP2P) {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
-    } else if (context.route === ROUTES.SELECT_WALLET_AMOUNT) {
-      setSelectedWallet(undefined);
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
@@ -138,7 +134,7 @@ export const DaimoPayModal: React.FC<{
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);
-        context.setRoute(ROUTES.SELECT_EXCHANGE, meta);
+        context.setRoute(context.uniquePaymentMethodPage, meta);
       }
     } else if (context.route === ROUTES.PAY_WITH_TOKEN) {
       if (isDepositFlow) {
@@ -182,7 +178,7 @@ export const DaimoPayModal: React.FC<{
         context.setRoute(ROUTES.SELECT_TOKEN, meta);
       }
     } else {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
+      context.setRoute(context.uniquePaymentMethodPage, meta);
     }
   };
 
@@ -269,23 +265,253 @@ export const DaimoPayModal: React.FC<{
     context.setOpen(false, { event: "click-close" });
   }
 
+  const goToManualAddressScreen = (eventSuffix: string) => {
+    if (paymentState.isDepositFlow) {
+      context.setUniquePaymentMethodPage(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT);
+      context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, {
+        event: `unique_payment_option_deposit_${eventSuffix}`,
+      });
+    } else {
+      context.setUniquePaymentMethodPage(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
+      context.setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS, {
+        event: `unique_payment_option_${eventSuffix}`,
+      });
+    }
+  };
   const { isMobile } = useIsMobile();
 
-  // Auto-connect to wallet if already connected when opening modal.
-  // Skip to token selection if exactly one wallet is connected. If both
-  // wallets are connected, stay on SELECT_METHOD to let user choose.
+  // Override the first screen upon opening the modal.
+  // 1. If uniquePaymentOption is set, navigate to that screen directly
+  // 2. If the user has a wallet already connected upon opening the modal, go
+  // straight to the select token screen
+  // 3. If the user has no wallet connected upon opening the modal, go to the
+  // select method screen
   useEffect(() => {
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
+    if (
+      paymentState.buttonProps &&
+      "uniquePaymentOption" in paymentState.buttonProps &&
+      paymentState.buttonProps.uniquePaymentOption
+    ) {
+      switch (paymentState.buttonProps.uniquePaymentOption) {
+        case "Tron":
+          // Find the Tron option from available deposit address options
+          const tronOption = paymentState.depositAddressOptions.options?.find(
+            (option) => option.id === DepositAddressPaymentOptions.TRON_USDT,
+          );
+          if (tronOption) {
+            setSelectedDepositAddressOption(tronOption);
+            goToManualAddressScreen("tron");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            // Data loaded but option not found, fallback to chain selection
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_tron_fallback",
+            });
+          }
+          // If still loading, do nothing and wait for next render
+          break;
+        case "AllExchanges":
+          // Open exchanges list directly
+          context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
+          context.setRoute(ROUTES.SELECT_EXCHANGE, {
+            event: "unique_payment_option_all_exchanges",
+          });
+          break;
+        case "ManualAddress":
+          context.setUniquePaymentMethodPage(
+            ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+          );
+          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+            event: "unique_payment_option_manual_address",
+          });
+          break;
+        case "Base":
+          // Find the Base option from available deposit address options
+          const baseOption = paymentState.depositAddressOptions.options?.find(
+            (option) => option.id === DepositAddressPaymentOptions.BASE,
+          );
+          if (baseOption) {
+            setSelectedDepositAddressOption(baseOption);
+            goToManualAddressScreen("base");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_base_fallback",
+            });
+          }
+          break;
+        case "Arbitrum":
+          // Find the Arbitrum option from available deposit address options
+          const arbitrumOption =
+            paymentState.depositAddressOptions.options?.find(
+              (option) => option.id === DepositAddressPaymentOptions.ARBITRUM,
+            );
+          if (arbitrumOption) {
+            setSelectedDepositAddressOption(arbitrumOption);
+            goToManualAddressScreen("arbitrum");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_arbitrum_fallback",
+            });
+          }
+          break;
+        case "Optimism":
+          // Find the Optimism option from available deposit address options
+          const optimismOption =
+            paymentState.depositAddressOptions.options?.find(
+              (option) => option.id === DepositAddressPaymentOptions.OP_MAINNET,
+            );
+          if (optimismOption) {
+            setSelectedDepositAddressOption(optimismOption);
+            goToManualAddressScreen("optimism");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_optimism_fallback",
+            });
+          }
+          break;
+        case "Polygon":
+          // Find the Polygon option from available deposit address options
+          const polygonOption =
+            paymentState.depositAddressOptions.options?.find(
+              (option) => option.id === DepositAddressPaymentOptions.POLYGON,
+            );
+          if (polygonOption) {
+            setSelectedDepositAddressOption(polygonOption);
+            goToManualAddressScreen("polygon");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_polygon_fallback",
+            });
+          }
+          break;
+        case "Ethereum":
+          // Find the Ethereum option from available deposit address options
+          const ethereumOption =
+            paymentState.depositAddressOptions.options?.find(
+              (option) => option.id === DepositAddressPaymentOptions.ETH_L1,
+            );
+          if (ethereumOption) {
+            setSelectedDepositAddressOption(ethereumOption);
+            goToManualAddressScreen("ethereum");
+          } else if (!paymentState.depositAddressOptions.loading) {
+            context.setUniquePaymentMethodPage(
+              ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
+            );
+            context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, {
+              event: "unique_payment_option_ethereum_fallback",
+            });
+          }
+          break;
+        case "Binance":
+          // Find the Binance option from available exchange options
+          const exchangeOptions =
+            paymentState.externalPaymentOptions.options.get("exchange");
+          const binanceOption = exchangeOptions?.find(
+            (option) => option.id === ExternalPaymentOptions.Binance,
+          );
+          if (binanceOption) {
+            setSelectedExternalOption(binanceOption);
+            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
+            context.setRoute(ROUTES.WAITING_EXTERNAL, {
+              event: "unique_payment_option_binance",
+            });
+          } else if (!paymentState.externalPaymentOptions.loading) {
+            context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
+            context.setRoute(ROUTES.SELECT_EXCHANGE, {
+              event: "unique_payment_option_binance_fallback",
+            });
+          }
+          break;
+        case "Coinbase":
+          // Find the Coinbase option from available exchange options
+          const coinbaseExchangeOptions =
+            paymentState.externalPaymentOptions.options.get("exchange");
+          const coinbaseOption = coinbaseExchangeOptions?.find(
+            (option) => option.id === ExternalPaymentOptions.Coinbase,
+          );
+          if (coinbaseOption) {
+            setSelectedExternalOption(coinbaseOption);
+            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
+            context.setRoute(ROUTES.WAITING_EXTERNAL, {
+              event: "unique_payment_option_coinbase",
+            });
+          } else if (!paymentState.externalPaymentOptions.loading) {
+            context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
+            context.setRoute(ROUTES.SELECT_EXCHANGE, {
+              event: "unique_payment_option_coinbase_fallback",
+            });
+          }
+          break;
+        case "Lemon":
+          // Find the Lemon option from available external options
+          const lemonExternalOptions =
+            paymentState.externalPaymentOptions.options.get("external");
+          const lemonOption = lemonExternalOptions?.find(
+            (option) => option.id === ExternalPaymentOptions.Lemon,
+          );
+          if (lemonOption) {
+            setSelectedExternalOption(lemonOption);
+            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
+            context.setRoute(ROUTES.WAITING_EXTERNAL, {
+              event: "unique_payment_option_lemon",
+            });
+          } else if (!paymentState.externalPaymentOptions.loading) {
+            context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+            context.setRoute(ROUTES.SELECT_METHOD, {
+              event: "unique_payment_option_lemon_fallback",
+            });
+          }
+          break;
+        case "Wallets":
+          context.setUniquePaymentMethodPage(ROUTES.CONNECTORS);
+          context.setRoute(ROUTES.CONNECTORS, {
+            event: "unique_payment_option_wallets",
+          });
+          break;
+        default:
+          context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+          break;
+      }
+    }
+
+    const hasUniquePaymentOption =
+      paymentState.buttonProps &&
+      "uniquePaymentOption" in paymentState.buttonProps &&
+      paymentState.buttonProps.uniquePaymentOption;
+    const isWalletsUniquePaymentOption =
+      paymentState.buttonProps?.uniquePaymentOption === "Wallets";
+
+    // Skip to token selection if exactly one wallet is connected. If both
+    // wallets are connected, stay on the SELECT_METHOD screen to allow the
+    // user to select which wallet to use
+    // If mobile injector is disabled, don't show the connected wallets.
+    // If there's a unique payment option, and the unique payment option is not
+    // "Wallets", don't auto-connect the user's wallet.
     const evmOptionsCount =
       paymentState.walletPaymentOptions.options?.length ?? 0;
     const isEvmLoading = paymentState.walletPaymentOptions.isLoading;
     const solanaOptionsCount =
       paymentState.solanaPaymentOptions.options?.length ?? 0;
     const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
-
     if (
+      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
       isEthConnected &&
       !isSolanaConnected &&
       (!isMobile || !disableMobileInjector) &&
@@ -300,6 +526,7 @@ export const DaimoPayModal: React.FC<{
         address,
       });
     } else if (
+      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
       isSolanaConnected &&
       !isEthConnected &&
       !disableMobileInjector &&
@@ -320,9 +547,14 @@ export const DaimoPayModal: React.FC<{
     paymentState.walletPaymentOptions.isLoading,
     paymentState.solanaPaymentOptions.options,
     paymentState.solanaPaymentOptions.isLoading,
+    paymentState.externalPaymentOptions.options,
+    paymentState.externalPaymentOptions.loading,
+    paymentState.depositAddressOptions.options,
+    paymentState.depositAddressOptions.loading,
     address,
     chain?.id,
     connector?.id,
+    context.uniquePaymentMethodPage,
   ]);
 
   // If we're on the connect page and the user successfully connects their

@@ -441,7 +441,7 @@ export function usePaymentState({
     }
 
     const payId = writeDaimoPayOrderID(pay.order.id);
-    const platform = isAndroid ? "android" : isIOS ? "ios" : "other";
+    const platform = isIOS ? "ios" : isAndroid ? "android" : "other";
     const deeplink = wallet.getDaimoPayDeeplink(payId, platform);
     // If we are in IOS, we don't open the deeplink in a new window, because it
     // will not work, the link will be opened in the page WAITING_WALLET

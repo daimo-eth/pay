@@ -24,12 +24,7 @@ export default function SelectAnotherMethodButton() {
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
   ).flat();
-
-  // Check if only wallet options are configured
-  const { topLevelOptions } = externalPaymentOptions.parsedConfig;
-  const isWalletsOnly =
-    topLevelOptions.length === 1 &&
-    topLevelOptions[0] === ExternalPaymentOptions.AllWallets;
+  const uniquePaymentOption = paymentState.buttonProps?.uniquePaymentOption;
 
   const createIconDiv = (content: React.ReactNode, key: string) => (
     <div key={key} style={{ borderRadius: "22.5%", overflow: "hidden" }}>
@@ -118,7 +113,7 @@ export default function SelectAnotherMethodButton() {
         options={
           // If there are non-wallet payment options, show the full select
           // method menu. Otherwise, show the wallet menu.
-          allPaymentOptions.length > 0 && !isWalletsOnly
+          allPaymentOptions.length > 0 && uniquePaymentOption !== "Wallets"
             ? [selectMethodOption]
             : [selectWalletOption]
         }

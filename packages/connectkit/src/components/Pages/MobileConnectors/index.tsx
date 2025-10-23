@@ -22,19 +22,13 @@ const MobileConnectors: React.FC = () => {
   const { paymentState, setRoute } = context;
   const { isIOS, isAndroid } = useIsMobile();
 
+  // filter out installed wallets
   const walletsIdsToDisplay =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
-
       if (!wallet.showInMobileConnectors) return false;
-      if (!wallet.getDaimoPayDeeplink) return false;
-
-      const showOnAndroid = wallet.showOnAndroid ?? true;
-      const showOnIOS = wallet.showOnIOS ?? true;
-
-      if (isAndroid && !showOnAndroid) return false;
-      if (isIOS && !showOnIOS) return false;
-
+      if (isIOS && wallet.showOnIOS === false) return false;
+      if (isAndroid && wallet.showOnAndroid === false) return false;
       return true;
     }) ?? [];
 

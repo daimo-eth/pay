@@ -24,11 +24,12 @@ export function useExternalPaymentOptions({
   mode,
 }: {
   trpc: TrpcClient;
+  filterIds: string[] | undefined;
   platform: PlatformType | undefined;
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
 }): {
-  /// External options, organized by optionType
+  /// Exteral options, organized by optionType
   options: Map<
     "external" | "zkp2p" | "exchange",
     ExternalPaymentOptionMetadata[]
@@ -102,5 +103,5 @@ export function useExternalPaymentOptions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
 
-  return { options, loading, parsedConfig };
+  return { options, loading };
 }

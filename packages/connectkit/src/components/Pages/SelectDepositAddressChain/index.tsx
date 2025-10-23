@@ -19,53 +19,33 @@ const SelectDepositAddressChain: React.FC = () => {
     setSelectedDepositAddressOption,
     depositAddressOptions,
     untronAvailable,
-    externalPaymentOptions,
   } = paymentState;
   const orderUsd = isDepositFlow ? null : order?.destFinalCallTokenAmount.usd;
-
-  // Filter deposit address options based on parsed paymentOptions config
-  const { addressOrder } = externalPaymentOptions.parsedConfig;
-  const allOptions = depositAddressOptions.options ?? [];
-  const filteredOptions =
-    addressOrder.length > 0
-      ? allOptions.filter((opt) => {
-          // Map option IDs to payment option types
-          const optionMap = new Map([
-            [DepositAddressPaymentOptions.TRON_USDT, "Tron"],
-            [DepositAddressPaymentOptions.BASE, "Base"],
-            [DepositAddressPaymentOptions.ARBITRUM, "Arbitrum"],
-            [DepositAddressPaymentOptions.OP_MAINNET, "Optimism"],
-            [DepositAddressPaymentOptions.POLYGON, "Polygon"],
-            [DepositAddressPaymentOptions.ETH_L1, "Ethereum"],
-          ]);
-          const mappedType = optionMap.get(opt.id);
-          return mappedType && addressOrder.includes(mappedType as any);
-        })
-      : allOptions;
 
   return (
     <PageContent>
       <OrderHeader minified />
 
-      {!depositAddressOptions.loading && filteredOptions.length === 0 && (
-        <ModalContent
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 16,
-            paddingBottom: 16,
-          }}
-        >
-          <ModalH1>Chains unavailable.</ModalH1>
-          <SelectAnotherMethodButton />
-        </ModalContent>
-      )}
+      {!depositAddressOptions.loading &&
+        depositAddressOptions.options?.length === 0 && (
+          <ModalContent
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: 16,
+              paddingBottom: 16,
+            }}
+          >
+            <ModalH1>Chains unavailable.</ModalH1>
+            <SelectAnotherMethodButton />
+          </ModalContent>
+        )}
 
       <OptionsList
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
-        options={filteredOptions
+        options={(depositAddressOptions.options ?? [])
           .map((option) => {
             const disabled =
               // Disable if usd below min

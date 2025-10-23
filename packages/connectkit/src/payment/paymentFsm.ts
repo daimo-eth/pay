@@ -10,6 +10,7 @@ import {
   ExternalPaymentOptionsString,
   isHydrated,
   SolanaPublicKey,
+  UniquePaymentOptionsString,
 } from "@daimo/pay-common";
 import { Address, Hex, parseUnits } from "viem";
 import { getDisplayExpiresAt } from "./paymentUtils";
@@ -49,6 +50,8 @@ export interface PayParams {
   refundAddress?: Address;
   /** Pass-through tokens. If the user pays via these tokens, they're sent directly without swapping. */
   passthroughTokens?: { chain: number; address: Address }[];
+  /** Only show one payment option to the user. */
+  uniquePaymentOption?: UniquePaymentOptionsString;
 }
 
 export type PaymentState =

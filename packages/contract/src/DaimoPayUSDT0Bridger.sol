@@ -29,6 +29,5 @@ contract DaimoPayUSDT0Bridger is DaimoPayLayerZeroBridger {
         a.extraOptions = bytes(""); // rely on enforced options
         a.composeMsg = bytes(""); // none
         a.oftCmd = bytes(""); // none
-        a.payInZRO = false; // pay fees in native
     }
 }

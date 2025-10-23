@@ -38,6 +38,5 @@ contract DaimoPayLegacyMeshBridger is DaimoPayLayerZeroBridger {
         a.extraOptions = bytes(""); // rely on enforced options (empty is OK)
         a.composeMsg = bytes(""); // no compose
         a.oftCmd = bytes(""); // none
-        a.payInZRO = false; // pay fees in native
     }
 }

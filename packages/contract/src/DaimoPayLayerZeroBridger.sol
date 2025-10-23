@@ -42,8 +42,6 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         bytes composeMsg;
         /// @notice Optional OFT command bytes.
         bytes oftCmd;
-        /// @notice If true, fees are quoted/paid in ZRO; otherwise in native.
-        bool payInZRO;
     }
 
     /// @notice Mapping of destination EVM chain ID to configured LayerZero route.
@@ -133,9 +131,9 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
             oftCmd: accounting.oftCmd
         });
 
-        // Quote LZ fee & ensure native coverage if paying in native.
-        MessagingFee memory fee = IOFT(route.app).quoteSend(sp, accounting.payInZRO); // standard OFT v2 path
-        require(accounting.payInZRO || address(this).balance >= fee.nativeFee, "insufficient native fee");
+        // always pay fees in native (no ZRO)
+        MessagingFee memory fee = IOFT(route.app).quoteSend(sp, false);
+        require(address(this).balance >= fee.nativeFee, "insufficient native fee");
 
         // Custody + approve exactly what the accounting says.
         IERC20(route.bridgeTokenIn).safeTransferFrom(
@@ -158,7 +156,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
             refundAddress: refundAddress
         });
 
-        if (!accounting.payInZRO && address(this).balance > 0) {
+        if (address(this).balance > 0) {
             // native coin refund
             (bool success, ) = refundAddress.call{value: address(this).balance}(
                 ""

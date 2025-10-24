@@ -101,6 +101,68 @@ contract RelayerTest is Test {
         vm.stopPrank();
     }
 
+    function testStartIntentWrongNativeBalance_Reverts() public {
+        // intent address has native balance that does NOT match sum(startCalls.value)
+        address intentAddr = address(
+            0x7777777777777777777777777777777777777777
+        );
+        vm.deal(intentAddr, 200);
+
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _token1;
+
+        // one start call transferring 100 wei to an EOA
+        Call[] memory startCalls = new Call[](1);
+        startCalls[0] = Call({to: _bob, value: 100, data: ""});
+
+        // fund relayer to cover attached msg.value
+        vm.deal(_relayer, 100);
+        vm.startPrank(_relayer);
+        vm.expectRevert(bytes("DPR: wrong native balance"));
+        relayerContract.startIntent{value: 100}({
+            preCalls: new Call[](0),
+            dp: DaimoPay(payable(address(mockDp))),
+            intentAddr: intentAddr,
+            intent: createSampleIntent(),
+            paymentTokens: paymentTokens,
+            startCalls: startCalls,
+            bridgeExtraData: "",
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
+        });
+        vm.stopPrank();
+    }
+
+    function testStartIntentNativeBalanceMatches_Succeeds() public {
+        // intent address balance matches sum(startCalls.value)
+        address intentAddr = address(
+            0x8888888888888888888888888888888888888888
+        );
+        vm.deal(intentAddr, 100);
+
+        IERC20[] memory paymentTokens = new IERC20[](1);
+        paymentTokens[0] = _token1;
+
+        Call[] memory startCalls = new Call[](1);
+        startCalls[0] = Call({to: _bob, value: 100, data: ""});
+
+        // fund relayer to cover attached msg.value
+        vm.deal(_relayer, 100);
+        vm.startPrank(_relayer);
+        relayerContract.startIntent{value: 100}({
+            preCalls: new Call[](0),
+            dp: DaimoPay(payable(address(mockDp))),
+            intentAddr: intentAddr,
+            intent: createSampleIntent(),
+            paymentTokens: paymentTokens,
+            startCalls: startCalls,
+            bridgeExtraData: "",
+            postCalls: new Call[](0),
+            swapAndTipHash: bytes32(0)
+        });
+        vm.stopPrank();
+    }
+
     function testOnlyAdminCanFastFinish() public {
         vm.startPrank(_noRole);
         vm.expectRevert(

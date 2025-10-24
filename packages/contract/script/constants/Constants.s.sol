@@ -153,6 +153,9 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == SCROLL_MAINNET_USDC) return 6;
     if (token == WORLDCHAIN_MAINNET_USDC) return 6;
     if (token == CELO_MAINNET_USDC) return 6;
+    // TODO: getUSDCDecimals having USDT is wrong, prob need to rethink the function
+    if (token == ARBITRUM_MAINNET_USDT) return 6;
+    if (token == CELO_MAINNET_USDT) return 6;
 
     // USDC.e or USDbC (bridged USDC) addresses
     if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;

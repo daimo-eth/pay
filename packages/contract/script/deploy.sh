@@ -27,7 +27,7 @@ SCRIPTS=(
     # The deployer must be the stage/dev LP that calls this contract.
     # Production relayers can be added via grantRelayerRole.
     # Stage/dev and production must use different relayer contract deployments.
-    # "script/DeployDaimoPayRelayer.s.sol" 
+    "script/DeployDaimoPayRelayer.s.sol" 
 
     # Utils
     # "script/DeployPayBalanceFactory.sol"
@@ -36,7 +36,6 @@ SCRIPTS=(
 CHAINS=(
     # "https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -44,8 +43,11 @@ CHAINS=(
     # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
+    # # Slow, broken Etherscan
+    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+
     # Expensive, deploy last
-    # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do
@@ -55,7 +57,7 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
         echo "RPC_URL          : $RPC_URL"
 
-        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --etherscan-api-version v2 --broadcast"
+        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
 
         echo $FORGE_CMD
         echo ""

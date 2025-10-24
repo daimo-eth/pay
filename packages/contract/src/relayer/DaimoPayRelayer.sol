@@ -330,13 +330,6 @@ contract DaimoPayRelayer is AccessControl {
     ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
         approvedSwapAndTipHash = swapAndTipHash;
 
-        // Make pre-start calls
-        for (uint256 i = 0; i < preCalls.length; ++i) {
-            Call calldata call = preCalls[i];
-            (bool success, ) = call.to.call{value: call.value}(call.data);
-            require(success, "DPR: preCall failed");
-        }
-
         // Get native-token balance of intent addr
         uint256 totCallVal = 0;
         for (uint256 i = 0; i < startCalls.length; ++i) {
@@ -345,6 +338,13 @@ contract DaimoPayRelayer is AccessControl {
         }
         // If we have any extra native balance, revert & retry.
         require(totCallVal == intentAddr.balance, "DPR: wrong native balance");
+
+        // Make pre-start calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata call = preCalls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPR: preCall failed");
+        }
 
         dp.startIntent({
             intent: intent,

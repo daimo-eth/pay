@@ -198,7 +198,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         TokenAmount[] calldata bridgeTokenOutOptions
     ) internal view returns (LZBridgeRoute memory route, uint256 outAmount) {
         route = bridgeRouteMapping[toChainId];
-        require(route.bridgeTokenOut != address(0), "route not found");
+        require(route.dstEid != 0, "route not found");
         uint256 n = bridgeTokenOutOptions.length;
         uint256 idx = 0;
         for (; idx < n; ++idx) {

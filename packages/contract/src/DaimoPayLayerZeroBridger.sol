@@ -158,7 +158,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
 
         if (address(this).balance > 0) {
             // native coin refund
-            (bool success, ) = refundAddress.call{value: address(this).balance}(
+            (bool success, ) = tx.origin.call{value: address(this).balance}(
                 ""
             );
             require(success, "LayerZeroBridger: native refund failed");

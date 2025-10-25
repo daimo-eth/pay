@@ -9,7 +9,7 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_AXELAR_BRIDGER = keccak256(
-    "DaimoPayAxelarBridger-deploy4"
+    "DaimoPayAxelarBridger-deploy5"
 );
 
 contract DeployDaimoPayAxelarBridger is Script {

@@ -17,10 +17,10 @@ import "./utils/axelar.sol";
 import "./utils/cctp.sol";
 import "./utils/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0xFF776aB220806b6Df8Df29fFBa69E50caA83E196;
-address constant CCTP_V2_INTENT_ADDR = 0x9A31a0164Acb7Ad3573A1fA990Cc8178C32e5f5e;
-address constant ACROSS_INTENT_ADDR = 0x72D70dbFaBeddb16Ab0FBB9bE8a3f8D6472A0B1c;
-address constant AXELAR_INTENT_ADDR = 0x607f98A7e68Ae2Fa70F7201B66c9Df7E4D698dCF;
+address constant CCTP_INTENT_ADDR = 0xeDCF5C8a830fabC1A8996A319F254FA9938116DF;
+address constant CCTP_V2_INTENT_ADDR = 0x8E2573258749EecFAA800576bd9F42b6410EDfbE;
+address constant ACROSS_INTENT_ADDR = 0xF3a6257E47A6D88b788f97f0B121C9C59Df63ba9;
+address constant AXELAR_INTENT_ADDR = 0x861daA7f6226FF4A7aa04c2eE8AEB3Df26B1DD31;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts

@@ -15,8 +15,9 @@ SCRIPTS=(
     # "script/DeployDaimoPayCCTPV2Bridger.s.sol"
     # "script/DeployDaimoPayAcrossBridger.s.sol"
     # "script/DeployDaimoPayAxelarBridger.s.sol"
+    # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
     # "script/DeployDaimoPayHopBridger.s.sol"
-    # "script/DeployDaimoPayBridger.s.sol"
+    "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
@@ -45,7 +46,7 @@ CHAINS=(
     # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # Expensive, deploy last
-    # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do

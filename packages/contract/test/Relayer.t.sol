@@ -355,7 +355,7 @@ contract RelayerTest is Test {
     function testCheckSwapAndTipHash() public view {
         DaimoPayRelayer.SwapAndTipParams
             memory params = getSimpleSwapAndTipParams();
-        bytes32 EXPECTED_SWAP_AND_TIP_HASH = 0x4f76a4b1ef8b8a70d2782c2e40d5a7c6167dbbb389879dc5a93fda9788b9bd64;
+        bytes32 EXPECTED_SWAP_AND_TIP_HASH = 0x82b7a74828847b42096a47bbb4e8b01376bb826f2f89aeaaad257a3504e2efd0;
         assertEq(EXPECTED_SWAP_AND_TIP_HASH, keccak256(abi.encode(params)));
     }
 

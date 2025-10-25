@@ -1,6 +1,12 @@
 {
+  "lib/LayerZero-v2": {
+    "rev": "2ff4988f85b5c94032eb71bbc4073e69c078179d"
+  },
   "lib/axelar-gmp-sdk-solidity": {
     "rev": "b5d0b7bdda0437fce983daffb776669437b809d0"
+  },
+  "lib/devtools": {
+    "rev": "002caa28897757379655d91a624a5266d78ac14c"
   },
   "lib/forge-std": {
     "rev": "3b20d60d14b343ee4f908cb8079495c07f5e8981"

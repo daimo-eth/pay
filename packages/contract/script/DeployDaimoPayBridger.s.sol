@@ -10,14 +10,16 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/HopBridgeRouteConstants.sol";
+import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
 import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
 import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
 import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 import {DEPLOY_SALT_HOP_BRIDGER} from "./DeployDaimoPayHopBridger.s.sol";
+import {DEPLOY_SALT_LEGACY_MESH_BRIDGER} from "./DeployDaimoPayLegacyMeshBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy13");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy24");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -79,12 +81,17 @@ contract DeployDaimoPayBridger is Script {
             msg.sender,
             DEPLOY_SALT_HOP_BRIDGER
         );
+        address legacyMeshBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_LEGACY_MESH_BRIDGER
+        );
 
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
         console.log("acrossBridger address:", acrossBridger);
         console.log("axelarBridger address:", axelarBridger);
         console.log("hopBridger address:", hopBridger);
+        console.log("legacyMeshBridger address:", legacyMeshBridger);
 
         // Get all supported destination chains from the generated constants
         // CCTP
@@ -111,12 +118,18 @@ contract DeployDaimoPayBridger is Script {
             block.chainid
         );
 
+        // Legacy Mesh
+        (uint256[] memory legacyMeshChainIds, ) = getLegacyMeshBridgeRoutes(
+            block.chainid
+        );
+
         // Count total number of supported chains
         uint256 totalChains = cctpChainIds.length +
             cctpV2ChainIds.length +
             acrossChainIds.length +
             axelarChainIds.length +
-            hopDestChainIds.length;
+            hopDestChainIds.length +
+            legacyMeshChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -157,6 +170,13 @@ contract DeployDaimoPayBridger is Script {
         for (uint256 i = 0; i < axelarChainIds.length; i++) {
             chainIds[index] = axelarChainIds[i];
             bridgers[index] = axelarBridger;
+            index++;
+        }
+
+        // Add Legacy Mesh routes
+        for (uint256 i = 0; i < legacyMeshChainIds.length; i++) {
+            chainIds[index] = legacyMeshChainIds[i];
+            bridgers[index] = legacyMeshBridger;
             index++;
         }
 

@@ -72,10 +72,10 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
     ) external view returns (address bridgeTokenIn, uint256 inAmount) {
-        (LZBridgeRoute memory route, uint256 desiredOutLD) = _resolveRouteAndOut(
-            toChainId,
-            bridgeTokenOutOptions
-        );
+        (
+            LZBridgeRoute memory route,
+            uint256 desiredOutLD
+        ) = _resolveRouteAndOut(toChainId, bridgeTokenOutOptions);
         Accounting memory accounting = _computeAccounting({
             toChainId: toChainId,
             toAddress: address(0), // not needed for quoting input
@@ -107,10 +107,10 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         bytes calldata extraData
     ) public {
         require(toChainId != block.chainid, "same chain");
-        (LZBridgeRoute memory route, uint256 desiredOutLD) = _resolveRouteAndOut(
-            toChainId,
-            bridgeTokenOutOptions
-        );
+        (
+            LZBridgeRoute memory route,
+            uint256 desiredOutLD
+        ) = _resolveRouteAndOut(toChainId, bridgeTokenOutOptions);
 
         Accounting memory accounting = _computeAccounting({
             toChainId: toChainId,
@@ -133,7 +133,10 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
 
         // always pay fees in native (no ZRO)
         MessagingFee memory fee = IOFT(route.app).quoteSend(sp, false);
-        require(address(this).balance >= fee.nativeFee, "insufficient native fee");
+        require(
+            address(this).balance >= fee.nativeFee,
+            "insufficient native fee"
+        );
 
         // Custody + approve exactly what the accounting says.
         IERC20(route.bridgeTokenIn).safeTransferFrom(
@@ -141,9 +144,18 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
             address(this),
             accounting.inAmountLD
         );
-        IERC20(route.bridgeTokenIn).forceApprove(route.app, accounting.inAmountLD);
+        IERC20(route.bridgeTokenIn).forceApprove(
+            route.app,
+            accounting.inAmountLD
+        );
 
         IOFT(route.app).send{value: fee.nativeFee}(sp, fee, refundAddress);
+
+        if (address(this).balance > 0) {
+            // native coin refund
+            (bool success, ) = tx.origin.call{value: address(this).balance}("");
+            require(success, "LayerZeroBridger: native refund failed");
+        }
 
         emit BridgeInitiated({
             fromAddress: msg.sender,
@@ -155,14 +167,6 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
             toAmount: desiredOutLD,
             refundAddress: refundAddress
         });
-
-        if (address(this).balance > 0) {
-            // native coin refund
-            (bool success, ) = tx.origin.call{value: address(this).balance}(
-                ""
-            );
-            require(success, "LayerZeroBridger: native refund failed");
-        }
     }
 
     // Hooks for subclasses
@@ -203,7 +207,8 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         uint256 idx = 0;
         for (; idx < n; ++idx) {
             if (
-                address(bridgeTokenOutOptions[idx].token) == route.bridgeTokenOut
+                address(bridgeTokenOutOptions[idx].token) ==
+                route.bridgeTokenOut
             ) break;
         }
         require(idx < n, "bad bridge token");
@@ -212,7 +217,7 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
     }
 
     /// @dev Casts an EVM address to 32-byte representation used by OFT.
-    function _toB32(address accounting) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(accounting)));
+    function _toB32(address addr) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(addr)));
     }
 }

@@ -139,7 +139,7 @@ function _isTestnet(uint256 chainId) pure returns (bool) {
 
 // ----------------- Hop ----------------- //
 
-function getUSDCDecimals(address token) pure returns (uint256) {
+function getHopCoinDecimals(address token) pure returns (uint256) {
     // Special case:
     if (token == BSC_MAINNET_BRIDGED_USDC) return 18;
 
@@ -153,7 +153,8 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == SCROLL_MAINNET_USDC) return 6;
     if (token == WORLDCHAIN_MAINNET_USDC) return 6;
     if (token == CELO_MAINNET_USDC) return 6;
-    // TODO: getUSDCDecimals having USDT is wrong, prob need to rethink the function
+
+    // USDT addresses for legacy mesh hops
     if (token == ARBITRUM_MAINNET_USDT) return 6;
     if (token == CELO_MAINNET_USDT) return 6;
 
@@ -177,7 +178,7 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == OP_MAINNET_AXLUSDC) return 6;
     if (token == POLYGON_MAINNET_AXLUSDC) return 6;
 
-    revert("Unsupported token for getUSDCDecimals");
+    revert("Unsupported token for getHopCoinDecimals");
 }
 
 // ----------------- CCTP V1 ----------------- //

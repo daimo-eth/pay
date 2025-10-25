@@ -40,8 +40,8 @@ function getAxelarBridgeRoutes(
 
     // Source chain 10
     if (sourceChainId == 10) {
-        chainIds = new uint256[](2);
-        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](2);
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
 
         // 10 -> 56
         chainIds[0] = 56;
@@ -49,16 +49,6 @@ function getAxelarBridgeRoutes(
             destChainName: "binance",
             bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
             bridgeTokenOut: 0x4268B8F0B87b6Eae5d897996E6b845ddbD99Adf3,
-            tokenSymbol: "axlUSDC",
-            receiverContract: axelarReceiver,
-            nativeFee: 500000000000000
-        });
-        // 10 -> 42220
-        chainIds[1] = 42220;
-        bridgeRoutes[1] = DaimoPayAxelarBridger.AxelarBridgeRoute({
-            destChainName: "celo",
-            bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            bridgeTokenOut: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
             tokenSymbol: "axlUSDC",
             receiverContract: axelarReceiver,
             nativeFee: 500000000000000
@@ -148,8 +138,8 @@ function getAxelarBridgeRoutes(
 
     // Source chain 137
     if (sourceChainId == 137) {
-        chainIds = new uint256[](2);
-        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](2);
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
 
         // 137 -> 56
         chainIds[0] = 56;
@@ -161,24 +151,14 @@ function getAxelarBridgeRoutes(
             receiverContract: axelarReceiver,
             nativeFee: 4000000000000000000
         });
-        // 137 -> 42220
-        chainIds[1] = 42220;
-        bridgeRoutes[1] = DaimoPayAxelarBridger.AxelarBridgeRoute({
-            destChainName: "celo",
-            bridgeTokenIn: 0x750e4C4984a9e0f12978eA6742Bc1c5D248f40ed,
-            bridgeTokenOut: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            tokenSymbol: "axlUSDC",
-            receiverContract: axelarReceiver,
-            nativeFee: 4000000000000000000
-        });
 
         return (chainIds, bridgeRoutes);
     }
 
     // Source chain 8453
     if (sourceChainId == 8453) {
-        chainIds = new uint256[](2);
-        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](2);
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
 
         // 8453 -> 56
         chainIds[0] = 56;
@@ -186,16 +166,6 @@ function getAxelarBridgeRoutes(
             destChainName: "binance",
             bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
             bridgeTokenOut: 0x4268B8F0B87b6Eae5d897996E6b845ddbD99Adf3,
-            tokenSymbol: "axlUSDC",
-            receiverContract: axelarReceiver,
-            nativeFee: 500000000000000
-        });
-        // 8453 -> 42220
-        chainIds[1] = 42220;
-        bridgeRoutes[1] = DaimoPayAxelarBridger.AxelarBridgeRoute({
-            destChainName: "celo",
-            bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            bridgeTokenOut: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
             tokenSymbol: "axlUSDC",
             receiverContract: axelarReceiver,
             nativeFee: 500000000000000
@@ -223,12 +193,12 @@ function getAxelarBridgeRoutes(
         return (chainIds, bridgeRoutes);
     }
 
-    // Source chain 59144
-    if (sourceChainId == 59144) {
-        chainIds = new uint256[](2);
-        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](2);
+    // Source chain 42220
+    if (sourceChainId == 42220) {
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
 
-        // 59144 -> 56
+        // 42220 -> 56
         chainIds[0] = 56;
         bridgeRoutes[0] = DaimoPayAxelarBridger.AxelarBridgeRoute({
             destChainName: "binance",
@@ -236,14 +206,23 @@ function getAxelarBridgeRoutes(
             bridgeTokenOut: 0x4268B8F0B87b6Eae5d897996E6b845ddbD99Adf3,
             tokenSymbol: "axlUSDC",
             receiverContract: axelarReceiver,
-            nativeFee: 500000000000000
+            nativeFee: 4000000000000000000
         });
-        // 59144 -> 42220
-        chainIds[1] = 42220;
-        bridgeRoutes[1] = DaimoPayAxelarBridger.AxelarBridgeRoute({
-            destChainName: "celo",
+
+        return (chainIds, bridgeRoutes);
+    }
+
+    // Source chain 59144
+    if (sourceChainId == 59144) {
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
+
+        // 59144 -> 56
+        chainIds[0] = 56;
+        bridgeRoutes[0] = DaimoPayAxelarBridger.AxelarBridgeRoute({
+            destChainName: "binance",
             bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            bridgeTokenOut: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
+            bridgeTokenOut: 0x4268B8F0B87b6Eae5d897996E6b845ddbD99Adf3,
             tokenSymbol: "axlUSDC",
             receiverContract: axelarReceiver,
             nativeFee: 500000000000000

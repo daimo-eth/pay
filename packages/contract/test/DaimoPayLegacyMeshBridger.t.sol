@@ -60,7 +60,7 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
         bridger = new DaimoPayLegacyMeshBridger(chainIds, routes);
     }
 
-    function test_getBridgeTokenIn_correctAmount() public view {
+    function test_getBridgeTokenIn_roundUp() public view {
         // Setup
         TokenAmount[] memory opts = new TokenAmount[](1);
         opts[0] = TokenAmount({
@@ -78,23 +78,31 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
         assertEq(tokenIn, address(usdt));
 
         // With 0.1% fee (10 bps), to get 1M out we need:
-        // gross = 1M * 10000 / (10000 - 10) = 1M * 10000 / 9990 ≈ 1001001
-        assertGt(amountIn, 1_000_000); // Should be slightly more due to fee
-        assertLt(amountIn, 1_002_000); // But not too much
+        // gross = 1M * 10000 / (10000 - 10) = 1M * 10000 / 9990 ≈ 10_010_011
+        uint256 expected = 1_001_002;
+        assertEq(amountIn, expected);
     }
 
-    function test_feeGrossup_calculation() public view {
-        // Test with different fee amounts
+    function test_getBridgeTokenIn_exactOut() public view {
+        // Setup
         TokenAmount[] memory opts = new TokenAmount[](1);
         opts[0] = TokenAmount({
             token: IERC20(address(usdt)),
-            amount: 10_000_000 // 10 USDT
+            amount: 9_990_000 // 9.99 USDT (6 decimals)
         });
 
-        (, uint256 amountIn) = bridger.getBridgeTokenIn(DEST_CHAIN, opts);
+        // Get bridge token in
+        (address tokenIn, uint256 amountIn) = bridger.getBridgeTokenIn(
+            DEST_CHAIN,
+            opts
+        );
 
-        // expected literal from 10M gross-up with 10 bps fee
-        uint256 expected = 10_010_011;
+        // Verify
+        assertEq(tokenIn, address(usdt));
+
+        // With 0.1% fee (10 bps), to get 9.999 USDT out we need:
+        // gross = 9.99 * 10000 / (10000 - 10) = 9_990_000 * 10000 / 9990 = 10_000_000
+        uint256 expected = 10_000_000;
         assertEq(amountIn, expected);
     }
 

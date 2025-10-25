@@ -8,7 +8,7 @@ import "../src/relayer/DaimoPayRelayer.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-11"
+    "DaimoPayRelayer-12"
 );
 
 contract DeployDaimoPayRelayer is Script {

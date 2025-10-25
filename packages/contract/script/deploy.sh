@@ -36,6 +36,7 @@ SCRIPTS=(
 CHAINS=(
     # "https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -43,11 +44,8 @@ CHAINS=(
     # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
-    # # Slow, broken Etherscan
-    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-
     # Expensive, deploy last
-    "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do

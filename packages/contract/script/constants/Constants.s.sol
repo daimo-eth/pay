@@ -92,12 +92,18 @@ address constant ARBITRUM_MAINNET_USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FC
 address constant AVAX_MAINNET_USDT = 0xc7198437980c041c805A1EDcbA50c1Ce5db95118;
 address constant BASE_MAINNET_USDT = 0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2;
 address constant BSC_MAINNET_USDT = 0x55d398326f99059fF775485246999027B3197955;
+address constant CELO_MAINNET_USDT = 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e;
 address constant ETH_MAINNET_USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 address constant LINEA_MAINNET_USDT = 0xA219439258ca9da29E9Cc4cE5596924745e12B93;
 address constant LISK_MAINNET_USDT = 0x05D032ac25d322df992303dCa074EE7392C117b9;
 address constant MANTLE_MAINNET_USDT = 0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE;
 address constant OP_MAINNET_USDT = 0x94b008aA00579c1307B0EF2c499aD98a8ce58e58;
 address constant POLYGON_MAINNET_USDT = 0xc2132D05D31c914a87C6611C10748AEb04B58e8F;
+
+// Legacy Mesh UsdtOFT addresses (LayerZero USDT)
+address constant ETH_MAINNET_LEGACY_MESH_USDT_OFT = 0x1F748c76dE468e9D11bd340fA9D5CBADf315dFB0;
+address constant ARBITRUM_MAINNET_LEGACY_MESH_USDT_OFT = 0x77652D5aba086137b595875263FC200182919B92;
+address constant CELO_MAINNET_LEGACY_MESH_USDT_OFT = 0xf10E161027410128E63E75D0200Fb6d34b2db243;
 
 // USDC.e or USDbC (bridged USDC) addresses
 address constant ARBITRUM_MAINNET_BRIDGED_USDC = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
@@ -133,7 +139,7 @@ function _isTestnet(uint256 chainId) pure returns (bool) {
 
 // ----------------- Hop ----------------- //
 
-function getUSDCDecimals(address token) pure returns (uint256) {
+function getHopCoinDecimals(address token) pure returns (uint256) {
     // Special case:
     if (token == BSC_MAINNET_BRIDGED_USDC) return 18;
 
@@ -147,6 +153,10 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == SCROLL_MAINNET_USDC) return 6;
     if (token == WORLDCHAIN_MAINNET_USDC) return 6;
     if (token == CELO_MAINNET_USDC) return 6;
+
+    // USDT addresses for legacy mesh hops
+    if (token == ARBITRUM_MAINNET_USDT) return 6;
+    if (token == CELO_MAINNET_USDT) return 6;
 
     // USDC.e or USDbC (bridged USDC) addresses
     if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;
@@ -168,7 +178,7 @@ function getUSDCDecimals(address token) pure returns (uint256) {
     if (token == OP_MAINNET_AXLUSDC) return 6;
     if (token == POLYGON_MAINNET_AXLUSDC) return 6;
 
-    revert("Unsupported token for getUSDCDecimals");
+    revert("Unsupported token for getHopCoinDecimals");
 }
 
 // ----------------- CCTP V1 ----------------- //

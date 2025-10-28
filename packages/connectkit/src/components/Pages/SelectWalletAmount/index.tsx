@@ -9,7 +9,7 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
-import { WALLET_ID_MOBILE_WALLETS } from "../../../wallets/useWallets";
+import { isExternalWallet, useWallet } from "../../../wallets/useWallets";
 import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
@@ -23,6 +23,9 @@ const SelectWalletAmount: React.FC = () => {
 
   const [usdInput, setUsdInput] = useState<string>("");
   const [continueDisabled, setContinueDisabled] = useState(true);
+
+  const walletId = selectedWallet?.id;
+  const wallet = useWallet(walletId || "");
 
   if (selectedWallet == null) {
     return <PageContent></PageContent>;
@@ -40,12 +43,10 @@ const SelectWalletAmount: React.FC = () => {
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
-    if (
-      selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
-      (selectedWallet.id === "world" && !isMobile)
-    ) {
+    // External wallets (no connector) on desktop show QR code
+    if (isExternalWallet(wallet) && !isMobile) {
       await hydrateOrder();
-      setPendingConnectorId(selectedWallet.id);
+      setPendingConnectorId(walletId!);
       setRoute(ROUTES.CONNECT);
     } else {
       await openInWalletBrowser(selectedWallet, amountUsd);

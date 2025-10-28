@@ -2,7 +2,11 @@ import { assertNotNull } from "@daimo/pay-common";
 import { Connector } from "wagmi";
 
 import { useWallet as useSolanaWalletAdapter } from "@solana/wallet-adapter-react";
-import Logos, { SquircleIcon, WalletIcon } from "../assets/logos";
+import Logos, {
+  createOtherWalletsIcon,
+  SquircleIcon,
+  WalletIcon,
+} from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import { useConnectors } from "../hooks/useConnectors";
 import useLocales from "../hooks/useLocales";
@@ -29,6 +33,17 @@ export type WalletProps = {
   solanaConnectorName?: SolanaWalletName;
 } & WalletConfigProps;
 
+/** Check if wallet should show QR code/deeplink (no injected connector) */
+export function isExternalWallet(
+  wallet: WalletProps | null | undefined,
+): boolean {
+  if (!wallet) return false;
+  // Special mobile wallets option always shows QR
+  if (wallet.id === WALLET_ID_MOBILE_WALLETS) return true;
+  // Wallets with deeplink but no connector use QR/deeplink flow
+  return !!wallet.getDaimoPayDeeplink && !wallet.connector;
+}
+
 export const useWallet = (id: string): WalletProps | null => {
   const wallets = useWallets();
   const wallet = wallets.find((c) => c.id === id);
@@ -39,10 +54,15 @@ export const useWallet = (id: string): WalletProps | null => {
 export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const connectors = useConnectors();
   const context = usePayContext();
-  const { disableMobileInjector } = context;
+  const { disableMobileInjector, paymentState } = context;
   // Solana wallets available in the session (desktop & mobile)
   const solanaWallet = useSolanaWalletAdapter();
   const locales = useLocales();
+
+  // Get wallet ordering from payment options
+  const walletOrder =
+    paymentState?.externalPaymentOptions?.parsedConfig?.walletOrder ?? [];
+
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
 
@@ -68,6 +88,91 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       });
     }
 
+    // If wallet order is specified, use that order
+    if (walletOrder.length > 0) {
+      for (const optionId of walletOrder) {
+        const walletId = Object.keys(walletConfigs).find((id) => {
+          const wallet = walletConfigs[id];
+          const optionLower = optionId.toLowerCase();
+          return (
+            wallet.name?.toLowerCase() === optionLower ||
+            wallet.shortName?.toLowerCase() === optionLower ||
+            wallet.name?.toLowerCase().includes(optionLower) ||
+            id.toLowerCase() === optionLower ||
+            id.toLowerCase().includes(optionLower)
+          );
+        });
+        if (walletId && !mobileWallets.find((w) => w.id === walletId)) {
+          const wallet = walletConfigs[walletId];
+          mobileWallets.push({
+            id: walletId,
+            ...wallet,
+          });
+        }
+      }
+
+      // Determine if we need "Other" button
+      const totalWallets = walletOrder.length;
+
+      // If we have more than 3 wallets total, show max 2 wallets + "Other"
+      // If we have 3 or fewer, show all
+      if (totalWallets > 3 || mobileWallets.length > 3) {
+        // Get the wallets that will be in "Other" (those shown in main selector)
+        const shownWallets = mobileWallets.slice(0, 2);
+        const shownWalletNames = shownWallets
+          .map((w) => w.name?.toLowerCase() || w.shortName?.toLowerCase())
+          .filter((name): name is string => !!name);
+
+        // Find remaining wallets from the order
+        const remainingWalletConfigs = walletOrder
+          .filter((walletName) => {
+            const nameLower = walletName.toLowerCase();
+            return !shownWalletNames.some(
+              (shown) =>
+                shown === nameLower ||
+                shown.includes(nameLower) ||
+                nameLower.includes(shown),
+            );
+          })
+          .map((walletName) => {
+            const configKey = Object.keys(walletConfigs).find((key) => {
+              const wallet = walletConfigs[key];
+              const name =
+                wallet.name?.toLowerCase() ||
+                wallet.shortName?.toLowerCase() ||
+                "";
+              return (
+                name.includes(walletName.toLowerCase()) ||
+                walletName.toLowerCase().includes(name)
+              );
+            });
+            return configKey ? walletConfigs[configKey] : null;
+          })
+          .filter(Boolean) as WalletConfigProps[];
+
+        // Keep max 2 wallets total (including injected)
+        if (mobileWallets.length > 2) {
+          mobileWallets.splice(2);
+        }
+
+        const otherWalletsString = flattenChildren(locales.otherWallets).join(
+          "",
+        );
+        const otherString = flattenChildren(locales.other).join("");
+        mobileWallets.push({
+          id: WALLET_ID_OTHER_WALLET,
+          name: otherWalletsString,
+          shortName: otherString,
+          iconConnector: createOtherWalletsIcon(remainingWalletConfigs),
+          iconShape: "square",
+          showInMobileConnectors: false,
+        });
+      }
+
+      return mobileWallets;
+    }
+
+    // Default behavior: add MetaMask and Trust, then "other"
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
       if (mobileWallets.length >= 3) return;
@@ -87,7 +192,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     addIfNotPresent("com.trustwallet.app");
     const otherWalletsString = flattenChildren(locales.otherWallets).join("");
     const otherString = flattenChildren(locales.other).join("");
-    // Add other wallet
     mobileWallets.push({
       id: WALLET_ID_OTHER_WALLET,
       name: otherWalletsString,
@@ -164,6 +268,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   });
 
   wallets.push(walletConfigs.world as WalletProps);
+  wallets.push(walletConfigs.minipay as WalletProps);
 
   wallets.push({
     id: WALLET_ID_MOBILE_WALLETS,

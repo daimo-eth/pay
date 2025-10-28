@@ -42,10 +42,7 @@ import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
 import { CustomTheme } from "../../../types";
-import {
-  useWallet,
-  WALLET_ID_MOBILE_WALLETS,
-} from "../../../wallets/useWallets";
+import { isExternalWallet, useWallet } from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
@@ -215,7 +212,10 @@ const Modal: React.FC<ModalProps> = ({
   const { order, paymentState } = useDaimoPay();
 
   const { connector } = useAccount();
-  const wallet = useWallet(connector?.id ?? "");
+  // For external wallets (World, MiniPay), use pendingConnectorId
+  // For injected wallets, use connector?.id
+  const walletId = context.pendingConnectorId || connector?.id || "";
+  const wallet = useWallet(walletId);
 
   const walletInfo = {
     name: wallet?.name,
@@ -333,9 +333,7 @@ const Modal: React.FC<ModalProps> = ({
     return !useInjector;
   }
 
-  const shouldShowWalletQRCodeOnDesktop =
-    context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
-    context.pendingConnectorId === "world";
+  const shouldShowWalletQRCodeOnDesktop = isExternalWallet(wallet);
 
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");

@@ -11,8 +11,9 @@ import Button from "../Common/Button";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
-import Logos, { SquircleIcon } from "../../assets/logos";
+import { SquircleIcon } from "../../assets/logos";
 import MobileWithLogos from "../../assets/MobileWithLogos";
+import useIsMobile from "../../hooks/useIsMobile";
 import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
 
 /**
@@ -23,13 +24,14 @@ import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
  * - If the pendingConnectorId is MOBILE_WALLETS_CONNECTOR_ID, then show a QR
  *   that the user can scan from their phone. This opens the flow in eg. mobile
  *   Safari, letting them pick which app they want to use & finish there.
- * - If the pendingConnectorId is world, then show a QR that the user can scan
- *   from their phone. This deeplinks into the World Mini App
+ * - If the pendingConnectorId is a walletConfig, then show a QR that the user can scan
+ *   from their phone. This deeplinks into the wallet's checkout page
  */
-const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
+const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
   externalUrl,
 }) => {
   const context = usePayContext();
+  const { isAndroid, isIOS } = useIsMobile();
   const { pendingConnectorId, paymentState } = context;
   const wallet = useWallet(pendingConnectorId ?? "");
   const externalOption = paymentState.selectedExternalOption;
@@ -45,17 +47,17 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
   const downloads = wallet?.downloadUrls;
   const hasApps = downloads && Object.keys(downloads).length !== 0;
   const payId = pay.order ? writeDaimoPayOrderID(pay.order.id) : "";
+  const platform = isIOS ? "ios" : isAndroid ? "android" : "other";
 
   const isDesktopLinkToMobileWallets = wallet?.id === WALLET_ID_MOBILE_WALLETS;
-  const mode = isDesktopLinkToMobileWallets ? "browser" : "wallet";
-  const worldDeeplink =
-    wallet?.id === "world" && wallet?.getDaimoPayDeeplink
-      ? wallet.getDaimoPayDeeplink(payId)
-      : null;
+  const walletDeeplink = wallet?.getDaimoPayDeeplink
+    ? wallet.getDaimoPayDeeplink(payId, platform)
+    : null;
+
   const url =
     externalUrl ?? // QR code opens eg. Binance
-    worldDeeplink ?? // open in World App
-    `https://pay.daimo.com/pay?id=${payId}&mode=${mode}`; // browser
+    walletDeeplink ?? // open in wallet
+    `https://pay.daimo.com/pay?id=${payId}&mode=browser`; // browser
 
   return (
     <PageContent>
@@ -63,8 +65,8 @@ const ConnectWithQRCode: React.FC<{ externalUrl: string }> = ({
         <CustomQRCode
           value={url}
           image={
-            wallet?.id === "world" ? (
-              <SquircleIcon icon={Logos.World} alt="World" />
+            wallet?.id ? (
+              wallet.icon
             ) : externalOption?.logoURI ? (
               <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
             ) : (

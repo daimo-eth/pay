@@ -55,6 +55,8 @@ export interface PaymentState {
   /// DaimoPayButton props
   buttonProps: PayButtonPaymentProps | undefined;
   setButtonProps: (props: PayButtonPaymentProps | undefined) => void;
+  /// Order of top-level payment options in SelectMethod
+  topOptionsOrder: string[];
 
   /// Pay ID for loading an existing order
   setPayId: (id: string | undefined) => Promise<void>;
@@ -535,9 +537,69 @@ export function usePaymentState({
 
   const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
 
+  // Compute the order of top-level payment options from paymentOptions
+  const topOptionsOrder = (() => {
+    const defaultOrder = ["AllWallets", "AllExchanges", "AllAddresses"];
+    const paymentOptions =
+      buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions;
+
+    if (!paymentOptions || paymentOptions.length === 0) {
+      return defaultOrder;
+    }
+
+    // Validate: cannot mix "All*" options with specific options
+    const topLevelOptions = [
+      "AllWallets",
+      "AllExchanges",
+      "AllAddresses",
+      "AllPaymentApps",
+      "Tron",
+    ];
+    const hasTopLevelOptions = paymentOptions.some(
+      (opt) => typeof opt === "string" && topLevelOptions.includes(opt),
+    );
+    const hasSpecificOptions = paymentOptions.some(
+      (opt) => typeof opt === "string" && !topLevelOptions.includes(opt),
+    );
+
+    if (hasTopLevelOptions && hasSpecificOptions) {
+      const topLevel = paymentOptions.filter(
+        (opt) => typeof opt === "string" && topLevelOptions.includes(opt),
+      );
+      const specific = paymentOptions.filter(
+        (opt) => typeof opt === "string" && !topLevelOptions.includes(opt),
+      );
+      throw new Error(
+        `invalid paymentOptions: cannot mix top-level options ${JSON.stringify(topLevel)} with specific options ${JSON.stringify(specific)}. ` +
+          `use either ["AllWallets", "AllExchanges", ...] or ["MiniPay", "Binance", ...], not both`,
+      );
+    }
+
+    // Flatten nested arrays and extract top-level options
+    const flatOptions: string[] = [];
+
+    paymentOptions.forEach((opt) => {
+      if (Array.isArray(opt)) {
+        // Nested array for mobile wallet filtering - add AllWallets to the order
+        flatOptions.push("AllWallets");
+      } else {
+        flatOptions.push(opt);
+      }
+    });
+
+    // Extract only the top-level options (AllWallets, AllExchanges, AllAddresses) in order
+    const foundOrder = flatOptions.filter((opt) =>
+      topLevelOptions.includes(opt),
+    );
+
+    // Return the found top-level options (may be empty if paymentOptions only has specific options)
+    return foundOrder;
+  })();
+
   return {
     buttonProps,
     setButtonProps,
+    topOptionsOrder,
     setPayId,
     setPayParams,
     tokenMode,

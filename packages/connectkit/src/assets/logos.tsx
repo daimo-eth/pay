@@ -1445,6 +1445,107 @@ export const SquircleIcon = ({
   );
 };
 
+/** Create a grid of wallet icons for the "Other" button */
+export function createOtherWalletsIcon(
+  wallets: Array<{
+    icon?: string | React.ReactNode;
+    iconConnector?: React.ReactNode;
+    name?: string;
+  }>,
+): React.ReactNode {
+  if (wallets.length === 0) {
+    return <OtherWallets />;
+  }
+
+  const count = Math.min(wallets.length, 4);
+  const walletsToShow = wallets.slice(0, count);
+
+  const renderWalletIcon = (wallet: {
+    iconConnector?: React.ReactNode;
+    icon?: string | React.ReactNode;
+    name?: string;
+  }) => {
+    const icon = wallet.iconConnector ?? wallet.icon;
+    return typeof icon === "string" ? (
+      <img src={icon} alt={wallet.name || ""} />
+    ) : (
+      icon
+    );
+  };
+
+  const column: React.CSSProperties = {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  };
+
+  const row: React.CSSProperties = {
+    position: "relative",
+    display: "flex",
+    gap: 2,
+  };
+
+  const cell: React.CSSProperties = {
+    width: "50%",
+    overflow: "hidden",
+    borderRadius: "27.5%",
+  };
+
+  if (count === 2) {
+    // 2 wallets: side by side, centered
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <div style={{ ...row, width: "100%" }}>
+          {walletsToShow.map((w, i) => (
+            <div key={i} style={cell}>
+              {renderWalletIcon(w)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  } else if (count === 3) {
+    // 3 wallets: 2 on top, 1 on bottom left
+    return (
+      <div style={column}>
+        <div style={row}>
+          {walletsToShow.slice(0, 2).map((w, i) => (
+            <div key={i} style={cell}>
+              {renderWalletIcon(w)}
+            </div>
+          ))}
+        </div>
+        <div style={row}>
+          <div style={cell}>{renderWalletIcon(walletsToShow[2])}</div>
+        </div>
+      </div>
+    );
+  } else {
+    // 4+ wallets: 2x2 grid (exactly like OtherWallets)
+    return (
+      <div style={column}>
+        <div style={row}>
+          <div style={cell}>{renderWalletIcon(walletsToShow[0])}</div>
+          <div style={cell}>{renderWalletIcon(walletsToShow[1])}</div>
+        </div>
+        <div style={row}>
+          <div style={cell}>{renderWalletIcon(walletsToShow[2])}</div>
+          <div style={cell}>{renderWalletIcon(walletsToShow[3])}</div>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default {
   Mock,
   Injected,
@@ -1485,4 +1586,5 @@ export default {
   MiniPay,
   World,
   Porto,
+  createOtherWalletsIcon,
 };

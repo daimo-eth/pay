@@ -74,27 +74,6 @@ export type WalletConfigProps = {
 export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
-  "coinbaseWallet, coinbaseWalletSDK,com.coinbase.wallet": {
-    name: "Base App",
-    shortName: "Base",
-    icon: <Logos.Base />,
-    iconShape: "squircle",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/coinbasewallet",
-      website: "https://www.coinbase.com/wallet/getting-started-extension",
-      android: "https://play.google.com/store/apps/details?id=org.toshi",
-      ios: "https://apps.apple.com/app/coinbase-wallet-store-crypto/id1278383455",
-      chrome:
-        "https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad",
-    },
-    showInMobileConnectors: true,
-    showOnAndroid: true,
-    showOnIOS: true,
-    deeplinkScheme: "cbwallet://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
-    },
-  },
   baseAccount: {
     name: "Base App",
     shortName: "Base",
@@ -112,7 +91,12 @@ export const walletConfigs: {
     deeplinkScheme: "cbwallet://",
     showOnAndroid: true,
     showOnIOS: true,
-    getDaimoPayDeeplink: (payId: string) => {
+    getDaimoPayDeeplink: (payId: string, platform?: string) => {
+      if (platform === "android") {
+        return (
+          "https://go.cb-w.com/dapp?cb_url=" + getEncodedDaimoPayUrl(payId)
+        );
+      }
       return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
     },
   },
@@ -224,8 +208,11 @@ export const walletConfigs: {
     },
   },
   minipay: {
+    id: "minipay",
     name: "MiniPay",
+    shortName: "MiniPay",
     icon: <Logos.MiniPay />,
+    iconConnector: <Logos.MiniPay />,
     iconShape: "squircle",
     showInMobileConnectors: true,
     showOnAndroid: true,
@@ -233,7 +220,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       return (
         "https://cash.minipay.xyz/browse?url=" +
-        encodeURIComponent(getEncodedDaimoPayUrl(payId))
+        encodeURIComponent(getDaimoPayUrl(payId))
       );
     },
   },

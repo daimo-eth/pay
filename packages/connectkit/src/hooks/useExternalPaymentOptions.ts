@@ -11,9 +11,9 @@ const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
   ExternalPaymentOptions,
 ).filter(
   (opt) =>
-    // Solana and ExternalChains are handled in the SelectMethod component.
-    opt !== ExternalPaymentOptions.ExternalChains &&
-    opt !== ExternalPaymentOptions.Daimo,
+    // These are handled in the SelectMethod component.
+    opt !== ExternalPaymentOptions.AllAddresses &&
+    opt !== ExternalPaymentOptions.AllPaymentApps,
 );
 
 export function useExternalPaymentOptions({
@@ -24,7 +24,7 @@ export function useExternalPaymentOptions({
   mode,
 }: {
   trpc: TrpcClient;
-  filterIds: string[] | undefined;
+  filterIds: (string | string[])[] | undefined;
   platform: PlatformType | undefined;
   usdRequired: number | undefined;
   mode: DaimoPayOrderMode | undefined;
@@ -35,11 +35,17 @@ export function useExternalPaymentOptions({
     ExternalPaymentOptionMetadata[]
   >;
   loading: boolean;
+  parsedConfig: {
+    walletOrder: string[];
+  };
 } {
   const [options, setOptions] = useState<
     Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [loading, setLoading] = useState(false);
+  const [parsedConfig, setParsedConfig] = useState<{ walletOrder: string[] }>({
+    walletOrder: [],
+  });
 
   useEffect(() => {
     const refreshExternalPaymentOptions = async (
@@ -56,9 +62,25 @@ export function useExternalPaymentOptions({
           usdRequired: usd,
         });
 
+        // Extract wallet order from nested array in filterIds
+        let walletOrder: string[] = [];
+        if (filterIds) {
+          const nestedArray = filterIds.find((opt) => Array.isArray(opt));
+          if (nestedArray && Array.isArray(nestedArray)) {
+            walletOrder = nestedArray as string[];
+          }
+        }
+        setParsedConfig({ walletOrder });
+
         // Filter out options not in options JSON
+        // Flatten nested arrays (used for mobile wallet filtering)
+        const flatFilterIds = filterIds
+          ? filterIds.flatMap((opt) =>
+              Array.isArray(opt) ? "AllWallets" : opt,
+            )
+          : null;
         const enabledExtPaymentOptions =
-          filterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
+          flatFilterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
 
         const hasAllPaymentApps = enabledExtPaymentOptions.includes(
           ExternalPaymentOptions.AllPaymentApps,
@@ -103,5 +125,5 @@ export function useExternalPaymentOptions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usdRequired, JSON.stringify(filterIds), platform, mode, trpc]);
 
-  return { options, loading };
+  return { options, loading, parsedConfig };
 }

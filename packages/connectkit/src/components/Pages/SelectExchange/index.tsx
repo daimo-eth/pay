@@ -22,21 +22,20 @@ const SelectExchange: React.FC = () => {
     );
   }
 
-  // For the exchange flow in unique payment option mode, we only show the Coinbase and Binance options
-  const uniquePaymentOption =
-    paymentState.buttonProps &&
-    "uniquePaymentOption" in paymentState.buttonProps
-      ? paymentState.buttonProps.uniquePaymentOption
-      : undefined;
+  // For the exchange flow with single payment option, we only show the Coinbase and Binance options
+  const paymentOptions = paymentState.buttonProps?.paymentOptions;
+  const isAllExchangesOnly =
+    paymentOptions &&
+    paymentOptions.length === 1 &&
+    paymentOptions[0] === "AllExchanges";
 
-  const filtered =
-    uniquePaymentOption === "AllExchanges"
-      ? exchangeOptions.filter(
-          (o) =>
-            o.id === ExternalPaymentOptions.Coinbase ||
-            o.id === ExternalPaymentOptions.Binance,
-        )
-      : exchangeOptions;
+  const filtered = isAllExchangesOnly
+    ? exchangeOptions.filter(
+        (o) =>
+          o.id === ExternalPaymentOptions.Coinbase ||
+          o.id === ExternalPaymentOptions.Binance,
+      )
+    : exchangeOptions;
 
   const options = filtered.map((option) => ({
     id: option.id,

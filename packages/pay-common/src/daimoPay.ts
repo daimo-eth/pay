@@ -437,6 +437,10 @@ export enum ExternalPaymentOptions {
   Revolut = "Revolut",
   Wise = "Wise",
   Zelle = "Zelle",
+  /** @deprecated - kept for backwards compatibility with old SDK versions */
+  Daimo = "Daimo",
+  /** @deprecated - kept for backwards compatibility with old SDK versions */
+  ExternalChains = "ExternalChains",
 }
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;

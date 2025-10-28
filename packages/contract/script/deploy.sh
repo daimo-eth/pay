@@ -28,7 +28,7 @@ SCRIPTS=(
     # The deployer must be the stage/dev LP that calls this contract.
     # Production relayers can be added via grantRelayerRole.
     # Stage/dev and production must use different relayer contract deployments.
-    "script/DeployDaimoPayRelayer.s.sol" 
+    # "script/DeployDaimoPayRelayer.s.sol" 
 
     # Utils
     # "script/DeployPayBalanceFactory.sol"

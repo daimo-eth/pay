@@ -168,7 +168,7 @@ export const walletConfigs: {
     getDaimoPayDeeplink: (payId: string) => {
       const daimoPayUrl = getDaimoPayUrl(payId);
       return (
-        "https://metamask.app.link/dapp/" + daimoPayUrl.replace("https://", "")
+        "https://link.metamask.io/dapp/" + daimoPayUrl.replace("https://", "")
       );
     },
   },

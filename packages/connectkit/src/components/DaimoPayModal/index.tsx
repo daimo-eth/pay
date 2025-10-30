@@ -23,7 +23,6 @@ import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemePro
 import About from "../Pages/About";
 import Confirmation from "../Pages/Confirmation";
 import Connectors from "../Pages/Connectors";
-import DownloadApp from "../Pages/DownloadApp";
 import ErrorPage from "../Pages/Error";
 import MobileConnectors from "../Pages/MobileConnectors";
 import Onboarding from "../Pages/Onboarding";
@@ -139,9 +138,7 @@ export const DaimoPayModal: React.FC<{
 
   const onBack = () => {
     const meta = { event: "click-back" };
-    if (context.route === ROUTES.DOWNLOAD) {
-      context.setRoute(ROUTES.CONNECT, meta);
-    } else if (context.route === ROUTES.CONNECTORS) {
+    if (context.route === ROUTES.CONNECTORS) {
       context.setRoute(context.uniquePaymentMethodPage, meta);
     } else if (context.route === ROUTES.SELECT_AMOUNT) {
       setSelectedTokenOption(undefined);
@@ -179,6 +176,8 @@ export const DaimoPayModal: React.FC<{
         setSelectedTokenOption(undefined);
         context.setRoute(ROUTES.SELECT_TOKEN, meta);
       }
+    } else if (context.route === ROUTES.MOBILECONNECTORS) {
+      context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.ONBOARDING) {
       context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
@@ -258,7 +257,6 @@ export const DaimoPayModal: React.FC<{
     // Unused routes. Kept to minimize connectkit merge conflicts.
     [ROUTES.ONBOARDING]: <Onboarding />,
     [ROUTES.ABOUT]: <About />,
-    [ROUTES.DOWNLOAD]: <DownloadApp />,
     [ROUTES.CONNECTORS]: <Connectors />,
     [ROUTES.MOBILECONNECTORS]: <MobileConnectors />,
     [ROUTES.CONNECT]: <ConnectUsing />,
@@ -592,8 +590,12 @@ export const DaimoPayModal: React.FC<{
                   event: "single_option_wallet_qr",
                   wallet: singleOption,
                 });
+              } else if (isMobile && wallet.getDaimoPayDeeplink) {
+                // On mobile with deeplink, open wallet directly
+                context.setUniquePaymentMethodPage(ROUTES.WAITING_WALLET);
+                paymentState.openInWalletBrowser(wallet);
               } else {
-                // Mobile or no deeplink - go to connectors
+                // No deeplink - go to connectors to let user connect
                 context.setUniquePaymentMethodPage(ROUTES.CONNECTORS);
                 context.setRoute(ROUTES.CONNECTORS, {
                   event: "single_option_wallet",

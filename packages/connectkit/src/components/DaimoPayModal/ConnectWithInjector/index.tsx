@@ -130,8 +130,11 @@ const ConnectWithInjector: React.FC<{
   });
 
   const { triggerResize } = usePayContext();
-  const { pendingConnectorId } = usePayContext();
-  const wallet = useWallet(pendingConnectorId ?? "");
+  const context = usePayContext();
+  const { pendingConnectorId, paymentState } = context;
+  const walletFromConnectors = useWallet(pendingConnectorId ?? "");
+  // Fall back to selectedWallet for wallets from walletConfigs (e.g. unique payment options)
+  const wallet = walletFromConnectors || paymentState.selectedWallet;
 
   const walletInfo = {
     name: wallet?.name,
@@ -157,10 +160,14 @@ const ConnectWithInjector: React.FC<{
       }
     : undefined;
 
+  const hasConnector =
+    wallet && "connector" in wallet && wallet.connector != null;
+  const isInstalled = wallet && "isInstalled" in wallet && wallet.isInstalled;
+
   const [status, setStatus] = useState(
     forceState
       ? forceState
-      : !wallet?.isInstalled
+      : !isInstalled
         ? states.UNAVAILABLE
         : states.CONNECTING,
   );
@@ -172,8 +179,8 @@ const ConnectWithInjector: React.FC<{
   });
 
   const runConnect = async () => {
-    if (wallet?.isInstalled && wallet?.connector) {
-      connect({ connector: wallet?.connector });
+    if (isInstalled && hasConnector) {
+      connect({ connector: (wallet as any).connector });
     } else {
       setStatus(states.UNAVAILABLE);
     }
@@ -346,12 +353,14 @@ const ConnectWithInjector: React.FC<{
               >
                 <ModalContent style={{ paddingBottom: 28 }}>
                   <ModalH1>
-                    {wallet.connector?.id === "injected"
+                    {hasConnector &&
+                    (wallet as any).connector?.id === "injected"
                       ? locales.injectionScreen_connecting_injected_h1
                       : locales.injectionScreen_connecting_h1}
                   </ModalH1>
                   <ModalBody>
-                    {wallet.connector?.id === "injected"
+                    {hasConnector &&
+                    (wallet as any).connector?.id === "injected"
                       ? locales.injectionScreen_connecting_injected_p
                       : locales.injectionScreen_connecting_p}
                   </ModalBody>
@@ -412,7 +421,7 @@ const ConnectWithInjector: React.FC<{
                       </ModalBody>
                     </ModalContent>
 
-                    {!wallet.isInstalled && suggestedExtension && (
+                    {!isInstalled && suggestedExtension && (
                       <Button
                         href={suggestedExtension?.url}
                         icon={
@@ -429,7 +438,7 @@ const ConnectWithInjector: React.FC<{
                       <ModalH1>{locales.injectionScreen_install_h1}</ModalH1>
                       <ModalBody>{locales.injectionScreen_install_p}</ModalBody>
                     </ModalContent>
-                    {!wallet.isInstalled && extensionUrl && (
+                    {!isInstalled && extensionUrl && (
                       <Button href={extensionUrl} icon={<BrowserIcon />}>
                         {locales.installTheExtension}
                       </Button>

@@ -123,7 +123,11 @@ const ConnectorItem = ({
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
+      } else if (isMobile) {
+        // On mobile, open external wallet directly via deeplink
+        await context.paymentState.openInWalletBrowser(wallet);
       } else {
+        // On desktop, show QR code for external wallets
         context.setPendingConnectorId(wallet.id);
         context.setRoute(ROUTES.CONNECT, meta);
       }
@@ -134,11 +138,7 @@ const ConnectorItem = ({
     ) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
-    } else if (
-      isMobile &&
-      wallet.getDaimoPayDeeplink != null &&
-      !wallet.connector
-    ) {
+    } else if (isMobile && wallet.getDaimoPayDeeplink != null) {
       await context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {

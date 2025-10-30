@@ -25,20 +25,22 @@ const MobileConnectors: React.FC = () => {
   const { isAndroid, isIOS } = useIsMobile();
   const connectors = useConnectors();
 
+  // Apply ordering from parsedConfig if available
+  const { parsedConfig } = paymentState.externalPaymentOptions;
+  const { walletOrder } = parsedConfig;
+
   // Filter available wallets
   const availableWalletIds =
     Object.keys(walletConfigs).filter((walletId) => {
       const wallet = walletConfigs[walletId];
-      if (!wallet.showInMobileConnectors) return false;
+      // If walletOrder is provided, ignore showInMobileConnectors flag
+      if (walletOrder.length === 0 && !wallet.showInMobileConnectors)
+        return false;
       // Filter by platform
       if (isAndroid && wallet.showOnAndroid === false) return false;
       if (isIOS && wallet.showOnIOS === false) return false;
       return true;
     }) ?? [];
-
-  // Apply ordering from parsedConfig if available
-  const { parsedConfig } = paymentState.externalPaymentOptions;
-  const { walletOrder } = parsedConfig;
 
   let walletsIdsToDisplay = availableWalletIds;
   if (walletOrder.length > 0) {

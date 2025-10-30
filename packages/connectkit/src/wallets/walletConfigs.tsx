@@ -5,9 +5,9 @@ let daimoPayHost = "https://pay.daimo.com";
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
-    daimoPayHost = "http://localhost:3001";
-  } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
-    daimoPayHost = "https://pay.stage.daimo.xyz";
+    daimoPayHost = "https://pay.daimo.com";
+  } else if (apiUrl.startsWith("https://pay.daimo.com")) {
+    daimoPayHost = "https://pay.daimo.com";
   } else {
     daimoPayHost = "https://pay.daimo.com";
   }
@@ -38,25 +38,6 @@ export type WalletConfigProps = {
   iconShape?: "squircle" | "circle" | "square";
   // Defaults to `false`, but some icons don't have a background and look better if they shrink to fit the container
   iconShouldShrink?: boolean;
-  // Links to download the wallet
-  downloadUrls?: {
-    // Download redirect, hosted by Family.co
-    // This URL redirects to the correct download URL based on the user's device
-    // Note: this will eventually be automated by the below data
-    download?: string;
-    // wallet's website
-    website?: string;
-    // app downloads
-    desktop?: string;
-    android?: string;
-    ios?: string;
-    // browser extensions
-    chrome?: string;
-    firefox?: string;
-    brave?: string;
-    edge?: string;
-    safari?: string;
-  };
   deeplinkScheme?: string;
   // For Daimo Pay deeplinks. Platform parameter: 'android' | 'ios' | 'other'
   getDaimoPayDeeplink?: (payId: string, platform?: string) => string;
@@ -75,18 +56,12 @@ export const walletConfigs: {
   [rdns: string]: WalletConfigProps; // for multiple cases seperate rdns by comma
 } = {
   baseAccount: {
+    id: "baseAccount",
     name: "Base App",
     shortName: "Base",
     icon: <Logos.Base />,
+    iconConnector: <Logos.Base />,
     iconShape: "squircle",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/coinbasewallet",
-      website: "https://www.coinbase.com/wallet/getting-started-extension",
-      android: "https://play.google.com/store/apps/details?id=org.toshi",
-      ios: "https://apps.apple.com/app/coinbase-wallet-store-crypto/id1278383455",
-      chrome:
-        "https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad",
-    },
     showInMobileConnectors: false,
     deeplinkScheme: "cbwallet://",
     showOnAndroid: true,
@@ -101,9 +76,11 @@ export const walletConfigs: {
     },
   },
   backpack: {
+    id: "backpack",
     name: "Backpack",
     shortName: "Backpack",
     icon: <Logos.Backpack />,
+    iconConnector: <Logos.Backpack />,
     iconShape: "squircle",
     showInMobileConnectors: true,
     showOnAndroid: true,
@@ -114,8 +91,10 @@ export const walletConfigs: {
     },
   },
   bitget: {
+    id: "bitget",
     name: "Bitget",
     icon: <Logos.Bitget />,
+    iconConnector: <Logos.Bitget />,
     iconShape: "squircle",
     showInMobileConnectors: true,
     showOnAndroid: true,
@@ -126,17 +105,14 @@ export const walletConfigs: {
     },
   },
   "co.family.wallet": {
+    id: "co.family.wallet",
     name: "Family",
     shortName: "Family",
     icon: <Logos.Family />,
+    iconConnector: <Logos.Family />,
     iconShape: "squircle",
     showOnAndroid: false,
     showOnIOS: true,
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/family",
-      website: "https://family.co",
-      ios: "https://family.co/download",
-    },
     deeplinkScheme: "familywallet://",
     getDaimoPayDeeplink: (payId: string) => {
       return "familywallet://browser?url=" + getDaimoPayUrl(payId);
@@ -144,6 +120,7 @@ export const walletConfigs: {
     showInMobileConnectors: true,
   },
   "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK": {
+    id: "metaMask",
     name: "MetaMask",
     shortName: "MetaMask",
     icon: <Logos.MetaMask />,
@@ -151,18 +128,6 @@ export const walletConfigs: {
     iconShouldShrink: true,
     showOnAndroid: true,
     showOnIOS: true,
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/metamask",
-      website: "https://metamask.io/download/",
-      android: "https://play.google.com/store/apps/details?id=io.metamask",
-      ios: "https://apps.apple.com/app/metamask/id1438144202",
-      chrome:
-        "https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
-      firefox: "https://addons.mozilla.org/firefox/addon/ether-metamask/",
-      brave:
-        "https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
-      edge: "https://microsoftedge.microsoft.com/addons/detail/metamask/ejbalbakoplchlghecdalmeeeajnimhm",
-    },
     showInMobileConnectors: false,
     deeplinkScheme: "metamask://",
     getDaimoPayDeeplink: (payId: string) => {
@@ -173,8 +138,10 @@ export const walletConfigs: {
     },
   },
   "app.phantom": {
+    id: "app.phantom",
     name: "Phantom",
     icon: <Logos.Phantom />,
+    iconConnector: <Logos.Phantom />,
     iconShape: "squircle",
     showInMobileConnectors: true,
     deeplinkScheme: "phantom://",
@@ -193,8 +160,10 @@ export const walletConfigs: {
   //   showInMobileConnectors: true,
   // },
   farcaster: {
+    id: "farcaster",
     name: "Farcaster",
     icon: <Logos.Farcaster />,
+    iconConnector: <Logos.Farcaster />,
     iconShape: "squircle",
     // Temporarily hidden from mobile connectors to make room for World wallet.
     // Will re-enable once /pay flow is fixed for Farcaster and we support more mobile wallets.
@@ -225,20 +194,12 @@ export const walletConfigs: {
     },
   },
   "me.rainbow": {
+    id: "me.rainbow",
     name: "Rainbow Wallet",
     shortName: "Rainbow",
     icon: <Logos.Rainbow />,
+    iconConnector: <Logos.Rainbow />,
     iconShape: "squircle",
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/rainbow",
-      website: "https://rainbow.me/?utm_source=daimopay",
-      android:
-        "https://play.google.com/store/apps/details?id=me.rainbow&referrer=utm_source%3Ddaimopay&utm_source=daimopay",
-      ios: "https://apps.apple.com/app/rainbow-ethereum-wallet/id1457119021?pt=119997837&ct=daimopay&mt=8",
-      chrome: "https://rainbow.me/extension?utm_source=daimopay",
-      edge: "https://rainbow.me/extension?utm_source=daimopay",
-      brave: "https://rainbow.me/extension?utm_source=daimopay",
-    },
     showInMobileConnectors: true,
     deeplinkScheme: "rainbow://",
     showOnAndroid: true,
@@ -250,27 +211,16 @@ export const walletConfigs: {
   // "io.rabby": {
   //   name: "Rabby Wallet",
   //   shortName: "Rabby",
-  //   downloadUrls: {
-  //     website: "https://rabby.io",
-  //     chrome:
-  //       "https://chrome.google.com/webstore/detail/rabby-wallet/acmacodkjbdgmoleebolmdjonilkdbch",
-  //   },
   //   showInMobileConnectors: false,
   //   //TODO: add wallet deep link
   //   // edit rabby scheme to deeplink URL: https://github.com/RabbyHub/rabby-mobile/blob/999d60f49c5254e4aa8e6aa8bb80ad46e267845c/apps/mobile/src/LinkingConfig.ts#L25
   // },
   "com.trustwallet.app": {
+    id: "com.trustwallet.app",
     name: "Trust Wallet",
     shortName: "Trust",
-
     icon: <Logos.Trust />,
     iconConnector: <Logos.Trust />,
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/trust",
-      android:
-        "https://play.google.com/store/apps/details?id=com.wallet.crypto.trustapp",
-      ios: "https://apps.apple.com/app/trust-crypto-bitcoin-wallet/id1288339409",
-    },
     showInMobileConnectors: false,
     deeplinkScheme: "trust://",
     showOnAndroid: true,
@@ -280,8 +230,10 @@ export const walletConfigs: {
     },
   },
   okx: {
+    id: "okx",
     name: "OKX",
     icon: <Logos.OKX />,
+    iconConnector: <Logos.OKX />,
     showInMobileConnectors: true,
     deeplinkScheme: "okx://",
     showOnAndroid: true,
@@ -291,8 +243,10 @@ export const walletConfigs: {
     },
   },
   solflare: {
+    id: "solflare",
     name: "Solflare",
     icon: <Logos.Solflare />,
+    iconConnector: <Logos.Solflare />,
     showInMobileConnectors: true,
     showOnAndroid: true,
     showOnIOS: true,
@@ -308,12 +262,6 @@ export const walletConfigs: {
   //   name: "Ledger Live",
   //   shortName: "Ledger",
   //   icon: <Logos.Ledger />,
-  //   downloadUrls: {
-  //     download: "https://connect.family.co/v0/download/ledger",
-  //     website: "https://www.ledger.com/ledger-live/download#download-device-2",
-  //     android: "https://play.google.com/store/apps/details?id=com.ledger.live",
-  //     ios: "https://apps.apple.com/app/ledger-live-web3-wallet/id1361671700",
-  //   },
   //   showInMobileConnectors: true,
   //   deeplinkScheme: "ledgerlive://",
   //   // getDaimoPayDeeplink: (payId: string) => {
@@ -342,25 +290,20 @@ export const walletConfigs: {
     },
   },
   zerion: {
+    id: "zerion",
     name: "Zerion",
     icon: <Logos.Zerion />,
-    downloadUrls: {
-      download: "https://connect.family.co/v0/download/zerion",
-      ios: "https://apps.apple.com/app/apple-store/id1456732565",
-      android:
-        "https://play.google.com/store/apps/details?id=io.zerion.android",
-      website: "https://zerion.io/",
-    },
+    iconConnector: <Logos.Zerion />,
     showInMobileConnectors: true,
     deeplinkScheme: "zerion://",
     showOnAndroid: true,
     showOnIOS: true,
     getDaimoPayDeeplink: (payId: string, platform?: string) => {
       const payUrl = getDaimoPayUrl(payId);
-      if (platform === "android") {
-        return "https://link.zerion.io/?url=" + encodeURIComponent(payUrl);
+      if (platform === "ios") {
+        return "zerion://browser?url=" + payUrl;
       }
-      return "zerion://browser?url=" + payUrl;
+      return "https://link.zerion.io/?url=" + encodeURIComponent(payUrl);
     },
   },
 } as const;

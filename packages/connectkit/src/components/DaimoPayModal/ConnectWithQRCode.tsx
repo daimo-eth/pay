@@ -1,5 +1,4 @@
 import React from "react";
-import { ROUTES } from "../../constants/routes";
 import { usePayContext } from "../../hooks/usePayContext";
 
 import { ModalContent, PageContent } from "../Common/Modal/styles";
@@ -7,14 +6,15 @@ import { ModalContent, PageContent } from "../Common/Modal/styles";
 import ScanIconWithLogos from "../../assets/ScanIconWithLogos";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
 import useLocales from "../../hooks/useLocales";
-import Button from "../Common/Button";
 import CustomQRCode from "../Common/CustomQRCode";
 
 import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import { SquircleIcon } from "../../assets/logos";
 import MobileWithLogos from "../../assets/MobileWithLogos";
+import { ROUTES } from "../../constants/routes";
 import useIsMobile from "../../hooks/useIsMobile";
 import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
+import { OrderHeader } from "../Common/OrderHeader";
 
 /**
  * Continues a Daimo Pay flow in another app.
@@ -33,7 +33,9 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
   const context = usePayContext();
   const { isAndroid, isIOS } = useIsMobile();
   const { pendingConnectorId, paymentState } = context;
-  const wallet = useWallet(pendingConnectorId ?? "");
+  const walletFromConnectors = useWallet(pendingConnectorId ?? "");
+  // Fall back to selectedWallet for wallets from walletConfigs (e.g. unique payment options)
+  const wallet = walletFromConnectors || paymentState.selectedWallet;
   const externalOption = paymentState.selectedExternalOption;
   const pay = useDaimoPay();
 
@@ -44,8 +46,6 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
   if (!wallet && !externalOption)
     return <> No wallet or external option found </>;
 
-  const downloads = wallet?.downloadUrls;
-  const hasApps = downloads && Object.keys(downloads).length !== 0;
   const payId = pay.order ? writeDaimoPayOrderID(pay.order.id) : "";
   const platform = isIOS ? "ios" : isAndroid ? "android" : "other";
 
@@ -59,9 +59,15 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
     walletDeeplink ?? // open in wallet
     `https://pay.daimo.com/pay?id=${payId}&mode=browser`; // browser
 
+  // Show order header only for unique payment option scenario
+  const isUniquePaymentOption =
+    context.uniquePaymentMethodPage === ROUTES.CONNECT ||
+    context.uniquePaymentMethodPage === ROUTES.WAITING_EXTERNAL;
+
   return (
     <PageContent>
-      <ModalContent style={{ paddingBottom: 8, gap: 14 }}>
+      {isUniquePaymentOption && <OrderHeader />}
+      <ModalContent style={{ paddingBottom: 8 }}>
         <CustomQRCode
           value={url}
           image={
@@ -114,19 +120,6 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
           }
         />
       </ModalContent>
-
-      {hasApps && (
-        <>
-          <Button
-            onClick={() => {
-              context.setRoute(ROUTES.DOWNLOAD);
-            }}
-            download
-          >
-            {locales.getWalletName}
-          </Button>
-        </>
-      )}
     </PageContent>
   );
 };

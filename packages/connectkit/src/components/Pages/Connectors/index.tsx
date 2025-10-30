@@ -5,13 +5,11 @@ import { Disclaimer, PageContent } from "../../Common/Modal/styles";
 
 import { DaimoPayOrderMode } from "@daimo/pay-common";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
-import useLocales from "../../../hooks/useLocales";
 import ConnectorList from "../../Common/ConnectorList";
 import { OrderHeader } from "../../Common/OrderHeader";
 
 const Wallets: React.FC = () => {
   const context = usePayContext();
-  const locales = useLocales({});
 
   const { hydrateOrder, order } = useDaimoPay();
 

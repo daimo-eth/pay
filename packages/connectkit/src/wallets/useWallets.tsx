@@ -35,13 +35,14 @@ export type WalletProps = {
 
 /** Check if wallet should show QR code/deeplink (no injected connector) */
 export function isExternalWallet(
-  wallet: WalletProps | null | undefined,
+  wallet: WalletProps | WalletConfigProps | null | undefined,
 ): boolean {
   if (!wallet) return false;
   // Special mobile wallets option always shows QR
   if (wallet.id === WALLET_ID_MOBILE_WALLETS) return true;
   // Wallets with deeplink but no connector use QR/deeplink flow
-  return !!wallet.getDaimoPayDeeplink && !wallet.connector;
+  const hasConnector = "connector" in wallet && !!wallet.connector;
+  return !!wallet.getDaimoPayDeeplink && !hasConnector;
 }
 
 export const useWallet = (id: string): WalletProps | null => {

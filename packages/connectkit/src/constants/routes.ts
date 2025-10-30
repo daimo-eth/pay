@@ -25,6 +25,5 @@ export enum ROUTES {
   CONNECTORS = "connectors",
   MOBILECONNECTORS = "mobileConnectors",
   CONNECT = "connect",
-  DOWNLOAD = "download",
   SWITCHNETWORKS = "switchNetworks",
 }

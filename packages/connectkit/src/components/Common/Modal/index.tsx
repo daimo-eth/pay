@@ -215,7 +215,9 @@ const Modal: React.FC<ModalProps> = ({
   // For external wallets (World, MiniPay), use pendingConnectorId
   // For injected wallets, use connector?.id
   const walletId = context.pendingConnectorId || connector?.id || "";
-  const wallet = useWallet(walletId);
+  const walletFromConnectors = useWallet(walletId);
+  // Fall back to selectedWallet for wallets from walletConfigs (e.g. unique payment options)
+  const wallet = walletFromConnectors || context.paymentState.selectedWallet;
 
   const walletInfo = {
     name: wallet?.name,
@@ -237,12 +239,7 @@ const Modal: React.FC<ModalProps> = ({
   });
   const mounted = !(state === "exited" || state === "unmounted");
   const rendered = state === "preEnter" || state !== "exiting";
-  const currentDepth =
-    context.route === ROUTES.CONNECTORS
-      ? 0
-      : context.route === ROUTES.DOWNLOAD
-        ? 2
-        : 1;
+  const currentDepth = context.route === ROUTES.CONNECTORS ? 0 : 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -326,14 +323,10 @@ const Modal: React.FC<ModalProps> = ({
     "--width": dimensions.width,
   } as React.CSSProperties;
 
-  function shouldUseQrcode() {
-    if (!wallet) return false; // Fail states are shown in the injector flow
-
-    const useInjector = wallet.isInstalled;
-    return !useInjector;
-  }
-
-  const shouldShowWalletQRCodeOnDesktop = isExternalWallet(wallet);
+  // Show "Scan with phone" title for wallets with deeplinks (unique payment options)
+  const hasDeeplink = wallet && wallet.getDaimoPayDeeplink;
+  const shouldShowWalletQRCodeOnDesktop =
+    isExternalWallet(wallet) || hasDeeplink;
 
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");
@@ -354,8 +347,6 @@ const Modal: React.FC<ModalProps> = ({
         return locales.connectorsScreen_heading;
       case ROUTES.MOBILECONNECTORS:
         return locales.mobileConnectorsScreen_heading;
-      case ROUTES.DOWNLOAD:
-        return locales.downloadAppScreen_heading;
       case ROUTES.ONBOARDING:
         return locales.onboardingScreen_heading;
       case ROUTES.SWITCHNETWORKS:

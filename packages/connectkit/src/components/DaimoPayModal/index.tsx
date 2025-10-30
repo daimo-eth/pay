@@ -591,12 +591,10 @@ export const DaimoPayModal: React.FC<{
                   wallet: singleOption,
                 });
               } else if (isMobile && wallet.getDaimoPayDeeplink) {
-                // On mobile with deeplink, open wallet directly
-                context.setUniquePaymentMethodPage(ROUTES.WAITING_WALLET);
+                // On mobile with deeplink, open wallet directly (no internal routing)
                 paymentState.openInWalletBrowser(wallet);
               } else {
                 // No deeplink - go to connectors to let user connect
-                context.setUniquePaymentMethodPage(ROUTES.CONNECTORS);
                 context.setRoute(ROUTES.CONNECTORS, {
                   event: "single_option_wallet",
                   wallet: singleOption,

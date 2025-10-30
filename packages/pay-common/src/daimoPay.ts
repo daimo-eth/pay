@@ -410,6 +410,7 @@ export enum ExternalPaymentOptions {
   Backpack = "Backpack",
   Bitget = "Bitget",
   Family = "Family",
+  Farcaster = "Farcaster",
   Phantom = "Phantom",
   MiniPay = "MiniPay",
   OKX = "OKX",

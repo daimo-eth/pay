@@ -4,10 +4,13 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import { getAddressContraction } from "@daimo/pay-common";
+import {
+  DepositAddressPaymentOptions,
+  getAddressContraction,
+} from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
-import { Base, Ethereum, Solana, Tron } from "../../../assets/chains";
+import { Base, Ethereum, Polygon, Solana, Tron } from "../../../assets/chains";
 import {
   MetaMask,
   Phantom,
@@ -28,7 +31,7 @@ import WalletChainLogo from "../../Common/WalletChainLogo";
 export default function SelectMethod() {
   const locales = useLocales();
   const payWithString = flattenChildren(locales.payWith).join("");
-  const { isMobile, isIOS, isAndroid } = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   const {
     address,
@@ -46,7 +49,8 @@ export default function SelectMethod() {
     usePayContext();
   const { disconnectAsync } = useDisconnect();
 
-  const { externalPaymentOptions, senderEnsName } = paymentState;
+  const { externalPaymentOptions, senderEnsName, topOptionsOrder } =
+    paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
   // Desktop: Always show connected wallets when available
@@ -173,13 +177,18 @@ export default function SelectMethod() {
   };
 
   const connectedWalletOptions = getConnectedWalletOptions();
+
+  // Get custom wallet list if specified
+  const walletOrder =
+    paymentState.externalPaymentOptions.parsedConfig.walletOrder;
+
   const unconnectedWalletOption = {
     id: "unconnectedWallet",
     title:
       isEthConnected || isSolanaConnected
         ? locales.payWithAnotherWallet
         : locales.payWithWallet,
-    icons: getBestUnconnectedWalletIcons(connector, isMobile),
+    icons: getBestUnconnectedWalletIcons(connector, isMobile, walletOrder),
     onClick: async () => {
       await disconnectAsync();
       await disconnectSolana();
@@ -187,29 +196,44 @@ export default function SelectMethod() {
     },
   };
 
-  const options: {
-    id: string;
-    title: string;
-    subtitle?: string;
-    icons: (React.ReactNode | string)[];
-    onClick: () => void;
-    disabled?: boolean;
-  }[] = [];
-  options.push(...connectedWalletOptions);
-  options.push(unconnectedWalletOption);
-
   log(
     `[SELECT_METHOD] loading: ${externalPaymentOptions.loading}, options: ${JSON.stringify(
       externalPaymentOptions.options,
     )}`,
   );
 
-  // Pay with Exchange
-  const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
+  // Build categorized options
+  type CategorizedOption = {
+    id: string;
+    title: string;
+    subtitle?: string;
+    icons: (React.ReactNode | string)[];
+    onClick: () => void;
+    disabled?: boolean;
+    category: string;
+  };
 
-  const showExchangePaymentMethod = exchangeOptions.length > 0;
+  const categorizedOptions: CategorizedOption[] = [];
+
+  // Connected wallets always appear first
+  connectedWalletOptions.forEach((opt) =>
+    categorizedOptions.push({ ...opt, category: "connected" }),
+  );
+
+  // Wallet options (unconnected) - only if AllWallets is in topOptionsOrder
+  if (topOptionsOrder.includes("AllWallets")) {
+    categorizedOptions.push({
+      ...unconnectedWalletOption,
+      category: "AllWallets",
+    });
+  }
+
+  // Exchange options - only if AllExchanges is in topOptionsOrder
+  const exchangeOptions = externalPaymentOptions.options.get("exchange") ?? [];
+  const showExchangePaymentMethod =
+    exchangeOptions.length > 0 && topOptionsOrder.includes("AllExchanges");
   if (showExchangePaymentMethod) {
-    options.push({
+    categorizedOptions.push({
       id: "exchange",
       title: locales.payWithExchange,
       icons: exchangeOptions.slice(0, 3).map((option) => option.logoURI),
@@ -219,26 +243,85 @@ export default function SelectMethod() {
           option: "exchange",
         });
       },
+      category: "AllExchanges",
     });
   }
 
-  const depositAddressOption = getDepositAddressOption(setRoute, locales);
-  options.push(depositAddressOption);
+  // Tron option - only if Tron is in topOptionsOrder
+  if (topOptionsOrder.includes("Tron")) {
+    const tronOption = paymentState.depositAddressOptions.options?.find(
+      (option) => option.id === DepositAddressPaymentOptions.TRON_USDT,
+    );
+    if (tronOption) {
+      categorizedOptions.push({
+        id: "tron",
+        title: tronOption.id, // Use the actual title like "USDT on Tron"
+        icons: [tronOption.logoURI],
+        onClick: () => {
+          paymentState.setSelectedDepositAddressOption(tronOption);
+          setRoute(
+            paymentState.isDepositFlow
+              ? ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT
+              : ROUTES.WAITING_DEPOSIT_ADDRESS,
+            { event: "select_tron" },
+          );
+        },
+        category: "Tron",
+      });
+    }
+  }
 
-  // ZKP2P is currently only available on desktop. Check if the user is on
-  // desktop and if any ZKP2P options are available.
+  // Deposit address options - only if AllAddresses is in topOptionsOrder
+  if (topOptionsOrder.includes("AllAddresses")) {
+    const depositAddressOption = getDepositAddressOption(
+      setRoute,
+      locales,
+      topOptionsOrder.includes("Tron"), // exclude Tron if shown separately
+    );
+    categorizedOptions.push({
+      ...depositAddressOption,
+      category: "AllAddresses",
+    });
+  }
+
+  // ZKP2P options - only if AllPaymentApps is in topOptionsOrder
   const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
-  const showZkp2pPaymentMethod = !isMobile && zkp2pOptions.length > 0;
+  const showZkp2pPaymentMethod =
+    !isMobile &&
+    zkp2pOptions.length > 0 &&
+    topOptionsOrder.includes("AllPaymentApps");
   if (showZkp2pPaymentMethod) {
-    options.push({
+    categorizedOptions.push({
       id: "ZKP2P",
       title: locales.payViaPaymentApp,
       icons: zkp2pOptions.slice(0, 2).map((option) => option.logoURI),
       onClick: () => {
         setRoute(ROUTES.SELECT_ZKP2P);
       },
+      category: "AllPaymentApps",
     });
   }
+
+  // Sort based on topOptionsOrder, keeping connected wallets first
+  const sortedOptions = categorizedOptions.sort((a, b) => {
+    // Connected wallets always first
+    if (a.category === "connected") return -1;
+    if (b.category === "connected") return 1;
+
+    // Then sort by topOptionsOrder
+    const aIndex = topOptionsOrder.indexOf(a.category);
+    const bIndex = topOptionsOrder.indexOf(b.category);
+
+    // If not in order list, put at the end
+    if (aIndex === -1 && bIndex === -1) return 0;
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+
+    return aIndex - bIndex;
+  });
+
+  // Remove category field for final options
+  const options = sortedOptions.map(({ category, ...opt }) => opt);
 
   // Order disabled to bottom
   options.sort((a, b) => (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0));
@@ -261,23 +344,64 @@ export default function SelectMethod() {
 function getBestUnconnectedWalletIcons(
   connector: Connector | undefined,
   isMobile: boolean,
+  walletOrder?: string[],
 ) {
   const icons: JSX.Element[] = [];
-  const strippedId = connector?.id.toLowerCase(); // some connector ids can have weird casing and or suffixes and prefixes
-  const [isRainbow, isPhantom, isRabby, isMetaMask] = [
+  const strippedId = connector?.id.toLowerCase();
+
+  // If custom wallet list is provided, use those wallets
+  if (walletOrder && walletOrder.length > 0 && isMobile) {
+    const maxIcons = 3;
+    for (const walletName of walletOrder) {
+      if (icons.length >= maxIcons) break;
+
+      // Skip if this wallet is already connected
+      if (strippedId?.includes(walletName.toLowerCase())) continue;
+
+      // Find wallet config
+      const walletId = Object.keys(walletConfigs).find((id) => {
+        const wallet = walletConfigs[id];
+        const nameLower = walletName.toLowerCase();
+        return (
+          wallet.name?.toLowerCase().includes(nameLower) ||
+          wallet.shortName?.toLowerCase().includes(nameLower) ||
+          id.toLowerCase().includes(nameLower)
+        );
+      });
+
+      if (walletId) {
+        const wallet = walletConfigs[walletId];
+        const icon = wallet.iconConnector || wallet.icon;
+        if (icon) {
+          icons.push(
+            <div
+              key={walletId}
+              style={{ borderRadius: "22.5%", overflow: "hidden" }}
+            >
+              {icon}
+            </div>,
+          );
+        }
+      }
+    }
+
+    if (icons.length > 0) return icons;
+  }
+
+  // Default icons (fallback)
+  const [isRainbow, isTrust, isPhantom, isCoinbase, isMetaMask, isRabby] = [
     strippedId?.includes("rainbow"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),
     strippedId?.includes("coinbase"),
     strippedId?.includes("metamask"),
     strippedId?.includes("rabby"),
-    strippedId?.includes("metamask"),
   ];
 
   if (isMobile) {
-    icons.push(<MetaMask />);
-    icons.push(<Trust background />);
-    icons.push(<Rainbow />);
+    if (!isMetaMask) icons.push(<MetaMask />);
+    if (!isTrust) icons.push(<Trust background />);
+    if (!isRainbow && icons.length < 3) icons.push(<Rainbow />);
   } else {
     if (!isMetaMask) icons.push(<MetaMask />);
     if (!isRainbow) icons.push(<Rainbow />);
@@ -291,11 +415,16 @@ function getBestUnconnectedWalletIcons(
 function getDepositAddressOption(
   setRoute: (route: ROUTES, data?: Record<string, any>) => void,
   locales: ReturnType<typeof useLocales>,
+  excludeTron: boolean = false,
 ) {
+  const icons = excludeTron
+    ? [<Ethereum key="eth" />, <Polygon key="polygon" />, <Base key="base" />]
+    : [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />];
+
   return {
     id: "depositAddress",
     title: locales.payToAddress,
-    icons: [<Ethereum key="eth" />, <Tron key="tron" />, <Base key="base" />],
+    icons,
     onClick: () => {
       setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN);
     },

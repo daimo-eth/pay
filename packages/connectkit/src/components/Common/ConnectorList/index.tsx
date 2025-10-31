@@ -10,10 +10,10 @@ import {
   isGeminiConnector,
 } from "../../../utils";
 import {
-  WALLET_ID_MOBILE_WALLETS,
+  isExternalWallet,
+  useWallets,
   WALLET_ID_OTHER_WALLET,
   WalletProps,
-  useWallets,
 } from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
 import Alert from "../Alert";
@@ -93,8 +93,7 @@ const ConnectorItem = ({
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets =
     isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
-  const redirectToMobileWallets = wallet.id === WALLET_ID_MOBILE_WALLETS;
-  const redirectToWorld = wallet.id === "world";
+  const isExternalWalletFlow = isExternalWallet(wallet);
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -120,20 +119,16 @@ const ConnectorItem = ({
     }
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS, meta);
-    } else if (redirectToMobileWallets) {
+    } else if (isExternalWalletFlow) {
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
+      } else if (isMobile) {
+        // On mobile, open external wallet directly via deeplink
+        await context.paymentState.openInWalletBrowser(wallet);
       } else {
-        context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
-        context.setRoute(ROUTES.CONNECT, meta);
-      }
-    } else if (redirectToWorld) {
-      if (context.paymentState.isDepositFlow) {
-        context.paymentState.setSelectedWallet(wallet);
-        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
-      } else {
-        context.setPendingConnectorId("world");
+        // On desktop, show QR code for external wallets
+        context.setPendingConnectorId(wallet.id);
         context.setRoute(ROUTES.CONNECT, meta);
       }
     } else if (
@@ -143,11 +138,7 @@ const ConnectorItem = ({
     ) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
-    } else if (
-      isMobile &&
-      wallet.getDaimoPayDeeplink != null &&
-      !wallet.connector
-    ) {
+    } else if (isMobile && wallet.getDaimoPayDeeplink != null) {
       await context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {

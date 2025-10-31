@@ -19,8 +19,10 @@ const SelectDepositAddressChain: React.FC = () => {
     setSelectedDepositAddressOption,
     depositAddressOptions,
     untronAvailable,
+    topOptionsOrder,
   } = paymentState;
   const orderUsd = isDepositFlow ? null : order?.destFinalCallTokenAmount.usd;
+  const excludeTron = topOptionsOrder.includes("Tron");
 
   return (
     <PageContent>
@@ -46,6 +48,16 @@ const SelectDepositAddressChain: React.FC = () => {
         requiredSkeletons={4}
         isLoading={depositAddressOptions.loading}
         options={(depositAddressOptions.options ?? [])
+          .filter((option) => {
+            // Filter out TRON_USDT if Tron is shown as a top-level option
+            if (
+              excludeTron &&
+              option.id === DepositAddressPaymentOptions.TRON_USDT
+            ) {
+              return false;
+            }
+            return true;
+          })
           .map((option) => {
             const disabled =
               // Disable if usd below min

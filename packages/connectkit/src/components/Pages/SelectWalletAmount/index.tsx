@@ -9,7 +9,7 @@ import useIsMobile from "../../../hooks/useIsMobile";
 import styled from "../../../styles/styled";
 import { USD_DECIMALS } from "../../../utils/format";
 import { isValidNumber, sanitizeNumber } from "../../../utils/validateInput";
-import { WALLET_ID_MOBILE_WALLETS } from "../../../wallets/useWallets";
+import { isExternalWallet } from "../../../wallets/useWallets";
 import AmountInputField from "../../Common/AmountInput/AmountInputField";
 import Button from "../../Common/Button";
 import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
@@ -28,6 +28,8 @@ const SelectWalletAmount: React.FC = () => {
     return <PageContent></PageContent>;
   }
 
+  const walletId = selectedWallet?.id;
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value !== "" && !isValidNumber(value, USD_DECIMALS)) return;
@@ -40,14 +42,14 @@ const SelectWalletAmount: React.FC = () => {
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
-    if (
-      selectedWallet.id === WALLET_ID_MOBILE_WALLETS ||
-      (selectedWallet.id === "world" && !isMobile)
-    ) {
-      await hydrateOrder();
-      setPendingConnectorId(selectedWallet.id);
+    await hydrateOrder();
+
+    // External wallets (World, MiniPay, etc.) on desktop show QR code
+    if (isExternalWallet(selectedWallet) && !isMobile) {
+      setPendingConnectorId(walletId!);
       setRoute(ROUTES.CONNECT);
     } else {
+      // Regular wallets or mobile: open in wallet browser
       await openInWalletBrowser(selectedWallet, amountUsd);
     }
   };

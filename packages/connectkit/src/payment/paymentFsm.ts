@@ -10,7 +10,6 @@ import {
   ExternalPaymentOptionsString,
   isHydrated,
   SolanaPublicKey,
-  UniquePaymentOptionsString,
 } from "@daimo/pay-common";
 import { Address, Hex, parseUnits } from "viem";
 import { getDisplayExpiresAt } from "./paymentUtils";
@@ -34,8 +33,11 @@ export interface PayParams {
   toCallData?: Hex;
   /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
   intent?: string;
-  /** Payment options. By default, all are enabled. */
-  paymentOptions?: ExternalPaymentOptionsString[];
+  /** Payment options. By default, all are enabled. Supports nested arrays for mobile wallet filtering. */
+  paymentOptions?: (
+    | ExternalPaymentOptionsString
+    | ExternalPaymentOptionsString[]
+  )[];
   /** Preferred chain IDs. */
   preferredChains?: number[];
   /** Preferred tokens. These appear first in the token list. */
@@ -50,8 +52,6 @@ export interface PayParams {
   refundAddress?: Address;
   /** Pass-through tokens. If the user pays via these tokens, they're sent directly without swapping. */
   passthroughTokens?: { chain: number; address: Address }[];
-  /** Only show one payment option to the user. */
-  uniquePaymentOption?: UniquePaymentOptionsString;
 }
 
 export type PaymentState =

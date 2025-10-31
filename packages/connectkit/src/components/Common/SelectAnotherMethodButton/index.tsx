@@ -1,4 +1,3 @@
-import { ExternalPaymentOptions } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import { MetaMask, Phantom, Rabby, Rainbow } from "../../../assets/logos";
@@ -24,7 +23,11 @@ export default function SelectAnotherMethodButton() {
   const allPaymentOptions = Array.from(
     externalPaymentOptions.options.values(),
   ).flat();
-  const uniquePaymentOption = paymentState.buttonProps?.uniquePaymentOption;
+  const paymentOptions = paymentState.buttonProps?.paymentOptions;
+  const isWalletsOnly =
+    paymentOptions &&
+    paymentOptions.length === 1 &&
+    (Array.isArray(paymentOptions[0]) || paymentOptions[0] === "AllWallets");
 
   const createIconDiv = (content: React.ReactNode, key: string) => (
     <div key={key} style={{ borderRadius: "22.5%", overflow: "hidden" }}>
@@ -64,7 +67,6 @@ export default function SelectAnotherMethodButton() {
 
     // Add external payment options
     const externalIcons = allPaymentOptions
-      .filter((option) => option.id !== ExternalPaymentOptions.Daimo)
       .slice(0, 1)
       .map((option) =>
         createIconDiv(
@@ -113,7 +115,7 @@ export default function SelectAnotherMethodButton() {
         options={
           // If there are non-wallet payment options, show the full select
           // method menu. Otherwise, show the wallet menu.
-          allPaymentOptions.length > 0 && uniquePaymentOption !== "Wallets"
+          allPaymentOptions.length > 0 && !isWalletsOnly
             ? [selectMethodOption]
             : [selectWalletOption]
         }

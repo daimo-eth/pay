@@ -36,3 +36,6 @@ export { PayContext as RozoPayContext } from "./provider/PayContext";
 
 // Stellar integration
 export { useRozoConnectStellar } from "./provider/StellarContextProvider";
+
+// EVM utils
+export { getAddress as getEVMAddress, isAddress as isEVMAddress } from "viem";

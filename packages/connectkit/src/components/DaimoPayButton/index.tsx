@@ -112,6 +112,8 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   onPaymentCompleted?: (event: PaymentCompletedEvent) => void;
   /** Called when destination call reverts and funds are refunded */
   onPaymentBounced?: (event: PaymentBouncedEvent) => void;
+  /** Called when payout completes */
+  onPayoutCompleted?: (event: PaymentCompletedEvent) => void;
   /** Called when the modal is opened. */
   onOpen?: () => void;
   /** Called when the modal is closed. */
@@ -448,7 +450,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
         `[PAY BUTTON] dest tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
       ),
       payment: getRozoPayOrderView(order),
-      rozoPaymentId: rozoPaymentId ?? order.externalId,
+      rozoPaymentId: currentRozoPaymentId,
     };
 
     context.log("[PAY BUTTON] Event", {

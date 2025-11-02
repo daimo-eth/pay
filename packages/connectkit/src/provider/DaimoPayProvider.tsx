@@ -1,4 +1,5 @@
 import {
+  ExternalPaymentOptions,
   RozoPayOrderMode,
   RozoPayOrderStatusSource,
   debugJson,
@@ -264,6 +265,7 @@ const RozoPayUIProvider = ({
 
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
+  useEffect(() => setMode(mode), [mode]);
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(
     () => setDisableMobileInjector(opts.disableMobileInjector ?? false),
@@ -290,9 +292,26 @@ const RozoPayUIProvider = ({
     );
 
     setModalOptions(modalOptions);
+    paymentState.setConnectedWalletOnly(
+      modalOptions.connectedWalletOnly ?? false
+    );
     setOpen(true);
     if (modalOptions.connectedWalletOnly) {
-      paymentState.setTokenMode("all");
+      if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Ethereum)
+      ) {
+        paymentState.setTokenMode("evm");
+      } else if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Solana)
+      ) {
+        paymentState.setTokenMode("solana");
+      } else if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Stellar)
+      ) {
+        paymentState.setTokenMode("stellar");
+      } else {
+        paymentState.setTokenMode("all");
+      }
     }
 
     if (pay.paymentState === "error") {
@@ -392,7 +411,7 @@ const RozoPayUIProvider = ({
         <RozoPayModal
           lang={ckLang}
           theme={ckTheme}
-          mode={mode}
+          mode={ckMode}
           customTheme={ckCustomTheme}
           disableMobileInjector={disableMobileInjector}
         />
@@ -415,9 +434,14 @@ type RozoPayProviderProps = {
    */
   solanaRpcUrl?: string;
   stellarRpcUrl?: string;
-  stellarKit?: StellarWalletsKit;
+
   /** Custom Pay API, useful for test and staging. */
   payApiUrl?: string;
+
+  /** Stellar custom property */
+  stellarKit?: StellarWalletsKit;
+  /** Persistent Stellar wallet connection (localStorage) in StellarContextProvider. */
+  stellarWalletPersistence?: boolean;
 } & useConnectCallbackProps;
 
 /**
@@ -437,6 +461,7 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
         <StellarContextProvider
           rpcUrl={props.stellarRpcUrl}
           kit={props.stellarKit}
+          stellarWalletPersistence={props.stellarWalletPersistence}
         >
           <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
         </StellarContextProvider>

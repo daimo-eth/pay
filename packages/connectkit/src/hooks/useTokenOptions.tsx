@@ -20,6 +20,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
   const { setRoute, paymentState } = usePayContext();
   const {
     isDepositFlow,
+    connectedWalletOnly,
     walletPaymentOptions,
     solanaPaymentOptions,
     stellarPaymentOptions,
@@ -271,8 +272,14 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
 
   // Prevent flickering by only showing loading when we have no data at all
   // and we're actually loading, or when we have some data but are still loading more
+  // Special case: when connectedWalletOnly is true and optionsList is empty,
+  // don't show loading as it indicates no compatible wallet is connected
+  // Don't show loading if connectedWalletOnly is true and no options are available
+  // (this indicates no compatible wallet is connected)
   const shouldShowLoading =
-    isLoading && (!hasAnyData || optionsList.length === 0);
+    connectedWalletOnly && optionsList.length === 0
+      ? false
+      : isLoading && (!hasAnyData || optionsList.length === 0);
 
   return {
     optionsList,

@@ -21,10 +21,11 @@ export default function SelectToken() {
     isMobile || window?.innerWidth < defaultTheme.mobileWidth;
 
   const { paymentState } = usePayContext();
-  const { tokenMode } = paymentState;
+  const { tokenMode, connectedWalletOnly } = paymentState;
   const { optionsList, isLoading, refreshOptions } = useTokenOptions(tokenMode);
+
   const { isConnected: isEvmConnected } = useAccount();
-  const { isConnected: isStellarConnected } = useStellar();
+  const { isConnected: isStellarConnected, connector } = useStellar();
   const { connected: isSolConnected } = useWallet();
 
   const isConnected = useMemo(
@@ -33,9 +34,29 @@ export default function SelectToken() {
   );
 
   const isAnotherMethodButtonVisible = useMemo(
-    () => optionsList.length > 0 && tokenMode !== "all",
-    [optionsList.length, tokenMode]
+    () => optionsList.length > 0 && tokenMode !== "all" && !connectedWalletOnly,
+    [optionsList.length, tokenMode, connectedWalletOnly]
   );
+
+  const noConnectedWallet = useMemo(() => {
+    if (!connectedWalletOnly) return false;
+
+    // Check if there's a connected wallet that matches the payment options
+    const hasMatchingConnectedWallet =
+      (tokenMode === "evm" && isEvmConnected) ||
+      (tokenMode === "solana" && isSolConnected) ||
+      (tokenMode === "stellar" && isStellarConnected && connector) ||
+      (tokenMode === "all" &&
+        (isEvmConnected || isSolConnected || isStellarConnected));
+
+    return !hasMatchingConnectedWallet;
+  }, [
+    isEvmConnected,
+    isSolConnected,
+    isStellarConnected,
+    connectedWalletOnly,
+    tokenMode,
+  ]);
 
   // Prevent showing "Insufficient balance" too quickly to avoid flickering
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
@@ -54,7 +75,11 @@ export default function SelectToken() {
 
   return (
     <PageContent>
-      <OrderHeader minified show={tokenMode} excludeLogos={["stellar"]} />
+      <OrderHeader
+        minified={!connectedWalletOnly}
+        show={tokenMode}
+        excludeLogos={["stellar"]}
+      />
       <OptionsList
         requiredSkeletons={4}
         isLoading={isLoading}
@@ -65,12 +90,22 @@ export default function SelectToken() {
         orDivider={isAnotherMethodButtonVisible}
         hideBottomLine={!isAnotherMethodButtonVisible}
       />
-      {showInsufficientBalance && (
+      {showInsufficientBalance && !noConnectedWallet && (
         <InsufficientBalance onRefresh={refreshOptions} />
       )}
       {!isLoading && !isConnected && tokenMode === "all" && <ConnectButton />}
       {isAnotherMethodButtonVisible && <SelectAnotherMethodButton />}
+      {noConnectedWallet && <NoConnectedWallet />}
     </PageContent>
+  );
+}
+
+function NoConnectedWallet() {
+  return (
+    <ModalContent>
+      <ModalH1>No connected wallet.</ModalH1>
+      <SelectAnotherMethodButton />
+    </ModalContent>
   );
 }
 

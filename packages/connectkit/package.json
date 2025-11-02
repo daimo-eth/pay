@@ -1,7 +1,7 @@
 {
   "name": "@rozoai/intent-pay",
   "private": false,
-  "version": "0.0.31",
+  "version": "0.0.32-beta.15",
   "author": "RozoAI",
   "homepage": "https://github.com/RozoAI/intent-pay",
   "license": "BSD-2-Clause",
@@ -50,7 +50,7 @@
   "dependencies": {
     "@albedo-link/intent": "^0.13.0",
     "@rollup/plugin-typescript": "^12.1.2",
-    "@rozoai/intent-common": "0.0.24",
+    "@rozoai/intent-common": "0.0.25-beta.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",

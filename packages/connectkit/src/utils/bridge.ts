@@ -27,6 +27,7 @@ export interface PaymentBridgeConfig {
   toSolanaAddress?: string;
   toUnits: string;
   walletPaymentOption?: WalletPaymentOption;
+  log: (msg: string) => void;
 }
 
 export interface PreferredPaymentConfig {
@@ -60,6 +61,7 @@ export function createPaymentBridgeConfig({
   toSolanaAddress,
   toUnits,
   walletPaymentOption,
+  log,
 }: PaymentBridgeConfig): {
   preferred: PreferredPaymentConfig;
   destination: DestinationConfig;
@@ -91,7 +93,7 @@ export function createPaymentBridgeConfig({
 
       // Pay In USDC Polygon
       if (selectedToken === polygonUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Polygon");
+        log(`[Payment Bridge] Pay In USDC Polygon`);
         preferred = {
           preferredChain: String(polygonUSDC.chainId),
           preferredToken: "USDC",
@@ -100,7 +102,7 @@ export function createPaymentBridgeConfig({
       }
       // Pay In USDC Solana
       else if (selectedToken === rozoSolanaUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Solana");
+        log(`[Payment Bridge] Pay In USDC Solana`);
         preferred = {
           preferredChain: String(rozoSolanaUSDC.chainId),
           preferredToken: "USDC",
@@ -109,7 +111,7 @@ export function createPaymentBridgeConfig({
       }
       // Pay In USDC Stellar
       else if (selectedToken === rozoStellarUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Stellar");
+        log(`[Payment Bridge] Pay In USDC Stellar`);
         preferred = {
           preferredChain: String(rozoStellarUSDC.chainId),
           preferredToken: "USDC",
@@ -118,7 +120,7 @@ export function createPaymentBridgeConfig({
       }
       // Pay In USDT BSC
       else if (selectedToken === bscUSDT.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDT BSC");
+        log(`[Payment Bridge] Pay In USDT BSC`);
         preferred = {
           preferredChain: String(bscUSDT.chainId),
           preferredToken: "USDT",
@@ -129,7 +131,7 @@ export function createPaymentBridgeConfig({
 
     // Determine destination based on special address types
     if (toStellarAddress) {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Stellar");
+      log(`[Payment Bridge] Pay Out USDC Stellar`);
       destination = {
         destinationAddress: toStellarAddress,
         chainId: String(rozoStellar.chainId),
@@ -138,7 +140,7 @@ export function createPaymentBridgeConfig({
         tokenAddress: `USDC:${STELLAR_USDC_ISSUER_PK}`,
       };
     } else if (toSolanaAddress) {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Solana");
+      log(`[Payment Bridge] Pay Out USDC Solana`);
       destination = {
         destinationAddress: toSolanaAddress,
         chainId: String(rozoSolanaUSDC.chainId),
@@ -147,7 +149,7 @@ export function createPaymentBridgeConfig({
         tokenAddress: rozoSolanaUSDC.token,
       };
     } else {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Base");
+      log(`[Payment Bridge] Pay Out USDC Base`);
       // Keep default Base configuration
     }
   }
@@ -206,7 +208,6 @@ export function formatPaymentResponseDataToHydratedOrder(
     ],
     selectedBridgeTokenOutAddr: null,
     selectedBridgeTokenOutAmount: null,
-    // @TODO: use correct destination token
     destFinalCallTokenAmount: {
       token: {
         chainId: chain ? chain.chainId : baseUSDC.chainId,

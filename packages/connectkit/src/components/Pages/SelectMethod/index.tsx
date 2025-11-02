@@ -4,7 +4,10 @@ import { usePayContext } from "../../../hooks/usePayContext";
 
 import { PageContent } from "../../Common/Modal/styles";
 
-import { getAddressContraction } from "@rozoai/intent-common";
+import {
+  ExternalPaymentOptions,
+  getAddressContraction,
+} from "@rozoai/intent-common";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connector, useAccount, useDisconnect } from "wagmi";
 import {
@@ -31,7 +34,7 @@ import PoweredByFooter from "../../Common/PoweredByFooter";
 import WalletChainLogo from "../../Common/WalletChainLogo";
 
 export default function SelectMethod() {
-  const { isMobile, isIOS, isAndroid } = useIsMobile();
+  const { isMobile } = useIsMobile();
 
   const {
     address,
@@ -42,7 +45,6 @@ export default function SelectMethod() {
   const {
     connected: isSolanaConnected,
     wallet: solanaWallet,
-    wallets: solanaWallets,
     disconnect: disconnectSolana,
     publicKey,
   } = useWallet();
@@ -54,7 +56,6 @@ export default function SelectMethod() {
   // Stellar Support
   const {
     connector: stellarConnector,
-    setConnector: setStellarConnector,
     isConnected: isStellarConnected,
     disconnect: disconnectStellar,
     publicKey: stellarPublicKey,
@@ -65,6 +66,8 @@ export default function SelectMethod() {
     senderEnsName,
     showStellarPaymentMethod,
     payParams,
+    paymentOptions,
+    connectedWalletOnly,
   } = paymentState;
 
   // Decide whether to show the connected eth account, solana account, or both.
@@ -136,7 +139,10 @@ export default function SelectMethod() {
           });
         },
       };
-      connectedOptions.push(connectedEthWalletOption);
+
+      if (paymentOptions?.includes(ExternalPaymentOptions.Ethereum)) {
+        connectedOptions.push(connectedEthWalletOption);
+      }
     }
 
     if (showConnectedSolana && showSolanaPaymentMethod) {
@@ -188,7 +194,9 @@ export default function SelectMethod() {
         },
       };
 
-      connectedOptions.push(connectedSolWalletOption);
+      if (paymentOptions?.includes(ExternalPaymentOptions.Solana)) {
+        connectedOptions.push(connectedSolWalletOption);
+      }
     }
 
     if (showConnectedStellar) {
@@ -227,27 +235,15 @@ export default function SelectMethod() {
         },
       };
 
-      connectedOptions.push(connectedStellarWalletOption);
+      if (paymentOptions?.includes(ExternalPaymentOptions.Stellar)) {
+        connectedOptions.push(connectedStellarWalletOption);
+      }
     }
 
     return connectedOptions;
   };
 
   const connectedWalletOptions = getConnectedWalletOptions();
-  const unconnectedWalletOption = {
-    id: "unconnectedWallet",
-    title:
-      isEthConnected || isSolanaConnected || isStellarConnected
-        ? `Pay with another wallet`
-        : `Pay with wallet`,
-    icons: getBestUnconnectedWalletIcons(connector, isMobile),
-    onClick: async () => {
-      await disconnectAsync();
-      await disconnectSolana();
-      await disconnectStellar();
-      setRoute(ROUTES.CONNECTORS);
-    },
-  };
 
   const options: {
     id: string;
@@ -258,20 +254,37 @@ export default function SelectMethod() {
     disabled?: boolean;
   }[] = [];
   options.push(...connectedWalletOptions);
-  options.push(unconnectedWalletOption);
+
+  if (!connectedWalletOnly) {
+    const unconnectedWalletOption = {
+      id: "unconnectedWallet",
+      title:
+        isEthConnected || isSolanaConnected || isStellarConnected
+          ? `Pay with another wallet`
+          : `Pay with wallet`,
+      icons: getBestUnconnectedWalletIcons(connector, isMobile),
+      onClick: async () => {
+        await disconnectAsync();
+        await disconnectSolana();
+        await disconnectStellar();
+        setRoute(ROUTES.CONNECTORS);
+      },
+    };
+    options.push(unconnectedWalletOption);
+
+    // Pay with Deposit Address
+    const depositAddressOption = getDepositAddressOption(
+      setRoute,
+      payParams?.appId
+    );
+    options.push(depositAddressOption);
+  }
 
   log(
     `[SELECT_METHOD] loading: ${
       externalPaymentOptions.loading
     }, options: ${JSON.stringify(externalPaymentOptions.options)}`
   );
-
-  // Pay with Deposit Address
-  const depositAddressOption = getDepositAddressOption(
-    setRoute,
-    payParams?.appId
-  );
-  options.push(depositAddressOption);
 
   if (showStellarPaymentMethod) {
     options.push({

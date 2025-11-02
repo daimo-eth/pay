@@ -1,5 +1,7 @@
 "use client";
 
+import type { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
+import { Button } from "@headlessui/react";
 import * as Tokens from "@rozoai/intent-common";
 import {
   baseUSDC,
@@ -7,7 +9,11 @@ import {
   getChainNativeToken,
   knownTokens,
 } from "@rozoai/intent-common";
-import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
+import {
+  RozoPayButton,
+  useRozoConnectStellar,
+  useRozoPayUI,
+} from "@rozoai/intent-pay";
 import { useEffect, useMemo, useState } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { Text } from "../../shared/tailwind-catalyst/text";
@@ -39,6 +45,15 @@ export default function DemoBasic() {
   const [codeSnippet, setCodeSnippet] = useState("");
   const [parsedConfig, setParsedConfig] = useState<Config | null>(null);
   const { resetPayment } = useRozoPayUI();
+
+  const {
+    connect,
+    setConnector,
+    disconnect,
+    isConnected,
+    kit: stellarKit,
+    publicKey,
+  } = useRozoConnectStellar();
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);
@@ -185,8 +200,35 @@ export default function DemoBasic() {
     return {
       orderDate: new Date().toISOString(),
       // customDeeplinkUrl: `https://ns.rozo.ai/ns/zen?amount=${parsedConfig?.amount}`,
+      // payer: {
+      //   paymentOptions: [ExternalPaymentOptions.Stellar],
+      // },
     };
-  }, [parsedConfig]);
+  }, []);
+
+  const connectWallet = async () => {
+    if (!stellarKit) return;
+
+    await stellarKit.openModal({
+      onWalletSelected: async (option: ISupportedWallet) => {
+        stellarKit.setWallet(option.id);
+        setConnector(option);
+      },
+    });
+  };
+
+  const disconnectWallet = async () => {
+    try {
+      if (!stellarKit) {
+        console.error("[DemoBasic] Stellar kit not initialized");
+        return;
+      }
+      await disconnect();
+      console.log("[DemoBasic] Disconnected wallet");
+    } catch (error) {
+      console.error("[DemoBasic] Error disconnecting wallet", error);
+    }
+  };
 
   return (
     <Container className="max-w-4xl mx-auto p-6">
@@ -195,9 +237,10 @@ export default function DemoBasic() {
         chain. Configure the recipient to make a payment to yourself.
       </Text>
 
-      {/* StellarWalletsKit Tests */}
-      {/* <StellarConflictTest />
-      <StellarIntegrationTest /> */}
+      <Button onClick={connectWallet}>Connect Wallet</Button>
+      <Button onClick={disconnectWallet} disabled={!publicKey}>
+        Disconnect Wallet
+      </Button>
 
       <div className="flex flex-col items-center gap-8">
         {Boolean(hasValidConfig) && parsedConfig ? (

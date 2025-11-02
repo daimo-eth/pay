@@ -18,8 +18,7 @@ import TokenLogoSpinner from "../../Spinners/TokenLogoSpinner";
 
 enum PayState {
   RequestingPayment = "Waiting For Payment",
-  CreatingPayment = "Creating Payment Record...",
-  SwitchingChain = "Switching Chain",
+  PreparingTransaction = "Preparing Transaction",
   RequestCancelled = "Payment Cancelled",
   RequestSuccessful = "Payment Successful",
   RequestFailed = "Payment Failed",
@@ -71,7 +70,7 @@ const PayWithToken: React.FC = () => {
 
   const handleTransfer = async (option: WalletPaymentOption) => {
     // Switch chain if necessary
-    setPayState(PayState.SwitchingChain);
+    setPayState(PayState.PreparingTransaction);
     const switchChain = await trySwitchingChain(option);
 
     if (!switchChain) {

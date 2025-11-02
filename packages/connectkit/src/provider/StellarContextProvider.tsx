@@ -17,10 +17,12 @@ type StellarContextProvider = {
   children: ReactNode;
   rpcUrl?: string;
   kit?: StellarWalletsKit; // OPTIONAL - if provided, uses this; otherwise creates singleton
+  stellarWalletPersistence?: boolean;
 };
 
 type StellarContextProviderValue = {
   kit: StellarWalletsKit | undefined;
+  stellarWalletPersistence: boolean;
   server: Horizon.Server;
   publicKey: string | undefined;
   setPublicKey: (publicKey: string) => void;
@@ -29,7 +31,8 @@ type StellarContextProviderValue = {
   isConnected: boolean;
   connector: ISupportedWallet | undefined;
   setConnector: (connector: ISupportedWallet) => void;
-  disconnect: () => void;
+  setWallet: (option: ISupportedWallet) => Promise<void>;
+  disconnect: () => Promise<void>;
   convertXlmToUsdc: (amount: string) => Promise<string>;
 };
 
@@ -37,8 +40,9 @@ export type StellarWalletName = ISupportedWallet;
 
 const STELLAR_WALLET_STORAGE_KEY = "rozo-stellar-wallet";
 
-const initialContext = {
+const initialContext: StellarContextProviderValue = {
   kit: undefined,
+  stellarWalletPersistence: true,
   server: undefined as any,
   publicKey: undefined,
   setPublicKey: () => {},
@@ -47,7 +51,8 @@ const initialContext = {
   isConnected: false,
   connector: undefined,
   setConnector: () => {},
-  disconnect: () => {},
+  setWallet: () => Promise.resolve(),
+  disconnect: () => Promise.resolve(),
   convertXlmToUsdc: () => Promise.resolve(""),
 };
 
@@ -58,7 +63,12 @@ export const StellarContextProvider = ({
   children,
   rpcUrl,
   kit: externalKit,
+  stellarWalletPersistence: _stellarWalletPersistence,
 }: StellarContextProvider) => {
+  // Set persistence: default true
+  const stellarWalletPersistence =
+    _stellarWalletPersistence !== undefined ? _stellarWalletPersistence : true;
+
   const [publicKey, setPublicKey] = useState<string | undefined>(undefined);
   const [accountInfo, setAccountInfo] = useState<
     Horizon.AccountResponse | undefined
@@ -74,15 +84,111 @@ export const StellarContextProvider = ({
 
   const kit = externalKit || internalKit;
 
+  const isUsingExternalKit = useMemo(() => {
+    return !!externalKit;
+  }, [externalKit]);
+
+  const server = useMemo(() => {
+    const s = new Horizon.Server(rpcUrl ?? DEFAULT_STELLAR_RPC_URL);
+    return s;
+  }, [rpcUrl]);
+
+  // Debug: on kit (external/internal) assign/change
+  useEffect(() => {}, [externalKit, internalKit]);
+
+  const getAccountInfo = async (publicKey: string) => {
+    try {
+      const data = await server.loadAccount(publicKey);
+      setAccountInfo(data);
+      setIsAccountExists(true);
+    } catch (error: any) {
+      console.error("[Rozo] getAccountInfo error", error);
+      setIsAccountExists(false);
+    }
+  };
+
+  const convertXlmToUsdc = async (amount: string) => {
+    try {
+      const destAsset = new Asset(
+        STELLAR_USDC_ASSET_CODE,
+        STELLAR_USDC_ISSUER_PK
+      );
+      const pathResults = await server
+        .strictSendPaths(Asset.native(), amount, [destAsset])
+        .call();
+      if (!pathResults?.records?.length) {
+        throw new Error("No exchange rate found for XLM swap");
+      }
+      const bestPath = pathResults.records[0];
+      const estimatedDestMinAmount = (
+        parseFloat(bestPath.destination_amount) * 0.94
+      ).toFixed(2);
+      return estimatedDestMinAmount;
+    } catch (error: any) {
+      console.error("[Rozo] convertXlmToUsdc error", error);
+      throw error;
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      setPublicKey(undefined);
+      setConnector(undefined);
+      setAccountInfo(undefined);
+      if (stellarWalletPersistence) {
+        LocalStorage.clear(STELLAR_WALLET_STORAGE_KEY);
+      }
+      if (kit) {
+        if (!isUsingExternalKit) {
+          await kit.disconnect();
+        }
+      }
+    } catch (error: any) {
+      console.error("[Rozo] disconnect error", error);
+    }
+  };
+
+  const setWallet = async (option: ISupportedWallet) => {
+    if (!kit) {
+      throw new Error("Stellar kit not initialized yet. Please wait...");
+    }
+
+    if (!option) return;
+
+    try {
+      let pk = publicKey;
+      if (!isUsingExternalKit) {
+        kit.setWallet(option.id);
+        const { address } = await kit.getAddress();
+        pk = address;
+        setPublicKey(address);
+      }
+
+      setConnector(option);
+
+      if (stellarWalletPersistence) {
+        LocalStorage.add(STELLAR_WALLET_STORAGE_KEY, {
+          walletId: option.id,
+          walletName: option.name,
+          walletIcon: option.icon,
+          publicKey: pk,
+        });
+      }
+    } catch (err: any) {
+      console.error("[Rozo] setWallet error", err);
+      throw new Error(err.message || "Failed to set wallet");
+    }
+  };
+
   // Initialize kit using singleton pattern
   useEffect(() => {
-    // Skip if external kit provided or already initialized
-    if (externalKit || internalKit) {
+    // Skip on server-side
+    if (typeof window === "undefined") {
       return;
     }
 
-    // Skip on server-side
-    if (typeof window === "undefined") {
+    // Skip if external kit provided or already initialized
+    if (isUsingExternalKit) {
       return;
     }
 
@@ -95,7 +201,10 @@ export const StellarContextProvider = ({
         }
       })
       .catch((error) => {
-        console.error("[Rozo] Failed to initialize Stellar kit:", error);
+        console.error(
+          "[Rozo] Failed to initialize Stellar kit (singleton):",
+          error
+        );
         if (mounted) {
           setKitError(error.message);
         }
@@ -104,7 +213,7 @@ export const StellarContextProvider = ({
     return () => {
       mounted = false;
     };
-  }, [externalKit, internalKit]);
+  }, []);
 
   // Show error if kit initialization failed
   useEffect(() => {
@@ -124,91 +233,28 @@ export const StellarContextProvider = ({
     }
   }, [kitError]);
 
-  // Auto-reconnect to previously connected wallet
+  // Auto-reconnect to previously connected wallet - only if persistence is true
   useEffect(() => {
-    if (kit && typeof window !== "undefined") {
+    if (kit && typeof window !== "undefined" && stellarWalletPersistence) {
       const savedWallet = LocalStorage.get(STELLAR_WALLET_STORAGE_KEY);
-
       if (savedWallet && savedWallet.length > 0) {
         const lastWallet = savedWallet[0];
-
         if (lastWallet.walletId && lastWallet.publicKey) {
           try {
-            kit.setWallet(lastWallet.walletId);
-
-            setConnector({
+            setWallet({
               id: lastWallet.walletId,
-              name: lastWallet.walletName || lastWallet.walletId,
-              icon: lastWallet.walletIcon || "",
-            } as ISupportedWallet);
-            setPublicKey(lastWallet.publicKey);
-          } catch (error) {
-            console.warn(
-              "Previously connected Stellar wallet is no longer available:",
-              error
-            );
-            LocalStorage.clear(STELLAR_WALLET_STORAGE_KEY);
+              name: lastWallet.walletName,
+              icon: lastWallet.walletIcon,
+              ...lastWallet,
+            });
+          } catch (error: any) {
+            console.error("[Rozo] Auto-reconnect failed:", error);
+            disconnect();
           }
         }
       }
     }
-  }, [kit]);
-
-  const server = useMemo(
-    () => new Horizon.Server(rpcUrl ?? DEFAULT_STELLAR_RPC_URL),
-    [rpcUrl]
-  );
-
-  const getAccountInfo = async (publicKey: string) => {
-    try {
-      const data = await server.loadAccount(publicKey);
-      setAccountInfo(data);
-      setIsAccountExists(true);
-    } catch (error: any) {
-      console.error(error);
-      setIsAccountExists(false);
-    }
-  };
-
-  const convertXlmToUsdc = async (amount: string) => {
-    try {
-      const destAsset = new Asset(
-        STELLAR_USDC_ASSET_CODE,
-        STELLAR_USDC_ISSUER_PK
-      );
-      const pathResults = await server
-        .strictSendPaths(Asset.native(), amount, [destAsset])
-        .call();
-
-      if (!pathResults?.records?.length) {
-        throw new Error("No exchange rate found for XLM swap");
-      }
-
-      const bestPath = pathResults.records[0];
-      const estimatedDestMinAmount = (
-        parseFloat(bestPath.destination_amount) * 0.94
-      ).toFixed(2);
-
-      return estimatedDestMinAmount;
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const disconnect = async () => {
-    try {
-      setPublicKey(undefined);
-      setConnector(undefined);
-      setAccountInfo(undefined);
-      LocalStorage.clear(STELLAR_WALLET_STORAGE_KEY);
-
-      if (kit) {
-        await kit.disconnect();
-      }
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
+  }, [kit, stellarWalletPersistence]);
 
   useEffect(() => {
     if (publicKey) {
@@ -216,9 +262,10 @@ export const StellarContextProvider = ({
     }
   }, [publicKey]);
 
-  const contextValue = useMemo(
-    () => ({
+  const contextValue = useMemo(() => {
+    const context: StellarContextProviderValue = {
       kit,
+      stellarWalletPersistence,
       publicKey,
       setPublicKey,
       server,
@@ -227,19 +274,21 @@ export const StellarContextProvider = ({
       isConnected: !!publicKey,
       connector,
       setConnector,
+      setWallet,
       disconnect,
       convertXlmToUsdc,
-    }),
-    [
-      kit,
-      publicKey,
-      server,
-      accountInfo,
-      isAccountExists,
-      connector,
-      convertXlmToUsdc,
-    ]
-  );
+    };
+    return context;
+  }, [
+    kit,
+    stellarWalletPersistence,
+    publicKey,
+    server,
+    accountInfo,
+    isAccountExists,
+    connector,
+    convertXlmToUsdc,
+  ]);
 
   return (
     <StellarContext.Provider value={contextValue}>
@@ -264,62 +313,19 @@ export const useRozoConnectStellar = () => {
     isConnected,
     connector,
     disconnect,
-    setConnector,
     setPublicKey,
+    setWallet: setConnector,
   } = useStellar();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const connect = async () => {
-    if (!kit) {
-      setError("Stellar kit not initialized yet. Please wait...");
-      return;
-    }
-
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      await kit.openModal({
-        onWalletSelected: async (option: ISupportedWallet) => {
-          try {
-            kit.setWallet(option.id);
-            const { address } = await kit.getAddress();
-
-            setConnector(option);
-            setPublicKey(address);
-
-            LocalStorage.add(STELLAR_WALLET_STORAGE_KEY, {
-              walletId: option.id,
-              walletName: option.name,
-              walletIcon: option.icon,
-              publicKey: address,
-            });
-          } catch (err: any) {
-            setError(err.message || "Failed to connect wallet");
-            throw err;
-          }
-        },
-      });
-    } catch (err: any) {
-      setError(err.message || "Failed to open wallet modal");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   return {
+    kit,
     isConnected,
-    isConnecting,
     publicKey,
     account,
     connector,
-    error,
-    connect,
-    disconnect: async () => {
-      setError(null);
-      await disconnect();
-    },
+    setPublicKey,
+    setConnector,
+    disconnect,
   };
 };
 

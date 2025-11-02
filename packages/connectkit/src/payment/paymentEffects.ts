@@ -98,7 +98,7 @@ export function attachPaymentEffectHandlers(
         break;
       case "hydrate_order": {
         if (prev.type === "preview") {
-          runHydratePayParamsEffects(store, trpc, prev, event);
+          runHydratePayParamsEffects(store, trpc, prev, event, log);
         } else if (prev.type === "unhydrated") {
           runHydratePayIdEffects(store, trpc, prev, event);
         } else {
@@ -356,7 +356,8 @@ async function runHydratePayParamsEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "preview" }>,
-  event: Extract<PaymentEvent, { type: "hydrate_order" }>
+  event: Extract<PaymentEvent, { type: "hydrate_order" }>,
+  log: (msg: string) => void
 ) {
   const order = prev.order;
   const payParams = prev.payParamsData;
@@ -388,6 +389,7 @@ async function runHydratePayParamsEffects(
     toStellarAddress: payParams?.toStellarAddress,
     toUnits: toUnits,
     walletPaymentOption: walletPaymentOption,
+    log,
   });
 
   const paymentData = createRozoPaymentRequest({

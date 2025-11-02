@@ -10,6 +10,7 @@ import {
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  ExternalPaymentOptionsString,
   getChainById,
   getOrderDestChainId,
   isCCTPV1Chain,
@@ -95,6 +96,10 @@ export interface PaymentState {
   buttonProps: PayButtonPaymentProps | undefined;
   setButtonProps: (props: PayButtonPaymentProps | undefined) => void;
 
+  /// Modal options
+  connectedWalletOnly: boolean;
+  setConnectedWalletOnly: (value: boolean) => void;
+
   /// Pay ID for loading an existing order
   setPayId: (id: string | undefined) => void;
   /// Pay params for creating an order on the fly,
@@ -111,6 +116,7 @@ export interface PaymentState {
   selectedWalletDeepLink: string | undefined;
   showSolanaPaymentMethod: boolean;
   showStellarPaymentMethod: boolean;
+  paymentOptions: ExternalPaymentOptionsString[] | undefined;
   walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
   solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
   stellarPaymentOptions: ReturnType<typeof useStellarPaymentOptions>;
@@ -249,12 +255,25 @@ export function usePaymentState({
     kit: stellarKit,
     connector: stellarConnector,
     server: stellarServer,
-    convertXlmToUsdc,
   } = useStellar();
   const stellarPubKey = stellarPublicKey;
 
+  // From RozoPayButton props
+  const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
+  const [currPayParams, setCurrPayParams] = useState<PayParams>();
+
+  // Modal options
+  const [connectedWalletOnly, setConnectedWalletOnly] =
+    useState<boolean>(false);
+
+  const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
+  const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
+
   // TODO: backend should determine whether to show solana payment method
-  const paymentOptions = pay.order?.metadata.payer?.paymentOptions;
+  const paymentOptions = useMemo(() => {
+    return currPayParams?.paymentOptions;
+  }, [buttonProps, currPayParams]);
+
   // Include by default if paymentOptions not provided. Solana bridging is only
   // supported on CCTP v1 chains.
   const showSolanaPaymentMethod = useMemo(() => {
@@ -265,13 +284,6 @@ export function usePaymentState({
       isCCTPV1Chain(getOrderDestChainId(pay.order))
     );
   }, [paymentOptions, pay.order]);
-
-  // From RozoPayButton props
-  const [buttonProps, setButtonProps] = useState<PayButtonPaymentProps>();
-  const [currPayParams, setCurrPayParams] = useState<PayParams>();
-
-  const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
-  const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
 
   const showStellarPaymentMethod = useMemo(() => {
     return (
@@ -407,6 +419,7 @@ export function usePaymentState({
       toStellarAddress: payParams?.toStellarAddress,
       toUnits: payParams?.toUnits ?? "",
       walletPaymentOption: walletOption,
+      log,
     });
 
     const paymentData = createRozoPaymentRequest({
@@ -1103,6 +1116,8 @@ export function usePaymentState({
   return {
     buttonProps,
     setButtonProps,
+    connectedWalletOnly,
+    setConnectedWalletOnly,
     setPayId,
     setPayParams,
     payParams: currPayParams,
@@ -1115,10 +1130,11 @@ export function usePaymentState({
     selectedTokenOption,
     selectedSolanaTokenOption,
     selectedStellarTokenOption,
-    externalPaymentOptions,
     showSolanaPaymentMethod,
     showStellarPaymentMethod,
     selectedWallet,
+    paymentOptions,
+    externalPaymentOptions,
     selectedWalletDeepLink,
     walletPaymentOptions,
     solanaPaymentOptions,

@@ -850,16 +850,6 @@ export function usePaymentState({
 
       log("[PAY STELLAR] Transaction built", transactionBuilder.toXDR());
       return { signedTx: transactionBuilder.toXDR(), success: true };
-
-      // const submittedTx = await stellarServer.submitTransaction(tx);
-
-      // if (!submittedTx?.successful) {
-      //   throw new Error(
-      //     `Transaction failed: ${submittedTx?.result_xdr ?? "Unknown error"}`
-      //   );
-      // }
-
-      // return { txHash: submittedTx?.hash ?? "", success: true };
     } catch (error: any) {
       log("[PAY STELLAR] Error", error);
       throw new Error(error.message);

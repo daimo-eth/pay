@@ -10,11 +10,9 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  getChainExplorerTxUrl,
   RozoPayHydratedOrderWithOrg,
-  RozoPayTokenAmount,
-  rozoSolana,
-  rozoSolanaUSDC,
-  rozoStellarUSDC,
+  stellar,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import {
@@ -23,17 +21,9 @@ import {
   Transaction,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import {
-  ROZO_DAIMO_APP_ID,
-  STELLAR_USDC_ISSUER_PK,
-} from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useStellarDestination } from "../../../../hooks/useStellarDestination";
 import { useStellar } from "../../../../provider/StellarContextProvider";
-import {
-  createRozoPayment,
-  createRozoPaymentRequest,
-} from "../../../../utils/api";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
@@ -41,7 +31,7 @@ import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
 
 enum PayState {
-  CreatingPayment = "Creating Payment Record...",
+  PreparingTransaction = "Preparing Transaction",
   RequestingPayment = "Waiting for Payment",
   WaitingForConfirmation = "Waiting for Confirmation",
   ProcessingPayment = "Processing Payment",
@@ -51,7 +41,7 @@ enum PayState {
 }
 
 const PayWithStellarToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const {
     selectedStellarTokenOption,
     payWithStellarToken: payWithStellarTokenImpl,
@@ -67,80 +57,22 @@ const PayWithStellarToken: React.FC = () => {
     hydrateOrderRozo,
   } = useRozoPay();
 
-  const [payState, setPayState] = useState<PayState>(PayState.CreatingPayment);
+  const [payState, setPayState] = useState<PayState>(
+    PayState.PreparingTransaction
+  );
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [signedTx, setSignedTx] = useState<string | undefined>();
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   // Get the destination address and payment direction using our custom hook
-  const { destinationAddress, hasToStellarAddress } =
-    useStellarDestination(payParams);
+  const { destinationAddress } = useStellarDestination(payParams);
 
   const {
-    convertXlmToUsdc,
     server: stellarServer,
     publicKey: stellarPublicKey,
     kit: stellarKit,
   } = useStellar();
-
-  // ROZO API CALL
-  const handleCreatePayment = async (
-    payToken: RozoPayTokenAmount,
-    destinationAddress?: string
-  ) => {
-    setPayState(PayState.CreatingPayment);
-
-    let amount: any = roundTokenAmount(payToken.amount, payToken.token);
-    // Convert XLM to USDC for Pay In Stellar, Pay Out Stellar scenarios
-    if (payToken.token.symbol === "XLM") {
-      amount = await convertXlmToUsdc(amount);
-    }
-
-    const paymentData = createRozoPaymentRequest({
-      appId: payParams?.appId ?? ROZO_DAIMO_APP_ID,
-      display: {
-        intent: order?.metadata?.intent ?? "",
-        paymentValue: String(payToken.usd),
-        currency: "USD",
-      },
-      preferredChain: String(rozoStellarUSDC.chainId),
-      preferredToken: "USDC",
-      destination: {
-        destinationAddress: destinationAddress,
-        chainId: hasToStellarAddress
-          ? String(rozoStellarUSDC.chainId)
-          : payParams?.toSolanaAddress
-          ? String(rozoSolana.chainId)
-          : String(payParams?.toChain),
-        amountUnits: amount,
-        tokenSymbol: "USDC",
-        tokenAddress: hasToStellarAddress
-          ? `USDC:${STELLAR_USDC_ISSUER_PK}`
-          : payParams?.toSolanaAddress
-          ? rozoSolanaUSDC.token
-          : payParams?.toToken,
-      },
-      externalId: order?.externalId ?? "",
-      metadata: {
-        // daimoOrderId: order?.id ?? "",
-        ...(order?.metadata ?? {}),
-      },
-    });
-
-    // API Call
-    try {
-      const response = await createRozoPayment(paymentData);
-
-      if (!response?.data?.id) {
-        throw new Error(response?.error?.message ?? "Payment creation failed");
-      }
-
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
 
   // FOR TRANSFER ACTION
   const handleTransfer = async (option: WalletPaymentOption) => {
@@ -150,15 +82,8 @@ const PayWithStellarToken: React.FC = () => {
         throw new Error("Stellar destination address is required");
       }
 
-      const { required } = option;
-
       let payment: RozoPayHydratedOrderWithOrg | undefined;
       if (!payment) {
-        // Use destinationAddress directly as it's now the middleware address
-        // payment = await handleCreatePayment(
-        //   option.required,
-        //   destinationAddress
-        // );
         const hydratedOrder = await hydrateOrderRozo(undefined, option);
         if (!hydratedOrder.order) {
           throw new Error("Hydrated order not found");
@@ -188,11 +113,10 @@ const PayWithStellarToken: React.FC = () => {
       }
 
       const result = await payWithStellarTokenImpl(option, paymentData);
-
       setSignedTx(result.signedTx);
       setPayState(PayState.WaitingForConfirmation);
     } catch (error) {
-      if (error instanceof Error && error.message.includes("declined")) {
+      if ((error as any).message.includes("rejected")) {
         setPayState(PayState.RequestCancelled);
       } else {
         setPayState(PayState.RequestFailed);
@@ -226,8 +150,9 @@ const PayWithStellarToken: React.FC = () => {
         if (response.successful) {
           setPayState(PayState.RequestSuccessful);
           setTxHash(response.hash);
-          setSignedTx(undefined);
+          setTxURL(getChainExplorerTxUrl(stellar.chainId, response.hash));
           setTimeout(() => {
+            setSignedTx(undefined);
             setPaymentRozoCompleted(true);
             setPaymentCompleted(response.hash, rozoPaymentId);
             setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-stellar" });
@@ -236,14 +161,16 @@ const PayWithStellarToken: React.FC = () => {
           setPayState(PayState.RequestFailed);
         }
       } catch (error) {
-        setPayState(PayState.RequestFailed);
+        if ((error as any).message.includes("rejected")) {
+          setPayState(PayState.RequestCancelled);
+        } else {
+          setPayState(PayState.RequestFailed);
+        }
       } finally {
         setIsLoading(false);
       }
     } else {
-      console.error(
-        "[PAY STELLAR] Cannot submit transaction - missing requirements"
-      );
+      log?.("[PAY STELLAR] Cannot submit transaction - missing requirements");
     }
   };
 
@@ -297,19 +224,12 @@ const PayWithStellarToken: React.FC = () => {
         )}
         <PaymentBreakdown paymentOption={selectedStellarTokenOption} />
         {payState === PayState.WaitingForConfirmation && signedTx && (
-          <Button
-            variant="primary"
-            onClick={() => {
-              handleSubmitTx();
-            }}
-          >
+          <Button variant="primary" onClick={handleSubmitTx}>
             Confirm Payment
           </Button>
         )}
         {payState === PayState.RequestCancelled && (
-          <Button onClick={() => handleTransfer(selectedStellarTokenOption)}>
-            Retry Payment
-          </Button>
+          <Button onClick={handleSubmitTx}>Retry Payment</Button>
         )}
         {payState === PayState.RequestFailed && (
           <Button

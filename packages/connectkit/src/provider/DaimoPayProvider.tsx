@@ -462,6 +462,7 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
           rpcUrl={props.stellarRpcUrl}
           kit={props.stellarKit}
           stellarWalletPersistence={props.stellarWalletPersistence}
+          log={log}
         >
           <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
         </StellarContextProvider>

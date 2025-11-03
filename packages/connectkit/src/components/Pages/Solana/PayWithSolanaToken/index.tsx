@@ -26,8 +26,9 @@ import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
+
 enum PayState {
-  CreatingPayment = "Creating Payment Record...",
+  PreparingTransaction = "Preparing Transaction",
   RequestingPayment = "Waiting for Payment",
   RequestCancelled = "Payment Cancelled",
   RequestFailed = "Payment Failed",

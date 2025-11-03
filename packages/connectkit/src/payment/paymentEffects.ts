@@ -9,6 +9,7 @@ import {
   RozoPayOrderStatusDest,
   RozoPayOrderStatusSource,
   RozoPayOrderWithOrg,
+  TokenLogo,
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress, parseUnits } from "viem";
 import { ROZO_DAIMO_APP_ID } from "../constants/rozoConfig";
@@ -280,8 +281,8 @@ async function runSetPayParamsEffects(
           priceFromUsd: 1,
           decimals: token?.decimals ?? 18,
           displayDecimals: 2,
-          logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-          logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
+          logoSourceURI: TokenLogo.USDC,
+          logoURI: TokenLogo.USDC,
           maxAcceptUsd: 100000,
           maxSendUsd: 0,
         },

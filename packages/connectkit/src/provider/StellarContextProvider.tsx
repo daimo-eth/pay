@@ -18,6 +18,7 @@ type StellarContextProvider = {
   rpcUrl?: string;
   kit?: StellarWalletsKit; // OPTIONAL - if provided, uses this; otherwise creates singleton
   stellarWalletPersistence?: boolean;
+  log?: (msg: string) => void;
 };
 
 type StellarContextProviderValue = {
@@ -64,6 +65,7 @@ export const StellarContextProvider = ({
   rpcUrl,
   kit: externalKit,
   stellarWalletPersistence: _stellarWalletPersistence,
+  log,
 }: StellarContextProvider) => {
   // Set persistence: default true
   const stellarWalletPersistence =
@@ -194,7 +196,7 @@ export const StellarContextProvider = ({
 
     let mounted = true;
 
-    getStellarKitInstance()
+    getStellarKitInstance({ log })
       .then((kitInstance) => {
         if (mounted) {
           setInternalKit(kitInstance);

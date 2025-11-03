@@ -12,6 +12,7 @@ declare global {
  * This prevents duplicate custom element registration errors
  */
 export async function getStellarKitInstance(config?: {
+  log?: (msg: string) => void;
   network?: any;
   selectedWalletId?: string;
   modules?: any[];
@@ -21,7 +22,7 @@ export async function getStellarKitInstance(config?: {
     typeof window !== "undefined" &&
     globalThis.__ROZO_STELLAR_KIT_INSTANCE__
   ) {
-    console.log("[Rozo] Using existing StellarWalletsKit instance");
+    config?.log?.("[Rozo] Using existing StellarWalletsKit instance");
     return globalThis.__ROZO_STELLAR_KIT_INSTANCE__;
   }
 
@@ -30,7 +31,7 @@ export async function getStellarKitInstance(config?: {
     typeof window !== "undefined" &&
     globalThis.__ROZO_STELLAR_KIT_LOADING__
   ) {
-    console.log("[Rozo] Waiting for StellarWalletsKit initialization...");
+    config?.log?.("[Rozo] Waiting for StellarWalletsKit initialization...");
     return globalThis.__ROZO_STELLAR_KIT_LOADING__;
   }
 
@@ -85,10 +86,10 @@ export async function getStellarKitInstance(config?: {
         globalThis.__ROZO_STELLAR_KIT_INSTANCE__ = newKit;
       }
 
-      console.log("[Rozo] StellarWalletsKit initialized successfully");
+      config?.log?.("[Rozo] StellarWalletsKit initialized successfully");
       return newKit;
     } catch (error) {
-      console.error("[Rozo] Failed to initialize StellarWalletsKit:", error);
+      config?.log?.(`[Rozo] Failed to initialize StellarWalletsKit: ${error}`);
       throw error;
     } finally {
       if (typeof window !== "undefined") {

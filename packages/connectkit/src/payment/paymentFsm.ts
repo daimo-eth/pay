@@ -156,10 +156,11 @@ type PayParamsData = {
  */
 export function paymentReducer(
   state: PaymentState,
-  event: PaymentEvent
+  event: PaymentEvent,
+  log?: (msg: string) => void
 ): PaymentState {
-  console.log(state);
-  console.log(event);
+  log?.(`[PAYMENT] state: ${JSON.stringify(state)}`);
+  log?.(`[PAYMENT] event: ${JSON.stringify(event)}`);
   switch (state.type) {
     case "idle":
       return reduceIdle(state, event);

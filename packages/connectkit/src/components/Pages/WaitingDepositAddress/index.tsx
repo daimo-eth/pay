@@ -5,6 +5,7 @@ import {
   DepositAddressPaymentOptionMetadata,
   DepositAddressPaymentOptions,
   ethereumUSDC,
+  generateEVMDeepLink,
   getAddressContraction,
   getChainName,
   isHydrated,
@@ -292,6 +293,13 @@ export default function WaitingDepositAddress() {
         expirationS = Number(order.expirationTs);
       }
 
+      const evmDeepLink = generateEVMDeepLink({
+        amountUnits: order.destFinalCallTokenAmount.amount,
+        chainId: order.destFinalCallTokenAmount.token.chainId,
+        recipientAddress: order.destFinalCall.to,
+        tokenAddress: order.destFinalCallTokenAmount.token.token,
+      });
+
       setDepAddr({
         address: order.destFinalCall.to,
         amount: String(order.usdValue),
@@ -303,7 +311,7 @@ export default function WaitingDepositAddress() {
           order.destFinalCallTokenAmount.token.symbol
         } on ${getChainName(order.destFinalCallTokenAmount.token.chainId)}`,
         expirationS: expirationS,
-        uri: order.destFinalCall.to,
+        uri: evmDeepLink,
         displayToken: order.destFinalCallTokenAmount.token,
         logoURI: "", // Not needed for underpaid orders
         memo: order.metadata?.memo || "",

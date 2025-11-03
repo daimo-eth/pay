@@ -11,6 +11,7 @@ import {
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
   ExternalPaymentOptionsString,
+  generateEVMDeepLink,
   getChainById,
   getOrderDestChainId,
   isCCTPV1Chain,
@@ -933,11 +934,20 @@ export function usePaymentState({
 
       const chain = getChainById(token.chainId);
 
+      log(order);
+
+      const evmDeeplink = generateEVMDeepLink({
+        amountUnits: order.destFinalCallTokenAmount.amount,
+        chainId: order.destFinalCallTokenAmount.token.chainId,
+        recipientAddress: order.destFinalCall.to,
+        tokenAddress: order.destFinalCallTokenAmount.token.token,
+      });
+
       return {
         address: order.destFinalCall.to,
         amount: String(order.usdValue),
         suffix: `${token.symbol} ${chain.name}`,
-        uri: order.destFinalCall.to,
+        uri: evmDeeplink,
         expirationS: Math.floor(Date.now() / 1000) + 300,
         externalId: order.externalId ?? "",
         memo: order.metadata?.memo || "",

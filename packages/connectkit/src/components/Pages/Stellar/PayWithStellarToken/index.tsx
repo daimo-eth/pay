@@ -123,7 +123,7 @@ const PayWithStellarToken: React.FC = () => {
       },
       externalId: order?.externalId ?? "",
       metadata: {
-        daimoOrderId: order?.id ?? "",
+        // daimoOrderId: order?.id ?? "",
         ...(order?.metadata ?? {}),
       },
     });

@@ -433,7 +433,7 @@ export function usePaymentState({
       destination,
       externalId: order?.externalId ?? "",
       metadata: {
-        daimoOrderId: order?.id ?? "",
+        // daimoOrderId: order?.id ?? "",
         ...(payParams?.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order?.userMetadata ?? {}),

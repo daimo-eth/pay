@@ -64,7 +64,7 @@ export interface PaymentResponseData {
     tokenAddress: string;
   };
   metadata: {
-    daimoOrderId: string;
+    daimoOrderId?: string;
     intent: string;
     items: unknown[];
     payer: Record<string, unknown>;

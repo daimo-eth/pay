@@ -255,7 +255,7 @@ export function formatPaymentResponseDataToHydratedOrder(
       ...(order?.metadata ?? {}),
       ...(order.userMetadata ?? {}),
       ...(order.metadata ?? {}),
-      daimoOrderId: order?.id ?? null,
+      // daimoOrderId: order?.id ?? null,
     } as any,
     externalId: order.externalId as string | null,
     userMetadata: order.userMetadata as RozoPayUserMetadata | null,

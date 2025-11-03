@@ -403,7 +403,7 @@ async function runHydratePayParamsEffects(
     destination,
     externalId: order?.externalId ?? "",
     metadata: {
-      daimoOrderId: order?.id ?? "",
+      // daimoOrderId: order?.id ?? "",
       preferredChain: preferred.preferredChain,
       preferredToken: preferred.preferredToken,
       preferredTokenAddress: preferred.preferredTokenAddress,
@@ -581,7 +581,7 @@ async function runHydratePayIdEffects(
         ...(orderData.data.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order.userMetadata ?? {}),
-        daimoOrderId: order?.id ?? null,
+        // daimoOrderId: order?.id ?? null,
       } as any,
       externalId:
         orderData.data.externalId?.toString() ?? orderData.data.id ?? null,

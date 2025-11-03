@@ -1,10 +1,11 @@
 {
   "name": "@rozoai/intent-common",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Intent Pay shared types and utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "RozoAI",
+  "homepage": "https://github.com/RozoAI/intent-pay",
   "license": "BSD-2-Clause",
   "scripts": {
     "build": "tsc",

@@ -12,8 +12,9 @@ import { writeDaimoPayOrderID } from "@daimo/pay-common";
 import { SquircleIcon } from "../../assets/logos";
 import MobileWithLogos from "../../assets/MobileWithLogos";
 import { ROUTES } from "../../constants/routes";
+import { WALLET_ID_MOBILE_WALLETS } from "../../constants/wallets";
 import useIsMobile from "../../hooks/useIsMobile";
-import { useWallet, WALLET_ID_MOBILE_WALLETS } from "../../wallets/useWallets";
+import { useWallet } from "../../wallets/useWallets";
 import { OrderHeader } from "../Common/OrderHeader";
 
 /**

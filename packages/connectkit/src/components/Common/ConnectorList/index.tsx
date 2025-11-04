@@ -1,4 +1,5 @@
 import { ROUTES } from "../../../constants/routes";
+import { WALLET_ID_OTHER_WALLET } from "../../../constants/wallets";
 import { useConnect } from "../../../hooks/useConnect";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -12,7 +13,6 @@ import {
 import {
   isExternalWallet,
   useWallets,
-  WALLET_ID_OTHER_WALLET,
   WalletProps,
 } from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";

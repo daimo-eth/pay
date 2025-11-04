@@ -5,6 +5,7 @@ import {
   PlatformType,
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
+import { inferTopLevelFromArray } from "../constants/paymentOptions";
 import { TrpcClient } from "../utils/trpc";
 
 const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
@@ -76,7 +77,9 @@ export function useExternalPaymentOptions({
         // Flatten nested arrays (used for mobile wallet filtering)
         const flatFilterIds = filterIds
           ? filterIds.flatMap((opt) =>
-              Array.isArray(opt) ? "AllWallets" : opt,
+              Array.isArray(opt)
+                ? (inferTopLevelFromArray(opt as string[]) ?? "AllWallets")
+                : opt,
             )
           : null;
         const enabledExtPaymentOptions =

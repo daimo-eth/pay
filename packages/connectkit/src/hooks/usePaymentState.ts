@@ -9,6 +9,7 @@ import {
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  ExternalPaymentOptionsString,
   isNativeToken,
   PlatformType,
   readDaimoPayOrderID,
@@ -28,6 +29,12 @@ import {
 } from "wagmi";
 
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
+import { DEFAULT_USD_LIMIT } from "../constants/limits";
+import {
+  DEFAULT_TOP_OPTIONS_ORDER,
+  inferTopLevelFromArray,
+  TOP_LEVEL_PAYMENT_OPTIONS,
+} from "../constants/paymentOptions";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
 import { detectPlatform } from "../utils/platform";
@@ -213,7 +220,6 @@ export function usePaymentState({
     useState<string>();
 
   const getOrderUsdLimit = () => {
-    const DEFAULT_USD_LIMIT = 20000;
     if (pay.order == null || chainOrderUsdLimits.loading) {
       return DEFAULT_USD_LIMIT;
     }
@@ -539,7 +545,7 @@ export function usePaymentState({
 
   // Compute the order of top-level payment options from paymentOptions
   const topOptionsOrder = (() => {
-    const defaultOrder = ["AllWallets", "AllExchanges", "AllAddresses"];
+    const defaultOrder = DEFAULT_TOP_OPTIONS_ORDER;
     const paymentOptions =
       buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions;
 
@@ -548,27 +554,19 @@ export function usePaymentState({
     }
 
     // Validate: cannot mix "All*" options with specific options
-    const topLevelOptions = [
-      "AllWallets",
-      "AllExchanges",
-      "AllAddresses",
-      "AllPaymentApps",
-      "Tron",
-    ];
-    const hasTopLevelOptions = paymentOptions.some(
-      (opt) => typeof opt === "string" && topLevelOptions.includes(opt),
-    );
-    const hasSpecificOptions = paymentOptions.some(
-      (opt) => typeof opt === "string" && !topLevelOptions.includes(opt),
+    const topLevelOptions = TOP_LEVEL_PAYMENT_OPTIONS;
+    const stringOptions = paymentOptions.filter(
+      (opt) => typeof opt === "string",
     );
 
-    if (hasTopLevelOptions && hasSpecificOptions) {
-      const topLevel = paymentOptions.filter(
-        (opt) => typeof opt === "string" && topLevelOptions.includes(opt),
-      );
-      const specific = paymentOptions.filter(
-        (opt) => typeof opt === "string" && !topLevelOptions.includes(opt),
-      );
+    const topLevel = stringOptions.filter((opt) =>
+      topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+    );
+    const specific = stringOptions.filter(
+      (opt) => !topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+    );
+
+    if (topLevel.length && specific.length) {
       throw new Error(
         `invalid paymentOptions: cannot mix top-level options ${JSON.stringify(topLevel)} with specific options ${JSON.stringify(specific)}. ` +
           `use either ["AllWallets", "AllExchanges", ...] or ["MiniPay", "Binance", ...], not both`,
@@ -580,8 +578,8 @@ export function usePaymentState({
 
     paymentOptions.forEach((opt) => {
       if (Array.isArray(opt)) {
-        // Nested array for mobile wallet filtering - add AllWallets to the order
-        flatOptions.push("AllWallets");
+        const inferred = inferTopLevelFromArray(opt as string[]);
+        flatOptions.push(inferred ?? "AllWallets");
       } else {
         flatOptions.push(opt);
       }
@@ -589,7 +587,7 @@ export function usePaymentState({
 
     // Extract only the top-level options (AllWallets, AllExchanges, AllAddresses) in order
     const foundOrder = flatOptions.filter((opt) =>
-      topLevelOptions.includes(opt),
+      topLevelOptions.includes(opt as any as ExternalPaymentOptionsString),
     );
 
     // Return the found top-level options (may be empty if paymentOptions only has specific options)

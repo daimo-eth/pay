@@ -8,6 +8,13 @@ import Logos, {
   WalletIcon,
 } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
+import {
+  MAX_MOBILE_WALLETS_SHOWN,
+  MOBILE_WALLETS_THRESHOLD_FOR_OTHER,
+  RABBY_CONNECTOR_ID,
+  WALLET_ID_MOBILE_WALLETS,
+  WALLET_ID_OTHER_WALLET,
+} from "../constants/wallets";
 import { useConnectors } from "../hooks/useConnectors";
 import useLocales from "../hooks/useLocales";
 import { usePayContext } from "../hooks/usePayContext";
@@ -20,10 +27,7 @@ import {
 } from "../utils";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
-/** Special wallet ID for "other wallets" option. */
-export const WALLET_ID_OTHER_WALLET = "otherWallet";
-/** Special wallet ID for "mobile wallets" option. */
-export const WALLET_ID_MOBILE_WALLETS = "mobileWallets";
+// ids moved to ../constants/wallets
 
 export type WalletProps = {
   id: string;
@@ -134,11 +138,14 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       // Determine if we need "Other" button
       const totalWallets = walletOrder.length;
 
-      // If we have more than 3 wallets total, show max 2 wallets + "Other"
-      // If we have 3 or fewer, show all
-      if (totalWallets > 3 || mobileWallets.length > 3) {
+      // If we have more than threshold total, show max before "Other"
+      // If we have threshold or fewer, show all
+      if (
+        totalWallets > MOBILE_WALLETS_THRESHOLD_FOR_OTHER ||
+        mobileWallets.length > MOBILE_WALLETS_THRESHOLD_FOR_OTHER
+      ) {
         // Get the wallets that will be in "Other" (those shown in main selector)
-        const shownWallets = mobileWallets.slice(0, 2);
+        const shownWallets = mobileWallets.slice(0, MAX_MOBILE_WALLETS_SHOWN);
         const shownWalletNames = shownWallets
           .map((w) => w.name?.toLowerCase() || w.shortName?.toLowerCase())
           .filter((name): name is string => !!name);
@@ -170,9 +177,9 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           })
           .filter(Boolean) as WalletConfigProps[];
 
-        // Keep max 2 wallets total (including injected)
-        if (mobileWallets.length > 2) {
-          mobileWallets.splice(2);
+        // Keep max wallets total (including injected)
+        if (mobileWallets.length > MAX_MOBILE_WALLETS_SHOWN) {
+          mobileWallets.splice(MAX_MOBILE_WALLETS_SHOWN);
         }
 
         const otherWalletsString = flattenChildren(locales.otherWallets).join(
@@ -195,7 +202,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     // Default behavior: add MetaMask and Trust, then "other"
     function addIfNotPresent(idList: string) {
       if (mobileWallets.find((w) => idList.includes(w.id))) return;
-      if (mobileWallets.length >= 3) return;
+      if (mobileWallets.length >= MOBILE_WALLETS_THRESHOLD_FOR_OTHER) return;
       const wallet = assertNotNull(
         walletConfigs[idList],
         () => `missing ${idList}`,
@@ -263,7 +270,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         <WalletIcon />
       ),
       connector,
-      iconShape: connector.id === "io.rabby" ? "circle" : "squircle",
+      iconShape: connector.id === RABBY_CONNECTOR_ID ? "circle" : "squircle",
       isInstalled:
         connector.type === "mock" ||
         (connector.type === "injected" && connector.id !== "metaMask") ||

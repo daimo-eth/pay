@@ -17,7 +17,11 @@ import WalletPaymentSpinner from "../../Spinners/WalletPaymentSpinner";
 const SelectWalletAmount: React.FC = () => {
   const { paymentState, setPendingConnectorId, setRoute } = usePayContext();
   const { selectedWallet, openInWalletBrowser } = paymentState;
-  const { setChosenUsd, hydrateOrder } = useDaimoPay();
+  const {
+    setChosenUsd,
+    hydrateOrder,
+    paymentState: payFsmState,
+  } = useDaimoPay();
   const { isMobile } = useIsMobile();
   const maxUsdLimit = paymentState.getOrderUsdLimit();
 
@@ -42,10 +46,12 @@ const SelectWalletAmount: React.FC = () => {
   const handleContinue = async () => {
     const amountUsd = Number(sanitizeNumber(usdInput));
     setChosenUsd(amountUsd);
-    await hydrateOrder();
 
     // External wallets (World, MiniPay, etc.) on desktop show QR code
     if (isExternalWallet(selectedWallet) && !isMobile) {
+      if (payFsmState !== "payment_unpaid") {
+        await hydrateOrder();
+      }
       setPendingConnectorId(walletId!);
       setRoute(ROUTES.CONNECT);
     } else {

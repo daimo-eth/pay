@@ -5,9 +5,9 @@ let daimoPayHost = "https://pay.daimo.com";
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
-    daimoPayHost = "https://pay.daimo.com";
-  } else if (apiUrl.startsWith("https://pay.daimo.com")) {
-    daimoPayHost = "https://pay.daimo.com";
+    daimoPayHost = "http://localhost:3001";
+  } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
+    daimoPayHost = "https://pay.stage.daimo.xyz";
   } else {
     daimoPayHost = "https://pay.daimo.com";
   }

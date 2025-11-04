@@ -99,6 +99,8 @@ export type PayButtonPaymentProps =
        * token, it is sent directly to `toAddress` with no swapping or bridging.
        */
       passthroughTokens?: PassthroughToken[];
+      /** Wallet connector id to force to the top of the list. */
+      prioritizedWalletId?: string;
     }
   | {
       /** The payment ID, generated via the Daimo Pay API. Replaces params above. */
@@ -108,6 +110,8 @@ export type PayButtonPaymentProps =
         | ExternalPaymentOptionsString
         | ExternalPaymentOptionsString[]
       )[];
+      /** Wallet connector id to force to the top of the list. */
+      prioritizedWalletId?: string;
     };
 
 /**
@@ -143,6 +147,8 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   confirmationMessage?: string;
   /** Redirect URL to return to the app. E.g. after Coinbase, Binance, RampNetwork. */
   redirectReturnUrl?: string;
+  /** Wallet connector id to force to the top of the list. */
+  prioritizedWalletId?: string;
 };
 
 export type DaimoPayButtonProps = PayButtonCommonProps & {

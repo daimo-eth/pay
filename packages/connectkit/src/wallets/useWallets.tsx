@@ -60,9 +60,25 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   const solanaWallet = useSolanaWalletAdapter();
   const locales = useLocales();
 
+  // Use prioritized id from button props
+  const prioritizedId = context.paymentState.buttonProps?.prioritizedWalletId;
+
   // Get wallet ordering from payment options
   const walletOrder =
     paymentState?.externalPaymentOptions?.parsedConfig?.walletOrder ?? [];
+
+  // Helper to move a wallet to the front by id
+  function movePrioritizedFirst<T extends { id: string }>(
+    list: T[],
+    prioritizedId?: string,
+  ): void {
+    if (!prioritizedId) return;
+    if (prioritizedId === WALLET_ID_MOBILE_WALLETS) return;
+    const index = list.findIndex((w) => w.id === prioritizedId);
+    if (index <= 0) return;
+    const [item] = list.splice(index, 1);
+    list.unshift(item);
+  }
 
   if (isMobile) {
     const mobileWallets: WalletProps[] = [];
@@ -111,6 +127,9 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           });
         }
       }
+
+      // Move prioritized wallet (if any) before determining truncation/"Other"
+      movePrioritizedFirst(mobileWallets, prioritizedId);
 
       // Determine if we need "Other" button
       const totalWallets = walletOrder.length;
@@ -191,6 +210,10 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK",
     );
     addIfNotPresent("com.trustwallet.app");
+
+    // Ensure prioritized wallet (if any) appears first
+    movePrioritizedFirst(mobileWallets, prioritizedId);
+
     const otherWalletsString = flattenChildren(locales.otherWallets).join("");
     const otherString = flattenChildren(locales.other).join("");
     mobileWallets.push({
@@ -345,55 +368,58 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
     });
   });
 
-  return (
-    wallets
-      // remove duplicate ids
-      .filter(
-        (wallet, index, self) =>
-          self.findIndex((w) => w.id === wallet.id) === index,
-      )
-      // remove wallet with id coinbaseWalletSDK if wallet with id 'com.coinbase.wallet' exists
-      .filter(
-        (wallet, index, self) =>
-          !(
-            wallet.id === "coinbaseWalletSDK" &&
-            self.find((w) => w.id === "com.coinbase.wallet")
-          ),
-      )
-      // remove wallet with id io.metamask if wallet with id 'metaMask' exists
-      .filter(
-        (wallet, index, self) =>
-          !(
-            (wallet.id === "metaMaskSDK" || wallet.id === "metaMask") &&
-            self.find(
-              (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile",
-            )
-          ),
-      )
-      // remove wallet with id 'com.warpcast.mobile' if wallet with id 'farcaster' exists
-      .filter(
-        (wallet, index, self) =>
-          !(
-            wallet.id === "com.warpcast.mobile" &&
-            self.find((w) => w.id === "farcaster")
-          ),
-      )
-      // order by isInstalled injected connectors first
-      .sort((a, b) => {
-        const aIsInstalledInjected =
-          a.isInstalled && isInjectedConnector(a.connector?.type);
-        const bIsInstalledInjected =
-          b.isInstalled && isInjectedConnector(b.connector?.type);
+  const sorted = wallets
+    // remove duplicate ids
+    .filter(
+      (wallet, index, self) =>
+        self.findIndex((w) => w.id === wallet.id) === index,
+    )
+    // remove wallet with id coinbaseWalletSDK if wallet with id 'com.coinbase.wallet' exists
+    .filter(
+      (wallet, index, self) =>
+        !(
+          wallet.id === "coinbaseWalletSDK" &&
+          self.find((w) => w.id === "com.coinbase.wallet")
+        ),
+    )
+    // remove wallet with id io.metamask if wallet with id 'metaMask' exists
+    .filter(
+      (wallet, index, self) =>
+        !(
+          (wallet.id === "metaMaskSDK" || wallet.id === "metaMask") &&
+          self.find(
+            (w) => w.id === "io.metamask" || w.id === "io.metamask.mobile",
+          )
+        ),
+    )
+    // remove wallet with id 'com.warpcast.mobile' if wallet with id 'farcaster' exists
+    .filter(
+      (wallet, index, self) =>
+        !(
+          wallet.id === "com.warpcast.mobile" &&
+          self.find((w) => w.id === "farcaster")
+        ),
+    )
+    // order by isInstalled injected connectors first
+    .sort((a, b) => {
+      const aIsInstalledInjected =
+        a.isInstalled && isInjectedConnector(a.connector?.type);
+      const bIsInstalledInjected =
+        b.isInstalled && isInjectedConnector(b.connector?.type);
 
-        if (aIsInstalledInjected && !bIsInstalledInjected) return -1;
-        if (!aIsInstalledInjected && bIsInstalledInjected) return 1;
-        return 0;
-      })
-      // order "mobile wallets" option last
-      .sort((a, b) => {
-        if (a.id === WALLET_ID_MOBILE_WALLETS) return 1;
-        if (b.id === WALLET_ID_MOBILE_WALLETS) return -1;
-        return 0;
-      })
-  );
+      if (aIsInstalledInjected && !bIsInstalledInjected) return -1;
+      if (!aIsInstalledInjected && bIsInstalledInjected) return 1;
+      return 0;
+    })
+    // order "mobile wallets" option last
+    .sort((a, b) => {
+      if (a.id === WALLET_ID_MOBILE_WALLETS) return 1;
+      if (b.id === WALLET_ID_MOBILE_WALLETS) return -1;
+      return 0;
+    });
+
+  // Finally ensure prioritized wallet (if any) is first
+  movePrioritizedFirst(sorted, prioritizedId);
+
+  return sorted;
 };

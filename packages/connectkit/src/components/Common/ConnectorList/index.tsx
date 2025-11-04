@@ -34,14 +34,25 @@ const ConnectorList = () => {
   const wallets = useWallets(isMobile);
   const { lastConnectorId } = useLastConnector();
   const { paymentState } = useDaimoPay();
+  const prioritizedId = context.paymentState.buttonProps?.prioritizedWalletId;
 
   const walletsToDisplay = context.options?.hideRecentBadge
     ? wallets
     : [
-        // move last used wallet to top of list
-        // using .filter and spread to avoid mutating original array order with .sort
-        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
-        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+        // prioritized wallet at very top
+        ...wallets.filter((wallet) => wallet.id === prioritizedId),
+        // then recent wallet if different from prioritized
+        ...wallets.filter(
+          (wallet) =>
+            lastConnectorId === wallet.connector?.id &&
+            wallet.id !== prioritizedId,
+        ),
+        // remaining wallets
+        ...wallets.filter(
+          (wallet) =>
+            wallet.id !== prioritizedId &&
+            lastConnectorId !== wallet.connector?.id,
+        ),
       ];
 
   // For mobile flow, we need to wait for the order to be hydrated before

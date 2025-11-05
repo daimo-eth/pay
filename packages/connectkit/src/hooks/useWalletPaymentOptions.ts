@@ -8,7 +8,6 @@ import {
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAddress } from "viem";
 import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
 import { createRefreshFunction } from "./refreshUtils";
@@ -30,6 +29,10 @@ import { createRefreshFunction } from "./refreshUtils";
  * Note: The SDK supports many more chains/tokens (see pay-common/src/chain.ts and token.ts)
  * but wallet payment options are currently filtered to the above for optimal user experience.
  */
+// SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
+const supportedChainsList = [base, polygon];
+const supportedTokens = [baseUSDC.token, polygonUSDC.token];
+
 export function useWalletPaymentOptions({
   trpc,
   address,
@@ -87,6 +90,58 @@ export function useWalletPaymentOptions({
     [JSON.stringify(evmChains)]
   );
 
+  const showBSCUSDT = useMemo(
+    () =>
+      stableAppId?.includes("MP") ||
+      memoizedPreferredChains?.includes(bsc.chainId) ||
+      memoizedEvmChains?.includes(bsc.chainId),
+    [stableAppId, memoizedEvmChains, memoizedPreferredChains]
+  );
+
+  const filteredOptions = useMemo(() => {
+    if (!options) return [];
+
+    // Show BSC USDT in these cases:
+    // 1. MugglePay apps (MP prefix in appId)
+    // 2. BSC is in preferred chains
+    // 3. BSC is in evmChains
+    const chains = showBSCUSDT
+      ? [...supportedChainsList, bsc]
+      : supportedChainsList;
+
+    const tokens = showBSCUSDT
+      ? [...supportedTokens, bscUSDT.token]
+      : supportedTokens;
+
+    // Filter out chains/tokens we don't support yet in wallet payment options
+    const isSupported = (o: WalletPaymentOption) =>
+      chains.some(
+        (c) =>
+          c.chainId === o.balance.token.chainId &&
+          tokens.includes(o.balance.token.token)
+      );
+    return options.filter(isSupported).map((item) => {
+      const usd = isDepositFlow ? 0 : usdRequired || 0;
+
+      const value: WalletPaymentOption = {
+        ...item,
+        required: {
+          ...item.required,
+          usd,
+        },
+      };
+
+      // Set `disabledReason` manually (based on current usdRequired state, not API Request)
+      if (item.balance.usd < usd) {
+        value.disabledReason = `Balance too low: $${item.balance.usd.toFixed(
+          2
+        )}`;
+      }
+
+      return value;
+    }) as WalletPaymentOption[];
+  }, [options, showBSCUSDT, isDepositFlow, usdRequired]);
+
   // Smart clearing: only clear if we don't have data for this address
   useEffect(() => {
     if (address && !options) {
@@ -112,63 +167,7 @@ export function useWalletPaymentOptions({
         evmChains: memoizedEvmChains,
       });
 
-      // SUPPORTED CHAINS: Only these chains are currently active in wallet payment options
-      const supportedChainsList = [base, polygon];
-      const supportedTokens = [baseUSDC.token, polygonUSDC.token];
-
-      // Check if user has BSC USDT balance (including disabled options)
-      const hasBSCUSDTBalance = newOptions.some(
-        (option) =>
-          Number(option.balance.token.chainId) === bsc.chainId &&
-          getAddress(option.balance.token.token) === getAddress(bscUSDT.token)
-      );
-
-      // Show BSC USDT in these cases:
-      // 1. MugglePay apps (MP prefix in appId)
-      // 2. BSC is in preferred chains
-      // 3. BSC is in evmChains
-      // 4. User actually has BSC USDT balance (regardless of preferences or disabled state)
-      const showBSCUSDT =
-        stableAppId?.includes("MP") ||
-        memoizedPreferredChains?.includes(bsc.chainId) ||
-        memoizedEvmChains?.includes(bsc.chainId);
-
-      if (showBSCUSDT) {
-        supportedChainsList.push(bsc);
-        supportedTokens.push(bscUSDT.token);
-      }
-
-      // Filter out chains/tokens we don't support yet in wallet payment options
-      const isSupported = (o: WalletPaymentOption) =>
-        supportedChainsList.some(
-          (c) =>
-            c.chainId === o.balance.token.chainId &&
-            supportedTokens.includes(o.balance.token.token)
-        );
-      const filteredOptions = newOptions.filter(isSupported);
-      if (filteredOptions.length < newOptions.length) {
-        const skippedOptions = newOptions.filter((o) => !isSupported(o));
-        const skippedChains = Array.from(
-          new Set(skippedOptions.map((o) => o.balance.token.chainId))
-        );
-        log(
-          `[WALLET]: skipping ${
-            newOptions.length - filteredOptions.length
-          } unsupported-chain balances on ${address}: chains [${skippedChains.join(
-            ", "
-          )}]`
-        );
-      }
-
-      setOptions(filteredOptions);
-      const loadedChains = Array.from(
-        new Set(filteredOptions.map((o) => o.balance.token.chainId))
-      );
-      log(
-        `[WALLET]: loaded ${
-          filteredOptions.length
-        } payment options for ${address} on chains [${loadedChains.join(", ")}]`
-      );
+      setOptions(newOptions);
     } catch (error) {
       console.error(error);
       setOptions([]);
@@ -182,11 +181,9 @@ export function useWalletPaymentOptions({
     memoizedPreferredChains,
     memoizedPreferredTokens,
     memoizedEvmChains,
-    stableAppId,
     usdRequired,
     isDepositFlow,
     trpc,
-    log,
   ]);
 
   // Create refresh function using shared utility
@@ -203,7 +200,7 @@ export function useWalletPaymentOptions({
   }, [address, usdRequired, destChainId]);
 
   return {
-    options,
+    options: filteredOptions,
     isLoading,
     refreshOptions,
   };

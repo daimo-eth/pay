@@ -24,6 +24,7 @@ import {
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useStellarDestination } from "../../../../hooks/useStellarDestination";
 import { useStellar } from "../../../../provider/StellarContextProvider";
+import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
@@ -47,15 +48,28 @@ const PayWithStellarToken: React.FC = () => {
     payWithStellarToken: payWithStellarTokenImpl,
     setTxHash,
     payParams,
-    setRozoPaymentId,
     rozoPaymentId,
+    setRozoPaymentId,
+    createPayment,
+    setPayId,
   } = paymentState;
   const {
     order,
+    paymentState: state,
+    setPaymentStarted,
+    setPaymentUnpaid,
     setPaymentRozoCompleted,
     setPaymentCompleted,
     hydrateOrderRozo,
   } = useRozoPay();
+  // Get the destination address and payment direction using our custom hook
+  const { destinationAddress } = useStellarDestination(payParams);
+  const {
+    server: stellarServer,
+    publicKey: stellarPublicKey,
+    kit: stellarKit,
+  } = useStellar();
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   const [payState, setPayState] = useState<PayState>(
     PayState.PreparingTransaction
@@ -63,16 +77,6 @@ const PayWithStellarToken: React.FC = () => {
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [signedTx, setSignedTx] = useState<string | undefined>();
-  const submitButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Get the destination address and payment direction using our custom hook
-  const { destinationAddress } = useStellarDestination(payParams);
-
-  const {
-    server: stellarServer,
-    publicKey: stellarPublicKey,
-    kit: stellarKit,
-  } = useStellar();
 
   // FOR TRANSFER ACTION
   const handleTransfer = async (option: WalletPaymentOption) => {
@@ -82,40 +86,66 @@ const PayWithStellarToken: React.FC = () => {
         throw new Error("Stellar destination address is required");
       }
 
-      let payment: RozoPayHydratedOrderWithOrg | undefined;
-      if (!payment) {
-        const hydratedOrder = await hydrateOrderRozo(undefined, option);
-        if (!hydratedOrder.order) {
-          throw new Error("Hydrated order not found");
-        }
-
-        payment = hydratedOrder.order as any;
+      if (!order) {
+        throw new Error("Order not initialized");
       }
 
-      if (!payment) {
+      const { required } = option;
+
+      const needRozoPayment =
+        "payinchainid" in order.metadata &&
+        Number(order.metadata.payinchainid) !== required.token.chainId;
+
+      let hydratedOrder: RozoPayHydratedOrderWithOrg;
+      let paymentId: string | undefined;
+
+      if (state === "payment_unpaid" && !needRozoPayment) {
+        hydratedOrder = order;
+      } else if (needRozoPayment) {
+        const res = await createPayment(option);
+        paymentId = res.id;
+        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+      } else {
+        // Hydrate existing order
+        const res = await hydrateOrderRozo(undefined, option);
+        hydratedOrder = res.order;
+      }
+
+      if (!hydratedOrder) {
         throw new Error("Payment not found");
       }
 
-      setRozoPaymentId(payment.externalId as string);
+      const newId = paymentId ?? hydratedOrder.externalId;
+      if (newId) {
+        setRozoPaymentId(newId);
+        setPaymentStarted(String(newId), hydratedOrder);
+      }
+
       setPayState(PayState.RequestingPayment);
 
       const paymentData = {
-        destAddress: (payment.destFinalCall.to as string) || destinationAddress,
-        usdcAmount: String(payment.destFinalCallTokenAmount.usd),
+        destAddress:
+          (hydratedOrder.destFinalCall.to as string) || destinationAddress,
+        usdcAmount: String(hydratedOrder.destFinalCallTokenAmount.usd),
         stellarAmount: roundTokenAmount(
-          payment.destFinalCallTokenAmount.amount,
-          payment.destFinalCallTokenAmount.token
+          hydratedOrder.destFinalCallTokenAmount.amount,
+          hydratedOrder.destFinalCallTokenAmount.token
         ),
       };
 
-      if (payment.metadata?.memo) {
-        Object.assign(paymentData, { memo: payment.metadata.memo as string });
+      if (hydratedOrder.metadata?.memo) {
+        Object.assign(paymentData, {
+          memo: hydratedOrder.metadata.memo as string,
+        });
       }
 
       const result = await payWithStellarTokenImpl(option, paymentData);
       setSignedTx(result.signedTx);
       setPayState(PayState.WaitingForConfirmation);
     } catch (error) {
+      if (rozoPaymentId) {
+        setPaymentUnpaid(rozoPaymentId);
+      }
       if ((error as any).message.includes("rejected")) {
         setPayState(PayState.RequestCancelled);
       } else {

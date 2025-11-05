@@ -2,9 +2,10 @@ import {
   getChainExplorerTxUrl,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { ROUTES } from "../../../constants/routes";
+import { useRozoPay } from "../../../hooks/useDaimoPay";
 import { usePayContext } from "../../../hooks/usePayContext";
 import Button from "../../Common/Button";
 import {
@@ -25,11 +26,22 @@ enum PayState {
 }
 
 const PayWithToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
+  const walletChainId = useChainId();
+  const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const { payWithToken, selectedTokenOption } = paymentState;
+  const { switchChainAsync } = useSwitchChain();
+  const {
+    setPaymentUnpaid,
+    rozoPaymentId,
+    order,
+    paymentState: rozoPaymentState,
+  } = useRozoPay();
+
   const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment
   );
+  const [txURL, setTxURL] = useState<string | undefined>();
+
   const setPayState = (state: PayState) => {
     if (state === payState) return;
     setPayStateInner(state);
@@ -39,10 +51,6 @@ const PayWithToken: React.FC = () => {
     //   data: { state },
     // });
   };
-  const [txURL, setTxURL] = useState<string | undefined>();
-
-  const walletChainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
 
   const trySwitchingChain = async (
     option: WalletPaymentOption,
@@ -68,18 +76,26 @@ const PayWithToken: React.FC = () => {
     return true;
   };
 
-  const handleTransfer = async (option: WalletPaymentOption) => {
-    // Switch chain if necessary
-    setPayState(PayState.PreparingTransaction);
-    const switchChain = await trySwitchingChain(option);
+  const handleTransfer = useCallback(
+    async (option: WalletPaymentOption) => {
+      // Switch chain if necessary
+      setPayState(PayState.PreparingTransaction);
+      const switchChain = await trySwitchingChain(option);
 
-    if (!switchChain) {
-      console.error("Switching chain failed");
-      setPayState(PayState.RequestCancelled);
-      return;
-    } else {
+      if (!switchChain) {
+        console.error("Switching chain failed");
+        setPayState(PayState.RequestCancelled);
+        return;
+      }
+
       try {
         setPayState(PayState.RequestingPayment);
+        const currentRozoPaymentId = rozoPaymentId ?? order?.externalId;
+        // Only set unpaid if state is payment_started (for retry scenarios)
+        if (currentRozoPaymentId && rozoPaymentState === "payment_started") {
+          await setPaymentUnpaid(currentRozoPaymentId);
+        }
+
         const result = await payWithToken(option);
         setTxURL(
           getChainExplorerTxUrl(option.required.token.chainId, result.txHash)
@@ -130,8 +146,19 @@ const PayWithToken: React.FC = () => {
         setPayState(PayState.RequestCancelled);
         console.error("Failed to pay with token", e);
       }
-    }
-  };
+    },
+    [
+      trySwitchingChain,
+      setPayState,
+      rozoPaymentId,
+      order?.externalId,
+      rozoPaymentState,
+      setPaymentUnpaid,
+      payWithToken,
+      setRoute,
+      log,
+    ]
+  );
 
   useEffect(() => {
     if (!selectedTokenOption) return;

@@ -20,7 +20,7 @@ export function Providers(props: { children: ReactNode }) {
   return (
     <WagmiProvider config={rozoPayConfig}>
       <QueryClientProvider client={queryClient}>
-        <RozoPayProvider debugMode>{props.children}</RozoPayProvider>
+        <RozoPayProvider>{props.children}</RozoPayProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

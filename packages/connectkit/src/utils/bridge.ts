@@ -20,8 +20,8 @@ import { STELLAR_USDC_ISSUER_PK } from "../constants/rozoConfig";
 import { PaymentResponseData } from "./api";
 
 export interface PaymentBridgeConfig {
-  toChain: number;
-  toToken: string;
+  toChain?: number;
+  toToken?: string;
   toAddress?: string;
   toStellarAddress?: string;
   toSolanaAddress?: string;

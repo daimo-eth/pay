@@ -28,6 +28,7 @@ type StellarContextProviderValue = {
   publicKey: string | undefined;
   setPublicKey: (publicKey: string) => void;
   account: Horizon.AccountResponse | undefined;
+  refreshAccount: () => Promise<Horizon.AccountResponse | undefined>;
   isAccountExists: boolean;
   isConnected: boolean;
   connector: ISupportedWallet | undefined;
@@ -48,6 +49,7 @@ const initialContext: StellarContextProviderValue = {
   publicKey: undefined,
   setPublicKey: () => {},
   account: undefined,
+  refreshAccount: () => Promise.resolve(undefined),
   isAccountExists: false,
   isConnected: false,
   connector: undefined,
@@ -98,11 +100,14 @@ export const StellarContextProvider = ({
   // Debug: on kit (external/internal) assign/change
   useEffect(() => {}, [externalKit, internalKit]);
 
-  const getAccountInfo = async (publicKey: string) => {
+  const getAccountInfo = async () => {
     try {
+      if (!publicKey) return;
+
       const data = await server.loadAccount(publicKey);
       setAccountInfo(data);
       setIsAccountExists(true);
+      return data;
     } catch (error: any) {
       console.error("[Rozo] getAccountInfo error", error);
       setIsAccountExists(false);
@@ -260,7 +265,7 @@ export const StellarContextProvider = ({
 
   useEffect(() => {
     if (publicKey) {
-      getAccountInfo(publicKey);
+      getAccountInfo();
     }
   }, [publicKey]);
 
@@ -272,6 +277,7 @@ export const StellarContextProvider = ({
       setPublicKey,
       server,
       account: accountInfo,
+      refreshAccount: getAccountInfo,
       isAccountExists: isAccountExists ?? (!!accountInfo && !!publicKey),
       isConnected: !!publicKey,
       connector,
@@ -289,7 +295,6 @@ export const StellarContextProvider = ({
     accountInfo,
     isAccountExists,
     connector,
-    convertXlmToUsdc,
   ]);
 
   return (

@@ -2,6 +2,7 @@ import {
   assert,
   getKnownToken,
   getOrderDestChainId,
+  mergedMetadata,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -71,7 +72,7 @@ export function attachPaymentEffectHandlers(
 
       // Refresh the order to watch for destination processing
       if (next.type === "payment_started") {
-        pollRefreshOrder(store, trpc, next.order.id);
+        // pollRefreshOrder(store, trpc, next.order.id);
       }
 
       // Stop all pollers when the payment flow is completed or reset
@@ -408,9 +409,12 @@ async function runHydratePayParamsEffects(
       preferredChain: preferred.preferredChain,
       preferredToken: preferred.preferredToken,
       preferredTokenAddress: preferred.preferredTokenAddress,
-      ...(payParams?.metadata ?? {}),
-      ...(order?.metadata ?? {}),
-      ...(order.userMetadata ?? {}),
+
+      ...mergedMetadata({
+        ...(payParams?.metadata ?? {}),
+        ...(order?.metadata ?? {}),
+        ...(order.userMetadata ?? {}),
+      }),
     },
   });
 
@@ -578,12 +582,11 @@ async function runHydratePayIdEffects(
       createdAt: order.createdAt,
       lastUpdatedAt: Math.floor(Date.now() / 1000),
       orgId: orderData.data.id,
-      metadata: {
-        ...(orderData.data.metadata ?? {}),
+      metadata: mergedMetadata({
+        ...(orderData?.data.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order.userMetadata ?? {}),
-        // daimoOrderId: order?.id ?? null,
-      } as any,
+      }) as any,
       externalId:
         orderData.data.externalId?.toString() ?? orderData.data.id ?? null,
       userMetadata: null,

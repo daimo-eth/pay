@@ -30,7 +30,7 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
-  const { hydrateOrder, order, setRozoPaymentId } = useRozoPay();
+  const { hydrateOrder, order } = useRozoPay();
 
   const hasCustomDeeplink = React.useMemo(() => {
     return order?.metadata && order?.metadata.customDeeplinkUrl != null;
@@ -68,7 +68,7 @@ const Wallets: React.FC = () => {
 
   useEffect(() => {
     if (order?.externalId) {
-      setRozoPaymentId(order.externalId);
+      context.paymentState.setRozoPaymentId(order.externalId);
     }
   }, [order]);
 

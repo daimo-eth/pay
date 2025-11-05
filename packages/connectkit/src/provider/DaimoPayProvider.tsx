@@ -317,7 +317,6 @@ const RozoPayUIProvider = ({
     if (pay.paymentState === "error") {
       setRoute(ROUTES.ERROR);
     } else if (
-      pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"
     ) {
@@ -337,11 +336,10 @@ const RozoPayUIProvider = ({
     pay.order.sourceTokenAmount != null;
   useEffect(() => {
     if (
-      pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"
     ) {
-      setRoute(ROUTES.CONFIRMATION, { event: "payment-started" });
+      setRoute(ROUTES.CONFIRMATION, { event: "payment-completed" });
     } else if (isUnderpaid) {
       paymentState.setSelectedDepositAddressOption(undefined);
       setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS);

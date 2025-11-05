@@ -6,7 +6,6 @@ import { TextContainer } from "./styles";
 import {
   assertNotNull,
   ExternalPaymentOptionsString,
-  getOrderSourceChainId,
   getRozoPayOrderView,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
@@ -368,25 +367,22 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   // Emit onPaymentStart handler when payment state changes to payment_started
   const sentStart = useRef(false);
   useEffect(() => {
+    const currentRozoPaymentId = rozoPaymentId ?? order?.externalId ?? null;
     if (sentStart.current) return;
     if (payState !== "payment_started") return;
 
-    // TODO: Populate source payment details immediately when the user pays.
-    // Use this hack because source chain id is not immediately populated when
-    // payment_started
-    const sourceChainId = getOrderSourceChainId(order);
-    if (sourceChainId == null) return;
-
     sentStart.current = true;
-    onPaymentStarted?.({
+    const event: PaymentStartedEvent = {
       type: RozoPayEventType.PaymentStarted,
-      paymentId: writeRozoPayOrderID(order.id),
-      chainId: sourceChainId,
-      txHash: order.sourceInitiateTxHash,
+      paymentId: currentRozoPaymentId || writeRozoPayOrderID(order.id),
+      chainId: order.destFinalCallTokenAmount.token.chainId,
+      txHash: null,
       payment: getRozoPayOrderView(order),
-    });
+    };
+
+    onPaymentStarted?.(event);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order, payState]);
+  }, [order, payState, rozoPaymentId, order?.externalId]);
 
   // Type guard to check if order is hydrated
   const isHydratedOrder = (
@@ -443,7 +439,7 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
 
     const event = {
       type: eventType,
-      paymentId: writeRozoPayOrderID(order.id),
+      paymentId: order.externalId || writeRozoPayOrderID(order.id),
       chainId: order.destFinalCallTokenAmount.token.chainId,
       txHash: assertNotNull(
         getDestinationTxHash(order),
@@ -453,9 +449,10 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
       rozoPaymentId: currentRozoPaymentId,
     };
 
-    context.log("[PAY BUTTON] Event", {
+    log("[PAY BUTTON] Event", {
       order,
       event,
+      isPaymentCompleted,
     });
 
     if (isPaymentCompleted) {

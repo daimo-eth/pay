@@ -102,6 +102,7 @@ export default function WaitingDepositAddress() {
     payWithDepositAddress,
     selectedDepositAddressOption,
     payParams,
+    rozoPaymentId,
     setTxHash,
     setTokenMode,
     setRozoPaymentId,
@@ -112,6 +113,7 @@ export default function WaitingDepositAddress() {
     reset,
     createPreviewOrder,
     setPaymentRozoCompleted,
+    setPaymentCompleted,
   } = useRozoPay();
 
   // Detect Optimism USDT0 under-payment: the order has received some funds
@@ -449,6 +451,7 @@ export default function WaitingDepositAddress() {
         "[PAYMENT COMPLETED] Payment completed, navigating to next step"
       );
       setPaymentRozoCompleted(true);
+      setPaymentCompleted(payinTransactionHash, rozoPaymentId);
       const tokenMode =
         selectedDepositAddressOption?.id === DepositAddressPaymentOptions.SOLANA
           ? "solana"

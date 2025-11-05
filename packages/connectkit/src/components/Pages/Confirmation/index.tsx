@@ -171,7 +171,7 @@ const Confirmation: React.FC = () => {
   }, [rozoPaymentId, receiptUrl]);
 
   useEffect(() => {
-    if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
+    if (order && done && rozoPaymentId && showProcessingPayout) {
       triggerResize();
       context.log(
         "[CONFIRMATION] Starting payout polling for order:",
@@ -241,9 +241,7 @@ const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (done) {
-      if (rawPayInHash && rozoPaymentId) {
-        setPaymentCompleted(rawPayInHash ?? "", rozoPaymentId ?? "");
-      }
+      setPaymentCompleted(rawPayInHash ?? "", rozoPaymentId ?? "");
       setPaymentRozoCompleted(true);
       onSuccess();
     }

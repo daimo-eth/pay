@@ -15,6 +15,7 @@ import {
   getChainById,
   getOrderDestChainId,
   isCCTPV1Chain,
+  mergedMetadata,
   PlatformType,
   polygonUSDC,
   readRozoPayOrderID,
@@ -66,7 +67,11 @@ import {
 } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
-import { createRozoPayment, createRozoPaymentRequest } from "../utils/api";
+import {
+  createRozoPayment,
+  createRozoPaymentRequest,
+  PaymentResponseData,
+} from "../utils/api";
 import {
   createPaymentBridgeConfig,
   formatPaymentResponseDataToHydratedOrder,
@@ -201,6 +206,8 @@ export interface PaymentState {
 
   // Order amount for refresh coordination
   orderUsdAmount: number | undefined;
+
+  createPayment: (option: WalletPaymentOption) => Promise<PaymentResponseData>;
 }
 
 export function usePaymentState({
@@ -269,6 +276,15 @@ export function usePaymentState({
 
   const [paymentWaitingMessage, setPaymentWaitingMessage] = useState<string>();
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
+
+  const [tokenMode, setTokenMode] = useState<
+    "evm" | "solana" | "stellar" | "all"
+  >("evm");
+
+  const [txHash, setTxHash] = useState<string | undefined>(undefined);
+  const [rozoPaymentId, setRozoPaymentId] = useState<string | undefined>(
+    undefined
+  );
 
   // TODO: backend should determine whether to show solana payment method
   const paymentOptions = useMemo(() => {
@@ -390,7 +406,9 @@ export function usePaymentState({
     []
   );
 
-  const handleCreateRozoPayment = async (walletOption: WalletPaymentOption) => {
+  const handleCreateRozoPayment = async (
+    walletOption: WalletPaymentOption
+  ): Promise<PaymentResponseData> => {
     const payParams = currPayParams;
     const order = pay.order;
 
@@ -413,14 +431,21 @@ export function usePaymentState({
       : payParams?.toToken;
 
     const { preferred, destination } = createPaymentBridgeConfig({
-      toChain: Number(chainId),
-      toToken: tokenAddress ?? "",
+      // toChain: Number(chainId),
+      // toToken: tokenAddress ?? "",
       toAddress: destinationAddress,
       toSolanaAddress: payParams?.toSolanaAddress,
       toStellarAddress: payParams?.toStellarAddress,
       toUnits: payParams?.toUnits ?? "",
       walletPaymentOption: walletOption,
       log,
+    });
+
+    // Merge metadata from all sources, then omit sensitive/implementation-specific keys
+    const metadata = mergedMetadata({
+      ...(payParams?.metadata ?? {}),
+      ...(order?.metadata ?? {}),
+      ...(order?.userMetadata ?? {}),
     });
 
     const paymentData = createRozoPaymentRequest({
@@ -430,15 +455,10 @@ export function usePaymentState({
         paymentValue: String(payParams?.toUnits ?? ""),
         currency: "USD",
       },
-      ...preferred,
       destination,
       externalId: order?.externalId ?? "",
-      metadata: {
-        // daimoOrderId: order?.id ?? "",
-        ...(payParams?.metadata ?? {}),
-        ...(order?.metadata ?? {}),
-        ...(order?.userMetadata ?? {}),
-      },
+      ...preferred,
+      metadata,
     });
 
     // API Call
@@ -484,7 +504,7 @@ export function usePaymentState({
     }
 
     // Check if we need to create a new Rozo payment (cache this check)
-    const needsRozoPayment =
+    const needRozoPayment =
       "payinchainid" in pay.order.metadata &&
       Number(pay.order.metadata.payinchainid) !== required.token.chainId;
 
@@ -496,19 +516,26 @@ export function usePaymentState({
 
     // Get hydrated order efficiently with parallel preparation
     let hydratedOrder: RozoPayHydratedOrderWithOrg;
+    let paymentId: string | undefined;
 
-    if (pay.paymentState === "payment_unpaid") {
+    if (pay.paymentState === "payment_unpaid" && !needRozoPayment) {
       // Order is already hydrated, use it directly
       hydratedOrder = pay.order;
-    } else if (needsRozoPayment) {
+    } else if (needRozoPayment) {
       // Create Rozo payment and hydrate in one step
       const res = await handleCreateRozoPayment(walletOption);
-      setPayId(res.id);
+      paymentId = res.id;
       hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
     } else {
       // Hydrate existing order
       const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
       hydratedOrder = res.order;
+    }
+
+    if (paymentId ?? hydratedOrder.externalId) {
+      const newId = (paymentId ?? hydratedOrder.externalId) || undefined;
+      setRozoPaymentId(newId);
+      pay.setPaymentStarted(String(newId), hydratedOrder);
     }
 
     const destinationAddress = hydratedOrder.destFinalCall.to;
@@ -534,6 +561,9 @@ export function usePaymentState({
           });
         }
       } catch (e) {
+        if (hydratedOrder.externalId) {
+          pay.setPaymentUnpaid(hydratedOrder.externalId);
+        }
         console.error(`[PAY TOKEN] error sending token: ${e}`);
         throw e;
       }
@@ -759,8 +789,7 @@ export function usePaymentState({
       log("[PAY SOLANA] Transaction sent! Hash:", txHash);
       return { txHash: txHash, success: true };
     } catch (error) {
-      console.error(error);
-      return { txHash: "", success: false };
+      throw error;
     }
   };
 
@@ -1100,15 +1129,6 @@ export function usePaymentState({
     [setRoute, pay, currPayParams]
   );
 
-  const [tokenMode, setTokenMode] = useState<
-    "evm" | "solana" | "stellar" | "all"
-  >("evm");
-
-  const [txHash, setTxHash] = useState<string | undefined>(undefined);
-  const [rozoPaymentId, setRozoPaymentId] = useState<string | undefined>(
-    undefined
-  );
-
   const orderUsdAmount = useMemo(() => {
     return !isDepositFlow ? Number(currPayParams?.toUnits) : undefined;
   }, [isDepositFlow, currPayParams]);
@@ -1141,6 +1161,7 @@ export function usePaymentState({
     stellarPaymentOptions,
     depositAddressOptions,
     selectedDepositAddressOption,
+    createPayment: handleCreateRozoPayment,
     getOrderUsdLimit,
     resetOrder,
     setSelectedWallet,

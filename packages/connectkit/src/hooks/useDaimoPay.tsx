@@ -4,6 +4,7 @@ import {
   RozoPayIntentStatus,
   RozoPayOrderID,
   RozoPayOrderStatusSource,
+  RozoPayOrderWithOrg,
   SolanaPublicKey,
   StellarPublicKey,
   WalletPaymentOption,
@@ -119,6 +120,16 @@ type RozoPayFunctions = {
     rozoOrderId: string;
   }) => Promise<Extract<PaymentState, { type: "payment_completed" }>>;
 
+  setPaymentStarted: (
+    rozoPaymentId: string,
+    order?: RozoPayOrderWithOrg | RozoPayHydratedOrderWithOrg
+  ) => Promise<Extract<PaymentState, { type: "payment_started" }>>;
+
+  setPaymentUnpaid: (
+    rozoPaymentId: string,
+    order?: RozoPayOrderWithOrg | RozoPayHydratedOrderWithOrg
+  ) => Promise<Extract<PaymentState, { type: "payment_unpaid" }>>;
+
   /**
    * Directly set the payment state to completed.
    * Use this to mark a payment as completed without going through the normal flow.
@@ -142,7 +153,6 @@ type RozoPayFunctions = {
    * @deprecated
    */
   setChosenUsd: (usd: number) => void;
-  setRozoPaymentId: (id: string | null) => void;
 
   setPaymentRozoCompleted: (completed: boolean) => void;
   paymentRozoCompleted: boolean;
@@ -173,7 +183,6 @@ export type UseRozoPay = RozoPayFunctions & RozoPayState;
  * manage Rozo Pay orders and payments.
  */
 export function useRozoPay(): UseRozoPay {
-  const [rozoPaymentId, setRozoPaymentId] = useState<string | null>(null);
   const [paymentRozoCompleted, setPaymentRozoCompleted] = useState(false);
   const store = useContext(PaymentContext);
   if (!store) {
@@ -440,6 +449,64 @@ export function useRozoPay(): UseRozoPay {
     [dispatch, store]
   );
 
+  const setPaymentStarted = useCallback(
+    async (
+      rozoPaymentId: string,
+      order?: RozoPayOrderWithOrg | RozoPayHydratedOrderWithOrg
+    ) => {
+      const currentState = store.getState();
+
+      if (currentState.type !== "payment_unpaid") {
+        throw new Error(
+          "Cannot set payment started: Order is not in payment_unpaid state"
+        );
+      }
+
+      const updatedOrder = {
+        ...currentState.order,
+        ...order,
+        intentStatus: RozoPayIntentStatus.STARTED,
+        externalId: rozoPaymentId ?? currentState.order.externalId,
+      };
+
+      dispatch({
+        type: "order_refreshed",
+        order: updatedOrder,
+      });
+
+      const startedState = await waitForPaymentState(store, "payment_started");
+      return startedState;
+    },
+    [dispatch, store]
+  );
+
+  const setPaymentUnpaid = useCallback(
+    async (rozoPaymentId: string) => {
+      const currentState = store.getState();
+
+      if (currentState.type !== "payment_started") {
+        throw new Error(
+          "Cannot set payment unpaid: Order is not in payment_started state"
+        );
+      }
+
+      const updatedOrder = {
+        ...currentState.order,
+        intentStatus: RozoPayIntentStatus.UNPAID,
+        externalId: rozoPaymentId ?? currentState.order.externalId,
+      };
+
+      dispatch({
+        type: "order_refreshed",
+        order: updatedOrder,
+      });
+
+      const unpaidState = await waitForPaymentState(store, "payment_unpaid");
+      return unpaidState;
+    },
+    [dispatch, store]
+  );
+
   return {
     order,
     paymentState,
@@ -452,11 +519,11 @@ export function useRozoPay(): UseRozoPay {
     payEthSource,
     paySolanaSource,
     payStellarSource,
+    setPaymentStarted,
+    setPaymentUnpaid,
     setPaymentCompleted,
     reset,
     setChosenUsd,
-    rozoPaymentId,
-    setRozoPaymentId,
     setPaymentRozoCompleted,
     paymentRozoCompleted,
   } as UseRozoPay;

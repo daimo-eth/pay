@@ -297,6 +297,17 @@ export function getOrderDestChainId(
   return order.destFinalCallTokenAmount.token.chainId;
 }
 
+export function mergedMetadata(data: Record<string, any>): Record<string, any> {
+  // Ignore this metadata
+  delete data.payintokenaddress;
+  delete data.preferredChain;
+  delete data.preferredToken;
+  delete data.provider;
+  delete data.receivingAddress;
+
+  return data;
+}
+
 export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
   return {
     id: writeRozoPayOrderID(order.id),
@@ -345,7 +356,10 @@ export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
       callData: order.destFinalCall.data,
     },
     externalId: order.externalId,
-    metadata: order.userMetadata,
+    metadata: mergedMetadata({
+      ...order.metadata,
+      ...order.userMetadata,
+    }),
   };
 }
 
@@ -520,7 +534,7 @@ export type PaymentCompletedEvent = {
   isTestEvent?: boolean;
   paymentId: RozoPayOrderID;
   chainId: number;
-  txHash: Hex;
+  txHash: string;
   payment: RozoPayOrderView;
   rozoPaymentId?: string;
 };
@@ -530,7 +544,7 @@ export type PaymentBouncedEvent = {
   isTestEvent?: boolean;
   paymentId: RozoPayOrderID;
   chainId: number;
-  txHash: Hex;
+  txHash: string;
   payment: RozoPayOrderView;
   rozoPaymentId?: string;
 };
@@ -542,7 +556,7 @@ export type PaymentRefundedEvent = {
   refundAddress: Address;
   chainId: number;
   tokenAddress: Address;
-  txHash: Hex;
+  txHash: string;
   amountUnits: string;
   payment: RozoPayOrderView;
 };

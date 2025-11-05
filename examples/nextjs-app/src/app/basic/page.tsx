@@ -209,6 +209,9 @@ export default function DemoBasic() {
               toSolanaAddress={parsedConfig.recipientSolanaAddress}
               toUnits={parsedConfig.amount}
               toToken={getAddress(parsedConfig.tokenAddress)}
+              onPaymentStarted={(e) => {
+                console.log("onPaymentStarted", e);
+              }}
               onPaymentCompleted={(e) => {
                 console.log("onPaymentCompleted", e);
               }}

@@ -140,7 +140,9 @@ export const DaimoPayModal: React.FC<{
       const isTronSelected =
         paymentState.selectedDepositAddressOption?.id ===
         DepositAddressPaymentOptions.TRON_USDT;
-
+      if (isDepositFlow) {
+        generatePreviewOrder();
+      }
       setSelectedDepositAddressOption(undefined);
       if (isTronTopLevel && isTronSelected) {
         context.setRoute(ROUTES.SELECT_METHOD, meta);
@@ -150,7 +152,6 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
-        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);
@@ -174,12 +175,11 @@ export const DaimoPayModal: React.FC<{
       const isTronSelected =
         paymentState.selectedDepositAddressOption?.id ===
         DepositAddressPaymentOptions.TRON_USDT;
-
       if (isDepositFlow) {
+        generatePreviewOrder();
         if (paymentState.selectedDepositAddressOption === undefined) {
           context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
         } else {
-          generatePreviewOrder();
           context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
         }
       } else {

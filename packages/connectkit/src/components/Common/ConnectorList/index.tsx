@@ -104,6 +104,8 @@ const ConnectorItem = ({
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets =
     isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
+  // An external wallet is one that we deeplink to, either directly
+  // (on mobile) or via QR code (on desktop).
   const isExternalWalletFlow = isExternalWallet(wallet);
 
   // Safari requires opening popup on user gesture, so we connect immediately here
@@ -135,7 +137,6 @@ const ConnectorItem = ({
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
       } else if (isMobile) {
-        // On mobile, open external wallet directly via deeplink
         await context.paymentState.openInWalletBrowser(wallet);
       } else {
         // On desktop, show QR code for external wallets

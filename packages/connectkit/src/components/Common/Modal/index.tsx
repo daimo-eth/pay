@@ -46,6 +46,38 @@ import { isExternalWallet, useWallet } from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
 
+// Map routes to a depth value to drive enter/exit animations.
+// Higher numbers feel "deeper" in the flow.
+const routeDepthMap: Partial<Record<ROUTES, number>> = {
+  [ROUTES.SELECT_METHOD]: 0,
+
+  [ROUTES.CONNECTORS]: 1,
+  [ROUTES.SELECT_EXCHANGE]: 1,
+  [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: 1,
+
+  [ROUTES.SELECT_ZKP2P]: 1,
+
+  [ROUTES.CONNECT]: 2,
+  [ROUTES.SOLANA_CONNECTOR]: 2,
+  [ROUTES.MOBILECONNECTORS]: 2,
+  [ROUTES.SELECT_WALLET_CHAIN]: 2,
+  [ROUTES.SELECT_TOKEN]: 2,
+  [ROUTES.SELECT_AMOUNT]: 2,
+  [ROUTES.SELECT_EXTERNAL_AMOUNT]: 2,
+  [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: 2,
+  [ROUTES.SELECT_WALLET_AMOUNT]: 2,
+  [ROUTES.PAY_WITH_TOKEN]: 2,
+  [ROUTES.SOLANA_SELECT_AMOUNT]: 2,
+  [ROUTES.SOLANA_PAY_WITH_TOKEN]: 2,
+
+  [ROUTES.WAITING_WALLET]: 3,
+  [ROUTES.WAITING_EXTERNAL]: 3,
+  [ROUTES.WAITING_DEPOSIT_ADDRESS]: 3,
+
+  [ROUTES.CONFIRMATION]: 4,
+  [ROUTES.ERROR]: 4,
+};
+
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (
   <div style={{ position: "relative" }}>
     {isSignedIn ? (
@@ -239,7 +271,7 @@ const Modal: React.FC<ModalProps> = ({
   });
   const mounted = !(state === "exited" || state === "unmounted");
   const rendered = state === "preEnter" || state !== "exiting";
-  const currentDepth = context.route === ROUTES.CONNECTORS ? 0 : 1;
+  const currentDepth = routeDepthMap[context.route as ROUTES] ?? 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -636,8 +668,6 @@ type PageProps = {
   children?: React.ReactNode;
   open?: boolean;
   initial: boolean;
-  prevDepth?: number;
-  currentDepth?: number;
   enterAnim?: string;
   exitAnim?: string;
 };
@@ -646,8 +676,6 @@ const Page: React.FC<PageProps> = ({
   children,
   open,
   initial,
-  prevDepth,
-  currentDepth,
   enterAnim,
   exitAnim,
 }) => {

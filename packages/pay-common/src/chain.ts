@@ -108,20 +108,6 @@ export const supportedChains: Chain[] = [
   tron,
 ];
 
-// https://developers.circle.com/stablecoins/supported-domains
-const cctpV1Chains = [arbitrum, base, ethereum, optimism, polygon, solana];
-const cctpV2Chains = [
-  arbitrum,
-  base,
-  ethereum,
-  linea,
-  optimism,
-  polygon,
-  solana,
-  worldchain,
-];
-const circleGatewayChains = [arbitrum, base, ethereum, optimism, polygon];
-
 /** Given a chainId, return the chain. */
 export function getChainById(chainId: number): Chain {
   const ret = supportedChains.find((c) => c.chainId === chainId);
@@ -137,20 +123,6 @@ export function getChainName(chainId: number): string {
 /** Returns the CCTP domain for the given chainId. */
 export function getCCTPDomain(chainId: number): number | null {
   return getChainById(chainId).cctpDomain;
-}
-
-/** Returns true if the chain is a CCTP v1 chain. */
-export function isCCTPV1Chain(chainId: number): boolean {
-  return cctpV1Chains.some((c) => c.chainId === chainId);
-}
-
-/** Returns true if the chain is a CCTP v2 chain. */
-export function isCCTPV2Chain(chainId: number): boolean {
-  return cctpV2Chains.some((c) => c.chainId === chainId);
-}
-
-export function isCircleGatewayChain(chainId: number): boolean {
-  return circleGatewayChains.some((c) => c.chainId === chainId);
 }
 
 /**

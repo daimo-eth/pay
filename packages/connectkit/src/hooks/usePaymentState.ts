@@ -9,6 +9,7 @@ import {
   ethereum,
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
+  ExternalPaymentOptionsString,
   isNativeToken,
   PlatformType,
   readDaimoPayOrderID,
@@ -28,6 +29,12 @@ import {
 } from "wagmi";
 
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
+import { DEFAULT_USD_LIMIT } from "../constants/limits";
+import {
+  DEFAULT_TOP_OPTIONS_ORDER,
+  inferTopLevelFromArray,
+  TOP_LEVEL_PAYMENT_OPTIONS,
+} from "../constants/paymentOptions";
 import { ROUTES } from "../constants/routes";
 import { PayParams } from "../payment/paymentFsm";
 import { detectPlatform } from "../utils/platform";
@@ -47,6 +54,47 @@ export type SourcePayment = Parameters<
   TrpcClient["processSourcePayment"]["mutate"]
 >[0];
 
+/**
+ * Extract the ordered list of top-level options from paymentOptions.
+ * Returns an empty list if none are provided. Throws if top-level and
+ * specific options are mixed.
+ */
+function getTopLevelOptions(
+  paymentOptions: (string | string[])[] | undefined,
+): ExternalPaymentOptionsString[] {
+  if (!paymentOptions || paymentOptions.length === 0) return [];
+
+  const topLevelOptions = TOP_LEVEL_PAYMENT_OPTIONS;
+  const isString = (opt: unknown): opt is string => typeof opt === "string";
+
+  const stringOptions = paymentOptions.filter(isString);
+  const topLevel = stringOptions.filter((opt) =>
+    topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  );
+  const specific = stringOptions.filter(
+    (opt) => !topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  );
+
+  if (topLevel.length && specific.length) {
+    throw new Error(
+      `invalid paymentOptions: cannot mix top-level options ${JSON.stringify(topLevel)} with specific options ${JSON.stringify(specific)}. ` +
+        `use either ["AllWallets", "AllExchanges", ...] or ["MiniPay", "Binance", ...], not both`,
+    );
+  }
+
+  // Flatten nested arrays and infer a top-level entry when needed
+  const flattened = paymentOptions.map((opt) =>
+    Array.isArray(opt)
+      ? (inferTopLevelFromArray(opt as string[]) ?? "AllWallets")
+      : opt,
+  );
+
+  // Keep only top-level options, preserving order
+  return flattened.filter((opt) =>
+    topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  ) as ExternalPaymentOptionsString[];
+}
+
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {
   generatePreviewOrder: () => void;
@@ -55,6 +103,8 @@ export interface PaymentState {
   /// DaimoPayButton props
   buttonProps: PayButtonPaymentProps | undefined;
   setButtonProps: (props: PayButtonPaymentProps | undefined) => void;
+  /// Order of top-level payment options in SelectMethod
+  topOptionsOrder: string[];
 
   /// Pay ID for loading an existing order
   setPayId: (id: string | undefined) => Promise<void>;
@@ -211,7 +261,6 @@ export function usePaymentState({
     useState<string>();
 
   const getOrderUsdLimit = () => {
-    const DEFAULT_USD_LIMIT = 20000;
     if (pay.order == null || chainOrderUsdLimits.loading) {
       return DEFAULT_USD_LIMIT;
     }
@@ -417,7 +466,7 @@ export function usePaymentState({
     return "error" in result ? null : result;
   };
 
-  const { isIOS } = useIsMobile();
+  const { isIOS, isAndroid } = useIsMobile();
 
   const openInWalletBrowser = async (
     wallet: WalletConfigProps,
@@ -441,7 +490,8 @@ export function usePaymentState({
     }
 
     const payId = writeDaimoPayOrderID(pay.order.id);
-    const deeplink = wallet.getDaimoPayDeeplink(payId);
+    const platform = isIOS ? "ios" : isAndroid ? "android" : "other";
+    const deeplink = wallet.getDaimoPayDeeplink(payId, platform);
     // If we are in IOS, we don't open the deeplink in a new window, because it
     // will not work, the link will be opened in the page WAITING_WALLET
     if (!isIOS) {
@@ -534,9 +584,19 @@ export function usePaymentState({
 
   const [tokenMode, setTokenMode] = useState<"evm" | "solana" | "all">("evm");
 
+  // Compute the order of top-level payment options from paymentOptions
+  const topOptionsOrder = (() => {
+    const defaultOrder = DEFAULT_TOP_OPTIONS_ORDER;
+    const paymentOptions =
+      buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions;
+    const found = getTopLevelOptions(paymentOptions);
+    return found.length ? found : defaultOrder;
+  })();
+
   return {
     buttonProps,
     setButtonProps,
+    topOptionsOrder,
     setPayId,
     setPayParams,
     tokenMode,

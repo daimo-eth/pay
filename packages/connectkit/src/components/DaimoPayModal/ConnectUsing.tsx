@@ -17,21 +17,26 @@ const states = {
 
 const ConnectUsing = () => {
   const context = usePayContext();
-  const { pendingConnectorId } = context;
+  const { pendingConnectorId, paymentState } = context;
 
-  const wallet = useWallet(pendingConnectorId ?? "");
-  // If cannot be scanned, display injector flow, which if extension is not installed will show CTA to install it
-  const isQrCode = !wallet?.isInstalled;
+  const walletFromConnectors = useWallet(pendingConnectorId ?? "");
+  // Fall back to selectedWallet for wallets from walletConfigs (e.g. unique payment options)
+  const wallet = walletFromConnectors || paymentState.selectedWallet;
 
+  // Wallets from walletConfigs don't have connector/isInstalled, always show QR
+  const connector = wallet?.connector;
+
+  // If it doesn't have a connector, show QR code
   const [status, setStatus] = useState(
-    isQrCode ? states.QRCODE : states.INJECTOR,
+    connector == null ? states.QRCODE : states.INJECTOR,
   );
 
   useEffect(() => {
     // if no provider, change to qrcode
     const checkProvider = async () => {
-      const res = await wallet?.connector?.getProvider();
-      if (!res) {
+      if (!wallet || connector == null) return;
+      const provider = await connector.getProvider?.();
+      if (!provider) {
         setStatus(states.QRCODE);
         setTimeout(context.triggerResize, 10); // delay required here for modal to resize
       }

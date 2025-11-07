@@ -1,4 +1,5 @@
 import { ROUTES } from "../../../constants/routes";
+import { WALLET_ID_OTHER_WALLET } from "../../../constants/wallets";
 import { useConnect } from "../../../hooks/useConnect";
 import { useDaimoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -10,10 +11,9 @@ import {
   isGeminiConnector,
 } from "../../../utils";
 import {
-  WALLET_ID_MOBILE_WALLETS,
-  WALLET_ID_OTHER_WALLET,
-  WalletProps,
+  isExternalWallet,
   useWallets,
+  WalletProps,
 } from "../../../wallets/useWallets";
 import { ScrollArea } from "../../Common/ScrollArea";
 import Alert from "../Alert";
@@ -34,14 +34,25 @@ const ConnectorList = () => {
   const wallets = useWallets(isMobile);
   const { lastConnectorId } = useLastConnector();
   const { paymentState } = useDaimoPay();
+  const prioritizedId = context.paymentState.buttonProps?.prioritizedWalletId;
 
   const walletsToDisplay = context.options?.hideRecentBadge
     ? wallets
     : [
-        // move last used wallet to top of list
-        // using .filter and spread to avoid mutating original array order with .sort
-        ...wallets.filter((wallet) => lastConnectorId === wallet.connector?.id),
-        ...wallets.filter((wallet) => lastConnectorId !== wallet.connector?.id),
+        // prioritized wallet at very top
+        ...wallets.filter((wallet) => wallet.id === prioritizedId),
+        // then recent wallet if different from prioritized
+        ...wallets.filter(
+          (wallet) =>
+            lastConnectorId === wallet.connector?.id &&
+            wallet.id !== prioritizedId,
+        ),
+        // remaining wallets
+        ...wallets.filter(
+          (wallet) =>
+            wallet.id !== prioritizedId &&
+            lastConnectorId !== wallet.connector?.id,
+        ),
       ];
 
   // For mobile flow, we need to wait for the order to be hydrated before
@@ -93,8 +104,9 @@ const ConnectorItem = ({
   // The "Other" 2x2 connector, goes to the MobileConnectors page.
   const redirectToMoreWallets =
     isMobile && wallet.id === WALLET_ID_OTHER_WALLET;
-  const redirectToMobileWallets = wallet.id === WALLET_ID_MOBILE_WALLETS;
-  const redirectToWorld = wallet.id === "world";
+  // An external wallet is one that we deeplink to, either directly
+  // (on mobile) or via QR code (on desktop).
+  const isExternalWalletFlow = isExternalWallet(wallet);
 
   // Safari requires opening popup on user gesture, so we connect immediately here
   const shouldConnectImmediately =
@@ -120,20 +132,15 @@ const ConnectorItem = ({
     }
     if (redirectToMoreWallets) {
       context.setRoute(ROUTES.MOBILECONNECTORS, meta);
-    } else if (redirectToMobileWallets) {
+    } else if (isExternalWalletFlow) {
       if (context.paymentState.isDepositFlow) {
         context.paymentState.setSelectedWallet(wallet);
         context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
+      } else if (isMobile) {
+        await context.paymentState.openInWalletBrowser(wallet);
       } else {
-        context.setPendingConnectorId(WALLET_ID_MOBILE_WALLETS);
-        context.setRoute(ROUTES.CONNECT, meta);
-      }
-    } else if (redirectToWorld) {
-      if (context.paymentState.isDepositFlow) {
-        context.paymentState.setSelectedWallet(wallet);
-        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
-      } else {
-        context.setPendingConnectorId("world");
+        // On desktop, show QR code for external wallets
+        context.setPendingConnectorId(wallet.id);
         context.setRoute(ROUTES.CONNECT, meta);
       }
     } else if (
@@ -143,11 +150,7 @@ const ConnectorItem = ({
     ) {
       context.paymentState.setSelectedWallet(wallet);
       context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
-    } else if (
-      isMobile &&
-      wallet.getDaimoPayDeeplink != null &&
-      !wallet.connector
-    ) {
+    } else if (isMobile && wallet.getDaimoPayDeeplink != null) {
       await context.paymentState.openInWalletBrowser(wallet);
     } else {
       if (shouldConnectImmediately) {

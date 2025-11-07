@@ -129,10 +129,10 @@ export const zDaimoPayOrderMetadata = z.object({
           "Filter to only allow payments on these EVM chains. Defaults to all chains.",
         ),
       paymentOptions: z
-        .array(z.string())
+        .array(z.union([z.string(), z.array(z.string())]))
         .optional()
         .describe(
-          "Payment options like Coinbase, Binance, etc. Defaults to all available options.",
+          "Payment options like Coinbase, Binance, etc. Supports nested arrays for mobile wallet filtering. Defaults to all available options.",
         ),
       passthroughTokens: z
         .array(
@@ -401,14 +401,36 @@ export type ExternalPaymentOptionMetadata = {
 };
 
 export enum ExternalPaymentOptions {
-  Daimo = "Daimo",
-  ExternalChains = "ExternalChains",
-  // All exchanges
+  // Wallets options
+  AllWallets = "AllWallets",
+  Metamask = "MetaMask",
+  Trust = "Trust",
+  Rainbow = "Rainbow",
+  BaseApp = "Base App",
+  Backpack = "Backpack",
+  Bitget = "Bitget",
+  Family = "Family",
+  Farcaster = "Farcaster",
+  Phantom = "Phantom",
+  MiniPay = "MiniPay",
+  OKX = "OKX",
+  Solflare = "Solflare",
+  World = "World",
+  Zerion = "Zerion",
+  //Exchange options
   AllExchanges = "AllExchanges",
   Coinbase = "Coinbase",
   Binance = "Binance",
   Lemon = "Lemon",
-  // All available payment apps
+  // Pay to Address options
+  AllAddresses = "AllAddresses",
+  Tron = "Tron",
+  Base = "Base",
+  Arbitrum = "Arbitrum",
+  Optimism = "Optimism",
+  Polygon = "Polygon",
+  Ethereum = "Ethereum",
+  //Payment apps options (only available on desktop)
   AllPaymentApps = "AllPaymentApps",
   Venmo = "Venmo",
   CashApp = "CashApp",
@@ -416,6 +438,10 @@ export enum ExternalPaymentOptions {
   Revolut = "Revolut",
   Wise = "Wise",
   Zelle = "Zelle",
+  /** @deprecated - kept for backwards compatibility with old SDK versions */
+  Daimo = "Daimo",
+  /** @deprecated - kept for backwards compatibility with old SDK versions */
+  ExternalChains = "ExternalChains",
 }
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
@@ -428,23 +454,6 @@ export function shouldShowExternalQRCodeOnDesktop(
     externalOption === ExternalPaymentOptions.Binance
   );
 }
-
-export enum UniquePaymentOptions {
-  Wallets = "Wallets",
-  AllExchanges = "AllExchanges",
-  Coinbase = "Coinbase",
-  Binance = "Binance",
-  Lemon = "Lemon",
-  Tron = "Tron",
-  Base = "Base",
-  Arbitrum = "Arbitrum",
-  Optimism = "Optimism",
-  Polygon = "Polygon",
-  Ethereum = "Ethereum",
-  ManualAddress = "ManualAddress",
-}
-
-export type UniquePaymentOptionsString = `${UniquePaymentOptions}`;
 
 export type ExternalPaymentOptionData = {
   url: string;

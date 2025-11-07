@@ -13,12 +13,16 @@ import { useDaimoPay } from "../../hooks/useDaimoPay";
 import useIsMobile from "../../hooks/useIsMobile";
 import { usePayContext } from "../../hooks/usePayContext";
 import { CustomTheme, Languages, Mode, Theme } from "../../types";
+import {
+  isExternalWallet,
+  useWallet as useWalletById,
+} from "../../wallets/useWallets";
+import { walletConfigs } from "../../wallets/walletConfigs";
 import Modal from "../Common/Modal";
 import { DaimoPayThemeProvider } from "../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import About from "../Pages/About";
 import Confirmation from "../Pages/Confirmation";
 import Connectors from "../Pages/Connectors";
-import DownloadApp from "../Pages/DownloadApp";
 import ErrorPage from "../Pages/Error";
 import MobileConnectors from "../Pages/MobileConnectors";
 import Onboarding from "../Pages/Onboarding";
@@ -43,6 +47,13 @@ import WaitingDepositAddress, {
 import WaitingExternal from "../Pages/WaitingExternal";
 import WaitingWallet from "../Pages/WaitingWallet";
 import ConnectUsing from "./ConnectUsing";
+
+/** Helper to check if option string corresponds to a specific wallet */
+function isWalletOption(option: string): boolean {
+  return Object.keys(walletConfigs).some((id) => {
+    walletConfigs[id].name === option;
+  });
+}
 
 export const DaimoPayModal: React.FC<{
   mode: Mode;
@@ -93,6 +104,7 @@ export const DaimoPayModal: React.FC<{
   } = useAccount();
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
+  const pendingWallet = useWalletById(context.pendingConnectorId || "");
 
   // if chain is unsupported we enforce a "switch chain" prompt
   // closeable is independent of the warning state; warning is handled separately below
@@ -114,10 +126,8 @@ export const DaimoPayModal: React.FC<{
 
   const onBack = () => {
     const meta = { event: "click-back" };
-    if (context.route === ROUTES.DOWNLOAD) {
-      context.setRoute(ROUTES.CONNECT, meta);
-    } else if (context.route === ROUTES.CONNECTORS) {
-      context.setRoute(ROUTES.SELECT_METHOD, meta);
+    if (context.route === ROUTES.CONNECTORS) {
+      context.setRoute(context.uniquePaymentMethodPage, meta);
     } else if (context.route === ROUTES.SELECT_AMOUNT) {
       setSelectedTokenOption(undefined);
       context.setRoute(ROUTES.SELECT_TOKEN, meta);
@@ -125,12 +135,23 @@ export const DaimoPayModal: React.FC<{
       setSelectedExternalOption(undefined);
       context.setRoute(context.uniquePaymentMethodPage, meta);
     } else if (context.route === ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT) {
+      // If Tron is a top-level option and we're on Tron, go back to SELECT_METHOD
+      const isTronTopLevel = paymentState.topOptionsOrder.includes("Tron");
+      const isTronSelected =
+        paymentState.selectedDepositAddressOption?.id ===
+        DepositAddressPaymentOptions.TRON_USDT;
+      if (isDepositFlow) {
+        generatePreviewOrder();
+      }
       setSelectedDepositAddressOption(undefined);
-      context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+      if (isTronTopLevel && isTronSelected) {
+        context.setRoute(ROUTES.SELECT_METHOD, meta);
+      } else {
+        context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+      }
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
-        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);
@@ -144,19 +165,30 @@ export const DaimoPayModal: React.FC<{
         setSelectedTokenOption(undefined);
         context.setRoute(ROUTES.SELECT_TOKEN, meta);
       }
+    } else if (context.route === ROUTES.MOBILECONNECTORS) {
+      context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.ONBOARDING) {
       context.setRoute(ROUTES.CONNECTORS, meta);
     } else if (context.route === ROUTES.WAITING_DEPOSIT_ADDRESS) {
+      // If Tron is a top-level option and we're on Tron, go back to SELECT_METHOD
+      const isTronTopLevel = paymentState.topOptionsOrder.includes("Tron");
+      const isTronSelected =
+        paymentState.selectedDepositAddressOption?.id ===
+        DepositAddressPaymentOptions.TRON_USDT;
       if (isDepositFlow) {
+        generatePreviewOrder();
         if (paymentState.selectedDepositAddressOption === undefined) {
           context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
         } else {
-          generatePreviewOrder();
           context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT, meta);
         }
       } else {
         setSelectedDepositAddressOption(undefined);
-        context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+        if (isTronTopLevel && isTronSelected) {
+          context.setRoute(ROUTES.SELECT_METHOD, meta);
+        } else {
+          context.setRoute(ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN, meta);
+        }
       }
     } else if (context.route === ROUTES.WAITING_WALLET) {
       if (isDepositFlow) {
@@ -176,6 +208,14 @@ export const DaimoPayModal: React.FC<{
       } else {
         setSelectedSolanaTokenOption(undefined);
         context.setRoute(ROUTES.SELECT_TOKEN, meta);
+      }
+    } else if (context.route === ROUTES.CONNECT) {
+      // For external wallets (World, MiniPay) in deposit mode, go back to amount selection
+      if (isDepositFlow && isExternalWallet(pendingWallet)) {
+        generatePreviewOrder();
+        context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, meta);
+      } else {
+        context.setRoute(context.uniquePaymentMethodPage, meta);
       }
     } else {
       context.setRoute(context.uniquePaymentMethodPage, meta);
@@ -205,7 +245,6 @@ export const DaimoPayModal: React.FC<{
     // Unused routes. Kept to minimize connectkit merge conflicts.
     [ROUTES.ONBOARDING]: <Onboarding />,
     [ROUTES.ABOUT]: <About />,
-    [ROUTES.DOWNLOAD]: <DownloadApp />,
     [ROUTES.CONNECTORS]: <Connectors />,
     [ROUTES.MOBILECONNECTORS]: <MobileConnectors />,
     [ROUTES.CONNECT]: <ConnectUsing />,
@@ -278,10 +317,25 @@ export const DaimoPayModal: React.FC<{
       });
     }
   };
+
+  const goToExternalScreen = (eventSuffix: string) => {
+    if (paymentState.isDepositFlow) {
+      context.setUniquePaymentMethodPage(ROUTES.SELECT_EXTERNAL_AMOUNT);
+      context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, {
+        event: `unique_payment_option_${eventSuffix}_deposit`,
+      });
+    } else {
+      context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
+      context.setRoute(ROUTES.WAITING_EXTERNAL, {
+        event: `unique_payment_option_${eventSuffix}`,
+      });
+    }
+  };
+
   const { isMobile } = useIsMobile();
 
   // Override the first screen upon opening the modal.
-  // 1. If uniquePaymentOption is set, navigate to that screen directly
+  // 1. If paymentOptions has exactly one option, navigate to that screen directly
   // 2. If the user has a wallet already connected upon opening the modal, go
   // straight to the select token screen
   // 3. If the user has no wallet connected upon opening the modal, go to the
@@ -290,12 +344,21 @@ export const DaimoPayModal: React.FC<{
     if (!context.open) return;
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
-    if (
-      paymentState.buttonProps &&
-      "uniquePaymentOption" in paymentState.buttonProps &&
-      paymentState.buttonProps.uniquePaymentOption
-    ) {
-      switch (paymentState.buttonProps.uniquePaymentOption) {
+    const paymentOptions = paymentState.buttonProps?.paymentOptions;
+    const hasUniqueOption = paymentOptions && paymentOptions.length === 1;
+
+    if (hasUniqueOption) {
+      const option = paymentOptions[0];
+      // Handle nested array (wallet list)
+      if (Array.isArray(option)) {
+        context.setUniquePaymentMethodPage(ROUTES.CONNECTORS);
+        context.setRoute(ROUTES.CONNECTORS, {
+          event: "unique_payment_option_wallets",
+        });
+        return;
+      }
+      // Handle single string option
+      switch (option) {
         case "Tron":
           // Find the Tron option from available deposit address options
           const tronOption = paymentState.depositAddressOptions.options?.find(
@@ -322,7 +385,7 @@ export const DaimoPayModal: React.FC<{
             event: "unique_payment_option_all_exchanges",
           });
           break;
-        case "ManualAddress":
+        case "AllAddresses":
           context.setUniquePaymentMethodPage(
             ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN,
           );
@@ -428,10 +491,7 @@ export const DaimoPayModal: React.FC<{
           );
           if (binanceOption) {
             setSelectedExternalOption(binanceOption);
-            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
-            context.setRoute(ROUTES.WAITING_EXTERNAL, {
-              event: "unique_payment_option_binance",
-            });
+            goToExternalScreen("binance");
           } else if (!paymentState.externalPaymentOptions.loading) {
             context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
             context.setRoute(ROUTES.SELECT_EXCHANGE, {
@@ -448,10 +508,7 @@ export const DaimoPayModal: React.FC<{
           );
           if (coinbaseOption) {
             setSelectedExternalOption(coinbaseOption);
-            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
-            context.setRoute(ROUTES.WAITING_EXTERNAL, {
-              event: "unique_payment_option_coinbase",
-            });
+            goToExternalScreen("coinbase");
           } else if (!paymentState.externalPaymentOptions.loading) {
             context.setUniquePaymentMethodPage(ROUTES.SELECT_EXCHANGE);
             context.setRoute(ROUTES.SELECT_EXCHANGE, {
@@ -468,42 +525,89 @@ export const DaimoPayModal: React.FC<{
           );
           if (lemonOption) {
             setSelectedExternalOption(lemonOption);
-            context.setUniquePaymentMethodPage(ROUTES.WAITING_EXTERNAL);
-            context.setRoute(ROUTES.WAITING_EXTERNAL, {
-              event: "unique_payment_option_lemon",
-            });
+            goToExternalScreen("lemon");
           } else if (!paymentState.externalPaymentOptions.loading) {
+            // Lemon not found - may not be available in this environment/region
+            console.warn(
+              "[DaimoPayModal] Lemon not found in external payment options",
+            );
             context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
             context.setRoute(ROUTES.SELECT_METHOD, {
-              event: "unique_payment_option_lemon_fallback",
+              event: "unique_payment_option_lemon_not_found",
             });
           }
+          // If still loading, wait for next render
           break;
-        case "Wallets":
+        case "AllWallets":
           context.setUniquePaymentMethodPage(ROUTES.CONNECTORS);
           context.setRoute(ROUTES.CONNECTORS, {
             event: "unique_payment_option_wallets",
           });
           break;
         default:
-          context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+          // Single wallet options like MiniPay, World, etc
+          const singleOption = option;
+          if (isWalletOption(singleOption)) {
+            const walletId = Object.keys(walletConfigs).find((id) => {
+              const wallet = walletConfigs[id];
+              const optionLower = singleOption.toLowerCase();
+              return (
+                wallet.name?.toLowerCase() === optionLower ||
+                wallet.shortName?.toLowerCase() === optionLower ||
+                wallet.name?.toLowerCase().includes(optionLower) ||
+                id.toLowerCase() === optionLower ||
+                id.toLowerCase().includes(optionLower)
+              );
+            });
+            if (walletId) {
+              const wallet = walletConfigs[walletId];
+              paymentState.setSelectedWallet(wallet);
+
+              if (paymentState.isDepositFlow) {
+                // For deposit mode, route to amount selection first
+                context.setUniquePaymentMethodPage(ROUTES.SELECT_WALLET_AMOUNT);
+                context.setRoute(ROUTES.SELECT_WALLET_AMOUNT, {
+                  event: "single_option_wallet_deposit",
+                  wallet: singleOption,
+                });
+              } else if (!isMobile && wallet.getDaimoPayDeeplink) {
+                // On desktop, show QR code for wallet
+                context.setPendingConnectorId(walletId);
+                context.setUniquePaymentMethodPage(ROUTES.CONNECT);
+                context.setRoute(ROUTES.CONNECT, {
+                  event: "single_option_wallet_qr",
+                  wallet: singleOption,
+                });
+              } else if (isMobile && wallet.getDaimoPayDeeplink) {
+                // On mobile with deeplink, open wallet directly (no internal routing)
+                paymentState.openInWalletBrowser(wallet);
+              } else {
+                // No deeplink - go to connectors to let user connect
+                context.setRoute(ROUTES.CONNECTORS, {
+                  event: "single_option_wallet",
+                  wallet: singleOption,
+                });
+              }
+            } else {
+              context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+            }
+          } else {
+            context.setUniquePaymentMethodPage(ROUTES.SELECT_METHOD);
+          }
           break;
       }
     }
 
-    const hasUniquePaymentOption =
-      paymentState.buttonProps &&
-      "uniquePaymentOption" in paymentState.buttonProps &&
-      paymentState.buttonProps.uniquePaymentOption;
     const isWalletsUniquePaymentOption =
-      paymentState.buttonProps?.uniquePaymentOption === "Wallets";
+      hasUniqueOption &&
+      (Array.isArray(paymentOptions[0]) || paymentOptions[0] === "AllWallets");
 
     // Skip to token selection if exactly one wallet is connected. If both
     // wallets are connected, stay on the SELECT_METHOD screen to allow the
     // user to select which wallet to use
     // If mobile injector is disabled, don't show the connected wallets.
     // If there's a unique payment option, and the unique payment option is not
-    // "Wallets", don't auto-connect the user's wallet.
+    // "AllWallets" or a wallet list, don't auto-connect the user's wallet.
     const evmOptionsCount =
       paymentState.walletPaymentOptions.options?.length ?? 0;
     const isEvmLoading = paymentState.walletPaymentOptions.isLoading;
@@ -511,7 +615,7 @@ export const DaimoPayModal: React.FC<{
       paymentState.solanaPaymentOptions.options?.length ?? 0;
     const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
     if (
-      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
+      (!hasUniqueOption || isWalletsUniquePaymentOption) &&
       isEthConnected &&
       !isSolanaConnected &&
       (!isMobile || !disableMobileInjector) &&
@@ -526,7 +630,7 @@ export const DaimoPayModal: React.FC<{
         address,
       });
     } else if (
-      (!hasUniquePaymentOption || isWalletsUniquePaymentOption) &&
+      (!hasUniqueOption || isWalletsUniquePaymentOption) &&
       isSolanaConnected &&
       !isEthConnected &&
       !disableMobileInjector &&

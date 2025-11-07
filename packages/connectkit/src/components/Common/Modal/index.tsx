@@ -42,12 +42,41 @@ import FocusTrap from "../../../hooks/useFocusTrap";
 import useLocales from "../../../hooks/useLocales";
 import usePrevious from "../../../hooks/usePrevious";
 import { CustomTheme } from "../../../types";
-import {
-  useWallet,
-  WALLET_ID_MOBILE_WALLETS,
-} from "../../../wallets/useWallets";
+import { isExternalWallet, useWallet } from "../../../wallets/useWallets";
 import { useThemeContext } from "../../DaimoPayThemeProvider/DaimoPayThemeProvider";
 import FitText from "../FitText";
+
+// Map routes to a depth value to drive enter/exit animations.
+// Higher numbers feel "deeper" in the flow.
+const routeDepthMap: Partial<Record<ROUTES, number>> = {
+  [ROUTES.SELECT_METHOD]: 0,
+
+  [ROUTES.CONNECTORS]: 1,
+  [ROUTES.SELECT_EXCHANGE]: 1,
+  [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: 1,
+
+  [ROUTES.SELECT_ZKP2P]: 1,
+
+  [ROUTES.CONNECT]: 2,
+  [ROUTES.SOLANA_CONNECTOR]: 2,
+  [ROUTES.MOBILECONNECTORS]: 2,
+  [ROUTES.SELECT_WALLET_CHAIN]: 2,
+  [ROUTES.SELECT_TOKEN]: 2,
+  [ROUTES.SELECT_AMOUNT]: 2,
+  [ROUTES.SELECT_EXTERNAL_AMOUNT]: 2,
+  [ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT]: 2,
+  [ROUTES.SELECT_WALLET_AMOUNT]: 2,
+  [ROUTES.PAY_WITH_TOKEN]: 2,
+  [ROUTES.SOLANA_SELECT_AMOUNT]: 2,
+  [ROUTES.SOLANA_PAY_WITH_TOKEN]: 2,
+
+  [ROUTES.WAITING_WALLET]: 3,
+  [ROUTES.WAITING_EXTERNAL]: 3,
+  [ROUTES.WAITING_DEPOSIT_ADDRESS]: 3,
+
+  [ROUTES.CONFIRMATION]: 4,
+  [ROUTES.ERROR]: 4,
+};
 
 const ProfileIcon = ({ isSignedIn }: { isSignedIn?: boolean }) => (
   <div style={{ position: "relative" }}>
@@ -215,7 +244,12 @@ const Modal: React.FC<ModalProps> = ({
   const { order, paymentState } = useDaimoPay();
 
   const { connector } = useAccount();
-  const wallet = useWallet(connector?.id ?? "");
+  // For external wallets (World, MiniPay), use pendingConnectorId
+  // For injected wallets, use connector?.id
+  const walletId = context.pendingConnectorId || connector?.id || "";
+  const walletFromConnectors = useWallet(walletId);
+  // Fall back to selectedWallet for wallets from walletConfigs (e.g. unique payment options)
+  const wallet = walletFromConnectors || context.paymentState.selectedWallet;
 
   const walletInfo = {
     name: wallet?.name,
@@ -237,12 +271,7 @@ const Modal: React.FC<ModalProps> = ({
   });
   const mounted = !(state === "exited" || state === "unmounted");
   const rendered = state === "preEnter" || state !== "exiting";
-  const currentDepth =
-    context.route === ROUTES.CONNECTORS
-      ? 0
-      : context.route === ROUTES.DOWNLOAD
-        ? 2
-        : 1;
+  const currentDepth = routeDepthMap[context.route as ROUTES] ?? 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -326,16 +355,10 @@ const Modal: React.FC<ModalProps> = ({
     "--width": dimensions.width,
   } as React.CSSProperties;
 
-  function shouldUseQrcode() {
-    if (!wallet) return false; // Fail states are shown in the injector flow
-
-    const useInjector = wallet.isInstalled;
-    return !useInjector;
-  }
-
+  // Show "Scan with phone" title for wallets with deeplinks (unique payment options)
+  const hasDeeplink = wallet && wallet.getDaimoPayDeeplink;
   const shouldShowWalletQRCodeOnDesktop =
-    context.pendingConnectorId === WALLET_ID_MOBILE_WALLETS ||
-    context.pendingConnectorId === "world";
+    isExternalWallet(wallet) || hasDeeplink;
 
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");
@@ -356,8 +379,6 @@ const Modal: React.FC<ModalProps> = ({
         return locales.connectorsScreen_heading;
       case ROUTES.MOBILECONNECTORS:
         return locales.mobileConnectorsScreen_heading;
-      case ROUTES.DOWNLOAD:
-        return locales.downloadAppScreen_heading;
       case ROUTES.ONBOARDING:
         return locales.onboardingScreen_heading;
       case ROUTES.SWITCHNETWORKS:
@@ -647,8 +668,6 @@ type PageProps = {
   children?: React.ReactNode;
   open?: boolean;
   initial: boolean;
-  prevDepth?: number;
-  currentDepth?: number;
   enterAnim?: string;
   exitAnim?: string;
 };
@@ -657,8 +676,6 @@ const Page: React.FC<PageProps> = ({
   children,
   open,
   initial,
-  prevDepth,
-  currentDepth,
   enterAnim,
   exitAnim,
 }) => {

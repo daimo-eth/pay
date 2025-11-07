@@ -403,10 +403,10 @@ export type ExternalPaymentOptionMetadata = {
 export enum ExternalPaymentOptions {
   // Wallets options
   AllWallets = "AllWallets",
-  Metamask = "Metamask",
+  Metamask = "MetaMask",
   Trust = "Trust",
   Rainbow = "Rainbow",
-  BaseApp = "BaseApp",
+  BaseApp = "Base App",
   Backpack = "Backpack",
   Bitget = "Bitget",
   Family = "Family",

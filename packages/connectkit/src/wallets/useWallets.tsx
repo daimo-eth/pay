@@ -9,7 +9,6 @@ import Logos, {
 } from "../assets/logos";
 import MobileWithLogos from "../assets/MobileWithLogos";
 import {
-  MAX_MOBILE_WALLETS_SHOWN,
   MOBILE_WALLETS_THRESHOLD_FOR_OTHER,
   RABBY_CONNECTOR_ID,
   WALLET_ID_MOBILE_WALLETS,
@@ -31,7 +30,7 @@ import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
 export type WalletProps = {
   id: string;
-  connector?: Connector;
+  connector?: Connector | null;
   isInstalled?: boolean;
   /** Name of the matching Solana wallet adapter (if any) */
   solanaConnectorName?: SolanaWalletName;
@@ -145,7 +144,10 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         mobileWallets.length > MOBILE_WALLETS_THRESHOLD_FOR_OTHER
       ) {
         // Get the wallets that will be in "Other" (those shown in main selector)
-        const shownWallets = mobileWallets.slice(0, MAX_MOBILE_WALLETS_SHOWN);
+        const shownWallets = mobileWallets.slice(
+          0,
+          MOBILE_WALLETS_THRESHOLD_FOR_OTHER - 1,
+        );
         const shownWalletNames = shownWallets
           .map((w) => w.name?.toLowerCase() || w.shortName?.toLowerCase())
           .filter((name): name is string => !!name);
@@ -178,8 +180,8 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
           .filter(Boolean) as WalletConfigProps[];
 
         // Keep max wallets total (including injected)
-        if (mobileWallets.length > MAX_MOBILE_WALLETS_SHOWN) {
-          mobileWallets.splice(MAX_MOBILE_WALLETS_SHOWN);
+        if (mobileWallets.length > MOBILE_WALLETS_THRESHOLD_FOR_OTHER - 1) {
+          mobileWallets.splice(MOBILE_WALLETS_THRESHOLD_FOR_OTHER - 1);
         }
 
         const otherWalletsString = flattenChildren(locales.otherWallets).join(

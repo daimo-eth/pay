@@ -1,3 +1,4 @@
+import type { Connector } from "wagmi";
 import Logos from "../assets/logos";
 
 // Infer in-wallet payment URL from environment.
@@ -50,6 +51,8 @@ export type WalletConfigProps = {
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
   isSolanaOnly?: boolean;
   // wallet payment option
+  // Connector is present for wagmi wallets; null for static configs
+  connector?: Connector | null;
 };
 
 // Organised in alphabetical order by key

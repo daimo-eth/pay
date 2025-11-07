@@ -7,4 +7,3 @@ export const RABBY_CONNECTOR_ID = "io.rabby";
 
 // Mobile wallets display rules
 export const MOBILE_WALLETS_THRESHOLD_FOR_OTHER = 3; // if > 3, show "Other"
-export const MAX_MOBILE_WALLETS_SHOWN = 2; // before adding "Other"

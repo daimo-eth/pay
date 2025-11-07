@@ -49,9 +49,7 @@ const SelectWalletAmount: React.FC = () => {
 
     // External wallets (World, MiniPay, etc.) on desktop show QR code
     if (isExternalWallet(selectedWallet) && !isMobile) {
-      if (payFsmState !== "payment_unpaid") {
-        await hydrateOrder();
-      }
+      await hydrateOrder();
       setPendingConnectorId(walletId!);
       setRoute(ROUTES.CONNECT);
     } else {

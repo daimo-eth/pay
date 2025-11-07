@@ -54,6 +54,47 @@ export type SourcePayment = Parameters<
   TrpcClient["processSourcePayment"]["mutate"]
 >[0];
 
+/**
+ * Extract the ordered list of top-level options from paymentOptions.
+ * Returns an empty list if none are provided. Throws if top-level and
+ * specific options are mixed.
+ */
+function getTopLevelOptions(
+  paymentOptions: (string | string[])[] | undefined,
+): ExternalPaymentOptionsString[] {
+  if (!paymentOptions || paymentOptions.length === 0) return [];
+
+  const topLevelOptions = TOP_LEVEL_PAYMENT_OPTIONS;
+  const isString = (opt: unknown): opt is string => typeof opt === "string";
+
+  const stringOptions = paymentOptions.filter(isString);
+  const topLevel = stringOptions.filter((opt) =>
+    topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  );
+  const specific = stringOptions.filter(
+    (opt) => !topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  );
+
+  if (topLevel.length && specific.length) {
+    throw new Error(
+      `invalid paymentOptions: cannot mix top-level options ${JSON.stringify(topLevel)} with specific options ${JSON.stringify(specific)}. ` +
+        `use either ["AllWallets", "AllExchanges", ...] or ["MiniPay", "Binance", ...], not both`,
+    );
+  }
+
+  // Flatten nested arrays and infer a top-level entry when needed
+  const flattened = paymentOptions.map((opt) =>
+    Array.isArray(opt)
+      ? (inferTopLevelFromArray(opt as string[]) ?? "AllWallets")
+      : opt,
+  );
+
+  // Keep only top-level options, preserving order
+  return flattened.filter((opt) =>
+    topLevelOptions.includes(opt as ExternalPaymentOptionsString),
+  ) as ExternalPaymentOptionsString[];
+}
+
 /** Creates (or loads) a payment and manages the corresponding modal. */
 export interface PaymentState {
   generatePreviewOrder: () => void;
@@ -548,50 +589,8 @@ export function usePaymentState({
     const defaultOrder = DEFAULT_TOP_OPTIONS_ORDER;
     const paymentOptions =
       buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions;
-
-    if (!paymentOptions || paymentOptions.length === 0) {
-      return defaultOrder;
-    }
-
-    // Validate: cannot mix "All*" options with specific options
-    const topLevelOptions = TOP_LEVEL_PAYMENT_OPTIONS;
-    const stringOptions = paymentOptions.filter(
-      (opt) => typeof opt === "string",
-    );
-
-    const topLevel = stringOptions.filter((opt) =>
-      topLevelOptions.includes(opt as ExternalPaymentOptionsString),
-    );
-    const specific = stringOptions.filter(
-      (opt) => !topLevelOptions.includes(opt as ExternalPaymentOptionsString),
-    );
-
-    if (topLevel.length && specific.length) {
-      throw new Error(
-        `invalid paymentOptions: cannot mix top-level options ${JSON.stringify(topLevel)} with specific options ${JSON.stringify(specific)}. ` +
-          `use either ["AllWallets", "AllExchanges", ...] or ["MiniPay", "Binance", ...], not both`,
-      );
-    }
-
-    // Flatten nested arrays and extract top-level options
-    const flatOptions: string[] = [];
-
-    paymentOptions.forEach((opt) => {
-      if (Array.isArray(opt)) {
-        const inferred = inferTopLevelFromArray(opt as string[]);
-        flatOptions.push(inferred ?? "AllWallets");
-      } else {
-        flatOptions.push(opt);
-      }
-    });
-
-    // Extract only the top-level options (AllWallets, AllExchanges, AllAddresses) in order
-    const foundOrder = flatOptions.filter((opt) =>
-      topLevelOptions.includes(opt as any as ExternalPaymentOptionsString),
-    );
-
-    // Return the found top-level options (may be empty if paymentOptions only has specific options)
-    return foundOrder;
+    const found = getTopLevelOptions(paymentOptions);
+    return found.length ? found : defaultOrder;
   })();
 
   return {

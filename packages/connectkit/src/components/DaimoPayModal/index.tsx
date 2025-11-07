@@ -50,20 +50,8 @@ import ConnectUsing from "./ConnectUsing";
 
 /** Helper to check if option string corresponds to a specific wallet */
 function isWalletOption(option: string): boolean {
-  const optionLower = option.toLowerCase();
   return Object.keys(walletConfigs).some((id) => {
-    const wallet = walletConfigs[id];
-    const nameLower = wallet.name?.toLowerCase() ?? "";
-    const shortLower = wallet.shortName?.toLowerCase() ?? "";
-    const idLower = id.toLowerCase();
-    return (
-      idLower === optionLower ||
-      idLower.includes(optionLower) ||
-      nameLower === optionLower ||
-      shortLower === optionLower ||
-      nameLower.includes(optionLower) ||
-      optionLower.includes(nameLower)
-    );
+    walletConfigs[id].name === option;
   });
 }
 

@@ -49,6 +49,7 @@ export type WalletConfigProps = {
   showOnIOS?: boolean;
   // Used to filter wallets that only support solana in mobile mode to not show in the connector options when the payID doesn't support solana
   isSolanaOnly?: boolean;
+  // wallet payment option
 };
 
 // Organised in alphabetical order by key

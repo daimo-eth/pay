@@ -1492,6 +1492,25 @@ export function createOtherWalletsIcon(
     borderRadius: "27.5%",
   };
 
+  if (count === 1) {
+    // 1 wallet: centered
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <div style={{ ...cell, width: "100%" }}>
+          {renderWalletIcon(walletsToShow[0])}
+        </div>
+      </div>
+    );
+  }
+
   if (count === 2) {
     // 2 wallets: side by side, centered
     return (

@@ -78,7 +78,9 @@ export type PaymentState =
   // Order was paid but the destination failed to process
   | { type: "payment_bounced"; order: RozoPayHydratedOrderWithOrg }
   // An error occurred
-  | { type: "error"; order: RozoPayOrder | undefined; message: string };
+  | { type: "error"; order: RozoPayOrder | undefined; message: string }
+  // Order was paid and processed successfully
+  | { type: "payout_completed"; order: RozoPayHydratedOrderWithOrg };
 
 export type PaymentStateType = PaymentState["type"];
 
@@ -173,7 +175,9 @@ export function paymentReducer(
     case "payment_started":
       return reducePaymentStarted(state, event);
     case "payment_completed":
+      return reducePaymentCompleted(state, event);
     case "payment_bounced":
+    case "payout_completed":
     case "error":
       return reduceTerminal(state, event);
     /* satisfies exhaustiveness */
@@ -340,6 +344,27 @@ function reducePaymentStarted(
   }
 }
 
+function reducePaymentCompleted(
+  state: Extract<PaymentState, { type: "payment_completed" }>,
+  event: PaymentEvent
+): PaymentState {
+  switch (event.type) {
+    case "order_refreshed":
+      // Allow transition to payout_completed
+      if (
+        event.order.intentStatus === RozoPayIntentStatus.PAYOUT_COMPLETED &&
+        isHydrated(event.order)
+      ) {
+        return { type: "payout_completed", order: event.order };
+      }
+      return state;
+    case "reset":
+      return initialPaymentState;
+    default:
+      return state;
+  }
+}
+
 /**
  * Determines the appropriate payment state based on an order's status and mode.
  * Returns the appropriate payment state based on the order's mode and intent status.
@@ -363,6 +388,12 @@ function getStateFromOrder(order: RozoPayOrderWithOrg): PaymentState {
       `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`
     );
     return { type: "payment_started", order };
+  } else if (order.intentStatus === RozoPayIntentStatus.PAYOUT_COMPLETED) {
+    assert(
+      order.mode === RozoPayOrderMode.HYDRATED,
+      `[PAYMENT_REDUCER] order ${order.id} is ${order.intentStatus} but not hydrated`
+    );
+    return { type: "payout_completed", order };
   } else if (order.mode === RozoPayOrderMode.HYDRATED) {
     return { type: "payment_unpaid", order };
   } else {
@@ -389,6 +420,8 @@ function getStateFromHydratedOrder(
       return { type: "payment_completed", order };
     case RozoPayIntentStatus.BOUNCED:
       return { type: "payment_bounced", order };
+    case RozoPayIntentStatus.PAYOUT_COMPLETED:
+      return { type: "payout_completed", order };
     default:
       return state;
   }
@@ -397,7 +430,13 @@ function getStateFromHydratedOrder(
 function reduceTerminal(
   state: Extract<
     PaymentState,
-    { type: "payment_completed" | "payment_bounced" | "error" }
+    {
+      type:
+        | "payment_completed"
+        | "payment_bounced"
+        | "error"
+        | "payout_completed";
+    }
   >,
   event: PaymentEvent
 ): PaymentState {

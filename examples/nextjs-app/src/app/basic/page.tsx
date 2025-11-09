@@ -215,6 +215,9 @@ export default function DemoBasic() {
               onPaymentCompleted={(e) => {
                 console.log("onPaymentCompleted", e);
               }}
+              onPayoutCompleted={(e) => {
+                console.log("onPayoutCompleted", e);
+              }}
               resetOnSuccess={true}
               metadata={metadata}
               showProcessingPayout

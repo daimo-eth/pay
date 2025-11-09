@@ -45,8 +45,14 @@ const Confirmation: React.FC = () => {
     triggerResize,
     ...context
   } = usePayContext();
-  const { order, paymentState, setPaymentCompleted, setPaymentRozoCompleted } =
-    useRozoPay();
+  const {
+    order,
+    paymentState,
+    setPaymentCompleted,
+    setPaymentRozoCompleted,
+    setPaymentPayoutCompleted,
+    setPayoutRozoCompleted,
+  } = useRozoPay();
 
   const [isConfirming, setIsConfirming] = useState<boolean>(true);
 
@@ -248,6 +254,13 @@ const Confirmation: React.FC = () => {
   }, [done, onSuccess, paymentStateContext, rawPayInHash, rozoPaymentId]);
 
   useEffect(() => {
+    if (done && payoutTxHash) {
+      setPaymentPayoutCompleted(payoutTxHash, rozoPaymentId ?? "");
+      setPayoutRozoCompleted(true);
+    }
+  }, [done, payoutTxHash, rozoPaymentId]);
+
+  useEffect(() => {
     if (debugMode) {
       context.log(`[ORDER] Order: `, order);
     }
@@ -296,17 +309,15 @@ const Confirmation: React.FC = () => {
                 <ListItem>
                   <ModalBody>Transfer Hash</ModalBody>
                   <ModalBody>
-                    <LinkContainer>
-                      <Link
-                        href={txURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ fontSize: 14, fontWeight: 400 }}
-                      >
-                        {getAddressContraction(rawPayInHash)}
-                      </Link>
+                    <Link
+                      href={txURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 14, fontWeight: 400 }}
+                    >
+                      {getAddressContraction(rawPayInHash)}
                       <ExternalIcon />
-                    </LinkContainer>
+                    </Link>
                   </ModalBody>
                 </ListItem>
 
@@ -317,17 +328,15 @@ const Confirmation: React.FC = () => {
                       {payoutLoading ? (
                         <LoadingText>Processing payout...</LoadingText>
                       ) : payoutTxHashUrl && payoutTxHash ? (
-                        <LinkContainer>
-                          <Link
-                            href={payoutTxHashUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ fontSize: 14, fontWeight: 400 }}
-                          >
-                            {getAddressContraction(payoutTxHash)}
-                          </Link>
+                        <Link
+                          href={payoutTxHashUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 14, fontWeight: 400 }}
+                        >
+                          {getAddressContraction(payoutTxHash)}
                           <ExternalIcon />
-                        </LinkContainer>
+                        </Link>
                       ) : (
                         <PlaceholderText>Pending...</PlaceholderText>
                       )}
@@ -445,12 +454,6 @@ const ListItem = styled.div`
   }
 `;
 
-const LinkContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
 const ExternalIcon = styled(ExternalLinkIcon)`
   width: 14px;
   height: 14px;
@@ -459,6 +462,7 @@ const ExternalIcon = styled(ExternalLinkIcon)`
 
   &:hover {
     opacity: 1;
+    cursor: pointer;
   }
 `;
 

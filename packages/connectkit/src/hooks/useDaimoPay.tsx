@@ -142,6 +142,19 @@ type RozoPayFunctions = {
   ) => Promise<Extract<PaymentState, { type: "payment_completed" }>>;
 
   /**
+   * Directly set the payment state to payout completed.
+   * Use this to mark a payment as payout completed without going through the normal flow.
+   *
+   * @param paymentTxHash - The transaction hash to associate with the completed payment.
+   * @param payoutTxHash - The transaction hash to associate with the payout.
+   * @param rozoPaymentId - The Rozo payment ID to associate with the payout.
+   */
+  setPaymentPayoutCompleted: (
+    payoutTxHash: string,
+    rozoPaymentId?: string
+  ) => Promise<Extract<PaymentState, { type: "payout_completed" }>>;
+
+  /**
    * Reset the current payment state and clear the active order.
    * Call this to start a new payment flow.
    */
@@ -156,6 +169,9 @@ type RozoPayFunctions = {
 
   setPaymentRozoCompleted: (completed: boolean) => void;
   paymentRozoCompleted: boolean;
+
+  setPayoutRozoCompleted: (completed: boolean) => void;
+  payoutRozoCompleted: boolean;
 };
 
 // Enforce that order is typed correctly based on paymentState.
@@ -184,6 +200,7 @@ export type UseRozoPay = RozoPayFunctions & RozoPayState;
  */
 export function useRozoPay(): UseRozoPay {
   const [paymentRozoCompleted, setPaymentRozoCompleted] = useState(false);
+  const [payoutRozoCompleted, setPayoutRozoCompleted] = useState(false);
   const store = useContext(PaymentContext);
   if (!store) {
     throw new Error("useRozoPay must be used within <PaymentProvider>");
@@ -210,6 +227,9 @@ export function useRozoPay(): UseRozoPay {
   const paymentState = paymentFsmState.type;
   const paymentErrorMessage =
     paymentFsmState.type === "error" ? paymentFsmState.message : null;
+  const rozoPaymentId = useMemo(() => {
+    return order?.externalId ?? null;
+  }, [order]);
 
   /* --------------------------------------------------
      Order event dispatch helpers
@@ -449,6 +469,39 @@ export function useRozoPay(): UseRozoPay {
     [dispatch, store]
   );
 
+  const setPaymentPayoutCompleted = useCallback(
+    async (payoutTxHash: string, rozoPaymentId?: string) => {
+      // Get the current order from the state
+      const currentState = store.getState();
+
+      if (currentState.type === "idle" || !currentState.order) {
+        throw new Error("Cannot complete payment: No active order");
+      }
+
+      const hydratedOrder = currentState.order as RozoPayHydratedOrderWithOrg;
+
+      dispatch({
+        type: "order_refreshed",
+        order: {
+          ...hydratedOrder,
+          intentStatus: RozoPayIntentStatus.PAYOUT_COMPLETED,
+          externalId: rozoPaymentId ?? order?.externalId ?? "",
+          payoutTransactionHash: payoutTxHash,
+        },
+      });
+
+      const payoutCompletedState = await waitForPaymentState(
+        store,
+        "payout_completed"
+      );
+      
+      setPayoutRozoCompleted(true);
+      
+      return payoutCompletedState;
+    },
+    [dispatch, store, paymentFsmState.type, order?.id]
+  );
+
   const setPaymentStarted = useCallback(
     async (
       rozoPaymentId: string,
@@ -511,6 +564,7 @@ export function useRozoPay(): UseRozoPay {
     order,
     paymentState,
     paymentErrorMessage,
+    rozoPaymentId,
     createPreviewOrder,
     hydrateOrder,
     hydrateOrderRozo,
@@ -522,9 +576,12 @@ export function useRozoPay(): UseRozoPay {
     setPaymentStarted,
     setPaymentUnpaid,
     setPaymentCompleted,
+    setPaymentPayoutCompleted,
     reset,
     setChosenUsd,
     setPaymentRozoCompleted,
     paymentRozoCompleted,
+    setPayoutRozoCompleted,
+    payoutRozoCompleted,
   } as UseRozoPay;
 }

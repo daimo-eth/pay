@@ -6,14 +6,18 @@ import { TextContainer } from "./styles";
 import {
   assertNotNull,
   ExternalPaymentOptionsString,
+  getChainExplorerTxUrl,
   getRozoPayOrderView,
   PaymentBouncedEvent,
   PaymentCompletedEvent,
+  PaymentPayoutCompletedEvent,
   PaymentStartedEvent,
   RozoPayEventType,
   RozoPayHydratedOrderWithOrg,
   RozoPayOrderView,
   RozoPayUserMetadata,
+  rozoSolana,
+  rozoStellar,
   writeRozoPayOrderID,
 } from "@rozoai/intent-common";
 import { AnimatePresence, Variants } from "framer-motion";
@@ -112,7 +116,7 @@ type PayButtonCommonProps = PayButtonPaymentProps & {
   /** Called when destination call reverts and funds are refunded */
   onPaymentBounced?: (event: PaymentBouncedEvent) => void;
   /** Called when payout completes */
-  onPayoutCompleted?: (event: PaymentCompletedEvent) => void;
+  onPayoutCompleted?: (event: PaymentPayoutCompletedEvent) => void;
   /** Called when the modal is opened. */
   onOpen?: () => void;
   /** Called when the modal is closed. */
@@ -290,7 +294,16 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     paymentState: payState,
     rozoPaymentId,
     paymentRozoCompleted,
+    payoutRozoCompleted,
   } = useRozoPay();
+
+  const isToStellar = useMemo(() => {
+    return payParams?.toStellarAddress != null;
+  }, [payParams?.toStellarAddress]);
+
+  const isToSolana = useMemo(() => {
+    return payParams?.toSolanaAddress != null;
+  }, [payParams?.toSolanaAddress]);
 
   // Track previous values to prevent unnecessary API calls
   const prevPayIdRef = useRef<string | null>(null);
@@ -343,7 +356,12 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   }, [props.onClose, setOnClose]);
 
   // Payment events: call these three event handlers.
-  const { onPaymentStarted, onPaymentCompleted, onPaymentBounced } = props;
+  const {
+    onPaymentStarted,
+    onPaymentCompleted,
+    onPaymentBounced,
+    onPayoutCompleted,
+  } = props;
 
   // Functions to show and hide the modal
   const { children, closeOnSuccess, resetOnSuccess, connectedWalletOnly } =
@@ -358,14 +376,19 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
   }, [connectedWalletOnly, closeOnSuccess, resetOnSuccess, context]);
   const hide = useCallback(() => context.setOpen(false), [context]);
 
+  // Track sent flags for payment events
+  const sentStart = useRef(false);
+  const sentComplete = useRef(false);
+  const sentPayoutComplete = useRef(false);
+
   // Reset the sent flags when order changes to allow events to be fired again
   useEffect(() => {
     sentStart.current = false;
     sentComplete.current = false;
+    sentPayoutComplete.current = false;
   }, [order?.id]);
 
   // Emit onPaymentStart handler when payment state changes to payment_started
-  const sentStart = useRef(false);
   useEffect(() => {
     const currentRozoPaymentId = rozoPaymentId ?? order?.externalId ?? null;
     if (sentStart.current) return;
@@ -409,27 +432,95 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     return null;
   };
 
+  const getPayoutTxHash = (
+    order: RozoPayHydratedOrderWithOrg
+  ): string | null => {
+    if (!isHydratedOrder(order)) {
+      return null;
+    }
+    if ("payoutTransactionHash" in order && order.payoutTransactionHash) {
+      return order.payoutTransactionHash;
+    }
+    return null;
+  };
+
   // Emit onPaymentComplete or onPaymentBounced handler when payment state
   // changes to payment_completed or payment_bounced
-  const sentComplete = useRef(false);
   const lastRozoPaymentId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Reset sentComplete flag when rozoPaymentId changes
+    // Reset sentComplete flags when rozoPaymentId changes
     const currentRozoPaymentId = rozoPaymentId ?? order?.externalId;
     if (currentRozoPaymentId !== lastRozoPaymentId.current) {
       sentComplete.current = false;
+      sentPayoutComplete.current = false;
       lastRozoPaymentId.current = currentRozoPaymentId || null;
     }
 
-    if (sentComplete.current) return;
     if (!order) return;
 
     // Check if payment is completed (either through payState or paymentRozoCompleted)
     const isPaymentCompleted =
       payState === "payment_completed" || paymentRozoCompleted;
     const isPaymentBounced = payState === "payment_bounced";
+    const isPayoutCompleted =
+      payState === "payout_completed" || payoutRozoCompleted;
 
+    // Handle payout completion separately (can happen after payment completion)
+    if (isPayoutCompleted && !sentPayoutComplete.current) {
+      sentPayoutComplete.current = true;
+
+      const sourceChain = order.destFinalCallTokenAmount.token.chainId;
+      const destChain = isToStellar
+        ? rozoStellar.chainId
+        : isToSolana
+        ? rozoSolana.chainId
+        : payParams?.toChain ?? order.destFinalCallTokenAmount.token.chainId;
+
+      const payoutEvent: PaymentPayoutCompletedEvent = {
+        type: RozoPayEventType.PaymentPayoutCompleted,
+        paymentId: order.externalId || writeRozoPayOrderID(order.id),
+        paymentTx: {
+          hash: assertNotNull(
+            getDestinationTxHash(order),
+            `Payment tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
+          ),
+          chainId: sourceChain,
+          url: assertNotNull(
+            getChainExplorerTxUrl(
+              sourceChain,
+              assertNotNull(
+                getDestinationTxHash(order),
+                `Payment tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
+              )
+            ),
+            `Payment tx url null on order ${order.id} when intent status is ${order.intentStatus}`
+          ),
+        },
+        payoutTx: {
+          hash: assertNotNull(
+            getPayoutTxHash(order as RozoPayHydratedOrderWithOrg),
+            `Payout tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
+          ),
+          chainId: destChain,
+          url: assertNotNull(
+            getChainExplorerTxUrl(
+              destChain,
+              assertNotNull(
+                getPayoutTxHash(order as RozoPayHydratedOrderWithOrg),
+                `Payout tx hash null on order ${order.id} when intent status is ${order.intentStatus}`
+              )
+            ),
+            `Payout tx url null on order ${order.id} when intent status is ${order.intentStatus}`
+          ),
+        },
+        payment: getRozoPayOrderView(order),
+      };
+      onPayoutCompleted?.(payoutEvent);
+    }
+
+    // Handle payment completion/bounced (only if not already sent)
+    if (sentComplete.current) return;
     if (!isPaymentCompleted && !isPaymentBounced) return;
 
     sentComplete.current = true;
@@ -460,7 +551,13 @@ function RozoPayButtonCustom(props: RozoPayButtonCustomProps): JSX.Element {
     } else if (isPaymentBounced) {
       onPaymentBounced?.(event as PaymentBouncedEvent);
     }
-  }, [order, payState, paymentRozoCompleted, rozoPaymentId]);
+  }, [
+    order,
+    payState,
+    paymentRozoCompleted,
+    payoutRozoCompleted,
+    rozoPaymentId,
+  ]);
 
   // Open the modal by default if the defaultOpen prop is true
   const hasAutoOpened = useRef(false);

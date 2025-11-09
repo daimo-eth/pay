@@ -34,36 +34,42 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
   let hasAnyData = false;
 
   if (["evm", "all"].includes(mode)) {
-    const evmOptions = getEvmTokenOptions(
-      walletPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedTokenOption,
-      setRoute
-    );
+    const evmOptions = walletPaymentOptions.isLoading
+      ? []
+      : getEvmTokenOptions(
+          walletPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedTokenOption,
+          setRoute
+        );
     optionsList.push(...evmOptions);
     isLoading ||= walletPaymentOptions.isLoading;
     hasAnyData ||= (walletPaymentOptions.options?.length ?? 0) > 0;
   }
 
   if (["solana", "all"].includes(mode)) {
-    const solanaOptions = getSolanaTokenOptions(
-      solanaPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedSolanaTokenOption,
-      setRoute
-    );
+    const solanaOptions = solanaPaymentOptions.isLoading
+      ? []
+      : getSolanaTokenOptions(
+          solanaPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedSolanaTokenOption,
+          setRoute
+        );
     optionsList.push(...solanaOptions);
     isLoading ||= solanaPaymentOptions.isLoading;
     hasAnyData ||= (solanaPaymentOptions.options?.length ?? 0) > 0;
   }
 
   if (["stellar", "all"].includes(mode)) {
-    const stellarOptions = getStellarTokenOptions(
-      stellarPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedStellarTokenOption,
-      setRoute
-    );
+    const stellarOptions = stellarPaymentOptions.isLoading
+      ? []
+      : getStellarTokenOptions(
+          stellarPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedStellarTokenOption,
+          setRoute
+        );
     optionsList.push(...stellarOptions);
     isLoading ||= stellarPaymentOptions.isLoading;
     hasAnyData ||= (stellarPaymentOptions.options?.length ?? 0) > 0;

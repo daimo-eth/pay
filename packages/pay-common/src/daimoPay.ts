@@ -61,6 +61,7 @@ export enum RozoPayIntentStatus {
   STARTED = "payment_started",
   COMPLETED = "payment_completed",
   BOUNCED = "payment_bounced",
+  PAYOUT_COMPLETED = "payout_completed",
 }
 
 export interface RozoPayOrderItem {
@@ -223,6 +224,7 @@ export type RozoPayHydratedOrder = {
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
   memo?: string | null;
+  payoutTransactionHash?: string | null;
 };
 
 export type RozoPayOrderWithOrg = RozoPayOrder & {
@@ -518,6 +520,7 @@ export enum RozoPayEventType {
   PaymentCompleted = "payment_completed",
   PaymentBounced = "payment_bounced",
   PaymentRefunded = "payment_refunded",
+  PaymentPayoutCompleted = "payment_payout_completed",
 }
 
 export type PaymentStartedEvent = {
@@ -535,6 +538,24 @@ export type PaymentCompletedEvent = {
   paymentId: RozoPayOrderID;
   chainId: number;
   txHash: string;
+  payment: RozoPayOrderView;
+  rozoPaymentId?: string;
+};
+
+export type PaymentPayoutCompletedEvent = {
+  type: RozoPayEventType.PaymentPayoutCompleted;
+  isTestEvent?: boolean;
+  paymentId: RozoPayOrderID;
+  paymentTx: {
+    hash: string;
+    chainId: number;
+    url: string;
+  };
+  payoutTx: {
+    hash: string;
+    chainId: number;
+    url: string;
+  };
   payment: RozoPayOrderView;
   rozoPaymentId?: string;
 };
@@ -565,7 +586,8 @@ export type RozoPayEvent =
   | PaymentStartedEvent
   | PaymentCompletedEvent
   | PaymentBouncedEvent
-  | PaymentRefundedEvent;
+  | PaymentRefundedEvent
+  | PaymentPayoutCompletedEvent;
 
 export interface WebhookEndpoint {
   id: UUID;

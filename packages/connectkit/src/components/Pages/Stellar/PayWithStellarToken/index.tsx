@@ -51,7 +51,6 @@ const PayWithStellarToken: React.FC = () => {
     rozoPaymentId,
     setRozoPaymentId,
     createPayment,
-    setPayId,
   } = paymentState;
   const {
     order,
@@ -262,19 +261,22 @@ const PayWithStellarToken: React.FC = () => {
           <Button onClick={handleSubmitTx}>Retry Payment</Button>
         )}
         {payState === PayState.RequestFailed && (
-          <Button
-            onClick={() => {
-              window.open(
-                getSupportUrl(
-                  order?.id?.toString() ?? "",
-                  `Pay with Stellar token${txURL ? ` ${txURL}` : ""}`
-                ),
-                "_blank"
-              );
-            }}
-          >
-            Contact Support
-          </Button>
+          <>
+            <Button onClick={handleSubmitTx}>Retry Payment</Button>
+            <Button
+              onClick={() => {
+                window.open(
+                  getSupportUrl(
+                    order?.id?.toString() ?? "",
+                    `Pay with Stellar token${txURL ? ` ${txURL}` : ""}`
+                  ),
+                  "_blank"
+                );
+              }}
+            >
+              Contact Support
+            </Button>
+          </>
         )}
       </ModalContent>
     </PageContent>

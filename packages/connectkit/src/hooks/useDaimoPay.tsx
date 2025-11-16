@@ -1,5 +1,6 @@
 // hooks/useRozoPay.ts
 import {
+  assert,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
   RozoPayOrderID,
@@ -13,6 +14,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -201,6 +203,7 @@ export type UseRozoPay = RozoPayFunctions & RozoPayState;
 export function useRozoPay(): UseRozoPay {
   const [paymentRozoCompleted, setPaymentRozoCompleted] = useState(false);
   const [payoutRozoCompleted, setPayoutRozoCompleted] = useState(false);
+  const lastPayoutTxHash = useRef<string | null>(null);
   const store = useContext(PaymentContext);
   if (!store) {
     throw new Error("useRozoPay must be used within <PaymentProvider>");
@@ -471,12 +474,30 @@ export function useRozoPay(): UseRozoPay {
 
   const setPaymentPayoutCompleted = useCallback(
     async (payoutTxHash: string, rozoPaymentId?: string) => {
+      // Prevent duplicate calls with the same payout transaction hash
+      if (lastPayoutTxHash.current === payoutTxHash) {
+        console.log(
+          "[PAY] Skipping duplicate payout completion call for hash:",
+          payoutTxHash
+        );
+        // Return current state without dispatching
+        const currentState = store.getState();
+        if (currentState.type === "payout_completed") {
+          return currentState;
+        }
+        // Wait for the ongoing transition to complete
+        return await waitForPaymentState(store, "payout_completed");
+      }
+
+      lastPayoutTxHash.current = payoutTxHash;
+
       // Get the current order from the state
       const currentState = store.getState();
 
-      if (currentState.type === "idle" || !currentState.order) {
-        throw new Error("Cannot complete payment: No active order");
-      }
+      assert(
+        currentState.type === "payout_completed",
+        "Cannot complete payout: Order is not in payout_completed state"
+      );
 
       const hydratedOrder = currentState.order as RozoPayHydratedOrderWithOrg;
 
@@ -494,9 +515,9 @@ export function useRozoPay(): UseRozoPay {
         store,
         "payout_completed"
       );
-      
+
       setPayoutRozoCompleted(true);
-      
+
       return payoutCompletedState;
     },
     [dispatch, store, paymentFsmState.type, order?.id]

@@ -63,6 +63,10 @@ const Confirmation: React.FC = () => {
   const [payoutTxHash, setPayoutTxHash] = useState<string | undefined>(
     undefined
   );
+  
+  // Track if completion events have been sent to prevent duplicate calls
+  const paymentCompletedSent = React.useRef<string | null>(null);
+  const payoutCompletedSent = React.useRef<string | null>(null);
 
   const isMugglePay = useMemo(() => {
     return (
@@ -246,16 +250,40 @@ const Confirmation: React.FC = () => {
   }, [txURL, order, done, rozoPaymentId, showProcessingPayout]);
 
   useEffect(() => {
-    if (done) {
-      setPaymentCompleted(rawPayInHash ?? "", rozoPaymentId ?? "");
+    if (done && rawPayInHash && rozoPaymentId) {
+      // Only call once per unique payment hash to prevent duplicate state updates
+      const paymentKey = `${rawPayInHash}-${rozoPaymentId}`;
+      if (paymentCompletedSent.current === paymentKey) {
+        return;
+      }
+      
+      context.log("[CONFIRMATION] Setting payment completed:", {
+        rawPayInHash,
+        rozoPaymentId,
+      });
+      
+      paymentCompletedSent.current = paymentKey;
+      setPaymentCompleted(rawPayInHash, rozoPaymentId);
       setPaymentRozoCompleted(true);
       onSuccess();
     }
   }, [done, onSuccess, paymentStateContext, rawPayInHash, rozoPaymentId]);
 
   useEffect(() => {
-    if (done && payoutTxHash) {
-      setPaymentPayoutCompleted(payoutTxHash, rozoPaymentId ?? "");
+    if (done && payoutTxHash && rozoPaymentId) {
+      // Only call once per unique payout hash to prevent duplicate state updates
+      const payoutKey = `${payoutTxHash}-${rozoPaymentId}`;
+      if (payoutCompletedSent.current === payoutKey) {
+        return;
+      }
+      
+      context.log("[CONFIRMATION] Setting payout completed:", {
+        payoutTxHash,
+        rozoPaymentId,
+      });
+      
+      payoutCompletedSent.current = payoutKey;
+      setPaymentPayoutCompleted(payoutTxHash, rozoPaymentId);
       setPayoutRozoCompleted(true);
     }
   }, [done, payoutTxHash, rozoPaymentId]);

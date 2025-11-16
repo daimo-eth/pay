@@ -13,6 +13,7 @@ import {
   assert,
   baseUSDC,
   bscUSDT,
+  fetchApi,
   getAddressContraction,
   getChainExplorerTxUrl,
   getOrderDestChainId,
@@ -30,7 +31,6 @@ import defaultTheme from "../../../constants/defaultTheme";
 import { ROZO_INVOICE_URL } from "../../../constants/rozoConfig";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import styled from "../../../styles/styled";
-import { fetchApi } from "../../../utils/api/base";
 import Button from "../../Common/Button";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
@@ -63,7 +63,7 @@ const Confirmation: React.FC = () => {
   const [payoutTxHash, setPayoutTxHash] = useState<string | undefined>(
     undefined
   );
-  
+
   // Track if completion events have been sent to prevent duplicate calls
   const paymentCompletedSent = React.useRef<string | null>(null);
   const payoutCompletedSent = React.useRef<string | null>(null);
@@ -256,12 +256,12 @@ const Confirmation: React.FC = () => {
       if (paymentCompletedSent.current === paymentKey) {
         return;
       }
-      
+
       context.log("[CONFIRMATION] Setting payment completed:", {
         rawPayInHash,
         rozoPaymentId,
       });
-      
+
       paymentCompletedSent.current = paymentKey;
       setPaymentCompleted(rawPayInHash, rozoPaymentId);
       setPaymentRozoCompleted(true);
@@ -276,12 +276,12 @@ const Confirmation: React.FC = () => {
       if (payoutCompletedSent.current === payoutKey) {
         return;
       }
-      
+
       context.log("[CONFIRMATION] Setting payout completed:", {
         payoutTxHash,
         rozoPaymentId,
       });
-      
+
       payoutCompletedSent.current = payoutKey;
       setPaymentPayoutCompleted(payoutTxHash, rozoPaymentId);
       setPayoutRozoCompleted(true);

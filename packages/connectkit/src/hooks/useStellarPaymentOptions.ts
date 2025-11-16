@@ -1,8 +1,6 @@
-import { WalletPaymentOption } from "@rozoai/intent-common";
+import { rozoStellarUSDC, WalletPaymentOption } from "@rozoai/intent-common";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  STELLAR_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
   STELLAR_USDC_TOKEN_INFO,
   STELLAR_XLM_TOKEN_INFO,
 } from "../constants/rozoConfig";
@@ -41,8 +39,8 @@ export function useStellarPaymentOptions({
       account?.balances.find(
         (b) =>
           b.asset_type === "credit_alphanum4" &&
-          b.asset_code === STELLAR_USDC_ASSET_CODE &&
-          b.asset_issuer === STELLAR_USDC_ISSUER_PK
+          b.asset_code === "USDC" &&
+          b.asset_issuer === rozoStellarUSDC.token
       ),
     [account]
   );
@@ -193,8 +191,8 @@ export function useStellarPaymentOptions({
         const usdcBalance = account?.balances.find(
           (b) =>
             b.asset_type === "credit_alphanum4" &&
-            b.asset_code === STELLAR_USDC_ASSET_CODE &&
-            b.asset_issuer === STELLAR_USDC_ISSUER_PK
+            b.asset_code === "USDC" &&
+            b.asset_issuer === rozoStellarUSDC.token
         );
 
         const usdcOption = processUsdcBalance(usdcBalance, usdRequired);

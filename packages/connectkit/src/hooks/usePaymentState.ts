@@ -16,11 +16,11 @@ import {
   getOrderDestChainId,
   isCCTPV1Chain,
   mergedMetadata,
+  PaymentRequestData,
   PlatformType,
   polygonUSDC,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
-  rozoSolana,
   rozoSolanaUSDC,
   rozoStellarUSDC,
   Token,
@@ -45,6 +45,12 @@ import {
 } from "wagmi";
 
 import {
+  createPaymentBridgeConfig,
+  createRozoPayment,
+  formatResponseToHydratedOrder,
+  PaymentResponseData,
+} from "@rozoai/intent-common";
+import {
   createAssociatedTokenAccountInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddress,
@@ -60,22 +66,9 @@ import {
 import bs58 from "bs58";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
-import {
-  ROZO_DAIMO_APP_ID,
-  STELLAR_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
-} from "../constants/rozoConfig";
+import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
-import {
-  createRozoPayment,
-  createRozoPaymentRequest,
-  PaymentResponseData,
-} from "../utils/api";
-import {
-  createPaymentBridgeConfig,
-  formatPaymentResponseDataToHydratedOrder,
-} from "../utils/bridge";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -412,32 +405,12 @@ export function usePaymentState({
     const payParams = currPayParams;
     const order = pay.order;
 
-    const hasToStellarAddress = payParams?.toStellarAddress;
-    const destinationAddress =
-      payParams?.toStellarAddress ||
-      payParams?.toSolanaAddress ||
-      payParams?.toAddress;
-
-    const chainId = hasToStellarAddress
-      ? String(rozoStellarUSDC.chainId)
-      : payParams?.toSolanaAddress
-      ? String(rozoSolana.chainId)
-      : String(payParams?.toChain);
-
-    const tokenAddress = hasToStellarAddress
-      ? `USDC:${STELLAR_USDC_ISSUER_PK}`
-      : payParams?.toSolanaAddress
-      ? rozoSolanaUSDC.token
-      : payParams?.toToken;
-
     const { preferred, destination } = createPaymentBridgeConfig({
-      // toChain: Number(chainId),
-      // toToken: tokenAddress ?? "",
-      toAddress: destinationAddress,
+      toAddress: payParams?.toAddress,
       toSolanaAddress: payParams?.toSolanaAddress,
       toStellarAddress: payParams?.toStellarAddress,
       toUnits: payParams?.toUnits ?? "",
-      walletPaymentOption: walletOption,
+      payInTokenAddress: walletOption.required.token.token,
       log,
     });
 
@@ -448,8 +421,8 @@ export function usePaymentState({
       ...(order?.userMetadata ?? {}),
     });
 
-    const paymentData = createRozoPaymentRequest({
-      appId: payParams?.appId ?? ROZO_DAIMO_APP_ID,
+    const paymentData: PaymentRequestData = {
+      appId: payParams?.appId ?? DEFAULT_ROZO_APP_ID,
       display: {
         intent: order?.metadata?.intent ?? "",
         paymentValue: String(payParams?.toUnits ?? ""),
@@ -459,7 +432,7 @@ export function usePaymentState({
       externalId: order?.externalId ?? "",
       ...preferred,
       metadata,
-    });
+    };
 
     // API Call
     try {
@@ -525,7 +498,7 @@ export function usePaymentState({
       // Create Rozo payment and hydrate in one step
       const res = await handleCreateRozoPayment(walletOption);
       paymentId = res.id;
-      hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+      hydratedOrder = formatResponseToHydratedOrder(res);
     } else {
       // Hydrate existing order
       const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
@@ -829,10 +802,7 @@ export function usePaymentState({
       // Setup Stellar payment
       await stellarKit.setWallet(String(stellarConnector?.id ?? "freighter"));
       const sourceAccount = await stellarServer.loadAccount(stellarPublicKey);
-      const destAsset = new Asset(
-        STELLAR_USDC_ASSET_CODE,
-        STELLAR_USDC_ISSUER_PK
-      );
+      const destAsset = new Asset("USDC", rozoStellarUSDC.token);
       const fee = String(await stellarServer.fetchBaseFee());
 
       // Build transaction based on token type

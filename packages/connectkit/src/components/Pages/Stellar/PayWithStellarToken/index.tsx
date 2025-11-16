@@ -10,6 +10,7 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  formatResponseToHydratedOrder,
   getChainExplorerTxUrl,
   RozoPayHydratedOrderWithOrg,
   stellar,
@@ -24,7 +25,6 @@ import {
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useStellarDestination } from "../../../../hooks/useStellarDestination";
 import { useStellar } from "../../../../provider/StellarContextProvider";
-import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
@@ -103,7 +103,7 @@ const PayWithStellarToken: React.FC = () => {
       } else if (needRozoPayment) {
         const res = await createPayment(option);
         paymentId = res.id;
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+        hydratedOrder = formatResponseToHydratedOrder(res);
       } else {
         // Hydrate existing order
         const res = await hydrateOrderRozo(undefined, option);

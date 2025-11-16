@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ROZO_API_TOKEN, ROZO_API_URL } from "../../constants/rozoConfig";
+/**
+ * RozoAI API Configuration Constants
+ */
+export const ROZO_API_URL = "https://intentapiv2.rozo.ai/functions/v1";
+export const ROZO_API_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4Y3Zmb2xobmNtdXZmYXp1cXViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4Mzg2NjYsImV4cCI6MjA2ODQxNDY2Nn0.B4dV5y_-zCMKSNm3_qyCbAvCPJmoOGv_xB783LfAVUA";
 
 // HTTP methods type
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -20,12 +24,42 @@ export interface ApiResponse<T = any> {
   status: number | null;
 }
 
-// Request state for hooks
+// Request state for hooks (used in connectkit)
 export interface RequestState<T = any> extends ApiResponse<T> {
   isLoading: boolean;
   isError: boolean;
   isSuccess: boolean;
 }
+
+/**
+ * API Configuration
+ */
+export interface ApiConfig {
+  baseUrl: string;
+  apiToken: string;
+}
+
+// Default configuration (can be overridden via setApiConfig)
+let apiConfig: ApiConfig = {
+  baseUrl: ROZO_API_URL,
+  apiToken: ROZO_API_TOKEN,
+};
+
+/**
+ * Set API configuration
+ * @param config - API configuration
+ */
+export const setApiConfig = (config: Partial<ApiConfig>) => {
+  apiConfig = { ...apiConfig, ...config };
+};
+
+/**
+ * Get current API configuration
+ * @returns Current API configuration
+ */
+export const getApiConfig = (): ApiConfig => {
+  return apiConfig;
+};
 
 /**
  * Creates a URL with query parameters
@@ -35,8 +69,8 @@ export interface RequestState<T = any> extends ApiResponse<T> {
  */
 const createUrl = (url: string, params?: Record<string, string>): string => {
   const fullUrl = url.startsWith("/")
-    ? `${ROZO_API_URL}${url}`
-    : `${ROZO_API_URL}/${url}`;
+    ? `${apiConfig.baseUrl}${url}`
+    : `${apiConfig.baseUrl}/${url}`;
 
   if (!params) return fullUrl;
 
@@ -66,13 +100,18 @@ export const fetchApi = async <T = any>(
   try {
     const fullUrl = createUrl(url, params);
 
-    const requestHeaders: HeadersInit = {
+    const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       ...headers,
-      Authorization: `Bearer ${ROZO_API_TOKEN}`,
+      Authorization: `Bearer ${apiConfig.apiToken}`,
     };
 
-    const requestOptions: RequestInit = {
+    const requestOptions: {
+      method: string;
+      headers: Record<string, string>;
+      signal?: AbortSignal;
+      body?: string;
+    } = {
       method,
       headers: requestHeaders,
       signal,
@@ -90,7 +129,7 @@ export const fetchApi = async <T = any>(
     let data: T | null = null;
 
     if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
+      data = (await response.json()) as T;
     } else if (contentType && contentType.includes("text/")) {
       data = (await response.text()) as unknown as T;
     }
@@ -173,98 +212,4 @@ export const apiClient = {
     url: string,
     options: Omit<RequestOptions, "method"> = {}
   ) => fetchApi<T>(url, { ...options, method: "DELETE" }),
-};
-
-/**
- * React hook for making API requests
- * @param url - API endpoint path
- * @param options - Request options
- * @param dependencies - Dependencies array to trigger request
- * @returns Request state and refetch function
- */
-export const useApiRequest = <T = any>(
-  url: string,
-  options: RequestOptions = {},
-  dependencies: any[] = []
-): [RequestState<T>, (newOptions?: RequestOptions) => Promise<void>] => {
-  // Create stable options object that only changes when content actually changes
-  const stableOptions = useMemo(() => {
-    const { method, headers, body, params, signal } = options;
-
-    // Sort headers and params for consistent comparison
-    const sortedHeaders = headers
-      ? Object.fromEntries(
-          Object.entries(headers).sort(([a], [b]) => a.localeCompare(b))
-        )
-      : undefined;
-    const sortedParams = params
-      ? Object.fromEntries(
-          Object.entries(params).sort(([a], [b]) => a.localeCompare(b))
-        )
-      : undefined;
-
-    return {
-      method,
-      headers: sortedHeaders,
-      body,
-      params: sortedParams,
-      signal,
-    };
-  }, [
-    options.method,
-    options.headers,
-    options.body,
-    options.params,
-    options.signal,
-  ]);
-
-  const [state, setState] = useState<RequestState<T>>({
-    data: null,
-    error: null,
-    status: null,
-    isLoading: true,
-    isError: false,
-    isSuccess: false,
-  });
-
-  const fetchData = useCallback(
-    async (newOptions?: RequestOptions) => {
-      setState((prev) => ({ ...prev, isLoading: true }));
-
-      try {
-        const mergedOptions = { ...stableOptions, ...newOptions };
-        const response = await fetchApi<T>(url, mergedOptions);
-
-        setState({
-          data: response.data,
-          error: response.error,
-          status: response.status,
-          isLoading: false,
-          isError: !!response.error,
-          isSuccess: !response.error && !!response.data,
-        });
-      } catch (error) {
-        setState({
-          data: null,
-          error: error instanceof Error ? error : new Error(String(error)),
-          status: null,
-          isLoading: false,
-          isError: true,
-          isSuccess: false,
-        });
-      }
-    },
-    [url, stableOptions]
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchData({ ...options, signal: controller.signal });
-
-    return () => {
-      controller.abort();
-    };
-  }, [fetchData, ...dependencies]);
-
-  return [state, fetchData];
 };

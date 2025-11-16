@@ -2,14 +2,11 @@ import type {
   ISupportedWallet,
   StellarWalletsKit,
 } from "@creit.tech/stellar-wallets-kit";
+import { rozoStellarUSDC } from "@rozoai/intent-common";
 import { Asset, Horizon } from "@stellar/stellar-sdk";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {
-  DEFAULT_STELLAR_RPC_URL,
-  STELLAR_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
-} from "../constants/rozoConfig";
+import { DEFAULT_STELLAR_RPC_URL } from "../constants/rozoConfig";
 import * as LocalStorage from "../utils/localstorage";
 import { getStellarKitInstance } from "../utils/stellar/singleton-import";
 
@@ -116,10 +113,7 @@ export const StellarContextProvider = ({
 
   const convertXlmToUsdc = async (amount: string) => {
     try {
-      const destAsset = new Asset(
-        STELLAR_USDC_ASSET_CODE,
-        STELLAR_USDC_ISSUER_PK
-      );
+      const destAsset = new Asset("USDC", rozoStellarUSDC.token);
       const pathResults = await server
         .strictSendPaths(Asset.native(), amount, [destAsset])
         .call();

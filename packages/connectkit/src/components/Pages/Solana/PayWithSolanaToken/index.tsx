@@ -9,16 +9,16 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  formatResponseToHydratedOrder,
   getChainExplorerTxUrl,
   RozoPayHydratedOrderWithOrg,
   rozoSolana,
+  rozoSolanaUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { ROUTES } from "../../../../constants/routes";
-import { SOLANA_USDC_ASSET_CODE } from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useSolanaDestination } from "../../../../hooks/useSolanaDestination";
-import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
@@ -101,7 +101,7 @@ const PayWithSolanaToken: React.FC = () => {
         } else if (needRozoPayment) {
           const res = await createPayment(option);
           paymentId = res.id;
-          hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+          hydratedOrder = formatResponseToHydratedOrder(res);
         } else {
           // Hydrate existing order
           const res = await hydrateOrderRozo(undefined, option);
@@ -122,7 +122,7 @@ const PayWithSolanaToken: React.FC = () => {
 
         const paymentData = {
           tokenAddress:
-            (required.token.token as string) ?? SOLANA_USDC_ASSET_CODE,
+            (required.token.token as string) ?? rozoSolanaUSDC.token,
           destAddress:
             (hydratedOrder.destFinalCall.to as string) || destinationAddress,
           usdcAmount: String(hydratedOrder.destFinalCallTokenAmount.usd),

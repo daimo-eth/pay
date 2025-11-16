@@ -27,7 +27,6 @@ interface StellarDestinationResult {
  *
  * Handles Pay In Stellar scenarios:
  * 1. Pay In Stellar, Pay out Stellar - use toStellarAddress
- * 2. Pay In Stellar, Pay Out Base - use ROZO_STELLAR_ADDRESS (when toChain is Base and toStellarAddress is empty)
  *
  * @param payParams - Payment parameters containing transaction details
  * @returns Object with destination address and payment scenario flags

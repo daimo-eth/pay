@@ -8,6 +8,7 @@ import {
   generateEVMDeepLink,
   getAddressContraction,
   getChainName,
+  getRozoPayment,
   isHydrated,
   optimismUSDC,
   polygonUSDC,
@@ -19,7 +20,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
-import { ROZO_API_TOKEN } from "../../../constants/rozoConfig";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
@@ -36,37 +36,6 @@ import {
 } from "../../Common/Modal/styles";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
-// Note: Import path may need adjustment based on actual file structure
-// Using direct API call pattern from Confirmation component
-
-// Define fetchApi function locally if import doesn't work
-const ROZO_API_BASE = "https://intentapiv2.rozo.ai/functions/v1";
-// const ROZO_API_TOKEN = "your-api-token"; // This should be imported from config
-
-const fetchApi = async (endpoint: string) => {
-  try {
-    const response = await fetch(`${ROZO_API_BASE}/${endpoint}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ROZO_API_TOKEN}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return { data, error: null, status: response.status };
-  } catch (error) {
-    return {
-      data: null,
-      error: error instanceof Error ? error : new Error(String(error)),
-      status: null,
-    };
-  }
-};
 
 // Centered container for icon + text in Tron underpay screen
 const CenterContainer = styled.div`
@@ -202,11 +171,7 @@ export default function WaitingDepositAddress() {
           depAddr?.externalId
         );
         const isMugglePay = depAddr?.externalId.includes("mugglepay_order");
-        const endpoint = isMugglePay
-          ? `payment-api/${depAddr?.externalId}`
-          : `payment/id/${depAddr?.externalId}`;
-
-        const response = await fetchApi(endpoint);
+        const response = await getRozoPayment(depAddr?.externalId);
 
         context.log("[PAYMENT POLLING] Debug - API Response:", {
           status: response.status,
@@ -226,7 +191,7 @@ export default function WaitingDepositAddress() {
             "[PAYMENT POLLING] ✅ Found payinTransactionHash:",
             payInHash
           );
-          setPayinTransactionHash(payInHash);
+          setPayinTransactionHash(payInHash as string);
           setIsPollingPayment(false);
           // TODO: Decide which route to navigate to when transaction hash is found
           context.log(

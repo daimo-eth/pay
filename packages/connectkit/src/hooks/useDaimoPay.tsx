@@ -1,6 +1,5 @@
 // hooks/useRozoPay.ts
 import {
-  assert,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
   RozoPayOrderID,
@@ -494,10 +493,9 @@ export function useRozoPay(): UseRozoPay {
       // Get the current order from the state
       const currentState = store.getState();
 
-      assert(
-        currentState.type === "payout_completed",
-        "Cannot complete payout: Order is not in payout_completed state"
-      );
+      if (currentState.type === "idle" || !currentState.order) {
+        throw new Error("Cannot complete payout: No active order");
+      }
 
       const hydratedOrder = currentState.order as RozoPayHydratedOrderWithOrg;
 

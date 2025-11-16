@@ -1,4 +1,6 @@
+export * from "./api/payment";
 export * from "./assert";
+export * from "./bridge";
 export * from "./chain";
 export * from "./daimoPay";
 export * from "./debug";

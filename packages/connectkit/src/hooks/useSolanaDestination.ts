@@ -1,6 +1,5 @@
 import { baseUSDC } from "@rozoai/intent-common";
 import { useMemo } from "react";
-import { ROZO_STELLAR_ADDRESS } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 
 /**
@@ -28,7 +27,6 @@ interface SolanaDestinationResult {
  *
  * Handles Pay In Solana scenarios:
  * 1. Pay In Solana, Pay out Solana - use toSolanaAddress
- * 2. Pay In Solana, Pay Out Base - use ROZO_STELLAR_ADDRESS (when toChain is Base and toSolanaAddress is empty)
  *
  * @param payParams - Payment parameters containing transaction details
  * @returns Object with destination address and payment scenario flags
@@ -65,9 +63,7 @@ export function useSolanaDestination(
     if (isPayInSolanaOutSolana) {
       return payParams?.toSolanaAddress;
     }
-    if (isPayInSolanaOutBase) {
-      return ROZO_STELLAR_ADDRESS;
-    }
+
     return undefined;
   }, [
     isPayInSolanaOutSolana,

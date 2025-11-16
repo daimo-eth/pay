@@ -1,5 +1,5 @@
 import { rozoSolanaUSDC, WalletPaymentOption } from "@rozoai/intent-common";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TrpcClient } from "../utils/trpc";
 import {
   createRefreshFunction,
@@ -28,6 +28,33 @@ export function useSolanaPaymentOptions({
   // Track if we're currently making an API call to prevent concurrent requests
   const isApiCallInProgress = useRef<boolean>(false);
 
+  const filteredOptions = useMemo(() => {
+    if (!options) return [];
+
+    return options
+      .filter((option) => option.balance.token.token === rozoSolanaUSDC.token)
+      .map((item) => {
+        const usd = isDepositFlow ? 0 : usdRequired || 0;
+
+        const value: WalletPaymentOption = {
+          ...item,
+          required: {
+            ...item.required,
+            usd,
+          },
+        };
+
+        // Set `disabledReason` manually (based on current usdRequired state, not API Request)
+        if (item.balance.usd < usd) {
+          value.disabledReason = `Balance too low: $${item.balance.usd.toFixed(
+            2
+          )}`;
+        }
+
+        return value;
+      }) as WalletPaymentOption[];
+  }, [options, isDepositFlow, usdRequired]);
+
   // Shared fetch function for Solana payment options
   const fetchSolanaPaymentOptions = useCallback(async () => {
     if (address == null || usdRequired == null) return;
@@ -41,13 +68,7 @@ export function useSolanaPaymentOptions({
         // API expects undefined for deposit flow.
         usdRequired: isDepositFlow ? undefined : usdRequired,
       });
-
-      // Filter out options that are not Rozo Solana USDC
-      const filteredOptions = newOptions.filter(
-        (option) => option.balance.token.token === rozoSolanaUSDC.token
-      );
-
-      setOptions(filteredOptions);
+      setOptions(newOptions);
     } catch (error) {
       console.error(error);
       setOptions([]);
@@ -105,7 +126,7 @@ export function useSolanaPaymentOptions({
   }, [address, usdRequired]);
 
   return {
-    options,
+    options: filteredOptions,
     isLoading,
     refreshOptions,
   };

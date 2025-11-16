@@ -12,9 +12,11 @@ import {
 import {
   assert,
   baseUSDC,
+  bscUSDT,
   getAddressContraction,
   getChainExplorerTxUrl,
   getOrderDestChainId,
+  polygonUSDC,
   rozoSolana,
   rozoStellar,
 } from "@rozoai/intent-common";
@@ -32,6 +34,8 @@ import { fetchApi } from "../../../utils/api/base";
 import Button from "../../Common/Button";
 import PoweredByFooter from "../../Common/PoweredByFooter";
 
+const poolDelay = 4000;
+
 const Confirmation: React.FC = () => {
   const {
     confirmationMessage,
@@ -39,9 +43,16 @@ const Confirmation: React.FC = () => {
     debugMode,
     paymentState: paymentStateContext,
     triggerResize,
+    ...context
   } = usePayContext();
-  const { order, paymentState, setPaymentCompleted, setPaymentRozoCompleted } =
-    useRozoPay();
+  const {
+    order,
+    paymentState,
+    setPaymentCompleted,
+    setPaymentRozoCompleted,
+    setPaymentPayoutCompleted,
+    setPayoutRozoCompleted,
+  } = useRozoPay();
 
   const [isConfirming, setIsConfirming] = useState<boolean>(true);
 
@@ -52,9 +63,17 @@ const Confirmation: React.FC = () => {
   const [payoutTxHash, setPayoutTxHash] = useState<string | undefined>(
     undefined
   );
+  
+  // Track if completion events have been sent to prevent duplicate calls
+  const paymentCompletedSent = React.useRef<string | null>(null);
+  const payoutCompletedSent = React.useRef<string | null>(null);
 
   const isMugglePay = useMemo(() => {
-    return paymentStateContext?.payParams?.appId.includes("MP");
+    return (
+      paymentStateContext?.payParams?.appId.includes("MP") &&
+      paymentStateContext.selectedTokenOption?.required.token.token ===
+        bscUSDT.token
+    );
   }, [paymentStateContext]);
 
   const showProcessingPayout = useMemo(() => {
@@ -86,7 +105,9 @@ const Confirmation: React.FC = () => {
       tokenMode === "solana" ||
       (["evm", "all"].includes(tokenMode) &&
         order &&
-        order.destFinalCallTokenAmount?.token.token === baseUSDC.token);
+        [baseUSDC.token, bscUSDT.token, polygonUSDC.token].includes(
+          order.destFinalCallTokenAmount?.token.token
+        ));
 
     if (isRozoPayment && txHash) {
       // Add delay before setting payment completed to show confirming state
@@ -160,9 +181,9 @@ const Confirmation: React.FC = () => {
   }, [rozoPaymentId, receiptUrl]);
 
   useEffect(() => {
-    if (txURL && order && done && rozoPaymentId && showProcessingPayout) {
+    if (order && done && rozoPaymentId && showProcessingPayout) {
       triggerResize();
-      console.log(
+      context.log(
         "[CONFIRMATION] Starting payout polling for order:",
         order.externalId
       );
@@ -175,12 +196,12 @@ const Confirmation: React.FC = () => {
         if (!isActive || !rozoPaymentId) return;
 
         try {
-          console.log(
+          context.log(
             "[CONFIRMATION] Polling for payout transaction:",
             rozoPaymentId
           );
           const response = await fetchApi(`payment/id/${rozoPaymentId}`);
-          console.log("[CONFIRMATION] Payout polling response:", response.data);
+          context.log("[CONFIRMATION] Payout polling response:", response.data);
 
           if (
             isActive &&
@@ -191,7 +212,7 @@ const Confirmation: React.FC = () => {
               Number(response.data.destination.chainId),
               response.data.payoutTransactionHash
             );
-            console.log(
+            context.log(
               "[CONFIRMATION] Found payout transaction:",
               response.data.payoutTransactionHash,
               "URL:",
@@ -206,12 +227,12 @@ const Confirmation: React.FC = () => {
 
           // Schedule next poll
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 6000);
+            timeoutId = setTimeout(pollPayout, poolDelay);
           }
         } catch (error) {
           console.error("[CONFIRMATION] Payout polling error:", error);
           if (isActive) {
-            timeoutId = setTimeout(pollPayout, 6000);
+            timeoutId = setTimeout(pollPayout, poolDelay);
           }
         }
       };
@@ -229,18 +250,47 @@ const Confirmation: React.FC = () => {
   }, [txURL, order, done, rozoPaymentId, showProcessingPayout]);
 
   useEffect(() => {
-    if (done) {
-      if (rawPayInHash && rozoPaymentId) {
-        setPaymentCompleted(rawPayInHash ?? "", rozoPaymentId ?? "");
+    if (done && rawPayInHash && rozoPaymentId) {
+      // Only call once per unique payment hash to prevent duplicate state updates
+      const paymentKey = `${rawPayInHash}-${rozoPaymentId}`;
+      if (paymentCompletedSent.current === paymentKey) {
+        return;
       }
+      
+      context.log("[CONFIRMATION] Setting payment completed:", {
+        rawPayInHash,
+        rozoPaymentId,
+      });
+      
+      paymentCompletedSent.current = paymentKey;
+      setPaymentCompleted(rawPayInHash, rozoPaymentId);
       setPaymentRozoCompleted(true);
       onSuccess();
     }
   }, [done, onSuccess, paymentStateContext, rawPayInHash, rozoPaymentId]);
 
   useEffect(() => {
+    if (done && payoutTxHash && rozoPaymentId) {
+      // Only call once per unique payout hash to prevent duplicate state updates
+      const payoutKey = `${payoutTxHash}-${rozoPaymentId}`;
+      if (payoutCompletedSent.current === payoutKey) {
+        return;
+      }
+      
+      context.log("[CONFIRMATION] Setting payout completed:", {
+        payoutTxHash,
+        rozoPaymentId,
+      });
+      
+      payoutCompletedSent.current = payoutKey;
+      setPaymentPayoutCompleted(payoutTxHash, rozoPaymentId);
+      setPayoutRozoCompleted(true);
+    }
+  }, [done, payoutTxHash, rozoPaymentId]);
+
+  useEffect(() => {
     if (debugMode) {
-      console.log(`[ORDER] Order: `, order);
+      context.log(`[ORDER] Order: `, order);
     }
   }, [order, debugMode]);
 
@@ -287,17 +337,15 @@ const Confirmation: React.FC = () => {
                 <ListItem>
                   <ModalBody>Transfer Hash</ModalBody>
                   <ModalBody>
-                    <LinkContainer>
-                      <Link
-                        href={txURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ fontSize: 14, fontWeight: 400 }}
-                      >
-                        {getAddressContraction(rawPayInHash)}
-                      </Link>
+                    <Link
+                      href={txURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 14, fontWeight: 400 }}
+                    >
+                      {getAddressContraction(rawPayInHash)}
                       <ExternalIcon />
-                    </LinkContainer>
+                    </Link>
                   </ModalBody>
                 </ListItem>
 
@@ -308,17 +356,15 @@ const Confirmation: React.FC = () => {
                       {payoutLoading ? (
                         <LoadingText>Processing payout...</LoadingText>
                       ) : payoutTxHashUrl && payoutTxHash ? (
-                        <LinkContainer>
-                          <Link
-                            href={payoutTxHashUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ fontSize: 14, fontWeight: 400 }}
-                          >
-                            {getAddressContraction(payoutTxHash)}
-                          </Link>
+                        <Link
+                          href={payoutTxHashUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 14, fontWeight: 400 }}
+                        >
+                          {getAddressContraction(payoutTxHash)}
                           <ExternalIcon />
-                        </LinkContainer>
+                        </Link>
                       ) : (
                         <PlaceholderText>Pending...</PlaceholderText>
                       )}
@@ -436,12 +482,6 @@ const ListItem = styled.div`
   }
 `;
 
-const LinkContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
 const ExternalIcon = styled(ExternalLinkIcon)`
   width: 14px;
   height: 14px;
@@ -450,6 +490,7 @@ const ExternalIcon = styled(ExternalLinkIcon)`
 
   &:hover {
     opacity: 1;
+    cursor: pointer;
   }
 `;
 
@@ -469,20 +510,23 @@ const LoadingText = styled.span`
   font-size: 14px;
   font-weight: 400;
   font-style: italic;
-  animation: colorPulse 2s ease-in-out infinite;
+  color: transparent;
+  background: linear-gradient(90deg, #333, #999, #fff, #999, #333);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shine 10s ease-in-out infinite;
 
-  @keyframes colorPulse {
-    0%,
-    100% {
-      color: var(--ck-body-color-muted);
+  @keyframes shine {
+    0% {
+      background-position: -300% 0;
     }
     50% {
-      color: var(--ck-body-action-color);
+      background-position: 300% 0;
     }
-  }
-
-  @media only screen and (max-width: ${defaultTheme.mobileWidth}px) {
-    font-size: 13px;
+    100% {
+      background-position: -300% 0;
+    }
   }
 `;
 

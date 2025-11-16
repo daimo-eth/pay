@@ -61,6 +61,7 @@ export enum RozoPayIntentStatus {
   STARTED = "payment_started",
   COMPLETED = "payment_completed",
   BOUNCED = "payment_bounced",
+  PAYOUT_COMPLETED = "payout_completed",
 }
 
 export interface RozoPayOrderItem {
@@ -223,6 +224,7 @@ export type RozoPayHydratedOrder = {
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
   memo?: string | null;
+  payoutTransactionHash?: string | null;
 };
 
 export type RozoPayOrderWithOrg = RozoPayOrder & {
@@ -250,6 +252,8 @@ export function isHydrated(order: RozoPayOrder): order is RozoPayHydratedOrder {
   return order.mode === RozoPayOrderMode.HYDRATED;
 }
 
+type RozoAddress = Address | SolanaPublicKey | StellarPublicKey;
+
 export type RozoPayOrderView = {
   id: RozoPayOrderID;
   status: RozoPayIntentStatus;
@@ -260,20 +264,20 @@ export type RozoPayOrderView = {
     currency: "USD";
   };
   source: {
-    payerAddress: Address | SolanaPublicKey | StellarPublicKey | null;
+    payerAddress: RozoAddress | null;
     txHash: Hex | string | null;
     chainId: string;
     amountUnits: string;
     tokenSymbol: string;
-    tokenAddress: Address | string;
+    tokenAddress: RozoAddress | string;
   } | null;
   destination: {
-    destinationAddress: Address;
+    destinationAddress: RozoAddress;
     txHash: Hex | null;
     chainId: string;
     amountUnits: string;
     tokenSymbol: string;
-    tokenAddress: Address;
+    tokenAddress: RozoAddress;
     callData: Hex | null;
   };
   externalId: string | null;
@@ -293,6 +297,17 @@ export function getOrderDestChainId(
   order: RozoPayOrder | RozoPayHydratedOrderWithoutIntentAddr
 ): number {
   return order.destFinalCallTokenAmount.token.chainId;
+}
+
+export function mergedMetadata(data: Record<string, any>): Record<string, any> {
+  // Ignore this metadata
+  delete data.payintokenaddress;
+  delete data.preferredChain;
+  delete data.preferredToken;
+  delete data.provider;
+  delete data.receivingAddress;
+
+  return data;
 }
 
 export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
@@ -339,11 +354,14 @@ export function getRozoPayOrderView(order: RozoPayOrder): RozoPayOrderView {
         order.destFinalCallTokenAmount.token.decimals
       ),
       tokenSymbol: order.destFinalCallTokenAmount.token.symbol,
-      tokenAddress: getAddress(order.destFinalCallTokenAmount.token.token),
+      tokenAddress: order.destFinalCallTokenAmount.token.token,
       callData: order.destFinalCall.data,
     },
     externalId: order.externalId,
-    metadata: order.userMetadata,
+    metadata: mergedMetadata({
+      ...order.metadata,
+      ...order.userMetadata,
+    }),
   };
 }
 
@@ -389,6 +407,7 @@ export enum ExternalPaymentOptions {
   MercadoPago = "MercadoPago",
   Revolut = "Revolut",
   Wise = "Wise",
+  Ethereum = "Ethereum",
 }
 
 export type ExternalPaymentOptionsString = `${ExternalPaymentOptions}`;
@@ -501,6 +520,7 @@ export enum RozoPayEventType {
   PaymentCompleted = "payment_completed",
   PaymentBounced = "payment_bounced",
   PaymentRefunded = "payment_refunded",
+  PaymentPayoutCompleted = "payment_payout_completed",
 }
 
 export type PaymentStartedEvent = {
@@ -517,7 +537,25 @@ export type PaymentCompletedEvent = {
   isTestEvent?: boolean;
   paymentId: RozoPayOrderID;
   chainId: number;
-  txHash: Hex;
+  txHash: string;
+  payment: RozoPayOrderView;
+  rozoPaymentId?: string;
+};
+
+export type PaymentPayoutCompletedEvent = {
+  type: RozoPayEventType.PaymentPayoutCompleted;
+  isTestEvent?: boolean;
+  paymentId: RozoPayOrderID;
+  paymentTx: {
+    hash: string;
+    chainId: number;
+    url: string;
+  };
+  payoutTx: {
+    hash: string;
+    chainId: number;
+    url: string;
+  };
   payment: RozoPayOrderView;
   rozoPaymentId?: string;
 };
@@ -527,7 +565,7 @@ export type PaymentBouncedEvent = {
   isTestEvent?: boolean;
   paymentId: RozoPayOrderID;
   chainId: number;
-  txHash: Hex;
+  txHash: string;
   payment: RozoPayOrderView;
   rozoPaymentId?: string;
 };
@@ -539,7 +577,7 @@ export type PaymentRefundedEvent = {
   refundAddress: Address;
   chainId: number;
   tokenAddress: Address;
-  txHash: Hex;
+  txHash: string;
   amountUnits: string;
   payment: RozoPayOrderView;
 };
@@ -548,7 +586,8 @@ export type RozoPayEvent =
   | PaymentStartedEvent
   | PaymentCompletedEvent
   | PaymentBouncedEvent
-  | PaymentRefundedEvent;
+  | PaymentRefundedEvent
+  | PaymentPayoutCompletedEvent;
 
 export interface WebhookEndpoint {
   id: UUID;

@@ -18,13 +18,12 @@ export function PaymentProvider({
 }: PaymentProviderProps) {
   // Generate unique sessionId for tracking in the backend
   const [sessionId] = useState(() => crypto.randomUUID().replaceAll("-", ""));
-  const trpc = useMemo(() => {
-    return createTrpcClient(payApiUrl, sessionId);
-  }, [payApiUrl, sessionId]);
+  const trpc = useMemo(
+    () => createTrpcClient(payApiUrl, sessionId),
+    [payApiUrl, sessionId]
+  );
 
-  const store = useMemo(() => {
-    return createPaymentStore();
-  }, []);
+  const store = useMemo(() => createPaymentStore(log), [log]);
 
   // Attach subscriber to run side effects in response to events. Use a
   // layout effect that runs before the first render.

@@ -1,4 +1,5 @@
 import {
+  ExternalPaymentOptions,
   RozoPayOrderMode,
   RozoPayOrderStatusSource,
   debugJson,
@@ -15,6 +16,7 @@ import React, {
 import { ThemeProvider } from "styled-components";
 import { WagmiContext } from "wagmi";
 
+import type { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { RozoPayModal } from "../components/DaimoPayModal";
 import { ROUTES } from "../constants/routes";
 import { REQUIRED_CHAINS } from "../defaultConfig";
@@ -245,7 +247,7 @@ const RozoPayUIProvider = ({
       setTimeout(() => setOpen(false, { event: "wait-success" }), 1000);
     }
     setPaymentCompleted(true);
-  }, [modalOptions?.closeOnSuccess, setOpen, setPaymentCompleted]);
+  }, [modalOptions?.closeOnSuccess]);
 
   const setRoute = useCallback(
     (route: ROUTES, data?: Record<string, any>) => {
@@ -263,6 +265,7 @@ const RozoPayUIProvider = ({
 
   // Other Configuration
   useEffect(() => setTheme(theme), [theme]);
+  useEffect(() => setMode(mode), [mode]);
   useEffect(() => setLang(opts.language || "en-US"), [opts.language]);
   useEffect(
     () => setDisableMobileInjector(opts.disableMobileInjector ?? false),
@@ -289,15 +292,31 @@ const RozoPayUIProvider = ({
     );
 
     setModalOptions(modalOptions);
+    paymentState.setConnectedWalletOnly(
+      modalOptions.connectedWalletOnly ?? false
+    );
     setOpen(true);
     if (modalOptions.connectedWalletOnly) {
-      paymentState.setTokenMode("all");
+      if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Ethereum)
+      ) {
+        paymentState.setTokenMode("evm");
+      } else if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Solana)
+      ) {
+        paymentState.setTokenMode("solana");
+      } else if (
+        paymentState.paymentOptions?.includes(ExternalPaymentOptions.Stellar)
+      ) {
+        paymentState.setTokenMode("stellar");
+      } else {
+        paymentState.setTokenMode("all");
+      }
     }
 
     if (pay.paymentState === "error") {
       setRoute(ROUTES.ERROR);
     } else if (
-      pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"
     ) {
@@ -317,11 +336,10 @@ const RozoPayUIProvider = ({
     pay.order.sourceTokenAmount != null;
   useEffect(() => {
     if (
-      pay.paymentState === "payment_started" ||
       pay.paymentState === "payment_completed" ||
       pay.paymentState === "payment_bounced"
     ) {
-      setRoute(ROUTES.CONFIRMATION, { event: "payment-started" });
+      setRoute(ROUTES.CONFIRMATION, { event: "payment-completed" });
     } else if (isUnderpaid) {
       paymentState.setSelectedDepositAddressOption(undefined);
       setRoute(ROUTES.WAITING_DEPOSIT_ADDRESS);
@@ -391,7 +409,7 @@ const RozoPayUIProvider = ({
         <RozoPayModal
           lang={ckLang}
           theme={ckTheme}
-          mode={mode}
+          mode={ckMode}
           customTheme={ckCustomTheme}
           disableMobileInjector={disableMobileInjector}
         />
@@ -414,8 +432,14 @@ type RozoPayProviderProps = {
    */
   solanaRpcUrl?: string;
   stellarRpcUrl?: string;
+
   /** Custom Pay API, useful for test and staging. */
   payApiUrl?: string;
+
+  /** Stellar custom property */
+  stellarKit?: StellarWalletsKit;
+  /** Persistent Stellar wallet connection (localStorage) in StellarContextProvider. */
+  stellarWalletPersistence?: boolean;
 } & useConnectCallbackProps;
 
 /**
@@ -431,8 +455,13 @@ export const RozoPayProvider = (props: RozoPayProviderProps) => {
 
   return (
     <PaymentProvider payApiUrl={payApiUrl} log={log}>
-      <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
-        <StellarContextProvider stellarRpcUrl={props.stellarRpcUrl}>
+      <SolanaContextProvider rpcUrl={props.solanaRpcUrl}>
+        <StellarContextProvider
+          rpcUrl={props.stellarRpcUrl}
+          kit={props.stellarKit}
+          stellarWalletPersistence={props.stellarWalletPersistence}
+          log={log}
+        >
           <RozoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
         </StellarContextProvider>
       </SolanaContextProvider>

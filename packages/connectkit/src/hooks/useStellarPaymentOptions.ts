@@ -1,5 +1,5 @@
 import { WalletPaymentOption } from "@rozoai/intent-common";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   STELLAR_USDC_ASSET_CODE,
   STELLAR_USDC_ISSUER_PK,
@@ -34,7 +34,18 @@ export function useStellarPaymentOptions({
   const [isLoading, setIsLoading] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
 
-  const { server, account, isAccountExists } = useStellar();
+  const { server, account, isAccountExists, refreshAccount } = useStellar();
+
+  const usdcBalance = useMemo(
+    () =>
+      account?.balances.find(
+        (b) =>
+          b.asset_type === "credit_alphanum4" &&
+          b.asset_code === STELLAR_USDC_ASSET_CODE &&
+          b.asset_issuer === STELLAR_USDC_ISSUER_PK
+      ),
+    [account]
+  );
 
   // --- ⭐️ Updated function to fetch and structure balances to match JSON format ---
   /**
@@ -167,8 +178,6 @@ export function useStellarPaymentOptions({
       setIsRequesting(true);
       setIsLoading(true);
       try {
-        const structuredBalances: WalletPaymentOption[] = [];
-
         // Process XLM (native) balance
         // const nativeBalance = account?.balances.find(
         //   (b) => b.asset_type === "native"
@@ -189,9 +198,7 @@ export function useStellarPaymentOptions({
         );
 
         const usdcOption = processUsdcBalance(usdcBalance, usdRequired);
-        structuredBalances.push(usdcOption);
-
-        setOptions(structuredBalances);
+        setOptions([usdcOption]);
       } catch (error) {
         console.error("Error fetching balances:", error);
         setOptions([]);
@@ -206,7 +213,6 @@ export function useStellarPaymentOptions({
       account,
       isAccountExists,
       createPaymentOption,
-      processXlmBalance,
       processUsdcBalance,
     ]
   );
@@ -245,16 +251,20 @@ export function useStellarPaymentOptions({
   const refreshOptions = createRefreshFunction(
     () =>
       address && usdRequired !== undefined
-        ? fetchBalances(address)
-        : Promise.resolve(),
+        ? refreshAccount()
+        : Promise.resolve(undefined),
     {
       lastExecutedParams: { current: null },
       isApiCallInProgress: { current: false },
     }
   );
 
+  const filteredOptions = useMemo(() => {
+    return [processUsdcBalance(usdcBalance, usdRequired ?? 0)];
+  }, [usdcBalance, usdRequired]);
+
   return {
-    options,
+    options: filteredOptions,
     isLoading,
     refreshOptions,
   };

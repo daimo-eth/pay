@@ -1,5 +1,6 @@
 import { rozoStellar } from "@rozoai/intent-common";
 import { Asset } from "@stellar/stellar-sdk";
+import { TokenLogo } from "@rozoai/intent-common";
 
 /**
  * ROZO CONFIG
@@ -33,8 +34,8 @@ export const STELLAR_XLM_TOKEN_INFO = {
   name: "Stellar Lumens",
   symbol: "XLM",
   decimals: 7,
-  logoSourceURI: "https://invoice.rozo.ai/tokens/stellar.svg", // Placeholder
-  logoURI: "https://invoice.rozo.ai/tokens/stellar.svg", // Placeholder
+  logoSourceURI: TokenLogo.XLM,
+  logoURI: TokenLogo.XLM,
   usd: 0.1, // Default/fallback price
   priceFromUsd: 10,
   displayDecimals: 4,
@@ -49,8 +50,8 @@ export const STELLAR_USDC_TOKEN_INFO = {
   name: "USD Coin",
   symbol: "USDC",
   decimals: 7,
-  logoSourceURI: "https://invoice.rozo.ai/tokens/usdc.png",
-  logoURI: "https://invoice.rozo.ai/tokens/usdc.png",
+  logoSourceURI: TokenLogo.USDC,
+  logoURI: TokenLogo.USDC,
   usd: 1,
   priceFromUsd: 1,
   displayDecimals: 2,

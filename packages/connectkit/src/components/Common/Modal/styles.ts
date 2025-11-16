@@ -196,6 +196,10 @@ export const ModalBodySmall = styled.div`
 `;
 
 export const Link = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
   color: var(--ck-body-color);
   text-decoration: none;
 

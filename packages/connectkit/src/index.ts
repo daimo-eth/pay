@@ -33,3 +33,13 @@ export * from "./types";
 // TODO: expose this more selectively.
 export { usePayContext } from "./hooks/usePayContext";
 export { PayContext as RozoPayContext } from "./provider/PayContext";
+
+// Stellar integration
+export { useRozoConnectStellar } from "./provider/StellarContextProvider";
+
+// EVM utils
+export { getAddress as getEVMAddress, isAddress as isEVMAddress } from "viem";
+export {
+  createConfig as createRozoWagmiConfig,
+  WagmiProvider as RozoWagmiProvider,
+} from "wagmi";

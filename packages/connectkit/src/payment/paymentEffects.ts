@@ -2,6 +2,7 @@ import {
   assert,
   getKnownToken,
   getOrderDestChainId,
+  mergedMetadata,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -9,6 +10,7 @@ import {
   RozoPayOrderStatusDest,
   RozoPayOrderStatusSource,
   RozoPayOrderWithOrg,
+  TokenLogo,
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress, parseUnits } from "viem";
 import { ROZO_DAIMO_APP_ID } from "../constants/rozoConfig";
@@ -70,7 +72,7 @@ export function attachPaymentEffectHandlers(
 
       // Refresh the order to watch for destination processing
       if (next.type === "payment_started") {
-        pollRefreshOrder(store, trpc, next.order.id);
+        // pollRefreshOrder(store, trpc, next.order.id);
       }
 
       // Stop all pollers when the payment flow is completed or reset
@@ -98,7 +100,7 @@ export function attachPaymentEffectHandlers(
         break;
       case "hydrate_order": {
         if (prev.type === "preview") {
-          runHydratePayParamsEffects(store, trpc, prev, event);
+          runHydratePayParamsEffects(store, trpc, prev, event, log);
         } else if (prev.type === "unhydrated") {
           runHydratePayIdEffects(store, trpc, prev, event);
         } else {
@@ -280,8 +282,8 @@ async function runSetPayParamsEffects(
           priceFromUsd: 1,
           decimals: token?.decimals ?? 18,
           displayDecimals: 2,
-          logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-          logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
+          logoSourceURI: TokenLogo.USDC,
+          logoURI: TokenLogo.USDC,
           maxAcceptUsd: 100000,
           maxSendUsd: 0,
         },
@@ -356,7 +358,8 @@ async function runHydratePayParamsEffects(
   store: PaymentStore,
   trpc: TrpcClient,
   prev: Extract<PaymentState, { type: "preview" }>,
-  event: Extract<PaymentEvent, { type: "hydrate_order" }>
+  event: Extract<PaymentEvent, { type: "hydrate_order" }>,
+  log: (msg: string) => void
 ) {
   const order = prev.order;
   const payParams = prev.payParamsData;
@@ -388,6 +391,7 @@ async function runHydratePayParamsEffects(
     toStellarAddress: payParams?.toStellarAddress,
     toUnits: toUnits,
     walletPaymentOption: walletPaymentOption,
+    log,
   });
 
   const paymentData = createRozoPaymentRequest({
@@ -401,10 +405,16 @@ async function runHydratePayParamsEffects(
     destination,
     externalId: order?.externalId ?? "",
     metadata: {
-      daimoOrderId: order?.id ?? "",
-      ...(payParams?.metadata ?? {}),
-      ...(order?.metadata ?? {}),
-      ...(order.userMetadata ?? {}),
+      // daimoOrderId: order?.id ?? "",
+      preferredChain: preferred.preferredChain,
+      preferredToken: preferred.preferredToken,
+      preferredTokenAddress: preferred.preferredTokenAddress,
+
+      ...mergedMetadata({
+        ...(payParams?.metadata ?? {}),
+        ...(order?.metadata ?? {}),
+        ...(order.userMetadata ?? {}),
+      }),
     },
   });
 
@@ -431,13 +441,6 @@ async function runHydratePayParamsEffects(
   // END ROZO API CALL
 
   try {
-    console.log("[runHydratePayParamsEffects] creating order", {
-      order,
-      toAddress,
-      toChain,
-      toToken,
-      toUnits,
-    });
     // const { hydratedOrder } = await trpc.createOrder.mutate({
     //   // appId: prev.payParamsData.appId,
     //   appId: ROZO_DAIMO_APP_ID,
@@ -471,8 +474,6 @@ async function runHydratePayParamsEffects(
       ...rozoPaymentResponse,
       externalId: rozoPaymentId,
     });
-
-    console.log("hydratedOrder", hydratedOrder);
 
     store.dispatch({
       type: "order_hydrated",
@@ -581,12 +582,11 @@ async function runHydratePayIdEffects(
       createdAt: order.createdAt,
       lastUpdatedAt: Math.floor(Date.now() / 1000),
       orgId: orderData.data.id,
-      metadata: {
-        ...(orderData.data.metadata ?? {}),
+      metadata: mergedMetadata({
+        ...(orderData?.data.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order.userMetadata ?? {}),
-        daimoOrderId: order?.id ?? null,
-      } as any,
+      }) as any,
       externalId:
         orderData.data.externalId?.toString() ?? orderData.data.id ?? null,
       userMetadata: null,

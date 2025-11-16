@@ -19,3 +19,17 @@ export function dateToUnix(d: Date): number {
 export function unixToDate(unix: number): Date {
   return new Date(unix * 1000);
 }
+
+export function generateEVMDeepLink({
+  amountUnits,
+  chainId,
+  recipientAddress,
+  tokenAddress,
+}: {
+  tokenAddress: string;
+  chainId: number;
+  recipientAddress: string;
+  amountUnits: string;
+}): string {
+  return `ethereum:${tokenAddress}@${chainId}/transfer?address=${recipientAddress}&uint256=${amountUnits}`;
+}

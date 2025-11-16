@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { usePayContext } from "../../../../hooks/usePayContext";
 
 import {
@@ -9,41 +9,23 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
-  base,
   getChainExplorerTxUrl,
-  RozoPayTokenAmount,
+  RozoPayHydratedOrderWithOrg,
   rozoSolana,
-  rozoSolanaUSDC,
-  rozoStellar,
-  rozoStellarUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
-import {
-  WalletSendTransactionError,
-  WalletSignTransactionError,
-} from "@solana/wallet-adapter-base";
 import { ROUTES } from "../../../../constants/routes";
-import {
-  ROZO_DAIMO_APP_ID,
-  ROZO_SOLANA_USDC_MINT_ADDRESS,
-  SOLANA_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
-} from "../../../../constants/rozoConfig";
+import { SOLANA_USDC_ASSET_CODE } from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useSolanaDestination } from "../../../../hooks/useSolanaDestination";
-import { useStellarDestination } from "../../../../hooks/useStellarDestination";
-import {
-  createRozoPayment,
-  createRozoPaymentRequest,
-  PaymentResponseData,
-} from "../../../../utils/api";
-import { roundTokenAmount } from "../../../../utils/format";
+import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
 import TokenLogoSpinner from "../../../Spinners/TokenLogoSpinner";
+
 enum PayState {
-  CreatingPayment = "Creating Payment Record...",
+  PreparingTransaction = "Preparing Transaction",
   RequestingPayment = "Waiting for Payment",
   RequestCancelled = "Payment Cancelled",
   RequestFailed = "Payment Failed",
@@ -51,7 +33,7 @@ enum PayState {
 }
 
 const PayWithSolanaToken: React.FC = () => {
-  const { triggerResize, paymentState, setRoute, log, trpc } = usePayContext();
+  const { triggerResize, paymentState, setRoute, log } = usePayContext();
   const {
     selectedSolanaTokenOption,
     payWithSolanaTokenRozo: payWithSolanaTokenImpl,
@@ -59,23 +41,27 @@ const PayWithSolanaToken: React.FC = () => {
     rozoPaymentId,
     setRozoPaymentId,
     setTxHash,
+    setPayId,
+    createPayment,
   } = paymentState;
-  const { order, setPaymentRozoCompleted, setPaymentCompleted } = useRozoPay();
+  const {
+    order,
+    paymentState: state,
+    setPaymentStarted,
+    setPaymentUnpaid,
+    setPaymentRozoCompleted,
+    setPaymentCompleted,
+    hydrateOrderRozo,
+  } = useRozoPay();
+
+  // Get the destination address and payment direction using our custom hook
+  const { destinationAddress } = useSolanaDestination(payParams);
+
   const [payState, setPayStateInner] = useState<PayState>(
     PayState.RequestingPayment
   );
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [activeRozoPayment, setActiveRozoPayment] = useState<
-    PaymentResponseData | undefined
-  >();
-
-  // Get the destination address and payment direction using our custom hook
-  const { destinationAddress, hasToSolanaAddress } =
-    useSolanaDestination(payParams);
-
-  const { hasToStellarAddress, destinationAddress: stellarDestinationAddress } =
-    useStellarDestination(payParams);
 
   const setPayState = (state: PayState) => {
     if (state === payState) return;
@@ -87,135 +73,123 @@ const PayWithSolanaToken: React.FC = () => {
     // });
   };
 
-  // ROZO API CALL
-  const handleCreatePayment = async (
-    payToken: RozoPayTokenAmount,
-    destinationAddress?: string
-  ) => {
-    setPayState(PayState.CreatingPayment);
-
-    let amount: any = roundTokenAmount(payToken.amount, payToken.token);
-
-    const paymentData = createRozoPaymentRequest({
-      appId: payParams?.appId ?? ROZO_DAIMO_APP_ID,
-      display: {
-        intent: order?.metadata?.intent ?? "",
-        paymentValue: String(payToken.usd),
-        currency: "USD",
-      },
-      preferredChain: String(rozoSolanaUSDC.chainId),
-      preferredToken: "USDC",
-      destination: {
-        destinationAddress: hasToSolanaAddress
-          ? destinationAddress
-          : hasToStellarAddress
-          ? stellarDestinationAddress
-          : payParams?.toAddress,
-        chainId: hasToSolanaAddress
-          ? String(rozoSolana.chainId)
-          : hasToStellarAddress
-          ? String(rozoStellar.chainId)
-          : String(base.chainId),
-        amountUnits: amount,
-        tokenSymbol: hasToSolanaAddress
-          ? rozoSolanaUSDC.symbol
-          : hasToStellarAddress
-          ? rozoStellarUSDC.symbol
-          : SOLANA_USDC_ASSET_CODE,
-        tokenAddress: hasToSolanaAddress
-          ? rozoSolanaUSDC.token
-          : hasToStellarAddress
-          ? `USDC:${STELLAR_USDC_ISSUER_PK}`
-          : ROZO_SOLANA_USDC_MINT_ADDRESS,
-      },
-      externalId: order?.externalId ?? "",
-      metadata: {
-        daimoOrderId: order?.id ?? "",
-        ...(order?.metadata ?? {}),
-      },
-    });
-
-    // API Call
-    const response = await createRozoPayment(paymentData);
-    if (!response?.data?.id) {
-      throw new Error(response?.error?.message ?? "Payment creation failed");
-    }
-
-    setActiveRozoPayment(response.data);
-    return response.data;
-  };
-
   // @NOTE: This is Pay In Solana by Rozo
   // FOR TRANSFER ACTION
-  const handleTransfer = async (option: WalletPaymentOption) => {
-    setIsLoading(true);
-    try {
-      if (!destinationAddress) {
-        throw new Error("Solana destination address is required");
-      }
+  const handleTransfer = useCallback(
+    async (option: WalletPaymentOption) => {
+      setIsLoading(true);
+      try {
+        if (!destinationAddress) {
+          throw new Error("Solana destination address is required");
+        }
 
-      // await hydrateOrder(undefined, option);
+        if (!order) {
+          throw new Error("Order not initialized");
+        }
 
-      let payment: PaymentResponseData | undefined = activeRozoPayment;
-      if (!payment) {
-        // Use destinationAddress directly as it's now the middleware address
-        payment = await handleCreatePayment(
-          option.required,
-          destinationAddress
+        const { required } = option;
+
+        const needRozoPayment =
+          "payinchainid" in order.metadata &&
+          Number(order.metadata.payinchainid) !== required.token.chainId;
+
+        let hydratedOrder: RozoPayHydratedOrderWithOrg;
+        let paymentId: string | undefined;
+
+        if (state === "payment_unpaid" && !needRozoPayment) {
+          hydratedOrder = order;
+        } else if (needRozoPayment) {
+          const res = await createPayment(option);
+          paymentId = res.id;
+          hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+        } else {
+          // Hydrate existing order
+          const res = await hydrateOrderRozo(undefined, option);
+          hydratedOrder = res.order;
+        }
+
+        if (!hydratedOrder) {
+          throw new Error("Payment not found");
+        }
+
+        const newId = paymentId ?? hydratedOrder.externalId;
+        if (newId) {
+          setRozoPaymentId(newId);
+          setPaymentStarted(String(newId), hydratedOrder);
+        }
+
+        setPayState(PayState.RequestingPayment);
+
+        const paymentData = {
+          tokenAddress:
+            (required.token.token as string) ?? SOLANA_USDC_ASSET_CODE,
+          destAddress:
+            (hydratedOrder.destFinalCall.to as string) || destinationAddress,
+          usdcAmount: String(hydratedOrder.destFinalCallTokenAmount.usd),
+          solanaAmount: String(hydratedOrder.destFinalCallTokenAmount.usd),
+        };
+
+        if (hydratedOrder.metadata?.memo) {
+          Object.assign(paymentData, {
+            memo: hydratedOrder.metadata.memo as string,
+          });
+        }
+
+        log("[PAY SOLANA] Rozo payment:", { paymentData });
+
+        const result = await payWithSolanaTokenImpl(option, paymentData);
+        log(
+          "[PAY SOLANA] Result",
+          result,
+          getChainExplorerTxUrl(rozoSolana.chainId, result.txHash)
         );
+        setTxURL(getChainExplorerTxUrl(rozoSolana.chainId, result.txHash));
+
+        if (result.success) {
+          setPayState(PayState.RequestSuccessful);
+          setTxHash(result.txHash);
+          setTimeout(() => {
+            setPaymentRozoCompleted(true);
+            setPaymentCompleted(result.txHash, rozoPaymentId);
+            setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
+          }, 200);
+        } else {
+          setPayState(PayState.RequestCancelled);
+        }
+      } catch (error) {
+        if (rozoPaymentId) {
+          setPaymentUnpaid(rozoPaymentId);
+        }
+        if ((error as any).message.includes("rejected")) {
+          setPayState(PayState.RequestCancelled);
+        } else {
+          setPayState(PayState.RequestFailed);
+        }
+      } finally {
+        setIsLoading(false);
       }
-
-      setRozoPaymentId(payment.id as string);
-      setPayState(PayState.RequestingPayment);
-
-      const paymentData = {
-        tokenAddress:
-          (payment.metadata.payintokenaddress as string) ??
-          SOLANA_USDC_ASSET_CODE,
-        destAddress:
-          (payment.metadata.receivingAddress as string) || destinationAddress,
-        usdcAmount: payment.destination.amountUnits,
-        solanaAmount: roundTokenAmount(
-          option.required.amount,
-          option.required.token
-        ),
-      };
-
-      if (payment.metadata?.memo) {
-        Object.assign(paymentData, { memo: payment.metadata.memo as string });
-      }
-
-      const result = await payWithSolanaTokenImpl(option, paymentData);
-      console.log(
-        "[PAY SOLANA] Result",
-        result,
-        getChainExplorerTxUrl(rozoSolana.chainId, result.txHash)
-      );
-      setTxURL(getChainExplorerTxUrl(rozoSolana.chainId, result.txHash));
-
-      if (result.success) {
-        setPayState(PayState.RequestSuccessful);
-        setTxHash(result.txHash);
-        setTimeout(() => {
-          setPaymentRozoCompleted(true);
-          setPaymentCompleted(result.txHash, rozoPaymentId);
-          setRoute(ROUTES.CONFIRMATION, { event: "wait-pay-with-solana" });
-        }, 200);
-      } else {
-        setPayState(PayState.RequestFailed);
-      }
-    } catch (error) {
-      console.error(error);
-      if (
-        error instanceof WalletSignTransactionError ||
-        error instanceof WalletSendTransactionError
-      ) {
-        setPayState(PayState.RequestCancelled);
-      } else {
-        setPayState(PayState.RequestFailed);
-      }
-    }
-  };
+    },
+    [
+      destinationAddress,
+      order,
+      state,
+      createPayment,
+      setPayId,
+      hydrateOrderRozo,
+      log,
+      setRozoPaymentId,
+      setPaymentStarted,
+      setPayState,
+      payWithSolanaTokenImpl,
+      setTxURL,
+      setTxHash,
+      setPaymentRozoCompleted,
+      setPaymentCompleted,
+      setRoute,
+      setPaymentUnpaid,
+      rozoPaymentId,
+    ]
+  );
 
   // @NOTE: This is Daimo Pay In Solana (by default)
   // const handleTransfer = async (option: WalletPaymentOption) => {
@@ -247,7 +221,6 @@ const PayWithSolanaToken: React.FC = () => {
   useEffect(() => {
     if (!selectedSolanaTokenOption) return;
 
-    // Give user time to see the UI before opening
     const transferTimeout = setTimeout(
       () => handleTransfer(selectedSolanaTokenOption),
       100
@@ -282,7 +255,7 @@ const PayWithSolanaToken: React.FC = () => {
           <ModalH1>{payState}</ModalH1>
         )}
         <PaymentBreakdown paymentOption={selectedSolanaTokenOption} />
-        {payState === PayState.RequestCancelled && (
+        {payState === PayState.RequestCancelled && !isLoading && (
           <Button onClick={() => handleTransfer(selectedSolanaTokenOption)}>
             Retry Payment
           </Button>

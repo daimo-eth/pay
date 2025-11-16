@@ -2,6 +2,7 @@ import {
   base,
   baseUSDC,
   bscUSDT,
+  getKnownToken,
   polygonUSDC,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -19,19 +20,20 @@ import { STELLAR_USDC_ISSUER_PK } from "../constants/rozoConfig";
 import { PaymentResponseData } from "./api";
 
 export interface PaymentBridgeConfig {
-  toChain: number;
-  toToken: string;
+  toChain?: number;
+  toToken?: string;
   toAddress?: string;
   toStellarAddress?: string;
   toSolanaAddress?: string;
   toUnits: string;
   walletPaymentOption?: WalletPaymentOption;
+  log: (msg: string) => void;
 }
 
 export interface PreferredPaymentConfig {
   preferredChain: string;
   preferredToken: "USDC" | "USDT" | "XLM";
-  preferredTokenAddress?: `0x${string}`;
+  preferredTokenAddress?: string;
 }
 
 export interface DestinationConfig {
@@ -59,6 +61,7 @@ export function createPaymentBridgeConfig({
   toSolanaAddress,
   toUnits,
   walletPaymentOption,
+  log,
 }: PaymentBridgeConfig): {
   preferred: PreferredPaymentConfig;
   destination: DestinationConfig;
@@ -90,42 +93,45 @@ export function createPaymentBridgeConfig({
 
       // Pay In USDC Polygon
       if (selectedToken === polygonUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Polygon");
+        log(`[Payment Bridge] Pay In USDC Polygon`);
         preferred = {
           preferredChain: String(polygonUSDC.chainId),
           preferredToken: "USDC",
-          preferredTokenAddress: polygonUSDC.token as `0x${string}`,
+          preferredTokenAddress: polygonUSDC.token,
         };
       }
       // Pay In USDC Solana
       else if (selectedToken === rozoSolanaUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Solana");
+        log(`[Payment Bridge] Pay In USDC Solana`);
         preferred = {
           preferredChain: String(rozoSolanaUSDC.chainId),
           preferredToken: "USDC",
+          preferredTokenAddress: rozoSolanaUSDC.token,
         };
       }
       // Pay In USDC Stellar
       else if (selectedToken === rozoStellarUSDC.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDC Stellar");
+        log(`[Payment Bridge] Pay In USDC Stellar`);
         preferred = {
           preferredChain: String(rozoStellarUSDC.chainId),
           preferredToken: "USDC",
+          preferredTokenAddress: `USDC:${rozoStellarUSDC.token}`,
         };
       }
       // Pay In USDT BSC
       else if (selectedToken === bscUSDT.token) {
-        console.log("[createPaymentBridgeConfig] Pay In USDT BSC");
+        log(`[Payment Bridge] Pay In USDT BSC`);
         preferred = {
           preferredChain: String(bscUSDT.chainId),
           preferredToken: "USDT",
+          preferredTokenAddress: bscUSDT.token,
         };
       }
     }
 
     // Determine destination based on special address types
     if (toStellarAddress) {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Stellar");
+      log(`[Payment Bridge] Pay Out USDC Stellar`);
       destination = {
         destinationAddress: toStellarAddress,
         chainId: String(rozoStellar.chainId),
@@ -134,7 +140,7 @@ export function createPaymentBridgeConfig({
         tokenAddress: `USDC:${STELLAR_USDC_ISSUER_PK}`,
       };
     } else if (toSolanaAddress) {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Solana");
+      log(`[Payment Bridge] Pay Out USDC Solana`);
       destination = {
         destinationAddress: toSolanaAddress,
         chainId: String(rozoSolanaUSDC.chainId),
@@ -143,7 +149,7 @@ export function createPaymentBridgeConfig({
         tokenAddress: rozoSolanaUSDC.token,
       };
     } else {
-      console.log("[createPaymentBridgeConfig] Pay Out USDC Base");
+      log(`[Payment Bridge] Pay Out USDC Base`);
       // Keep default Base configuration
     }
   }
@@ -160,6 +166,15 @@ export function formatPaymentResponseDataToHydratedOrder(
   order: PaymentResponseData
 ): RozoPayHydratedOrderWithOrg {
   const destAddress = order.metadata.receivingAddress as `0x${string}`;
+
+  const requiredChain = order.metadata.preferredChain || baseUSDC.chainId;
+
+  const chain = getKnownToken(
+    Number(requiredChain),
+    Number(requiredChain) === rozoStellar.chainId
+      ? STELLAR_USDC_ISSUER_PK
+      : order.metadata.preferredTokenAddress
+  );
 
   return {
     id: BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),
@@ -193,24 +208,23 @@ export function formatPaymentResponseDataToHydratedOrder(
     ],
     selectedBridgeTokenOutAddr: null,
     selectedBridgeTokenOutAmount: null,
-    // @TODO: use correct destination token
     destFinalCallTokenAmount: {
       token: {
-        chainId: baseUSDC.chainId,
-        token: baseUSDC.token,
-        symbol: baseUSDC.symbol,
+        chainId: chain ? chain.chainId : baseUSDC.chainId,
+        token: chain ? chain.token : baseUSDC.token,
+        symbol: chain ? chain.symbol : baseUSDC.symbol,
         usd: 1,
         priceFromUsd: 1,
-        decimals: baseUSDC.decimals,
+        decimals: chain ? chain.decimals : baseUSDC.decimals,
         displayDecimals: 2,
-        logoSourceURI: baseUSDC.logoSourceURI,
-        logoURI: baseUSDC.logoURI,
+        logoSourceURI: chain ? chain.logoSourceURI : baseUSDC.logoSourceURI,
+        logoURI: chain ? chain.logoURI : baseUSDC.logoURI,
         maxAcceptUsd: 100000,
         maxSendUsd: 0,
       },
       amount: parseUnits(
         order.destination.amountUnits,
-        baseUSDC.decimals
+        chain ? chain.decimals : baseUSDC.decimals
       ).toString() as `${bigint}`,
       usd: Number(order.destination.amountUnits),
     },
@@ -241,7 +255,7 @@ export function formatPaymentResponseDataToHydratedOrder(
       ...(order?.metadata ?? {}),
       ...(order.userMetadata ?? {}),
       ...(order.metadata ?? {}),
-      daimoOrderId: order?.id ?? null,
+      // daimoOrderId: order?.id ?? null,
     } as any,
     externalId: order.externalId as string | null,
     userMetadata: order.userMetadata as RozoPayUserMetadata | null,

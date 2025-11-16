@@ -1,6 +1,11 @@
 import { ExternalPaymentOptions } from "@rozoai/intent-common";
 import { Connector, useAccount } from "wagmi";
-import { BinanceSmartChain, Solana, Stellar } from "../../../assets/chains";
+import {
+  Base,
+  BinanceSmartChain,
+  Solana,
+  Stellar,
+} from "../../../assets/chains";
 import { Coinbase, MetaMask, Rabby, Rainbow } from "../../../assets/logos";
 import { ROUTES } from "../../../constants/routes";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
@@ -19,6 +24,8 @@ export default function SelectAnotherMethodButton() {
     externalPaymentOptions,
     showSolanaPaymentMethod,
     showStellarPaymentMethod,
+    tokenMode,
+    payParams,
   } = paymentState;
   const { connector } = useAccount();
   const { order } = useRozoPay();
@@ -36,7 +43,7 @@ export default function SelectAnotherMethodButton() {
   const selectMethodOption = {
     id: "select-method",
     title: `Pay with another method`,
-    icons: getBestPaymentMethodIcons(),
+    icons: getBestPaymentMethodIcons(payParams?.appId ?? undefined, tokenMode),
     onClick: () => {
       setRoute(ROUTES.SELECT_METHOD);
     },
@@ -68,7 +75,10 @@ export default function SelectAnotherMethodButton() {
     return icons;
   }
 
-  function getBestPaymentMethodIcons(appId?: string) {
+  function getBestPaymentMethodIcons(
+    appId?: string,
+    tokenMode?: "evm" | "solana" | "stellar" | "all"
+  ) {
     let icons = (externalPaymentOptions.options.get("external") ?? [])
       .filter((option) => option.id !== ExternalPaymentOptions.Rozo)
       .map((option) => (
@@ -86,8 +96,9 @@ export default function SelectAnotherMethodButton() {
 
     if (icons.length < 3) {
       const additionalIcons: JSX.Element[] = [];
-      if (showStellarPaymentMethod) additionalIcons.push(<Stellar />);
-      if (showSolanaPaymentMethod) additionalIcons.push(<Solana />);
+      if (tokenMode !== "evm") additionalIcons.push(<Base />);
+      if (tokenMode !== "stellar") additionalIcons.push(<Stellar />);
+      if (tokenMode !== "solana") additionalIcons.push(<Solana />);
       if (includeDepositAddressOption && additionalIcons.length < 3) {
         if (appId?.includes("MP")) {
           additionalIcons.push(<BinanceSmartChain />);

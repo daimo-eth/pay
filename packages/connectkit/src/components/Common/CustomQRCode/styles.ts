@@ -16,6 +16,13 @@ export const QRCodeContainer = styled(motion.div)`
   background: var(--ck-qr-background, transparent);
   box-shadow: 0 0 0 1px var(--ck-qr-border-color);
   backface-visibility: hidden;
+
+  /* Ensure high-contrast, scannable QR in dark mode */
+  @media (prefers-color-scheme: dark) {
+    --ck-qr-background: #ffffff;
+    --ck-qr-dot-color: #000000;
+    --ck-qr-border-color: rgba(0, 0, 0, 0.12);
+  }
   svg {
     display: block;
     max-width: 100%;

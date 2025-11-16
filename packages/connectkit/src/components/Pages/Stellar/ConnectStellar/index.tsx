@@ -11,10 +11,14 @@ import { SquircleIcon } from "../../../../assets/logos";
 import { ROUTES } from "../../../../constants/routes";
 import { usePayContext } from "../../../../hooks/usePayContext";
 import { useStellar } from "../../../../provider/StellarContextProvider";
+import * as LocalStorage from "../../../../utils/localstorage";
 import { OptionsList } from "../../../Common/OptionsList";
 import { OrderHeader } from "../../../Common/OrderHeader";
 import SelectAnotherMethodButton from "../../../Common/SelectAnotherMethodButton";
 import WalletPaymentSpinner from "../../../Spinners/WalletPaymentSpinner";
+
+// LocalStorage key for Stellar wallet persistence (same as in StellarContextProvider)
+const STELLAR_WALLET_STORAGE_KEY = "rozo-stellar-wallet";
 
 interface Option {
   id: string;
@@ -76,6 +80,14 @@ const ConnectStellar: React.FC = () => {
             // Stellar Provider
             setPublicKey(address);
             setConnector(wallet);
+
+            // Save wallet connection to localStorage for persistence
+            LocalStorage.add(STELLAR_WALLET_STORAGE_KEY, {
+              walletId: wallet.id,
+              walletName: wallet.name,
+              walletIcon: wallet.icon,
+              publicKey: address,
+            });
 
             // PayContext
             setStellarConnector(wallet.id);

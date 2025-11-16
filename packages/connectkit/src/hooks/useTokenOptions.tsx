@@ -20,6 +20,7 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
   const { setRoute, paymentState } = usePayContext();
   const {
     isDepositFlow,
+    connectedWalletOnly,
     walletPaymentOptions,
     solanaPaymentOptions,
     stellarPaymentOptions,
@@ -33,40 +34,47 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
   let hasAnyData = false;
 
   if (["evm", "all"].includes(mode)) {
-    const evmOptions = getEvmTokenOptions(
-      walletPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedTokenOption,
-      setRoute
-    );
+    const evmOptions = walletPaymentOptions.isLoading
+      ? []
+      : getEvmTokenOptions(
+          walletPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedTokenOption,
+          setRoute
+        );
     optionsList.push(...evmOptions);
     isLoading ||= walletPaymentOptions.isLoading;
     hasAnyData ||= (walletPaymentOptions.options?.length ?? 0) > 0;
   }
 
   if (["solana", "all"].includes(mode)) {
-    const solanaOptions = getSolanaTokenOptions(
-      solanaPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedSolanaTokenOption,
-      setRoute
-    );
+    const solanaOptions = solanaPaymentOptions.isLoading
+      ? []
+      : getSolanaTokenOptions(
+          solanaPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedSolanaTokenOption,
+          setRoute
+        );
     optionsList.push(...solanaOptions);
     isLoading ||= solanaPaymentOptions.isLoading;
     hasAnyData ||= (solanaPaymentOptions.options?.length ?? 0) > 0;
   }
 
   if (["stellar", "all"].includes(mode)) {
-    const stellarOptions = getStellarTokenOptions(
-      stellarPaymentOptions.options ?? [],
-      isDepositFlow,
-      setSelectedStellarTokenOption,
-      setRoute
-    );
+    const stellarOptions = stellarPaymentOptions.isLoading
+      ? []
+      : getStellarTokenOptions(
+          stellarPaymentOptions.options ?? [],
+          isDepositFlow,
+          setSelectedStellarTokenOption,
+          setRoute
+        );
     optionsList.push(...stellarOptions);
     isLoading ||= stellarPaymentOptions.isLoading;
     hasAnyData ||= (stellarPaymentOptions.options?.length ?? 0) > 0;
   }
+
   optionsList.sort((a, b) => {
     const dDisabled = (a.disabled ? 1 : 0) - (b.disabled ? 1 : 0);
     if (dDisabled !== 0) return dDisabled;
@@ -270,8 +278,14 @@ export function useTokenOptions(mode: "evm" | "solana" | "stellar" | "all"): {
 
   // Prevent flickering by only showing loading when we have no data at all
   // and we're actually loading, or when we have some data but are still loading more
+  // Special case: when connectedWalletOnly is true and optionsList is empty,
+  // don't show loading as it indicates no compatible wallet is connected
+  // Don't show loading if connectedWalletOnly is true and no options are available
+  // (this indicates no compatible wallet is connected)
   const shouldShowLoading =
-    isLoading && (!hasAnyData || optionsList.length === 0);
+    connectedWalletOnly && optionsList.length === 0
+      ? false
+      : isLoading && (!hasAnyData || optionsList.length === 0);
 
   return {
     optionsList,

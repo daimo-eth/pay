@@ -37,24 +37,24 @@ export type Token = {
 };
 
 export enum TokenLogo {
-  ETH = "https://pay.daimo.com/chain-logos/ethereum.png",
-  WETH = "https://pay.daimo.com/coin-logos/weth.png",
-  USDC = "https://pay.daimo.com/coin-logos/usdc.png",
-  EURC = "https://pay.daimo.com/coin-logos/eurc.png",
-  USDT = "https://pay.daimo.com/coin-logos/usdt.png",
-  DAI = "https://pay.daimo.com/coin-logos/dai.png",
-  POL = "https://pay.daimo.com/coin-logos/pol.png",
-  AVAX = "https://pay.daimo.com/coin-logos/avax.png",
-  BNB = "https://pay.daimo.com/coin-logos/bnb.png",
-  SOL = "https://pay.daimo.com/coin-logos/sol.png",
-  WLD = "https://pay.daimo.com/coin-logos/wld.jpeg",
-  USDB = "https://pay.daimo.com/coin-logos/usdb.png",
-  BLAST = "https://pay.daimo.com/coin-logos/blast.jpg",
-  WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
-  MNT = "https://pay.daimo.com/coin-logos/mnt.png",
-  CELO = "https://pay.daimo.com/coin-logos/celo.png",
-  cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
-  XLM = "https://pay.daimo.com/coin-logos/xlm.png",
+  ETH = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/5dbadc94-b4be-4961-0b5b-8407f885db00/public",
+  WETH = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/5e0f069f-e47a-46f0-5042-6d872d935300/public",
+  USDC = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/250ccc85-8bf6-4cad-42c0-403650aa4700/public",
+  EURC = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/6fbcf6f3-a29a-4f2a-a566-667652bd7f00/public",
+  USDT = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/32131068-26e3-47a3-470c-f391a451ec00/public",
+  DAI = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/ed5ba925-2588-486c-2b91-3e66ef724800/public",
+  POL = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/f965214c-35f6-40a5-5553-87a44aaf9300/public",
+  AVAX = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/50978549-46f4-43b8-47c3-ab7264579600/public",
+  BNB = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/70986f2b-0f89-4dc3-21a2-7c2056b3a400/public",
+  SOL = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/b07d287f-1536-4022-d81d-3a10e482cf00/public",
+  WLD = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/25a585d1-2519-47da-5356-ccb511d4aa00/public",
+  USDB = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/78d0c585-5051-40ea-cd5b-00f7bc7faa00/public",
+  BLAST = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/d2dd02fc-f076-4c82-54c8-5fdaa80d1a00/public",
+  WBTC = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/94dbd640-da09-4c0f-202a-f385b9b3b000/public",
+  MNT = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/f8220c1e-1d5b-48e0-ad01-b774bf930d00/public",
+  CELO = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/e0d3171b-9f48-4db0-a324-88a82e4dfc00/public",
+  cUSD = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/55fba2cb-ba84-4d6e-2bc7-8f0122412100/public",
+  XLM = "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/839e9764-9a82-4ffc-cadb-a0968a451100/public",
 }
 
 /* --------------------- Tokens Constants --------------------- */
@@ -819,8 +819,8 @@ const knownTokensByChain = new Map<number, Token[]>([
   [mantle.chainId, mantleTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
-  [solana.chainId, solanaTokens],
-  [stellar.chainId, stellarTokens],
+  [rozoSolana.chainId, solanaTokens],
+  [rozoStellar.chainId, stellarTokens],
   [worldchain.chainId, worldchainTokens],
 ]);
 

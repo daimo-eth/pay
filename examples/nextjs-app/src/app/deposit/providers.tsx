@@ -1,27 +1,26 @@
 "use client";
 
-import { RozoPayProvider, getDefaultConfig } from "@rozoai/intent-pay";
+import {
+  getDefaultConfig as getDefaultConfigRozo,
+  RozoPayProvider,
+} from "@rozoai/intent-pay";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { createConfig, WagmiProvider } from "wagmi";
-import { ROZOPAY_API_URL } from "../shared";
 
-export const wagmiConfig = createConfig(
-  getDefaultConfig({
+export const rozoPayConfig = createConfig(
+  getDefaultConfigRozo({
     appName: "Rozo Pay Deposit Demo",
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  }),
+  })
 );
 
 const queryClient = new QueryClient();
 
 export function Providers(props: { children: ReactNode }) {
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={rozoPayConfig}>
       <QueryClientProvider client={queryClient}>
-        <RozoPayProvider payApiUrl={ROZOPAY_API_URL} debugMode>
-          {props.children}
-        </RozoPayProvider>
+        <RozoPayProvider>{props.children}</RozoPayProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

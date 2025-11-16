@@ -1,27 +1,4 @@
-import { createAppKit } from "@reown/appkit";
 import { defineChain } from "@reown/appkit/networks";
-
-// Extend the ChainNamespace type to include Stellar
-declare module "@reown/appkit/networks" {
-  interface ChainNamespace {
-    stellar: "stellar";
-  }
-}
-
-// Extend the CAIP network ID types to include Stellar
-declare global {
-  namespace ChainNamespace {
-    type Stellar = "stellar";
-  }
-}
-
-// Extend AppKit types to support Stellar networks
-declare module "@reown/appkit" {
-  interface AppKitNetwork {
-    chainNamespace?: "stellar";
-    caipNetworkId?: `stellar:${"pubnet" | "testnet"}`;
-  }
-}
 
 // Custom Stellar chain configuration interface
 export interface StellarChainConfig {

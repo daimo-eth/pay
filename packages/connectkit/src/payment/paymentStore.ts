@@ -10,9 +10,11 @@ export type PaymentStore = ReturnType<
   typeof createStore<PaymentState, PaymentEvent>
 >;
 
-export function createPaymentStore(): PaymentStore {
-  const store = createStore(paymentReducer, initialPaymentState);
-  return store;
+export function createPaymentStore(log?: (msg: string) => void): PaymentStore {
+  return createStore<PaymentState, PaymentEvent>(
+    (state, event) => paymentReducer(state, event),
+    initialPaymentState
+  );
 }
 
 /**
@@ -23,7 +25,7 @@ export function createPaymentStore(): PaymentStore {
  * the error message
  */
 export function waitForPaymentState<
-  const T extends readonly PaymentState["type"][],
+  const T extends readonly PaymentState["type"][]
 >(
   store: PaymentStore,
   ...validTypes: T
@@ -37,6 +39,6 @@ export function waitForPaymentState<
     (s): s is Extract<PaymentState, { type: T[number] }> =>
       (validTypes as readonly PaymentState["type"][]).includes(s.type),
     (s) => s.type === "error",
-    (s) => (s as Extract<PaymentState, { type: "error" }>).message,
+    (s) => (s as Extract<PaymentState, { type: "error" }>).message
   );
 }

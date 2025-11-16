@@ -11,12 +11,12 @@ const DEFAULT_SOLANA_RPC_URL =
 
 export const SolanaContextProvider = ({
   children,
-  solanaRpcUrl,
+  rpcUrl,
 }: {
   children: React.ReactNode;
-  solanaRpcUrl?: string;
+  rpcUrl?: string;
 }) => {
-  const endpoint = solanaRpcUrl ?? DEFAULT_SOLANA_RPC_URL;
+  const endpoint = rpcUrl ?? DEFAULT_SOLANA_RPC_URL;
 
   return (
     <ConnectionProvider endpoint={endpoint}>

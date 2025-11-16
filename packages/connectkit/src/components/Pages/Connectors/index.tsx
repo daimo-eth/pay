@@ -30,7 +30,7 @@ const Wallets: React.FC = () => {
   const locales = useLocales({});
 
   const { isMobile } = useIsMobile();
-  const { hydrateOrder, order, setRozoPaymentId } = useRozoPay();
+  const { hydrateOrder, order } = useRozoPay();
 
   const hasCustomDeeplink = React.useMemo(() => {
     return order?.metadata && order?.metadata.customDeeplinkUrl != null;
@@ -56,7 +56,7 @@ const Wallets: React.FC = () => {
       isMobile &&
       !hasCustomDeeplink
     ) {
-      console.log("HYDRATING ORDER", order, context);
+      context.log("HYDRATING ORDER", order, context);
       hasHydratedRef.current = true;
       hydrateOrder();
     }
@@ -68,7 +68,7 @@ const Wallets: React.FC = () => {
 
   useEffect(() => {
     if (order?.externalId) {
-      setRozoPaymentId(order.externalId);
+      context.paymentState.setRozoPaymentId(order.externalId);
     }
   }, [order]);
 
@@ -80,7 +80,7 @@ const Wallets: React.FC = () => {
     <PageContent>
       <OrderHeader
         minified
-        excludeLogos={["tron", "eth", "arbitrum", "optimism", "stellar"]}
+        excludeLogos={["tron", "eth", "arbitrum", "optimism"]}
       />
       <ConnectorList
         customDeeplink={

@@ -282,6 +282,7 @@ const Chrome = (
     </defs>
   </svg>
 );
+
 const FireFox = (
   <svg
     aria-hidden="true"
@@ -522,6 +523,7 @@ const FireFox = (
     </defs>
   </svg>
 );
+
 const Brave = (
   <svg
     aria-hidden="true"
@@ -569,6 +571,7 @@ const Brave = (
     </defs>
   </svg>
 );
+
 const Edge = (
   <svg
     aria-hidden="true"

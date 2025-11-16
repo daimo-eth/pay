@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { AnimatePresence, motion, Variants } from "framer-motion";
 
@@ -332,6 +338,19 @@ const Modal: React.FC<ModalProps> = ({
     return !useInjector;
   }
 
+  const shouldDisableBackgroundClick = useMemo(() => {
+    // Routes where background clicks should be disabled (e.g., during payment processing)
+    const disabledRoutes = [
+      ROUTES.SOLANA_PAY_WITH_TOKEN,
+      ROUTES.STELLAR_PAY_WITH_TOKEN,
+      ROUTES.PAY_WITH_TOKEN,
+      ROUTES.WAITING_WALLET,
+      ROUTES.WAITING_EXTERNAL,
+      ROUTES.WAITING_DEPOSIT_ADDRESS,
+    ];
+    return disabledRoutes.includes(context.route as ROUTES);
+  }, [context.route]);
+
   function getHeading() {
     switch (context.route) {
       case ROUTES.ABOUT:
@@ -421,8 +440,11 @@ const Modal: React.FC<ModalProps> = ({
         {!inline && (
           <BackgroundOverlay
             $active={rendered}
-            onClick={onClose}
+            onClick={shouldDisableBackgroundClick ? undefined : onClose}
             $blur={context.options?.overlayBlur}
+            style={{
+              pointerEvents: shouldDisableBackgroundClick ? "none" : "auto",
+            }}
           />
         )}
         <Container

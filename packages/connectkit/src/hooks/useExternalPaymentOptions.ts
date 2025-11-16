@@ -3,8 +3,10 @@ import {
   ExternalPaymentOptions,
   PlatformType,
   RozoPayOrderMode,
+  TokenLogo,
 } from "@rozoai/intent-common";
 import { useEffect, useMemo, useState } from "react";
+import { formatUsd } from "../utils/format";
 import { TrpcClient } from "../utils/trpc";
 
 /**
@@ -119,8 +121,8 @@ export function useExternalPaymentOptions({
               priceFromUsd: 1,
               decimals: 6,
               displayDecimals: 2,
-              logoSourceURI: "https://pay.daimo.com/coin-logos/usdc.png",
-              logoURI: "https://pay.daimo.com/coin-logos/usdc.png",
+              logoSourceURI: TokenLogo.USDC,
+              logoURI: TokenLogo.USDC,
               maxAcceptUsd: 100000,
               maxSendUsd: 0,
             },
@@ -128,8 +130,8 @@ export function useExternalPaymentOptions({
             logoURI: "https://pay.daimo.com/wallet-logos/coinbase-logo.svg",
             logoShape: "circle" as const, // UI styling for logo
             disabled: true, // Currently disabled
-            message: "Minimum $5.00", // User-facing message about restrictions
-            minimumUsd: 5, // Minimum payment amount
+            message: `Minimum ${formatUsd(usd, "up")}`, // User-facing message about restrictions
+            minimumUsd: usd, // Minimum payment amount
           },
         ];
 

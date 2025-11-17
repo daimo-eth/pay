@@ -43,6 +43,10 @@ export function useSolanaDestination(
     return payParams?.toChain === baseUSDC.chainId;
   }, [payParams?.toChain]);
 
+  const isPayOutToStellar = useMemo((): boolean => {
+    return !!payParams?.toStellarAddress;
+  }, [payParams?.toChain]);
+
   const isPayInBaseOutSolana = useMemo((): boolean => {
     return payParams?.toChain === baseUSDC.chainId && hasToSolanaAddress;
   }, [isPayOutToBase, hasToSolanaAddress]);
@@ -55,6 +59,10 @@ export function useSolanaDestination(
     return isPayOutToBase && !hasToSolanaAddress;
   }, [isPayOutToBase, hasToSolanaAddress]);
 
+  const isPayInSolanaOutStellar = useMemo((): boolean => {
+    return isPayOutToStellar && !hasToSolanaAddress;
+  }, [isPayOutToStellar, hasToSolanaAddress]);
+
   const isSolanaPayment = useMemo((): boolean => {
     return isPayInSolanaOutSolana || isPayInSolanaOutBase;
   }, [isPayInSolanaOutSolana, isPayInSolanaOutBase]);
@@ -64,11 +72,22 @@ export function useSolanaDestination(
       return payParams?.toSolanaAddress;
     }
 
+    if (isPayInSolanaOutBase) {
+      return payParams?.toAddress;
+    }
+
+    if (isPayInSolanaOutStellar) {
+      return payParams?.toStellarAddress;
+    }
+
     return undefined;
   }, [
     isPayInSolanaOutSolana,
     isPayInSolanaOutBase,
+    isPayInSolanaOutStellar,
+    payParams?.toAddress,
     payParams?.toSolanaAddress,
+    payParams?.toStellarAddress,
   ]);
 
   return {

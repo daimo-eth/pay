@@ -45,6 +45,7 @@ const PayWithSolanaToken: React.FC = () => {
     createPayment,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: state,
     setPaymentStarted,
@@ -58,10 +59,17 @@ const PayWithSolanaToken: React.FC = () => {
   const { destinationAddress } = useSolanaDestination(payParams);
 
   const [payState, setPayStateInner] = useState<PayState>(
-    PayState.RequestingPayment
+    PayState.PreparingTransaction
   );
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (state === "error") {
+      setRoute(ROUTES.ERROR);
+      return;
+    }
+  }, [state]);
 
   const setPayState = (state: PayState) => {
     if (state === payState) return;
@@ -99,7 +107,12 @@ const PayWithSolanaToken: React.FC = () => {
         if (state === "payment_unpaid" && !needRozoPayment) {
           hydratedOrder = order;
         } else if (needRozoPayment) {
-          const res = await createPayment(option);
+          const res = await createPayment(option, store as any);
+
+          if (!res) {
+            throw new Error("Failed to create Rozo payment");
+          }
+
           paymentId = res.id;
           hydratedOrder = formatResponseToHydratedOrder(res);
         } else {
@@ -157,6 +170,7 @@ const PayWithSolanaToken: React.FC = () => {
           setPayState(PayState.RequestCancelled);
         }
       } catch (error) {
+        console.error("Failed to pay with solana token", error);
         if (rozoPaymentId) {
           setPaymentUnpaid(rozoPaymentId);
         }

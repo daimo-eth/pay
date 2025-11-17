@@ -24,6 +24,7 @@ import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
+import { formatUsd } from "../../../utils/format";
 import Button from "../../Common/Button";
 import CircleTimer from "../../Common/CircleTimer";
 import CopyToClipboardIcon from "../../Common/CopyToClipboard/CopyToClipboardIcon";
@@ -328,7 +329,6 @@ export default function WaitingDepositAddress() {
           // Polling will automatically start via shouldPoll calculation
         } else if (details === null) {
           // Duplicate call was prevented - reset loading states
-          context.log("Duplicate call prevented, resetting states");
           setIsLoading(false);
           setHasExecutedDepositCall(false);
           // Polling will automatically stop when externalId is missing
@@ -370,6 +370,11 @@ export default function WaitingDepositAddress() {
       rozoPaymentState !== "idle" &&
       payParams
     ) {
+      if (rozoPaymentState === "error") {
+        context.setRoute(ROUTES.ERROR);
+        return;
+      }
+
       context.log(
         `Resetting payment state from ${rozoPaymentState} to preview for new deposit option`
       );
@@ -606,6 +611,7 @@ function CopyableInfo({
       <CopyRowOrThrobber
         title="Send Exactly"
         value={depAddr?.amount}
+        valueText={formatUsd(Number(depAddr?.amount) || 0, "nearest")}
         smallText={depAddr?.coins}
         disabled={isExpired}
       />

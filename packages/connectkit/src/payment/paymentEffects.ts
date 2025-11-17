@@ -20,6 +20,7 @@ import {
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress, parseUnits } from "viem";
 import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
+import { parseErrorMessage } from "../utils/errorParser";
 import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
 import { PaymentEvent, PaymentState } from "./paymentFsm";
@@ -327,7 +328,11 @@ async function runSetPayParamsEffects(
       },
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: undefined, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: undefined,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -346,7 +351,11 @@ async function runSetPayIdEffects(
       order,
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: undefined, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: undefined,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -424,16 +433,14 @@ async function runHydratePayParamsEffects(
     }
     rozoPaymentResponse = rozoPayment.data;
     rozoPaymentId = rozoPayment.data.id;
-  } catch (e) {
-    if (destination.chainId !== preferred.preferredChain) {
-      store.dispatch({
-        type: "error",
-        order: prev.order,
-        message:
-          "Failed to generate bridge payment. Please try again with a different token or chain.",
-      });
-      return;
-    }
+  } catch (error) {
+    const message = parseErrorMessage(error);
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message,
+    });
+    return;
   }
 
   // END ROZO API CALL
@@ -600,7 +607,11 @@ async function runHydratePayIdEffects(
       order: hydratedOrder,
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -617,7 +628,11 @@ async function runPaySourceEffects(
     });
     store.dispatch({ type: "order_refreshed", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -640,7 +655,11 @@ async function runPayEthereumSourceEffects(
     });
     store.dispatch({ type: "payment_verified", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -660,6 +679,10 @@ async function runPaySolanaSourceEffects(
     });
     store.dispatch({ type: "payment_verified", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }

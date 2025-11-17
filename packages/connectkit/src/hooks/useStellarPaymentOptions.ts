@@ -4,6 +4,7 @@ import {
   STELLAR_USDC_TOKEN_INFO,
   STELLAR_XLM_TOKEN_INFO,
 } from "../constants/rozoConfig";
+import { PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
 import { createRefreshFunction } from "./refreshUtils";
 
@@ -23,14 +24,20 @@ export function useStellarPaymentOptions({
   address,
   usdRequired,
   isDepositFlow,
+  payParams,
 }: {
   address: string | undefined;
   usdRequired: number | undefined;
   isDepositFlow: boolean;
+  payParams: PayParams | undefined;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
+
+  const stableAppId = useMemo(() => {
+    return payParams?.appId;
+  }, [payParams?.appId]);
 
   const { server, account, isAccountExists, refreshAccount } = useStellar();
 
@@ -104,51 +111,6 @@ export function useStellarPaymentOptions({
   );
 
   /**
-   * Fetches the current XLM price from an external API
-   */
-  const fetchXlmPrice = async (): Promise<number> => {
-    try {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd"
-      );
-      const data = await response.json();
-      return data.stellar.usd;
-    } catch (error) {
-      console.error("Error fetching XLM price:", error);
-      return STELLAR_XLM_TOKEN_INFO.usd; // Fallback to default price
-    }
-  };
-
-  /**
-   * Processes a native XLM balance
-   */
-  const processXlmBalance = async (
-    balance: StellarBalance,
-    usdRequired: number
-  ): Promise<WalletPaymentOption> => {
-    // Get current XLM price
-    const xlmPrice = await fetchXlmPrice();
-
-    // Create a copy of the token info to avoid mutating the original
-    const xlmTokenInfo = {
-      ...STELLAR_XLM_TOKEN_INFO,
-      usd: xlmPrice,
-      priceFromUsd: 1 / xlmPrice,
-    };
-
-    // Calculate amounts
-    const amount = parseFloat(balance.balance);
-
-    return createPaymentOption({
-      token: xlmTokenInfo,
-      balance: amount,
-      minimumRequired: 0, // Minimum required for XLM
-      fees: 0.00001, // Standard XLM transaction fee
-      usdRequired,
-    });
-  };
-
-  /**
    * Processes a USDC balance
    */
   const processUsdcBalance = (
@@ -176,17 +138,6 @@ export function useStellarPaymentOptions({
       setIsRequesting(true);
       setIsLoading(true);
       try {
-        // Process XLM (native) balance
-        // const nativeBalance = account?.balances.find(
-        //   (b) => b.asset_type === "native"
-        // );
-
-        // if (nativeBalance) {
-        // const xlmOption = await processXlmBalance(nativeBalance, usdRequired);
-        // @NOTE: We are not including XLM in the options list for now.
-        // structuredBalances.push(xlmOption);
-        // }
-
         // Process USDC balance
         const usdcBalance = account?.balances.find(
           (b) =>

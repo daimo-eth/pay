@@ -13,10 +13,10 @@ import {
   assert,
   baseUSDC,
   bscUSDT,
-  fetchApi,
   getAddressContraction,
   getChainExplorerTxUrl,
   getOrderDestChainId,
+  getRozoPayment,
   polygonUSDC,
   rozoSolana,
   rozoStellar,
@@ -200,13 +200,14 @@ const Confirmation: React.FC = () => {
             "[CONFIRMATION] Polling for payout transaction:",
             rozoPaymentId
           );
-          const response = await fetchApi(`payment/id/${rozoPaymentId}`);
+          const response = await getRozoPayment(rozoPaymentId);
           context.log("[CONFIRMATION] Payout polling response:", response.data);
 
           if (
             isActive &&
             response.data &&
-            response.data.payoutTransactionHash
+            response.data.payoutTransactionHash &&
+            typeof response.data.payoutTransactionHash === "string"
           ) {
             const url = getChainExplorerTxUrl(
               Number(response.data.destination.chainId),

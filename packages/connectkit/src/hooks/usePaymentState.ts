@@ -21,6 +21,7 @@ import {
   polygonUSDC,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
+  RozoPayOrder,
   rozoSolanaUSDC,
   rozoStellarUSDC,
   Token,
@@ -67,8 +68,10 @@ import bs58 from "bs58";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
 import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
-import { PayParams } from "../payment/paymentFsm";
+import { PaymentEvent, PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
+import { Store } from "../stateStore";
+import { parseErrorMessage } from "../utils/errorParser";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -146,7 +149,8 @@ export interface PaymentState {
   ) => void;
   setChosenUsd: (usd: number) => void;
   payWithToken: (
-    walletOption: WalletPaymentOption
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
   ) => Promise<{ txHash: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
@@ -200,7 +204,10 @@ export interface PaymentState {
   // Order amount for refresh coordination
   orderUsdAmount: number | undefined;
 
-  createPayment: (option: WalletPaymentOption) => Promise<PaymentResponseData>;
+  createPayment: (
+    option: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
+  ) => Promise<PaymentResponseData | undefined>;
 }
 
 export function usePaymentState({
@@ -330,11 +337,13 @@ export function usePaymentState({
     address: solanaPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
+    payParams: currPayParams,
   });
   const stellarPaymentOptions = useStellarPaymentOptions({
     address: stellarPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
+    payParams: currPayParams,
   });
   const depositAddressOptions = useDepositAddressOptions({
     trpc,
@@ -400,13 +409,14 @@ export function usePaymentState({
   );
 
   const handleCreateRozoPayment = async (
-    walletOption: WalletPaymentOption
-  ): Promise<PaymentResponseData> => {
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
+  ): Promise<PaymentResponseData | undefined> => {
     const payParams = currPayParams;
     const order = pay.order;
 
     const { preferred, destination } = createPaymentBridgeConfig({
-      toAddress: payParams?.toAddress,
+      toAddress: String(payParams?.toAddress),
       toSolanaAddress: payParams?.toSolanaAddress,
       toStellarAddress: payParams?.toStellarAddress,
       toUnits: payParams?.toUnits ?? "",
@@ -445,13 +455,19 @@ export function usePaymentState({
       setRozoPaymentId(response.data.id);
       return response.data;
     } catch (error) {
-      throw error;
+      const message = parseErrorMessage(error);
+      store.dispatch({
+        type: "error",
+        order: order as RozoPayOrder,
+        message,
+      });
     }
   };
 
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
-    walletOption: WalletPaymentOption
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
   ): Promise<{ txHash: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
@@ -496,7 +512,12 @@ export function usePaymentState({
       hydratedOrder = pay.order;
     } else if (needRozoPayment) {
       // Create Rozo payment and hydrate in one step
-      const res = await handleCreateRozoPayment(walletOption);
+      const res = await handleCreateRozoPayment(walletOption, store as any);
+
+      if (!res) {
+        throw new Error("Failed to create Rozo payment");
+      }
+
       paymentId = res.id;
       hydratedOrder = formatResponseToHydratedOrder(res);
     } else {

@@ -53,6 +53,7 @@ const PayWithStellarToken: React.FC = () => {
     createPayment,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: state,
     setPaymentStarted,
@@ -76,6 +77,13 @@ const PayWithStellarToken: React.FC = () => {
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [signedTx, setSignedTx] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (state === "error") {
+      setRoute(ROUTES.ERROR);
+      return;
+    }
+  }, [state]);
 
   // FOR TRANSFER ACTION
   const handleTransfer = async (option: WalletPaymentOption) => {
@@ -101,7 +109,12 @@ const PayWithStellarToken: React.FC = () => {
       if (state === "payment_unpaid" && !needRozoPayment) {
         hydratedOrder = order;
       } else if (needRozoPayment) {
-        const res = await createPayment(option);
+        const res = await createPayment(option, store as any);
+
+        if (!res) {
+          throw new Error("Failed to create Rozo payment");
+        }
+
         paymentId = res.id;
         hydratedOrder = formatResponseToHydratedOrder(res);
       } else {

@@ -21,6 +21,7 @@ import { Address, Hex } from "viem";
 import { PaymentEvent, PaymentState, PayParams } from "../payment/paymentFsm";
 import { waitForPaymentState } from "../payment/paymentStore";
 import { PaymentContext } from "../provider/PaymentProvider";
+import { Store } from "../stateStore";
 
 type RozoPayFunctions = {
   /**
@@ -173,6 +174,8 @@ type RozoPayFunctions = {
 
   setPayoutRozoCompleted: (completed: boolean) => void;
   payoutRozoCompleted: boolean;
+
+  store: Store<PaymentState, PaymentEvent>;
 };
 
 // Enforce that order is typed correctly based on paymentState.
@@ -580,6 +583,7 @@ export function useRozoPay(): UseRozoPay {
   );
 
   return {
+    store,
     order,
     paymentState,
     paymentErrorMessage,

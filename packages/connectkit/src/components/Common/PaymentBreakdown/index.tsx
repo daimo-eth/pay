@@ -20,18 +20,19 @@ const PaymentBreakdown: React.FC<{
           <ModalBody>${subtotalUsd.toFixed(2)}</ModalBody>
         </FeeRow>
       )}
-      <FeeRow>
+      {/* @TODO: Display fees based on API */}
+      {/* <FeeRow>
         <ModalBody>Fees</ModalBody>
         {feesUsd === 0 ? (
           <Badge>Free</Badge>
         ) : (
           <ModalBody>${feesUsd.toFixed(2)}</ModalBody>
         )}
-      </FeeRow>
+      </FeeRow> */}
       <FeeRow style={{ marginTop: 8 }}>
         <ModalBody style={{ fontWeight: 600 }}>Total</ModalBody>
         <ModalBody style={{ fontWeight: 600 }}>
-          ${totalUsd.toFixed(2)}
+          ${feesUsd > 0 ? subtotalUsd.toFixed(2) : totalUsd.toFixed(2)}
         </ModalBody>
       </FeeRow>
     </FeesContainer>

@@ -14,7 +14,7 @@
     "@headlessui/react": "^2.2.0",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@rozoai/intent-common": "0.0.28-beta.4",
-    "@rozoai/intent-pay": "0.0.37-beta.1",
+    "@rozoai/intent-pay": "0.0.37-beta.2",
     "@tanstack/react-query": "^5.51.11",
     "@wagmi/core": "^2.22.0",
     "autoprefixer": "^10.4.20",

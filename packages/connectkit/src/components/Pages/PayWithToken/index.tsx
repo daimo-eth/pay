@@ -31,6 +31,7 @@ const PayWithToken: React.FC = () => {
   const { payWithToken, selectedTokenOption } = paymentState;
   const { switchChainAsync } = useSwitchChain();
   const {
+    store,
     setPaymentUnpaid,
     rozoPaymentId,
     order,
@@ -41,6 +42,13 @@ const PayWithToken: React.FC = () => {
     PayState.RequestingPayment
   );
   const [txURL, setTxURL] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (rozoPaymentState === "error") {
+      setRoute(ROUTES.ERROR);
+      return;
+    }
+  }, [rozoPaymentState]);
 
   const setPayState = (state: PayState) => {
     if (state === payState) return;
@@ -96,7 +104,7 @@ const PayWithToken: React.FC = () => {
           await setPaymentUnpaid(currentRozoPaymentId);
         }
 
-        const result = await payWithToken(option);
+        const result = await payWithToken(option, store as any);
         setTxURL(
           getChainExplorerTxUrl(option.required.token.chainId, result.txHash)
         );
@@ -116,7 +124,7 @@ const PayWithToken: React.FC = () => {
           const switchSuccessful = await trySwitchingChain(option, true);
           if (switchSuccessful) {
             try {
-              const retryResult = await payWithToken(option);
+              const retryResult = await payWithToken(option, store as any);
               setTxURL(
                 getChainExplorerTxUrl(
                   option.required.token.chainId,

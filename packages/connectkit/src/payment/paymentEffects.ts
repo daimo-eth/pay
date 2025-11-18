@@ -1,8 +1,14 @@
 import {
   assert,
+  createPaymentBridgeConfig,
+  createRozoPayment,
+  formatResponseToHydratedOrder,
   getKnownToken,
   getOrderDestChainId,
+  getRozoPayment,
   mergedMetadata,
+  PaymentRequestData,
+  PaymentResponseData,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
@@ -13,17 +19,8 @@ import {
   TokenLogo,
 } from "@rozoai/intent-common";
 import { formatUnits, getAddress, parseUnits } from "viem";
-import { ROZO_DAIMO_APP_ID } from "../constants/rozoConfig";
-import {
-  createRozoPayment,
-  createRozoPaymentRequest,
-  getRozoPayment,
-  PaymentResponseData,
-} from "../utils/api";
-import {
-  createPaymentBridgeConfig,
-  formatPaymentResponseDataToHydratedOrder,
-} from "../utils/bridge";
+import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
+import { parseErrorMessage } from "../utils/errorParser";
 import { PollHandle, startPolling } from "../utils/polling";
 import { TrpcClient } from "../utils/trpc";
 import { PaymentEvent, PaymentState } from "./paymentFsm";
@@ -226,7 +223,7 @@ async function runSetPayParamsEffects(
   try {
     // const orderPreview = await trpc.previewOrder.query({
     //   // appId: payParams.appId,
-    //   appId: ROZO_DAIMO_APP_ID,
+    //   appId: DEFAULT_ROZO_APP_ID,
     //   toChain: payParams.toChain,
     //   toToken: payParams.toToken,
     //   toUnits,
@@ -309,7 +306,7 @@ async function runSetPayParamsEffects(
           preferredTokens: payParams.preferredTokens,
           evmChains: payParams.evmChains,
         },
-        appId: payParams.appId ?? ROZO_DAIMO_APP_ID,
+        appId: payParams.appId ?? DEFAULT_ROZO_APP_ID,
         ...(payParams.metadata ?? {}),
       },
       externalId: payParams.externalId,
@@ -323,7 +320,7 @@ async function runSetPayParamsEffects(
       order: orderPreview as unknown as RozoPayOrderWithOrg,
       payParamsData: {
         // appId: payParams.appId,
-        appId: payParams.appId ?? ROZO_DAIMO_APP_ID,
+        appId: payParams.appId ?? DEFAULT_ROZO_APP_ID,
         toStellarAddress: payParams.toStellarAddress,
         toSolanaAddress: payParams.toSolanaAddress,
         toAddress: payParams.toAddress,
@@ -331,7 +328,11 @@ async function runSetPayParamsEffects(
       },
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: undefined, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: undefined,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -350,7 +351,11 @@ async function runSetPayIdEffects(
       order,
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: undefined, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: undefined,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -390,12 +395,12 @@ async function runHydratePayParamsEffects(
     toSolanaAddress: payParams?.toSolanaAddress,
     toStellarAddress: payParams?.toStellarAddress,
     toUnits: toUnits,
-    walletPaymentOption: walletPaymentOption,
+    payInTokenAddress: walletPaymentOption?.required.token.token ?? "",
     log,
   });
 
-  const paymentData = createRozoPaymentRequest({
-    appId: payParams?.rozoAppId ?? payParams?.appId ?? ROZO_DAIMO_APP_ID,
+  const paymentData: PaymentRequestData = {
+    appId: payParams?.rozoAppId ?? payParams?.appId ?? DEFAULT_ROZO_APP_ID,
     display: {
       intent: order?.metadata?.intent ?? "",
       paymentValue: String(toUnits),
@@ -409,14 +414,13 @@ async function runHydratePayParamsEffects(
       preferredChain: preferred.preferredChain,
       preferredToken: preferred.preferredToken,
       preferredTokenAddress: preferred.preferredTokenAddress,
-
       ...mergedMetadata({
         ...(payParams?.metadata ?? {}),
         ...(order?.metadata ?? {}),
         ...(order.userMetadata ?? {}),
       }),
     },
-  });
+  };
 
   try {
     const rozoPayment = await createRozoPayment(paymentData);
@@ -425,17 +429,14 @@ async function runHydratePayParamsEffects(
     }
     rozoPaymentResponse = rozoPayment.data;
     rozoPaymentId = rozoPayment.data.id;
-  } catch (e) {
-    console.error(e);
-    if (destination.chainId !== preferred.preferredChain) {
-      store.dispatch({
-        type: "error",
-        order: prev.order,
-        message:
-          "Failed to generate bridge payment. Please try again with a different token or chain.",
-      });
-      return;
-    }
+  } catch (error) {
+    const message = parseErrorMessage(error);
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message,
+    });
+    return;
   }
 
   // END ROZO API CALL
@@ -443,7 +444,7 @@ async function runHydratePayParamsEffects(
   try {
     // const { hydratedOrder } = await trpc.createOrder.mutate({
     //   // appId: prev.payParamsData.appId,
-    //   appId: ROZO_DAIMO_APP_ID,
+    //   appId: DEFAULT_ROZO_APP_ID,
     //   paymentInput: {
     //     id: order.id.toString(),
     //     toChain: toChain,
@@ -470,7 +471,7 @@ async function runHydratePayParamsEffects(
       throw new Error("Payment data not found");
     }
 
-    const hydratedOrder = formatPaymentResponseDataToHydratedOrder({
+    const hydratedOrder = formatResponseToHydratedOrder({
       ...rozoPaymentResponse,
       externalId: rozoPaymentId,
     });
@@ -602,7 +603,11 @@ async function runHydratePayIdEffects(
       order: hydratedOrder,
     });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -619,7 +624,11 @@ async function runPaySourceEffects(
     });
     store.dispatch({ type: "order_refreshed", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -642,7 +651,11 @@ async function runPayEthereumSourceEffects(
     });
     store.dispatch({ type: "payment_verified", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }
 
@@ -662,6 +675,10 @@ async function runPaySolanaSourceEffects(
     });
     store.dispatch({ type: "payment_verified", order });
   } catch (e: any) {
-    store.dispatch({ type: "error", order: prev.order, message: e.message });
+    store.dispatch({
+      type: "error",
+      order: prev.order,
+      message: parseErrorMessage(e),
+    });
   }
 }

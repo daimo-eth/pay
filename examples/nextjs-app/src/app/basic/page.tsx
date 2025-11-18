@@ -199,25 +199,6 @@ export default function DemoBasic() {
       </Text>
 
       <div className="flex flex-col items-center gap-8">
-        <button
-          onClick={() => {
-            if (hasValidConfig) {
-              resetPayment({
-                toChain: parsedConfig.chainId,
-                toAddress: getAddress(parsedConfig.recipientAddress),
-                toStellarAddress: parsedConfig.recipientStellarAddress,
-                toSolanaAddress: parsedConfig.recipientSolanaAddress,
-                toUnits: parsedConfig.amount,
-                toToken: getAddress(parsedConfig.tokenAddress),
-              });
-            } else {
-              setIsConfigOpen(true);
-            }
-          }}
-        >
-          Configure Payment
-        </button>
-
         {Boolean(hasValidConfig) && parsedConfig ? (
           <>
             <RozoPayButton.Custom
@@ -242,7 +223,12 @@ export default function DemoBasic() {
               showProcessingPayout
             >
               {(renderProps) => (
-                <button onClick={renderProps.show}>Show RozoPayButton</button>
+                <button
+                  onClick={renderProps.show}
+                  className="bg-primary-dark text-white px-6 py-3 rounded-lg hover:bg-primary-medium transition-all"
+                >
+                  Pay
+                </button>
               )}
             </RozoPayButton.Custom>
             <button

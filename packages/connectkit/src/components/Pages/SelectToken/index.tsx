@@ -81,7 +81,7 @@ export default function SelectToken() {
         excludeLogos={["stellar"]}
       />
       <OptionsList
-        requiredSkeletons={4}
+        requiredSkeletons={3}
         isLoading={isLoading}
         options={optionsList}
         scrollHeight={

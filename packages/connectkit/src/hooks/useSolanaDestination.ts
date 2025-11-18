@@ -1,6 +1,5 @@
 import { baseUSDC } from "@rozoai/intent-common";
 import { useMemo } from "react";
-import { ROZO_STELLAR_ADDRESS } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 
 /**
@@ -28,7 +27,6 @@ interface SolanaDestinationResult {
  *
  * Handles Pay In Solana scenarios:
  * 1. Pay In Solana, Pay out Solana - use toSolanaAddress
- * 2. Pay In Solana, Pay Out Base - use ROZO_STELLAR_ADDRESS (when toChain is Base and toSolanaAddress is empty)
  *
  * @param payParams - Payment parameters containing transaction details
  * @returns Object with destination address and payment scenario flags
@@ -45,6 +43,10 @@ export function useSolanaDestination(
     return payParams?.toChain === baseUSDC.chainId;
   }, [payParams?.toChain]);
 
+  const isPayOutToStellar = useMemo((): boolean => {
+    return !!payParams?.toStellarAddress;
+  }, [payParams?.toChain]);
+
   const isPayInBaseOutSolana = useMemo((): boolean => {
     return payParams?.toChain === baseUSDC.chainId && hasToSolanaAddress;
   }, [isPayOutToBase, hasToSolanaAddress]);
@@ -57,6 +59,10 @@ export function useSolanaDestination(
     return isPayOutToBase && !hasToSolanaAddress;
   }, [isPayOutToBase, hasToSolanaAddress]);
 
+  const isPayInSolanaOutStellar = useMemo((): boolean => {
+    return isPayOutToStellar && !hasToSolanaAddress;
+  }, [isPayOutToStellar, hasToSolanaAddress]);
+
   const isSolanaPayment = useMemo((): boolean => {
     return isPayInSolanaOutSolana || isPayInSolanaOutBase;
   }, [isPayInSolanaOutSolana, isPayInSolanaOutBase]);
@@ -65,14 +71,23 @@ export function useSolanaDestination(
     if (isPayInSolanaOutSolana) {
       return payParams?.toSolanaAddress;
     }
+
     if (isPayInSolanaOutBase) {
-      return ROZO_STELLAR_ADDRESS;
+      return payParams?.toAddress;
     }
+
+    if (isPayInSolanaOutStellar) {
+      return payParams?.toStellarAddress;
+    }
+
     return undefined;
   }, [
     isPayInSolanaOutSolana,
     isPayInSolanaOutBase,
+    isPayInSolanaOutStellar,
+    payParams?.toAddress,
     payParams?.toSolanaAddress,
+    payParams?.toStellarAddress,
   ]);
 
   return {

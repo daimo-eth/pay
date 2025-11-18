@@ -8,6 +8,7 @@ import {
   generateEVMDeepLink,
   getAddressContraction,
   getChainName,
+  getRozoPayment,
   isHydrated,
   optimismUSDC,
   polygonUSDC,
@@ -19,11 +20,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "styled-components";
 import { AlertIcon, WarningIcon } from "../../../assets/icons";
 import { ROUTES } from "../../../constants/routes";
-import { ROZO_API_TOKEN } from "../../../constants/rozoConfig";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
 import useIsMobile from "../../../hooks/useIsMobile";
 import { usePayContext } from "../../../hooks/usePayContext";
 import styled from "../../../styles/styled";
+import { formatUsd } from "../../../utils/format";
 import Button from "../../Common/Button";
 import CircleTimer from "../../Common/CircleTimer";
 import CopyToClipboardIcon from "../../Common/CopyToClipboard/CopyToClipboardIcon";
@@ -36,37 +37,6 @@ import {
 } from "../../Common/Modal/styles";
 import SelectAnotherMethodButton from "../../Common/SelectAnotherMethodButton";
 import TokenChainLogo from "../../Common/TokenChainLogo";
-// Note: Import path may need adjustment based on actual file structure
-// Using direct API call pattern from Confirmation component
-
-// Define fetchApi function locally if import doesn't work
-const ROZO_API_BASE = "https://intentapiv2.rozo.ai/functions/v1";
-// const ROZO_API_TOKEN = "your-api-token"; // This should be imported from config
-
-const fetchApi = async (endpoint: string) => {
-  try {
-    const response = await fetch(`${ROZO_API_BASE}/${endpoint}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ROZO_API_TOKEN}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return { data, error: null, status: response.status };
-  } catch (error) {
-    return {
-      data: null,
-      error: error instanceof Error ? error : new Error(String(error)),
-      status: null,
-    };
-  }
-};
 
 // Centered container for icon + text in Tron underpay screen
 const CenterContainer = styled.div`
@@ -108,6 +78,7 @@ export default function WaitingDepositAddress() {
     setRozoPaymentId,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: rozoPaymentState,
     reset,
@@ -136,6 +107,12 @@ export default function WaitingDepositAddress() {
   >(null);
 
   const [isPollingPayment, setIsPollingPayment] = useState(false);
+
+  useEffect(() => {
+    if (rozoPaymentState === "error") {
+      context.setRoute(ROUTES.ERROR);
+    }
+  }, [rozoPaymentState]);
 
   // Safe polling for payment status when externalId exists
   const shouldPoll = !!(
@@ -202,11 +179,7 @@ export default function WaitingDepositAddress() {
           depAddr?.externalId
         );
         const isMugglePay = depAddr?.externalId.includes("mugglepay_order");
-        const endpoint = isMugglePay
-          ? `payment-api/${depAddr?.externalId}`
-          : `payment/id/${depAddr?.externalId}`;
-
-        const response = await fetchApi(endpoint);
+        const response = await getRozoPayment(depAddr?.externalId);
 
         context.log("[PAYMENT POLLING] Debug - API Response:", {
           status: response.status,
@@ -226,7 +199,7 @@ export default function WaitingDepositAddress() {
             "[PAYMENT POLLING] ✅ Found payinTransactionHash:",
             payInHash
           );
-          setPayinTransactionHash(payInHash);
+          setPayinTransactionHash(payInHash as string);
           setIsPollingPayment(false);
           // TODO: Decide which route to navigate to when transaction hash is found
           context.log(
@@ -340,7 +313,8 @@ export default function WaitingDepositAddress() {
 
       try {
         const details = await payWithDepositAddress(
-          selectedDepositAddressOption.id
+          selectedDepositAddressOption.id,
+          store as any
         );
         if (details) {
           const shouldShowMemo = ![DepositAddressPaymentOptions.BSC].includes(
@@ -363,7 +337,6 @@ export default function WaitingDepositAddress() {
           // Polling will automatically start via shouldPoll calculation
         } else if (details === null) {
           // Duplicate call was prevented - reset loading states
-          context.log("Duplicate call prevented, resetting states");
           setIsLoading(false);
           setHasExecutedDepositCall(false);
           // Polling will automatically stop when externalId is missing
@@ -405,6 +378,11 @@ export default function WaitingDepositAddress() {
       rozoPaymentState !== "idle" &&
       payParams
     ) {
+      if (rozoPaymentState === "error") {
+        context.setRoute(ROUTES.ERROR);
+        return;
+      }
+
       context.log(
         `Resetting payment state from ${rozoPaymentState} to preview for new deposit option`
       );
@@ -641,6 +619,7 @@ function CopyableInfo({
       <CopyRowOrThrobber
         title="Send Exactly"
         value={depAddr?.amount}
+        valueText={formatUsd(Number(depAddr?.amount) || 0, "nearest")}
         smallText={depAddr?.coins}
         disabled={isExpired}
       />

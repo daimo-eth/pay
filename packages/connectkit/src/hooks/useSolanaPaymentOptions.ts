@@ -1,5 +1,6 @@
 import { rozoSolanaUSDC, WalletPaymentOption } from "@rozoai/intent-common";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
 import {
   createRefreshFunction,
@@ -13,11 +14,13 @@ export function useSolanaPaymentOptions({
   address,
   usdRequired,
   isDepositFlow,
+  payParams,
 }: {
   trpc: TrpcClient;
   address: string | undefined;
   usdRequired: number | undefined;
   isDepositFlow: boolean;
+  payParams: PayParams | undefined;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +30,10 @@ export function useSolanaPaymentOptions({
 
   // Track if we're currently making an API call to prevent concurrent requests
   const isApiCallInProgress = useRef<boolean>(false);
+
+  const stableAppId = useMemo(() => {
+    return payParams?.appId;
+  }, [payParams?.appId]);
 
   const filteredOptions = useMemo(() => {
     if (!options) return [];
@@ -56,7 +63,7 @@ export function useSolanaPaymentOptions({
   }, [options, isDepositFlow, usdRequired]);
 
   // Shared fetch function for Solana payment options
-  const fetchSolanaPaymentOptions = useCallback(async () => {
+  const fetchBalances = useCallback(async () => {
     if (address == null || usdRequired == null) return;
 
     setOptions(null);
@@ -67,6 +74,7 @@ export function useSolanaPaymentOptions({
         pubKey: address,
         // API expects undefined for deposit flow.
         usdRequired: isDepositFlow ? undefined : usdRequired,
+        appId: stableAppId,
       });
       setOptions(newOptions);
     } catch (error) {
@@ -79,7 +87,7 @@ export function useSolanaPaymentOptions({
   }, [address, usdRequired, isDepositFlow, trpc]);
 
   // Create refresh function using shared utility
-  const refreshOptions = createRefreshFunction(fetchSolanaPaymentOptions, {
+  const refreshOptions = createRefreshFunction(fetchBalances, {
     lastExecutedParams,
     isApiCallInProgress,
   });

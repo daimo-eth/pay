@@ -1,6 +1,5 @@
 // hooks/useRozoPay.ts
 import {
-  assert,
   RozoPayHydratedOrderWithOrg,
   RozoPayIntentStatus,
   RozoPayOrderID,
@@ -22,6 +21,7 @@ import { Address, Hex } from "viem";
 import { PaymentEvent, PaymentState, PayParams } from "../payment/paymentFsm";
 import { waitForPaymentState } from "../payment/paymentStore";
 import { PaymentContext } from "../provider/PaymentProvider";
+import { Store } from "../stateStore";
 
 type RozoPayFunctions = {
   /**
@@ -174,6 +174,8 @@ type RozoPayFunctions = {
 
   setPayoutRozoCompleted: (completed: boolean) => void;
   payoutRozoCompleted: boolean;
+
+  store: Store<PaymentState, PaymentEvent>;
 };
 
 // Enforce that order is typed correctly based on paymentState.
@@ -494,10 +496,9 @@ export function useRozoPay(): UseRozoPay {
       // Get the current order from the state
       const currentState = store.getState();
 
-      assert(
-        currentState.type === "payout_completed",
-        "Cannot complete payout: Order is not in payout_completed state"
-      );
+      if (currentState.type === "idle" || !currentState.order) {
+        throw new Error("Cannot complete payout: No active order");
+      }
 
       const hydratedOrder = currentState.order as RozoPayHydratedOrderWithOrg;
 
@@ -582,6 +583,7 @@ export function useRozoPay(): UseRozoPay {
   );
 
   return {
+    store,
     order,
     paymentState,
     paymentErrorMessage,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import packageJson from "../../../../package.json";
+import { rozoPayVersion } from "../../../utils/exports";
 
 const Portal = (props: any) => {
   props = {
@@ -20,7 +20,7 @@ const Portal = (props: any) => {
     if (!ref.current) {
       const div = document.createElement("div");
       div.setAttribute("id", selector);
-      div.setAttribute("data-rozopay", `${packageJson.version}`);
+      div.setAttribute("data-rozopay", `${rozoPayVersion}`);
       document.body.appendChild(div);
       ref.current = div;
     }

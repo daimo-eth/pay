@@ -12,9 +12,10 @@
     "dev:example": "bun --filter @rozoai/pay-nextjs-app-example dev",
     "install:local": "bun install",
     "release": "bun build && bun --filter @rozoai/intent-common publish && bun --filter @rozoai/intent-pay release",
-    "clean": "bunx rimraf '**/node_modules'",
-    "clean:full": "bun clean && bunx rimraf bun-lock.yaml",
-    "clean:deps": "bunx rimraf '**/node_modules' '**/dist' '**/build' '**/.next'"
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "clean:full": "bun clean && rm -f bun.lock",
+    "clean:deps": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name 'build' -type d -prune -exec rm -rf '{}' + && find . -name '.next' -type d -prune -exec rm -rf '{}' +",
+    "clean:all": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name 'build' -type d -prune -exec rm -rf '{}' + && find . -name '.next' -type d -prune -exec rm -rf '{}' + && rm -f bun.lock"
   },
   "keywords": [],
   "author": "",

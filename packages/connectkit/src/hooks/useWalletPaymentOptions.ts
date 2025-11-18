@@ -151,7 +151,7 @@ export function useWalletPaymentOptions({
   }, [address, options]);
 
   // Shared fetch function for wallet payment options
-  const fetchWalletPaymentOptions = useCallback(async () => {
+  const fetchBalances = useCallback(async () => {
     if (address == null || usdRequired == null || destChainId == null) return;
 
     setOptions(null);
@@ -165,6 +165,7 @@ export function useWalletPaymentOptions({
         preferredChains: memoizedPreferredChains,
         preferredTokens: memoizedPreferredTokens,
         evmChains: memoizedEvmChains,
+        appId: stableAppId,
       });
 
       setOptions(newOptions);
@@ -187,7 +188,7 @@ export function useWalletPaymentOptions({
   ]);
 
   // Create refresh function using shared utility
-  const refreshOptions = createRefreshFunction(fetchWalletPaymentOptions, {
+  const refreshOptions = createRefreshFunction(fetchBalances, {
     lastExecutedParams,
     isApiCallInProgress,
   });

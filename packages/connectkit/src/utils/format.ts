@@ -66,8 +66,29 @@ export function roundTokenAmount(
   token: RozoPayToken,
   round: "up" | "down" | "nearest" = "down"
 ): string {
+  // Convert to BigInt, handling various input types
+  let amountBigInt: bigint;
+  if (typeof amount === "bigint") {
+    amountBigInt = amount;
+  } else if (typeof amount === "string") {
+    // Handle scientific notation or regular string numbers
+    if (amount.includes("e") || amount.includes("E")) {
+      // Convert scientific notation to regular number, then to BigInt
+      amountBigInt = BigInt(Math.floor(Number(amount)));
+    } else {
+      amountBigInt = BigInt(amount);
+    }
+  } else if (typeof amount === "number") {
+    // Handle plain numbers (shouldn't happen per type, but defensive)
+    amountBigInt = BigInt(Math.floor(amount));
+  } else {
+    throw new Error(`Invalid amount type: ${typeof amount}`);
+  }
+
+  const formattedAmount = formatUnits(amountBigInt, token.decimals);
+
   return roundDecimals(
-    Number(formatUnits(BigInt(amount), token.decimals)),
+    Number(formattedAmount),
     // token.displayDecimals,
     USD_DECIMALS, // @NOTE: Force 2 decimal places
     round

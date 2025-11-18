@@ -16,11 +16,12 @@ import {
   getOrderDestChainId,
   isCCTPV1Chain,
   mergedMetadata,
+  PaymentRequestData,
   PlatformType,
   polygonUSDC,
   readRozoPayOrderID,
   RozoPayHydratedOrderWithOrg,
-  rozoSolana,
+  RozoPayOrder,
   rozoSolanaUSDC,
   rozoStellarUSDC,
   Token,
@@ -45,6 +46,12 @@ import {
 } from "wagmi";
 
 import {
+  createPaymentBridgeConfig,
+  createRozoPayment,
+  formatResponseToHydratedOrder,
+  PaymentResponseData,
+} from "@rozoai/intent-common";
+import {
   createAssociatedTokenAccountInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddress,
@@ -60,22 +67,11 @@ import {
 import bs58 from "bs58";
 import { PayButtonPaymentProps } from "../components/DaimoPayButton";
 import { ROUTES } from "../constants/routes";
-import {
-  ROZO_DAIMO_APP_ID,
-  STELLAR_USDC_ASSET_CODE,
-  STELLAR_USDC_ISSUER_PK,
-} from "../constants/rozoConfig";
-import { PayParams } from "../payment/paymentFsm";
+import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
+import { PaymentEvent, PayParams } from "../payment/paymentFsm";
 import { useStellar } from "../provider/StellarContextProvider";
-import {
-  createRozoPayment,
-  createRozoPaymentRequest,
-  PaymentResponseData,
-} from "../utils/api";
-import {
-  createPaymentBridgeConfig,
-  formatPaymentResponseDataToHydratedOrder,
-} from "../utils/bridge";
+import { Store } from "../stateStore";
+import { parseErrorMessage } from "../utils/errorParser";
 import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
@@ -153,11 +149,13 @@ export interface PaymentState {
   ) => void;
   setChosenUsd: (usd: number) => void;
   payWithToken: (
-    walletOption: WalletPaymentOption
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
   ) => Promise<{ txHash: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
-    option: DepositAddressPaymentOptions
+    option: DepositAddressPaymentOptions,
+    store: Store<PaymentState, PaymentEvent>
   ) => Promise<
     | (DepositAddressPaymentOptionData & { externalId: string; memo: string })
     | null
@@ -207,7 +205,10 @@ export interface PaymentState {
   // Order amount for refresh coordination
   orderUsdAmount: number | undefined;
 
-  createPayment: (option: WalletPaymentOption) => Promise<PaymentResponseData>;
+  createPayment: (
+    option: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
+  ) => Promise<PaymentResponseData | undefined>;
 }
 
 export function usePaymentState({
@@ -337,11 +338,14 @@ export function usePaymentState({
     address: solanaPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
+    payParams: currPayParams,
   });
   const stellarPaymentOptions = useStellarPaymentOptions({
+    trpc,
     address: stellarPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
+    payParams: currPayParams,
   });
   const depositAddressOptions = useDepositAddressOptions({
     trpc,
@@ -407,37 +411,18 @@ export function usePaymentState({
   );
 
   const handleCreateRozoPayment = async (
-    walletOption: WalletPaymentOption
-  ): Promise<PaymentResponseData> => {
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
+  ): Promise<PaymentResponseData | undefined> => {
     const payParams = currPayParams;
     const order = pay.order;
 
-    const hasToStellarAddress = payParams?.toStellarAddress;
-    const destinationAddress =
-      payParams?.toStellarAddress ||
-      payParams?.toSolanaAddress ||
-      payParams?.toAddress;
-
-    const chainId = hasToStellarAddress
-      ? String(rozoStellarUSDC.chainId)
-      : payParams?.toSolanaAddress
-      ? String(rozoSolana.chainId)
-      : String(payParams?.toChain);
-
-    const tokenAddress = hasToStellarAddress
-      ? `USDC:${STELLAR_USDC_ISSUER_PK}`
-      : payParams?.toSolanaAddress
-      ? rozoSolanaUSDC.token
-      : payParams?.toToken;
-
     const { preferred, destination } = createPaymentBridgeConfig({
-      // toChain: Number(chainId),
-      // toToken: tokenAddress ?? "",
-      toAddress: destinationAddress,
+      toAddress: String(payParams?.toAddress),
       toSolanaAddress: payParams?.toSolanaAddress,
       toStellarAddress: payParams?.toStellarAddress,
       toUnits: payParams?.toUnits ?? "",
-      walletPaymentOption: walletOption,
+      payInTokenAddress: walletOption.required.token.token,
       log,
     });
 
@@ -448,8 +433,8 @@ export function usePaymentState({
       ...(order?.userMetadata ?? {}),
     });
 
-    const paymentData = createRozoPaymentRequest({
-      appId: payParams?.appId ?? ROZO_DAIMO_APP_ID,
+    const paymentData: PaymentRequestData = {
+      appId: payParams?.appId ?? DEFAULT_ROZO_APP_ID,
       display: {
         intent: order?.metadata?.intent ?? "",
         paymentValue: String(payParams?.toUnits ?? ""),
@@ -459,7 +444,7 @@ export function usePaymentState({
       externalId: order?.externalId ?? "",
       ...preferred,
       metadata,
-    });
+    };
 
     // API Call
     try {
@@ -472,13 +457,19 @@ export function usePaymentState({
       setRozoPaymentId(response.data.id);
       return response.data;
     } catch (error) {
-      throw error;
+      const message = parseErrorMessage(error);
+      store.dispatch({
+        type: "error",
+        order: order as RozoPayOrder,
+        message,
+      });
     }
   };
 
   /** Commit to a token + amount = initiate payment. */
   const payWithToken = async (
-    walletOption: WalletPaymentOption
+    walletOption: WalletPaymentOption,
+    store: Store<PaymentState, PaymentEvent>
   ): Promise<{ txHash: Hex; success: boolean }> => {
     assert(
       ethWalletAddress != null,
@@ -523,9 +514,14 @@ export function usePaymentState({
       hydratedOrder = pay.order;
     } else if (needRozoPayment) {
       // Create Rozo payment and hydrate in one step
-      const res = await handleCreateRozoPayment(walletOption);
+      const res = await handleCreateRozoPayment(walletOption, store as any);
+
+      if (!res) {
+        throw new Error("Failed to create Rozo payment");
+      }
+
       paymentId = res.id;
-      hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+      hydratedOrder = formatResponseToHydratedOrder(res);
     } else {
       // Hydrate existing order
       const res = await pay.hydrateOrder(ethWalletAddress, walletOption);
@@ -829,10 +825,7 @@ export function usePaymentState({
       // Setup Stellar payment
       await stellarKit.setWallet(String(stellarConnector?.id ?? "freighter"));
       const sourceAccount = await stellarServer.loadAccount(stellarPublicKey);
-      const destAsset = new Asset(
-        STELLAR_USDC_ASSET_CODE,
-        STELLAR_USDC_ISSUER_PK
-      );
+      const destAsset = new Asset("USDC", rozoStellarUSDC.token);
       const fee = String(await stellarServer.fetchBaseFee());
 
       // Build transaction based on token type
@@ -915,7 +908,8 @@ export function usePaymentState({
   };
 
   const payWithDepositAddress = async (
-    option: DepositAddressPaymentOptions
+    option: DepositAddressPaymentOptions,
+    store: Store<PaymentState, PaymentEvent>
   ) => {
     // Prevent duplicate calls for the same option
     if (depositAddressCallRef.current.has(option)) {
@@ -982,7 +976,12 @@ export function usePaymentState({
         memo: order.metadata?.memo || "",
       };
     } catch (error) {
-      console.error(`[PAY DEPOSIT ADDRESS] Error processing ${option}:`, error);
+      const message = parseErrorMessage(error);
+      store.dispatch({
+        type: "error",
+        order: pay.order as RozoPayOrder,
+        message,
+      });
       return null;
     } finally {
       // Remove from processing set when done (allow retries after completion/failure)
@@ -1083,7 +1082,7 @@ export function usePaymentState({
 
   /** Called whenever params change. */
   const setPayParams = async (payParams: PayParams | undefined) => {
-    if (lockPayParams) return;
+    if (!payParams || lockPayParams) return;
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
 
     log("[SET PAY PARAMS] setting payParams", payParams);

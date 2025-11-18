@@ -14,10 +14,10 @@ const PaymentBreakdown: React.FC<{
 
   return (
     <FeesContainer>
-      {feesUsd > 0 && (
+      {/* {feesUsd > 0 && (
         <FeeRow>
           <ModalBody>Subtotal</ModalBody>
-          <ModalBody>${subtotalUsd.toFixed(2)}</ModalBody>
+          <ModalBody>${(subtotalUsd - feesUsd).toFixed(2)}</ModalBody>
         </FeeRow>
       )}
       <FeeRow>
@@ -27,11 +27,11 @@ const PaymentBreakdown: React.FC<{
         ) : (
           <ModalBody>${feesUsd.toFixed(2)}</ModalBody>
         )}
-      </FeeRow>
+      </FeeRow> */}
       <FeeRow style={{ marginTop: 8 }}>
         <ModalBody style={{ fontWeight: 600 }}>Total</ModalBody>
         <ModalBody style={{ fontWeight: 600 }}>
-          ${totalUsd.toFixed(2)}
+          ${subtotalUsd.toFixed(2)}
         </ModalBody>
       </FeeRow>
     </FeesContainer>

@@ -10,6 +10,7 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  formatResponseToHydratedOrder,
   getChainExplorerTxUrl,
   RozoPayHydratedOrderWithOrg,
   stellar,
@@ -24,7 +25,6 @@ import {
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useStellarDestination } from "../../../../hooks/useStellarDestination";
 import { useStellar } from "../../../../provider/StellarContextProvider";
-import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { roundTokenAmount } from "../../../../utils/format";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
@@ -53,6 +53,7 @@ const PayWithStellarToken: React.FC = () => {
     createPayment,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: state,
     setPaymentStarted,
@@ -76,6 +77,13 @@ const PayWithStellarToken: React.FC = () => {
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [signedTx, setSignedTx] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (state === "error") {
+      setRoute(ROUTES.ERROR);
+      return;
+    }
+  }, [state]);
 
   // FOR TRANSFER ACTION
   const handleTransfer = async (option: WalletPaymentOption) => {
@@ -101,9 +109,14 @@ const PayWithStellarToken: React.FC = () => {
       if (state === "payment_unpaid" && !needRozoPayment) {
         hydratedOrder = order;
       } else if (needRozoPayment) {
-        const res = await createPayment(option);
+        const res = await createPayment(option, store as any);
+
+        if (!res) {
+          throw new Error("Failed to create Rozo payment");
+        }
+
         paymentId = res.id;
-        hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+        hydratedOrder = formatResponseToHydratedOrder(res);
       } else {
         // Hydrate existing order
         const res = await hydrateOrderRozo(undefined, option);

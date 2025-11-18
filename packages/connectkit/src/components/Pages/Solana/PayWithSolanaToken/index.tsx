@@ -9,16 +9,16 @@ import {
 } from "../../../Common/Modal/styles";
 
 import {
+  formatResponseToHydratedOrder,
   getChainExplorerTxUrl,
   RozoPayHydratedOrderWithOrg,
   rozoSolana,
+  rozoSolanaUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { ROUTES } from "../../../../constants/routes";
-import { SOLANA_USDC_ASSET_CODE } from "../../../../constants/rozoConfig";
 import { useRozoPay } from "../../../../hooks/useDaimoPay";
 import { useSolanaDestination } from "../../../../hooks/useSolanaDestination";
-import { formatPaymentResponseDataToHydratedOrder } from "../../../../utils/bridge";
 import { getSupportUrl } from "../../../../utils/supportUrl";
 import Button from "../../../Common/Button";
 import PaymentBreakdown from "../../../Common/PaymentBreakdown";
@@ -45,6 +45,7 @@ const PayWithSolanaToken: React.FC = () => {
     createPayment,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: state,
     setPaymentStarted,
@@ -58,10 +59,17 @@ const PayWithSolanaToken: React.FC = () => {
   const { destinationAddress } = useSolanaDestination(payParams);
 
   const [payState, setPayStateInner] = useState<PayState>(
-    PayState.RequestingPayment
+    PayState.PreparingTransaction
   );
   const [txURL, setTxURL] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (state === "error") {
+      setRoute(ROUTES.ERROR);
+      return;
+    }
+  }, [state]);
 
   const setPayState = (state: PayState) => {
     if (state === payState) return;
@@ -99,9 +107,14 @@ const PayWithSolanaToken: React.FC = () => {
         if (state === "payment_unpaid" && !needRozoPayment) {
           hydratedOrder = order;
         } else if (needRozoPayment) {
-          const res = await createPayment(option);
+          const res = await createPayment(option, store as any);
+
+          if (!res) {
+            throw new Error("Failed to create Rozo payment");
+          }
+
           paymentId = res.id;
-          hydratedOrder = formatPaymentResponseDataToHydratedOrder(res);
+          hydratedOrder = formatResponseToHydratedOrder(res);
         } else {
           // Hydrate existing order
           const res = await hydrateOrderRozo(undefined, option);
@@ -122,7 +135,7 @@ const PayWithSolanaToken: React.FC = () => {
 
         const paymentData = {
           tokenAddress:
-            (required.token.token as string) ?? SOLANA_USDC_ASSET_CODE,
+            (required.token.token as string) ?? rozoSolanaUSDC.token,
           destAddress:
             (hydratedOrder.destFinalCall.to as string) || destinationAddress,
           usdcAmount: String(hydratedOrder.destFinalCallTokenAmount.usd),
@@ -157,6 +170,7 @@ const PayWithSolanaToken: React.FC = () => {
           setPayState(PayState.RequestCancelled);
         }
       } catch (error) {
+        console.error("Failed to pay with solana token", error);
         if (rozoPaymentId) {
           setPaymentUnpaid(rozoPaymentId);
         }

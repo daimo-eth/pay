@@ -78,6 +78,7 @@ export default function WaitingDepositAddress() {
     setRozoPaymentId,
   } = paymentState;
   const {
+    store,
     order,
     paymentState: rozoPaymentState,
     reset,
@@ -106,6 +107,12 @@ export default function WaitingDepositAddress() {
   >(null);
 
   const [isPollingPayment, setIsPollingPayment] = useState(false);
+
+  useEffect(() => {
+    if (rozoPaymentState === "error") {
+      context.setRoute(ROUTES.ERROR);
+    }
+  }, [rozoPaymentState]);
 
   // Safe polling for payment status when externalId exists
   const shouldPoll = !!(
@@ -306,7 +313,8 @@ export default function WaitingDepositAddress() {
 
       try {
         const details = await payWithDepositAddress(
-          selectedDepositAddressOption.id
+          selectedDepositAddressOption.id,
+          store as any
         );
         if (details) {
           const shouldShowMemo = ![DepositAddressPaymentOptions.BSC].includes(

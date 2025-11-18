@@ -14,14 +14,13 @@ const PaymentBreakdown: React.FC<{
 
   return (
     <FeesContainer>
-      {feesUsd > 0 && (
+      {/* {feesUsd > 0 && (
         <FeeRow>
           <ModalBody>Subtotal</ModalBody>
-          <ModalBody>${subtotalUsd.toFixed(2)}</ModalBody>
+          <ModalBody>${(subtotalUsd - feesUsd).toFixed(2)}</ModalBody>
         </FeeRow>
       )}
-      {/* @TODO: Display fees based on API */}
-      {/* <FeeRow>
+      <FeeRow>
         <ModalBody>Fees</ModalBody>
         {feesUsd === 0 ? (
           <Badge>Free</Badge>
@@ -32,7 +31,7 @@ const PaymentBreakdown: React.FC<{
       <FeeRow style={{ marginTop: 8 }}>
         <ModalBody style={{ fontWeight: 600 }}>Total</ModalBody>
         <ModalBody style={{ fontWeight: 600 }}>
-          ${feesUsd > 0 ? subtotalUsd.toFixed(2) : totalUsd.toFixed(2)}
+          ${subtotalUsd.toFixed(2)}
         </ModalBody>
       </FeeRow>
     </FeesContainer>

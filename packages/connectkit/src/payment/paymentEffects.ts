@@ -388,10 +388,6 @@ async function runHydratePayParamsEffects(
   let rozoPaymentId: string | undefined = order?.externalId ?? undefined;
   let rozoPaymentResponse: PaymentResponseData | undefined = undefined;
 
-  if (!walletPaymentOption?.required.token.token) {
-    throw new Error("Selected token is required");
-  }
-
   const { preferred, destination } = createPaymentBridgeConfig({
     toChain: toChain,
     toToken: toToken,
@@ -399,7 +395,7 @@ async function runHydratePayParamsEffects(
     toSolanaAddress: payParams?.toSolanaAddress,
     toStellarAddress: payParams?.toStellarAddress,
     toUnits: toUnits,
-    payInTokenAddress: walletPaymentOption?.required.token.token,
+    payInTokenAddress: walletPaymentOption?.required.token.token ?? "",
     log,
   });
 

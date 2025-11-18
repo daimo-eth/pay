@@ -154,7 +154,8 @@ export interface PaymentState {
   ) => Promise<{ txHash: Hex; success: boolean }>;
   payWithExternal: (option: ExternalPaymentOptions) => Promise<string>;
   payWithDepositAddress: (
-    option: DepositAddressPaymentOptions
+    option: DepositAddressPaymentOptions,
+    store: Store<PaymentState, PaymentEvent>
   ) => Promise<
     | (DepositAddressPaymentOptionData & { externalId: string; memo: string })
     | null
@@ -340,6 +341,7 @@ export function usePaymentState({
     payParams: currPayParams,
   });
   const stellarPaymentOptions = useStellarPaymentOptions({
+    trpc,
     address: stellarPubKey,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     isDepositFlow,
@@ -906,7 +908,8 @@ export function usePaymentState({
   };
 
   const payWithDepositAddress = async (
-    option: DepositAddressPaymentOptions
+    option: DepositAddressPaymentOptions,
+    store: Store<PaymentState, PaymentEvent>
   ) => {
     // Prevent duplicate calls for the same option
     if (depositAddressCallRef.current.has(option)) {
@@ -973,7 +976,12 @@ export function usePaymentState({
         memo: order.metadata?.memo || "",
       };
     } catch (error) {
-      console.error(`[PAY DEPOSIT ADDRESS] Error processing ${option}:`, error);
+      const message = parseErrorMessage(error);
+      store.dispatch({
+        type: "error",
+        order: pay.order as RozoPayOrder,
+        message,
+      });
       return null;
     } finally {
       // Remove from processing set when done (allow retries after completion/failure)
@@ -1074,7 +1082,7 @@ export function usePaymentState({
 
   /** Called whenever params change. */
   const setPayParams = async (payParams: PayParams | undefined) => {
-    if (lockPayParams) return;
+    if (!payParams || lockPayParams) return;
     assert(payParams != null, "[SET PAY PARAMS] payParams cannot be null");
 
     log("[SET PAY PARAMS] setting payParams", payParams);

@@ -1,216 +1,140 @@
 import { rozoStellarUSDC, WalletPaymentOption } from "@rozoai/intent-common";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  STELLAR_USDC_TOKEN_INFO,
-  STELLAR_XLM_TOKEN_INFO,
-} from "../constants/rozoConfig";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PayParams } from "../payment/paymentFsm";
-import { useStellar } from "../provider/StellarContextProvider";
-import { createRefreshFunction } from "./refreshUtils";
-
-// Define the BigIntStr type to match the common package
-type BigIntStr = `${bigint}`;
-
-// Define StellarBalance interface for type safety
-interface StellarBalance {
-  asset_type: string;
-  asset_code?: string;
-  asset_issuer?: string;
-  balance: string;
-}
+import { TrpcClient } from "../utils/trpc";
+import {
+  createRefreshFunction,
+  setupRefreshState,
+  shouldSkipRefresh,
+} from "./refreshUtils";
 
 /** Wallet payment options. User picks one. */
 export function useStellarPaymentOptions({
+  trpc,
   address,
   usdRequired,
   isDepositFlow,
   payParams,
 }: {
+  trpc: TrpcClient;
   address: string | undefined;
   usdRequired: number | undefined;
   isDepositFlow: boolean;
   payParams: PayParams | undefined;
 }) {
   const [options, setOptions] = useState<WalletPaymentOption[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRequesting, setIsRequesting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Track the last executed parameters to prevent duplicate API calls
+  const lastExecutedParams = useRef<string | null>(null);
+
+  // Track if we're currently making an API call to prevent concurrent requests
+  const isApiCallInProgress = useRef<boolean>(false);
 
   const stableAppId = useMemo(() => {
     return payParams?.appId;
   }, [payParams?.appId]);
 
-  const { server, account, isAccountExists, refreshAccount } = useStellar();
+  const filteredOptions = useMemo(() => {
+    if (!options) return [];
 
-  const usdcBalance = useMemo(
-    () =>
-      account?.balances.find(
-        (b) =>
-          b.asset_type === "credit_alphanum4" &&
-          b.asset_code === "USDC" &&
-          b.asset_issuer === rozoStellarUSDC.token
-      ),
-    [account]
-  );
+    return options
+      .filter(
+        (option) =>
+          option.balance.token.token === `USDC:${rozoStellarUSDC.token}`
+      )
+      .map((item) => {
+        const usd = isDepositFlow ? 0 : usdRequired || 0;
 
-  // --- ⭐️ Updated function to fetch and structure balances to match JSON format ---
-  /**
-   * Converts a floating point number to a BigInt string with proper decimal precision
-   */
-  const toBigIntString = useCallback(
-    (amount: number, decimals: number): BigIntStr => {
-      return BigInt(
-        Math.round(amount * 10 ** decimals)
-      ).toString() as BigIntStr;
-    },
-    []
-  );
+        const value: WalletPaymentOption = {
+          ...item,
+          required: {
+            ...item.required,
+            usd,
+          },
+        };
 
-  /**
-   * Creates a token amount object with proper formatting
-   */
-  const createTokenAmount = useCallback(
-    (token: typeof STELLAR_XLM_TOKEN_INFO, amount: number) => {
-      return {
-        token,
-        amount: toBigIntString(amount, token.decimals),
-        usd: amount * token.usd,
-      };
-    },
-    [toBigIntString]
-  );
+        // Set `disabledReason` manually (based on current usdRequired state, not API Request)
+        if (item.balance.usd < usd) {
+          value.disabledReason = `Balance too low: $${item.balance.usd.toFixed(
+            2
+          )}`;
+        }
 
-  /**
-   * Creates a payment option with all required fields
-   */
-  const createPaymentOption = useCallback(
-    (params: {
-      token: typeof STELLAR_XLM_TOKEN_INFO;
-      balance: number;
-      minimumRequired: number;
-      fees: number;
-      usdRequired: number;
-    }): WalletPaymentOption => {
-      const { token, balance, minimumRequired, fees, usdRequired } = params;
-      const balanceUsd = balance * token.usd;
-      const requiredAmount = usdRequired / token.usd;
+        return value;
+      }) as WalletPaymentOption[];
+  }, [options, isDepositFlow, usdRequired]);
 
-      return {
-        balance: createTokenAmount(token, balance),
-        minimumRequired: createTokenAmount(token, minimumRequired),
-        fees: createTokenAmount(token, fees),
-        required: createTokenAmount(token, requiredAmount),
-        disabledReason:
-          balanceUsd < usdRequired
-            ? `Balance of $${balanceUsd.toFixed(
-                2
-              )} is less than required $${usdRequired.toFixed(2)}`
-            : undefined,
-      };
-    },
-    [createTokenAmount]
-  );
+  // Shared fetch function for Stellar payment options
+  const fetchBalances = useCallback(async () => {
+    if (address == null || usdRequired == null) return;
 
-  /**
-   * Processes a USDC balance
-   */
-  const processUsdcBalance = (
-    balance: StellarBalance | undefined,
-    usdRequired: number
-  ): WalletPaymentOption => {
-    const amount = balance ? parseFloat(balance.balance) : 0;
+    setOptions(null);
+    setIsLoading(true);
 
-    return createPaymentOption({
-      token: STELLAR_USDC_TOKEN_INFO,
-      balance: amount,
-      minimumRequired: 0,
-      fees: 0,
-      usdRequired,
-    });
-  };
-
-  /**
-   * Main function to fetch balances and create payment options
-   */
-  const fetchBalances = useCallback(
-    async (pk: string) => {
-      if (!pk || !server || usdRequired === undefined) return;
-
-      setIsRequesting(true);
-      setIsLoading(true);
-      try {
-        // Process USDC balance
-        const usdcBalance = account?.balances.find(
-          (b) =>
-            b.asset_type === "credit_alphanum4" &&
-            b.asset_code === "USDC" &&
-            b.asset_issuer === rozoStellarUSDC.token
-        );
-
-        const usdcOption = processUsdcBalance(usdcBalance, usdRequired);
-        setOptions([usdcOption]);
-      } catch (error) {
-        console.error("Error fetching balances:", error);
-        setOptions([]);
-      } finally {
-        setIsLoading(false);
-        setIsRequesting(false);
-      }
-    },
-    [
-      server,
-      usdRequired,
-      account,
-      isAccountExists,
-      createPaymentOption,
-      processUsdcBalance,
-    ]
-  );
-
-  // Keep loading state until we have attempted to fetch balances
-  useEffect(() => {
-    if (
-      address &&
-      usdRequired !== undefined &&
-      account &&
-      isAccountExists &&
-      !isRequesting
-    ) {
-      // Only set loading to false if we have options or completed a fetch attempt
-      if (options !== null) {
-        setIsLoading(false);
-      }
+    try {
+      const newOptions = await trpc.getStellarPaymentOptions.query({
+        stellarAddress: address,
+        // API expects undefined for deposit flow.
+        usdRequired: isDepositFlow ? undefined : usdRequired,
+        appId: stableAppId,
+      });
+      setOptions(newOptions);
+    } catch (error) {
+      console.error(error);
+      setOptions([]);
+    } finally {
+      isApiCallInProgress.current = false;
+      setIsLoading(false);
     }
-  }, [address, usdRequired, account, isAccountExists, isRequesting, options]);
-
-  // Reset loading state when address changes (new wallet connection)
-  useEffect(() => {
-    if (address) {
-      setIsLoading(true);
-      setOptions(null);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    if (address && usdRequired !== undefined && account && isAccountExists) {
-      fetchBalances(address);
-    }
-  }, [address, usdRequired, account, isAccountExists]);
+  }, [address, usdRequired, isDepositFlow, trpc, stableAppId]);
 
   // Create refresh function using shared utility
-  const refreshOptions = createRefreshFunction(
-    () =>
-      address && usdRequired !== undefined
-        ? refreshAccount()
-        : Promise.resolve(undefined),
-    {
-      lastExecutedParams: { current: null },
-      isApiCallInProgress: { current: false },
-    }
-  );
+  const refreshOptions = createRefreshFunction(fetchBalances, {
+    lastExecutedParams,
+    isApiCallInProgress,
+  });
 
-  const filteredOptions = useMemo(() => {
-    return [processUsdcBalance(usdcBalance, usdRequired ?? 0)];
-  }, [usdcBalance, usdRequired]);
+  // Smart clearing: only clear if we don't have data for this address
+  useEffect(() => {
+    if (address && !options) {
+      // Only set loading if we don't have options yet
+      setIsLoading(true);
+    }
+  }, [address, options]);
+
+  useEffect(() => {
+    if (address == null || usdRequired == null) return;
+
+    const fullParamsKey = JSON.stringify({
+      address,
+      usdRequired,
+      isDepositFlow,
+    });
+
+    // Skip if we've already executed with these exact parameters
+    if (
+      shouldSkipRefresh(fullParamsKey, {
+        lastExecutedParams,
+        isApiCallInProgress,
+      })
+    ) {
+      return;
+    }
+
+    // Set up refresh state
+    setupRefreshState(fullParamsKey, {
+      lastExecutedParams,
+      isApiCallInProgress,
+    });
+  }, [address, usdRequired, isDepositFlow]);
+
+  // Initial fetch when hook mounts with valid parameters or when key parameters change
+  useEffect(() => {
+    if (address != null && usdRequired != null) {
+      refreshOptions();
+    }
+  }, [address, usdRequired]);
 
   return {
     options: filteredOptions,

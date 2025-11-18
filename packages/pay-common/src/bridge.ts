@@ -166,7 +166,10 @@ export function createPaymentBridgeConfig({
         };
       }
       // Pay In USDC Stellar
-      else if (payInTokenAddress === rozoStellarUSDC.token) {
+      else if (
+        payInTokenAddress === rozoStellarUSDC.token ||
+        payInTokenAddress === `USDC:${rozoStellarUSDC.token}`
+      ) {
         log?.(`[Payment Bridge] Pay In USDC Stellar`);
         preferred = {
           preferredChain: String(rozoStellarUSDC.chainId),

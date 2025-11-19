@@ -68,7 +68,7 @@ export function useWalletPaymentOptions({
   // Extract appId to avoid payParams object recreation causing re-runs
   const stableAppId = useMemo(() => {
     return payParams?.appId;
-  }, [payParams?.appId]);
+  }, [payParams]);
 
   // Memoize array dependencies to prevent unnecessary re-fetches
   // TODO: this is an ugly way to handle polling/refresh
@@ -152,7 +152,13 @@ export function useWalletPaymentOptions({
 
   // Shared fetch function for wallet payment options
   const fetchBalances = useCallback(async () => {
-    if (address == null || usdRequired == null || destChainId == null) return;
+    if (
+      address == null ||
+      usdRequired == null ||
+      destChainId == null ||
+      stableAppId == null
+    )
+      return;
 
     setOptions(null);
     setIsLoading(true);
@@ -177,14 +183,15 @@ export function useWalletPaymentOptions({
       setIsLoading(false);
     }
   }, [
+    trpc,
     address,
+    usdRequired,
     destChainId,
+    isDepositFlow,
     memoizedPreferredChains,
     memoizedPreferredTokens,
     memoizedEvmChains,
-    usdRequired,
-    isDepositFlow,
-    trpc,
+    stableAppId,
   ]);
 
   // Create refresh function using shared utility
@@ -195,10 +202,15 @@ export function useWalletPaymentOptions({
 
   // Initial fetch when hook mounts with valid parameters or when key parameters change
   useEffect(() => {
-    if (address != null && usdRequired != null && destChainId != null) {
+    if (
+      address != null &&
+      usdRequired != null &&
+      destChainId != null &&
+      stableAppId != null
+    ) {
       refreshOptions();
     }
-  }, [address, usdRequired, destChainId]);
+  }, [address, usdRequired, destChainId, stableAppId]);
 
   return {
     options: filteredOptions,

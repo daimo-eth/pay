@@ -33,7 +33,7 @@ export function useStellarPaymentOptions({
 
   const stableAppId = useMemo(() => {
     return payParams?.appId;
-  }, [payParams?.appId]);
+  }, [payParams]);
 
   const filteredOptions = useMemo(() => {
     if (!options) return [];
@@ -67,7 +67,7 @@ export function useStellarPaymentOptions({
 
   // Shared fetch function for Stellar payment options
   const fetchBalances = useCallback(async () => {
-    if (address == null || usdRequired == null) return;
+    if (address == null || usdRequired == null || stableAppId == null) return;
 
     setOptions(null);
     setIsLoading(true);
@@ -104,12 +104,13 @@ export function useStellarPaymentOptions({
   }, [address, options]);
 
   useEffect(() => {
-    if (address == null || usdRequired == null) return;
+    if (address == null || usdRequired == null || stableAppId == null) return;
 
     const fullParamsKey = JSON.stringify({
       address,
       usdRequired,
       isDepositFlow,
+      stableAppId,
     });
 
     // Skip if we've already executed with these exact parameters
@@ -127,14 +128,14 @@ export function useStellarPaymentOptions({
       lastExecutedParams,
       isApiCallInProgress,
     });
-  }, [address, usdRequired, isDepositFlow]);
+  }, [address, usdRequired, isDepositFlow, stableAppId]);
 
   // Initial fetch when hook mounts with valid parameters or when key parameters change
   useEffect(() => {
-    if (address != null && usdRequired != null) {
+    if (address != null && usdRequired != null && stableAppId != null) {
       refreshOptions();
     }
-  }, [address, usdRequired]);
+  }, [address, usdRequired, stableAppId]);
 
   return {
     options: filteredOptions,

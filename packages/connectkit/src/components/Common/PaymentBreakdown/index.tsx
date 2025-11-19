@@ -19,7 +19,7 @@ const PaymentBreakdown: React.FC<{
           <ModalBody>Subtotal</ModalBody>
           <ModalBody>${(subtotalUsd - feesUsd).toFixed(2)}</ModalBody>
         </FeeRow>
-      )}
+      )} */}
       <FeeRow>
         <ModalBody>Fees</ModalBody>
         {feesUsd === 0 ? (
@@ -27,7 +27,7 @@ const PaymentBreakdown: React.FC<{
         ) : (
           <ModalBody>${feesUsd.toFixed(2)}</ModalBody>
         )}
-      </FeeRow> */}
+      </FeeRow>
       <FeeRow style={{ marginTop: 8 }}>
         <ModalBody style={{ fontWeight: 600 }}>Total</ModalBody>
         <ModalBody style={{ fontWeight: 600 }}>

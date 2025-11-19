@@ -30,7 +30,7 @@ These defaults are automatically used by the API client, so you can start making
 ```bash
 api/
 ├── base.ts         # Core API client functionality
-├── index.ts        # Re-exports all API modules
+├── fee.ts          # Fee calculation endpoint
 ├── payment.ts      # Payment-specific endpoints
 └── README.md       # Documentation
 ```
@@ -67,82 +67,312 @@ const response = await apiClient.get("/some-endpoint", {
 
 ## Using Payment API
 
-The payment module provides typed functions for payment operations:
+The payment module provides typed functions for payment operations. The `createRozoPayment` function is the core method for creating cross-chain payments.
+
+### Creating a Payment
+
+The `createRozoPayment` function requires a `PaymentRequestData` object with the following structure:
 
 ```typescript
 import {
   createRozoPayment,
   getRozoPayment,
-  createRozoPaymentRequest,
+  createPaymentBridgeConfig,
+  mergedMetadata,
+  PaymentRequestData,
 } from "@rozoai/intent-common";
 
-// Create a payment
+// Basic payment creation
 const handleSubmitPayment = async () => {
-  const paymentData = createRozoPaymentRequest({
+  // First, create payment bridge configuration
+  // This determines the preferred payment method and destination
+  // payInTokenAddress can be: USDC Base, USDC Polygon, USDC Solana, USDC Stellar, or USDT BNB
+  const { preferred, destination } = createPaymentBridgeConfig({
+    toChain: 8453, // Base chain
+    toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
+    toAddress: "0x1234567890123456789012345678901234567890",
+    toUnits: "1000000", // 1 USDC (6 decimals)
+    payInTokenAddress: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // Polygon USDC
+  });
+
+  // Construct payment data
+  const paymentData: PaymentRequestData = {
     appId: "your-app-id",
     display: {
       intent: "Pay for product",
-      paymentValue: "100.00",
+      paymentValue: "1.00", // Display value in USD
       currency: "USD",
     },
     destination: {
-      chainId: "8453",
-      amountUnits: "100000000",
-      tokenSymbol: "USDC",
-      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      destinationAddress: destination.destinationAddress,
+      chainId: destination.chainId,
+      amountUnits: destination.amountUnits,
+      tokenSymbol: destination.tokenSymbol,
+      tokenAddress: destination.tokenAddress,
     },
-  });
+    // Spread preferred payment configuration
+    ...preferred,
+    // Optional: external ID for tracking
+    externalId: "order-123",
+    // Optional: metadata
+    metadata: {
+      preferredChain: preferred.preferredChain,
+      preferredToken: preferred.preferredToken,
+      preferredTokenAddress: preferred.preferredTokenAddress,
+      // Merge additional metadata
+      ...mergedMetadata({
+        customField: "value",
+      }),
+    },
+  };
 
+  // Create the payment
   const response = await createRozoPayment(paymentData);
 
   if (response.data) {
     console.log("Payment created:", response.data.id);
+    console.log("Payment status:", response.data.status);
+    console.log("Payment URL:", response.data.url);
   } else if (response.error) {
     console.error("Error creating payment:", response.error.message);
   }
 };
+```
 
-// Get payment details
+### Example: Pay Out to Stellar
+
+```typescript
+// Paying out to a Stellar address
+const { preferred, destination } = createPaymentBridgeConfig({
+  toStellarAddress: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // REQUIRED: Stellar address
+  toAddress: "0x1234567890123456789012345678901234567890", // REQUIRED: any valid EVM address
+  // toChain and toToken are optional (default to USDC Base)
+  toUnits: "1000000", // 1 USDC
+  payInTokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
+});
+
+const paymentData: PaymentRequestData = {
+  appId: "your-app-id",
+  display: {
+    intent: "Pay to Stellar wallet",
+    paymentValue: "1.00",
+    currency: "USD",
+  },
+  ...preferred,
+  destination,
+};
+
+const response = await createRozoPayment(paymentData);
+```
+
+### Example: Pay Out to Solana
+
+```typescript
+// Paying out to a Solana address
+const { preferred, destination } = createPaymentBridgeConfig({
+  toSolanaAddress: "So11111111111111111111111111111111111111112", // REQUIRED: Solana address
+  toAddress: "0x1234567890123456789012345678901234567890", // REQUIRED: any valid EVM address
+  // toChain and toToken are optional (default to USDC Base)
+  toUnits: "1000000", // 1 USDC
+  payInTokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
+});
+
+const paymentData: PaymentRequestData = {
+  appId: "your-app-id",
+  display: {
+    intent: "Pay to Solana wallet",
+    paymentValue: "1.00",
+    currency: "USD",
+  },
+  ...preferred,
+  destination,
+};
+
+const response = await createRozoPayment(paymentData);
+```
+
+### Payment Request Data Structure
+
+The `PaymentRequestData` interface includes:
+
+- **`appId`** (required): Your application identifier
+- **`display`** (required): Payment display information
+  - `intent`: Description of the payment
+  - `paymentValue`: Amount as a string (e.g., "100.00")
+  - `currency`: Currency code (e.g., "USD")
+- **`destination`** (required): Payment destination configuration
+  - `destinationAddress`: Recipient address
+  - `chainId`: Destination chain ID as string
+  - `amountUnits`: Amount in smallest token unit (as string)
+  - `tokenSymbol`: Token symbol (e.g., "USDC")
+  - `tokenAddress`: Token contract address
+- **`preferredChain`** (optional): Preferred source chain ID
+- **`preferredToken`** (optional): Preferred source token symbol
+- **`preferredTokenAddress`** (optional): Preferred source token address
+- **`externalId`** (optional): External identifier for tracking
+- **`metadata`** (optional): Additional metadata object
+
+### Using createPaymentBridgeConfig
+
+The `createPaymentBridgeConfig` helper function simplifies cross-chain payment configuration. It determines the preferred payment method based on the `payInTokenAddress` parameter.
+
+**Important Notes:**
+
+- **For EVM chain payouts (Base, Polygon, etc.)**: Provide `toAddress` with the destination EVM address. `toChain` and `toToken` are optional but default to USDC Base.
+- **For Stellar payouts**: You **must** provide `toStellarAddress` with the Stellar address. You **must** also provide `toAddress` with any valid EVM address (required for internal routing). `toChain` and `toToken` are optional but default to USDC Base.
+- **For Solana payouts**: You **must** provide `toSolanaAddress` with the Solana address. You **must** also provide `toAddress` with any valid EVM address (required for internal routing). `toChain` and `toToken` are optional but default to USDC Base.
+
+**Supported `payInTokenAddress` values:**
+
+- **USDC Base** - Base chain USDC token
+- **USDC Polygon** - Polygon chain USDC token
+- **USDC Solana** - Solana USDC token
+- **USDC Stellar** - Stellar USDC token (format: `USDC:issuerPK` or issuer public key)
+- **USDT BNB** - BSC (Binance Smart Chain) USDT token
+
+```typescript
+import { createPaymentBridgeConfig } from "@rozoai/intent-common";
+
+// Example: User pays with Polygon USDC, receives on Base
+const { preferred, destination } = createPaymentBridgeConfig({
+  toChain: 8453, // Base
+  toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
+  toAddress: "0x...",
+  toUnits: "1000000", // 1 USDC
+  payInTokenAddress: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // Polygon USDC
+});
+
+// preferred contains: preferredChain, preferredToken, preferredTokenAddress
+// destination contains: destinationAddress, chainId, amountUnits, tokenSymbol, tokenAddress
+```
+
+**More examples:**
+
+```typescript
+// Pay with Base USDC
+const { preferred, destination } = createPaymentBridgeConfig({
+  toChain: 8453,
+  toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  toAddress: "0x...",
+  toUnits: "1000000",
+  payInTokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
+});
+
+// Pay with Solana USDC - Pay Out to Solana
+// Note: toSolanaAddress is REQUIRED, toAddress is REQUIRED (any valid EVM address)
+// toChain and toToken are optional (default to USDC Base)
+const { preferred, destination } = createPaymentBridgeConfig({
+  toSolanaAddress: "So11111111111111111111111111111111111111112", // Solana destination address
+  toAddress: "0x1234567890123456789012345678901234567890", // Required: any valid EVM address
+  // toChain and toToken are optional, default to USDC Base
+  toUnits: "1000000",
+  payInTokenAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Solana USDC
+});
+
+// Pay with Stellar USDC - Pay Out to Stellar
+// Note: toStellarAddress is REQUIRED, toAddress is REQUIRED (any valid EVM address)
+// toChain and toToken are optional (default to USDC Base)
+const { preferred, destination } = createPaymentBridgeConfig({
+  toStellarAddress: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Stellar destination address
+  toAddress: "0x1234567890123456789012345678901234567890", // Required: any valid EVM address
+  // toChain and toToken are optional, default to USDC Base
+  toUnits: "1000000",
+  payInTokenAddress:
+    "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", // Stellar USDC
+});
+
+// Pay with BSC USDT
+const { preferred, destination } = createPaymentBridgeConfig({
+  toChain: 8453,
+  toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  toAddress: "0x...",
+  toUnits: "1000000",
+  payInTokenAddress: "0x55d398326f99059fF775485246999027B3197955", // BSC USDT
+});
+```
+
+### Getting Payment Details
+
+```typescript
+// Get payment by ID
 const fetchPaymentDetails = async (paymentId: string) => {
   const response = await getRozoPayment(paymentId);
 
   if (response.data) {
     console.log("Payment status:", response.data.status);
+    console.log("Payment intent:", response.data.display.intent);
+    console.log(
+      "Destination address:",
+      response.data.destination.destinationAddress
+    );
+    console.log("Transaction hash:", response.data.destination.txHash);
+  } else if (response.error) {
+    console.error("Error fetching payment:", response.error.message);
   }
 };
 ```
 
+### Real-World Usage Pattern
+
+In the SDK, `createRozoPayment` is typically used within payment flow effects:
+
+```typescript
+// Example from paymentEffects.ts
+const paymentData: PaymentRequestData = {
+  appId: payParams?.rozoAppId ?? payParams?.appId ?? DEFAULT_ROZO_APP_ID,
+  display: {
+    intent: order?.metadata?.intent ?? "",
+    paymentValue: String(toUnits),
+    currency: "USD",
+  },
+  ...preferred, // Spread preferred config from createPaymentBridgeConfig
+  destination, // Destination config from createPaymentBridgeConfig
+  externalId: order?.externalId ?? "",
+  metadata: {
+    preferredChain: preferred.preferredChain,
+    preferredToken: preferred.preferredToken,
+    preferredTokenAddress: preferred.preferredTokenAddress,
+    ...mergedMetadata({
+      ...(payParams?.metadata ?? {}),
+      ...(order?.metadata ?? {}),
+      ...(order.userMetadata ?? {}),
+    }),
+  },
+};
+
+const rozoPayment = await createRozoPayment(paymentData);
+if (!rozoPayment?.data?.id) {
+  throw new Error(rozoPayment?.error?.message ?? "Payment creation failed");
+}
+```
+
 ## React Hooks
 
-React hooks for these APIs are available in the `@rozoai/intent-pay` package:
+React hooks for these APIs are available in the `@rozoai/intent-pay` package. The SDK handles payment creation internally through the payment state machine, but you can access payment state using hooks:
 
 ```typescript
 // In @rozoai/intent-pay
-import {
-  useCreateRozoPayment,
-  useRozoPayment,
-  useRozoPayments
-} from '@rozoai/intent-pay';
+import { useRozoPay, useRozoPayStatus, useRozoPayUI } from "@rozoai/intent-pay";
 
 // Use in React components
-const PaymentForm = () => {
-  const [paymentState, submitPayment] = useCreateRozoPayment();
+const PaymentComponent = () => {
+  const { createPreviewOrder, payWallet } = useRozoPay();
+  const { paymentStatus } = useRozoPayStatus();
+  const { isOpen, openRozoPay, closeRozoPay } = useRozoPayUI();
 
-  const handleSubmit = (formData) => {
-    submitPayment({
-      appId: 'your-app-id',
-      display: { ... },
-      destination: { ... }
-    });
-  };
+  // Payment creation is handled internally by the SDK
+  // when using RozoPayButton or calling createPreviewOrder
+  // The SDK automatically uses createRozoPayment under the hood
 
-  if (paymentState.isLoading) return <div>Processing...</div>;
-  if (paymentState.isError) return <div>Error: {paymentState.error?.message}</div>;
-  if (paymentState.isSuccess) return <div>Success! ID: {paymentState.data?.id}</div>;
+  if (paymentStatus === "payment_completed") {
+    return <div>Payment successful!</div>;
+  }
 
-  return <FormComponent onSubmit={handleSubmit} />;
+  return <RozoPayButton {...paymentProps} />;
 };
 ```
+
+Note: The SDK's payment flow automatically handles `createRozoPayment` calls internally. You typically don't need to call it directly when using the SDK components.
 
 ## Error Handling
 
@@ -181,17 +411,25 @@ const response: ApiResponse<PaymentResponseData> = await getRozoPayment(
 The API client is pre-configured with production RozoAI settings, so you can use it immediately:
 
 ```typescript
-import { createRozoPayment } from "@rozoai/intent-common";
+import {
+  createRozoPayment,
+  createPaymentBridgeConfig,
+} from "@rozoai/intent-common";
 
 // Works out of the box with default configuration
+const { preferred, destination } = createPaymentBridgeConfig({
+  toChain: 8453,
+  toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  toAddress: "0x...",
+  toUnits: "10000000",
+  payInTokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+});
+
 const response = await createRozoPayment({
   appId: "your-app-id",
   display: { intent: "Payment", paymentValue: "10.00", currency: "USD" },
-  destination: {
-    chainId: "8453",
-    amountUnits: "10000000",
-    tokenSymbol: "USDC",
-  },
+  ...preferred,
+  destination,
 });
 ```
 
@@ -256,15 +494,56 @@ setApiConfig({
 });
 ```
 
+## Using Fee API
+
+The fee module provides a function to calculate fees for payment amounts:
+
+```typescript
+import { getFee } from "@rozoai/intent-common";
+
+// Get fee calculation (only amount is required)
+const calculateFee = async () => {
+  const response = await getFee({
+    amount: 0.1,
+    // Optional parameters with defaults:
+    // appId: "rozodemo",
+    // currency: "USDC"
+  });
+
+  if (response.data) {
+    console.log("Fee:", response.data.fee);
+    console.log("Fee Percentage:", response.data.feePercentage);
+    console.log("Amount Out:", response.data.amount_out);
+    console.log("Minimum Fee:", response.data.minimumFee);
+  } else if (response.error) {
+    console.error("Error calculating fee:", response.error.message);
+    // Error response includes details like max allowed amount
+  }
+};
+
+// With custom appId and currency
+const response = await getFee({
+  amount: 100,
+  appId: "myapp",
+  currency: "USDC",
+});
+```
+
 ## Available Payment Functions
 
-- `createRozoPayment(paymentData)` - Create a new payment
-- `getRozoPayment(paymentId)` - Get payment by ID
-- `getRozoPaymentByExternalId(externalId)` - Get payment by external ID
-- `updateRozoPayment(paymentId, paymentData)` - Update a payment
-- `cancelRozoPayment(paymentId)` - Cancel a payment
-- `listRozoPayments(params?)` - List all payments with optional filters
-- `createRozoPaymentRequest(options)` - Create a payment request payload
+- **`createRozoPayment(paymentData: PaymentRequestData)`** - Create a new cross-chain payment. Requires `appId`, `display`, and `destination`. Use `createPaymentBridgeConfig` to generate `preferred` and `destination` configurations. Returns `ApiResponse<PaymentResponseData>` with payment ID, status, and URL.
+
+- **`getRozoPayment(paymentId: string)`** - Get payment details by ID. Automatically handles both standard payment IDs and MugglePay order IDs. Returns `ApiResponse<PaymentResponseData>` with full payment information including status, destination, and transaction hashes.
+
+### Helper Functions
+
+- **`createPaymentBridgeConfig(config: PaymentBridgeConfig)`** - Creates payment bridge configuration for cross-chain payments. Determines preferred payment method (source chain/token) and destination configuration. The `payInTokenAddress` parameter supports: USDC Base, USDC Polygon, USDC Solana, USDC Stellar, and USDT BNB. Returns `{ preferred: PreferredPaymentConfig, destination: DestinationConfig }`.
+
+- **`mergedMetadata(...metadataObjects)`** - Utility function to merge multiple metadata objects while handling conflicts and filtering sensitive fields.
+
+## Available Fee Functions
+
+- `getFee(params)` - Calculate fee for a payment amount (amount required, appId and currency optional)
 
 ## Best Practices
 

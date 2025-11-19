@@ -478,10 +478,6 @@ export function useRozoPay(): UseRozoPay {
     async (payoutTxHash: string, rozoPaymentId?: string) => {
       // Prevent duplicate calls with the same payout transaction hash
       if (lastPayoutTxHash.current === payoutTxHash) {
-        console.log(
-          "[PAY] Skipping duplicate payout completion call for hash:",
-          payoutTxHash
-        );
         // Return current state without dispatching
         const currentState = store.getState();
         if (currentState.type === "payout_completed") {

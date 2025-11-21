@@ -483,7 +483,6 @@ export function usePaymentState({
     );
 
     const { required, fees } = walletOption;
-    const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
 
     // Early validation using cached validation
     if (!validatePaymentRequirements(walletOption, pay.paymentState)) {
@@ -493,6 +492,10 @@ export function usePaymentState({
         )} does not match fees token ${debugJson(fees)}`
       );
     }
+
+    // @NOTE: Fee handled by Rozo API
+    // const paymentAmount = BigInt(required.amount) + BigInt(fees.amount);
+    const paymentAmount = BigInt(required.amount);
 
     // Check if we need to create a new Rozo payment (cache this check)
     const needRozoPayment =

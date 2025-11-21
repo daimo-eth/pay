@@ -33,7 +33,7 @@ export function useSolanaPaymentOptions({
 
   const stableAppId = useMemo(() => {
     return payParams?.appId;
-  }, [payParams?.appId]);
+  }, [payParams]);
 
   const filteredOptions = useMemo(() => {
     if (!options) return [];
@@ -64,7 +64,7 @@ export function useSolanaPaymentOptions({
 
   // Shared fetch function for Solana payment options
   const fetchBalances = useCallback(async () => {
-    if (address == null || usdRequired == null) return;
+    if (address == null || usdRequired == null || stableAppId == null) return;
 
     setOptions(null);
     setIsLoading(true);
@@ -84,7 +84,7 @@ export function useSolanaPaymentOptions({
       isApiCallInProgress.current = false;
       setIsLoading(false);
     }
-  }, [address, usdRequired, isDepositFlow, trpc]);
+  }, [address, usdRequired, isDepositFlow, trpc, stableAppId]);
 
   // Create refresh function using shared utility
   const refreshOptions = createRefreshFunction(fetchBalances, {
@@ -101,12 +101,13 @@ export function useSolanaPaymentOptions({
   }, [address, options]);
 
   useEffect(() => {
-    if (address == null || usdRequired == null) return;
+    if (address == null || usdRequired == null || stableAppId == null) return;
 
     const fullParamsKey = JSON.stringify({
       address,
       usdRequired,
       isDepositFlow,
+      stableAppId,
     });
 
     // Skip if we've already executed with these exact parameters
@@ -124,14 +125,14 @@ export function useSolanaPaymentOptions({
       lastExecutedParams,
       isApiCallInProgress,
     });
-  }, [address, usdRequired, isDepositFlow]);
+  }, [address, usdRequired, isDepositFlow, stableAppId]);
 
   // Initial fetch when hook mounts with valid parameters or when key parameters change
   useEffect(() => {
-    if (address != null && usdRequired != null) {
+    if (address != null && usdRequired != null && stableAppId != null) {
       refreshOptions();
     }
-  }, [address, usdRequired]);
+  }, [address, usdRequired, stableAppId]);
 
   return {
     options: filteredOptions,

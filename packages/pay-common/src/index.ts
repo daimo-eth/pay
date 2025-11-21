@@ -1,3 +1,4 @@
+export * from "./api/fee";
 export * from "./api/payment";
 export * from "./assert";
 export * from "./bridge";

@@ -8,12 +8,15 @@ import {
   generateEVMDeepLink,
   getAddressContraction,
   getChainName,
+  getFee,
   getRozoPayment,
   isHydrated,
   optimismUSDC,
   polygonUSDC,
   rozoSolanaUSDC,
   rozoStellarUSDC,
+  type FeeErrorData,
+  type FeeResponseData,
   type Token,
 } from "@rozoai/intent-common";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -105,6 +108,8 @@ export default function WaitingDepositAddress() {
   const [payinTransactionHash, setPayinTransactionHash] = useState<
     string | null
   >(null);
+  const [feeData, setFeeData] = useState<FeeResponseData | null>(null);
+  const [feeError, setFeeError] = useState<FeeErrorData | null>(null);
 
   const [isPollingPayment, setIsPollingPayment] = useState(false);
 
@@ -306,12 +311,62 @@ export default function WaitingDepositAddress() {
         selectedDepositAddressOption.id
       );
 
+      let amount: number | null = null;
+      if (order && isHydrated(order)) {
+        amount = order.usdValue;
+      } else {
+        amount = order?.destFinalCallTokenAmount.usd ?? null;
+      }
+
       setDepAddr({
         displayToken,
         logoURI,
+        amount: amount?.toString() ?? undefined,
       });
 
       try {
+        // Fetch fee using amount and appId before generating deposit address
+        if (amount && payParams?.appId) {
+          try {
+            const feeResponse = await getFee({
+              amount,
+              appId: payParams.appId,
+            });
+
+            if (feeResponse.data) {
+              setFeeData(feeResponse.data);
+              setFeeError(null);
+            } else if (feeResponse.error) {
+              const errorMessage = feeResponse.error.message;
+              // Check if it's an "Amount too high" error
+              if (errorMessage) {
+                // Create error data from message and stop execution
+                setFeeError({
+                  error: "Can't process payment",
+                  message: errorMessage,
+                  received: amount,
+                  maxAllowed: 0,
+                });
+                setFeeData(null);
+                setIsLoading(false);
+                setHasExecutedDepositCall(false);
+              } else {
+                setFeeError(null);
+                setFeeData(null);
+              }
+              return; // Stop here, don't generate deposit address
+            } else {
+              setFeeData(null);
+              setFeeError(null);
+            }
+          } catch (feeError) {
+            console.error("Error fetching fee:", feeError);
+            setFeeData(null);
+            setFeeError(null);
+            // Continue with deposit address generation even if fee fetch fails
+          }
+        }
+
         const details = await payWithDepositAddress(
           selectedDepositAddressOption.id,
           store as any
@@ -334,6 +389,7 @@ export default function WaitingDepositAddress() {
           });
           setRozoPaymentId(details.externalId);
           setDepoChain(selectedDepositAddressOption.id);
+
           // Polling will automatically start via shouldPoll calculation
         } else if (details === null) {
           // Duplicate call was prevented - reset loading states
@@ -366,6 +422,8 @@ export default function WaitingDepositAddress() {
     if (selectedDepositAddressOption) {
       setHasExecutedDepositCall(false);
       setFailed(false);
+      setFeeData(null); // Reset fee when deposit option changes
+      setFeeError(null); // Reset fee error when deposit option changes
       processingOptionRef.current = null; // Reset processing flag
     }
   }, [selectedDepositAddressOption]);
@@ -420,7 +478,7 @@ export default function WaitingDepositAddress() {
   ]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(triggerResize, [depAddr, failed]);
+  useEffect(triggerResize, [depAddr, failed, feeData, feeError]);
 
   // Completed payment effect
   useEffect(() => {
@@ -447,6 +505,8 @@ export default function WaitingDepositAddress() {
     <PageContent>
       {tronUnderpay ? (
         <TronUnderpayContent orderId={order?.id?.toString()} />
+      ) : feeError ? (
+        <FeeErrorContent feeError={feeError} />
       ) : failed ? (
         selectedDepositAddressOption && (
           <DepositFailed name={selectedDepositAddressOption.id} />
@@ -455,6 +515,7 @@ export default function WaitingDepositAddress() {
         depAddr && (
           <DepositAddressInfo
             depAddr={depAddr}
+            feeData={feeData}
             refresh={generateDepositAddress}
             triggerResize={triggerResize}
           />
@@ -502,12 +563,48 @@ function TronUnderpayContent({ orderId }: { orderId?: string }) {
   );
 }
 
+function FeeErrorContent({ feeError }: { feeError: FeeErrorData }) {
+  return (
+    <ModalContent
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingBottom: 0,
+        position: "relative",
+      }}
+    >
+      <CenterContainer style={{ width: "100%" }}>
+        <FailIcon />
+        <ModalH1 style={{ textAlign: "center", marginTop: 16 }}>
+          Amount Too High
+        </ModalH1>
+        <div style={{ height: 16 }} />
+        <ModalBody style={{ textAlign: "center" }}>
+          {feeError.message || feeError.error}
+          {feeError.maxAllowed > 0 && (
+            <>
+              <br />
+              <br />
+              Maximum allowed amount:{" "}
+              {formatUsd(feeError.maxAllowed, "nearest")}
+            </>
+          )}
+        </ModalBody>
+        <SelectAnotherMethodButton />
+      </CenterContainer>
+    </ModalContent>
+  );
+}
+
 function DepositAddressInfo({
   depAddr,
+  feeData,
   refresh,
   triggerResize,
 }: {
   depAddr: DepositAddr;
+  feeData: FeeResponseData | null;
   refresh: () => void;
   triggerResize: () => void;
 }) {
@@ -552,7 +649,12 @@ function DepositAddressInfo({
           />
         </QRWrap>
       )}
-      <CopyableInfo depAddr={depAddr} remainingS={remainingS} totalS={totalS} />
+      <CopyableInfo
+        depAddr={depAddr}
+        feeData={feeData}
+        remainingS={remainingS}
+        totalS={totalS}
+      />
     </ModalContent>
   );
 }
@@ -602,10 +704,12 @@ const QRWrap = styled.div`
 
 function CopyableInfo({
   depAddr,
+  feeData,
   remainingS,
   totalS,
 }: {
   depAddr?: DepositAddr;
+  feeData: FeeResponseData | null;
   remainingS: number;
   totalS: number;
 }) {
@@ -615,7 +719,12 @@ function CopyableInfo({
   return (
     <CopyableInfoWrapper>
       {underpayment && <UnderpaymentInfo underpayment={underpayment} />}
-
+      {feeData !== null && (
+        <FeeDisplayRow
+          title="Fee"
+          value={feeData.fee === 0 ? "Free" : formatUsd(feeData.fee, "nearest")}
+        />
+      )}
       <CopyRowOrThrobber
         title="Send Exactly"
         value={depAddr?.amount}
@@ -918,3 +1027,30 @@ const CopyIconWrap = styled.div`
   --color: var(--ck-copytoclipboard-stroke);
   --bg: var(--ck-body-background);
 `;
+
+const DisplayRow = styled.div`
+  height: 64px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  background-color: var(--ck-body-background);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+function FeeDisplayRow({ title, value }: { title: string; value: string }) {
+  return (
+    <DisplayRow>
+      <div>
+        <LabelRow>
+          <LabelText>{title}</LabelText>
+        </LabelRow>
+        <MainRow>
+          <ValueContainer>
+            <ValueText>{value}</ValueText>
+          </ValueContainer>
+        </MainRow>
+      </div>
+    </DisplayRow>
+  );
+}

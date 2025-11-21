@@ -2,7 +2,7 @@ import { DaimoPayEvent, getChainExplorerByChainId } from "@daimo/pay-common";
 import { useState, useCallback, useEffect } from "react";
 import { isAddress } from "viem";
 
-export const APP_ID = "daimopay-demo";
+export const APP_ID = "pay-demo";
 
 export const DAIMOPAY_API_URL =
   process.env.NEXT_PUBLIC_DAIMOPAY_API_URL || "https://pay-api.daimo.xyz";

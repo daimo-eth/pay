@@ -1,5 +1,5 @@
 import { type CreateConfigParameters, CreateConnectorFn, http } from "wagmi";
-import { base, bsc, Chain, polygon } from "wagmi/chains";
+import { base, bsc, Chain, polygon, worldchain } from "wagmi/chains";
 import { CoinbaseWalletParameters } from "wagmi/connectors";
 
 import defaultConnectors from "./defaultConnectors";
@@ -32,7 +32,7 @@ export const REQUIRED_CHAINS: CreateConfigParameters["chains"] = [
   // linea,
   bsc,
   // sepolia,
-  // worldchain,
+  worldchain,
   // mantle,
   // celo,
 ];

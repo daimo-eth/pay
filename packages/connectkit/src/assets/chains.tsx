@@ -373,7 +373,7 @@ const Linea = ({ testnet, ...props }: { testnet?: boolean }) => (
   </svg>
 );
 
-const Worldchain = ({ testnet, ...props }: { testnet?: boolean }) => (
+export const Worldchain = ({ testnet, ...props }: { testnet?: boolean }) => (
   <svg
     {...props}
     aria-hidden="true"

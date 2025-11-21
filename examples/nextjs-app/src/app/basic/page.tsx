@@ -6,6 +6,7 @@ import {
   getChainName,
   getChainNativeToken,
   knownTokens,
+  worldchain,
 } from "@rozoai/intent-common";
 import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import { useEffect, useMemo, useState } from "react";
@@ -209,6 +210,7 @@ export default function DemoBasic() {
               toSolanaAddress={parsedConfig.recipientSolanaAddress}
               toUnits={parsedConfig.amount}
               toToken={getAddress(parsedConfig.tokenAddress)}
+              preferredChains={[worldchain.chainId]}
               onPaymentStarted={(e) => {
                 console.log("onPaymentStarted", e);
               }}

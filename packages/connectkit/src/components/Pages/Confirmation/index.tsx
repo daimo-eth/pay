@@ -11,13 +11,11 @@ import {
 
 import {
   assert,
-  baseUSDC,
   bscUSDT,
   getAddressContraction,
   getChainExplorerTxUrl,
   getOrderDestChainId,
   getRozoPayment,
-  polygonUSDC,
   rozoSolana,
   rozoStellar,
 } from "@rozoai/intent-common";
@@ -28,8 +26,12 @@ import {
   TickIcon,
 } from "../../../assets/icons";
 import defaultTheme from "../../../constants/defaultTheme";
-import { ROZO_INVOICE_URL } from "../../../constants/rozoConfig";
+import {
+  DEFAULT_ROZO_APP_ID,
+  ROZO_INVOICE_URL,
+} from "../../../constants/rozoConfig";
 import { useRozoPay } from "../../../hooks/useDaimoPay";
+import { useSupportedChains } from "../../../hooks/useSupportedChains";
 import styled from "../../../styles/styled";
 import Button from "../../Common/Button";
 import PoweredByFooter from "../../Common/PoweredByFooter";
@@ -97,6 +99,11 @@ const Confirmation: React.FC = () => {
     return order?.externalId || paymentStateContext.rozoPaymentId;
   }, [order, paymentStateContext]);
 
+  const { tokens: supportedTokens } = useSupportedChains(
+    paymentStateContext.payParams?.appId ?? DEFAULT_ROZO_APP_ID,
+    paymentStateContext.payParams?.preferredChains
+  );
+
   const { done, txURL, rawPayInHash } = useMemo(() => {
     const { tokenMode, txHash } = paymentStateContext;
 
@@ -105,8 +112,8 @@ const Confirmation: React.FC = () => {
       tokenMode === "solana" ||
       (["evm", "all"].includes(tokenMode) &&
         order &&
-        [baseUSDC.token, bscUSDT.token, polygonUSDC.token].includes(
-          order.destFinalCallTokenAmount?.token.token
+        supportedTokens.some(
+          (token) => token.token === order.destFinalCallTokenAmount?.token.token
         ));
 
     if (isRozoPayment && txHash) {

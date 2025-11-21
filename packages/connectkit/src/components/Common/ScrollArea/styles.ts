@@ -67,7 +67,7 @@ export const ScrollAreaContainer = styled.div<{
     $backgroundColor || "var(--ck-body-background)"};
   --fade-height-top: 1px;
   --fade-height-bottom: ${(props) =>
-    props.$hideBottomLine && props.$totalItems > 2 ? "32px" : "1px"};
+    props.$hideBottomLine && props.$totalItems > 3 ? "32px" : "1px"};
   position: relative;
   z-index: 1;
 

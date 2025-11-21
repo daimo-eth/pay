@@ -1,16 +1,16 @@
 import {
   base,
   baseUSDC,
-  bsc,
-  bscUSDT,
   polygon,
   polygonUSDC,
   WalletPaymentOption,
 } from "@rozoai/intent-common";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_ROZO_APP_ID } from "../constants/rozoConfig";
 import { PayParams } from "../payment/paymentFsm";
 import { TrpcClient } from "../utils/trpc";
 import { createRefreshFunction } from "./refreshUtils";
+import { useSupportedChains } from "./useSupportedChains";
 
 /**
  * Wallet payment options. User picks one.
@@ -67,8 +67,8 @@ export function useWalletPaymentOptions({
 
   // Extract appId to avoid payParams object recreation causing re-runs
   const stableAppId = useMemo(() => {
-    return payParams?.appId;
-  }, [payParams]);
+    return payParams?.appId ?? DEFAULT_ROZO_APP_ID;
+  }, [payParams?.appId]);
 
   // Memoize array dependencies to prevent unnecessary re-fetches
   // TODO: this is an ugly way to handle polling/refresh
@@ -90,35 +90,20 @@ export function useWalletPaymentOptions({
     [JSON.stringify(evmChains)]
   );
 
-  const showBSCUSDT = useMemo(
-    () =>
-      stableAppId?.includes("MP") ||
-      memoizedPreferredChains?.includes(bsc.chainId) ||
-      memoizedEvmChains?.includes(bsc.chainId),
-    [stableAppId, memoizedEvmChains, memoizedPreferredChains]
+  const { chains, tokens } = useSupportedChains(
+    stableAppId,
+    memoizedPreferredChains ?? []
   );
 
   const filteredOptions = useMemo(() => {
     if (!options) return [];
-
-    // Show BSC USDT in these cases:
-    // 1. MugglePay apps (MP prefix in appId)
-    // 2. BSC is in preferred chains
-    // 3. BSC is in evmChains
-    const chains = showBSCUSDT
-      ? [...supportedChainsList, bsc]
-      : supportedChainsList;
-
-    const tokens = showBSCUSDT
-      ? [...supportedTokens, bscUSDT.token]
-      : supportedTokens;
 
     // Filter out chains/tokens we don't support yet in wallet payment options
     const isSupported = (o: WalletPaymentOption) =>
       chains.some(
         (c) =>
           c.chainId === o.balance.token.chainId &&
-          tokens.includes(o.balance.token.token)
+          tokens.some((t) => t.token === o.balance.token.token)
       );
     return options.filter(isSupported).map((item) => {
       const usd = isDepositFlow ? 0 : usdRequired || 0;
@@ -140,7 +125,7 @@ export function useWalletPaymentOptions({
 
       return value;
     }) as WalletPaymentOption[];
-  }, [options, showBSCUSDT, isDepositFlow, usdRequired]);
+  }, [options, chains, tokens, isDepositFlow, usdRequired]);
 
   // Smart clearing: only clear if we don't have data for this address
   useEffect(() => {

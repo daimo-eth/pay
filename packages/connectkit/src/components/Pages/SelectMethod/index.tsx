@@ -331,7 +331,7 @@ export default function SelectMethod() {
       <OrderHeader />
 
       <OptionsList
-        requiredSkeletons={isMobile ? 3 : 4}
+        requiredSkeletons={3}
         isLoading={externalPaymentOptions.loading}
         options={externalPaymentOptions.loading ? [] : options}
       />
@@ -389,7 +389,7 @@ function getBestUnconnectedWalletIcons(
   }
 
   // Default icons (fallback)
-  const [isRainbow, isTrust, isPhantom, isCoinbase, isMetaMask, isRabby] = [
+  const [isRainbow, isTrust, isPhantom, isMetaMask, isRabby] = [
     strippedId?.includes("rainbow"),
     strippedId?.includes("trust"),
     strippedId?.includes("phantom"),

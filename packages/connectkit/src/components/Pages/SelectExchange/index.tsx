@@ -12,8 +12,10 @@ const SelectExchange: React.FC = () => {
   const { paymentState, setRoute } = usePayContext();
   const { externalPaymentOptions, setSelectedExternalOption } = paymentState;
   const exchangeOptions = externalPaymentOptions.options.get("exchange");
+  const isLoading = externalPaymentOptions.loading;
 
-  if (!exchangeOptions) {
+  // No exchange options available
+  if (!isLoading && !exchangeOptions) {
     return (
       <PageContent>
         <OrderHeader minified />
@@ -22,20 +24,26 @@ const SelectExchange: React.FC = () => {
     );
   }
 
-  // For the exchange flow with single payment option, we only show the Coinbase and Binance options
+  // For the exchange flow with single "AllExchanges" payment option, we only
+  // show the Coinbase and Binance options
   const paymentOptions = paymentState.buttonProps?.paymentOptions;
   const isAllExchangesOnly =
     paymentOptions &&
     paymentOptions.length === 1 &&
     paymentOptions[0] === "AllExchanges";
 
-  const filtered = isAllExchangesOnly
-    ? exchangeOptions.filter(
+  let filtered: typeof exchangeOptions = [];
+  if (exchangeOptions) {
+    if (isAllExchangesOnly) {
+      filtered = exchangeOptions.filter(
         (o) =>
           o.id === ExternalPaymentOptions.Coinbase ||
           o.id === ExternalPaymentOptions.Binance,
-      )
-    : exchangeOptions;
+      );
+    } else {
+      filtered = exchangeOptions;
+    }
+  }
 
   const options = filtered.map((option) => ({
     id: option.id,
@@ -57,7 +65,11 @@ const SelectExchange: React.FC = () => {
   return (
     <PageContent>
       <OrderHeader minified show="zkp2p" />
-      <OptionsList options={options} />
+      <OptionsList
+        requiredSkeletons={2}
+        options={options}
+        isLoading={isLoading}
+      />
     </PageContent>
   );
 };

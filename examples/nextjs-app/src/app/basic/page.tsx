@@ -8,6 +8,7 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
+import { useConnect } from "wagmi";
 import { Text } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
@@ -30,6 +31,7 @@ export default function DemoBasic() {
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
   const { resetPayment } = useDaimoPayUI();
+  const { connectors } = useConnect();
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);
@@ -40,6 +42,13 @@ export default function DemoBasic() {
       toToken: getAddress(config.tokenAddress),
     });
   };
+
+  useEffect(() => {
+    console.log(
+      "[DemoBasic] Wagmi connectors:",
+      connectors.map((c) => ({ id: c.id, name: c.name, type: c.type })),
+    );
+  }, [connectors]);
 
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {

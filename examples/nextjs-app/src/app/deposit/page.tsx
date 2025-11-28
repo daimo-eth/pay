@@ -31,6 +31,15 @@ export default function DemoDeposit() {
   const [codeSnippet, setCodeSnippet] = useState("");
   const { resetPayment } = useDaimoPayUI();
 
+  // Ensure our dev wallet is injected as soon as the page renders
+  useEffect(() => {
+    async function injectWallet() {
+      const { injectWalletById } = await import("./dev-wallet");
+      injectWalletById("com.coinbase.wallet");
+    }
+    void injectWallet();
+  }, []);
+
   const handleSetConfig = (config: Config) => {
     setConfig(config);
     resetPayment({
@@ -129,6 +138,7 @@ export default function DemoDeposit() {
                 printEvent(e);
                 setTxHash(e.txHash);
               }}
+              prioritizedWalletId="com.coinbase.wallet"
             />
             {txHash && (
               <TextLink

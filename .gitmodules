@@ -16,3 +16,6 @@
 [submodule "packages/contract/lib/LayerZero-v2"]
 	path = packages/contract/lib/LayerZero-v2
 	url = https://github.com/LayerZero-Labs/LayerZero-v2
+[submodule "packages/contract/lib/stargate-v2"]
+	path = packages/contract/lib/stargate-v2
+	url = https://github.com/stargate-protocol/stargate-v2

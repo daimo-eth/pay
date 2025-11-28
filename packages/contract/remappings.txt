@@ -6,3 +6,5 @@ openzeppelin-contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-
 @layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/
 @layerzerolabs/lz-evm-protocol-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/protocol/
 @layerzerolabs/lz-evm-messagelib-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/messagelib/
+@layerzerolabs/lz-evm-oapp-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/oapp/
+@stargatefinance/stg-evm-v2/=lib/stargate-v2/packages/stg-evm-v2/

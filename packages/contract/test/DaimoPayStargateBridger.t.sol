@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import {DaimoPayStargateBridger} from "../src/DaimoPayStargateBridger.sol";
 import {DaimoPayLayerZeroBridger} from "../src/DaimoPayLayerZeroBridger.sol";
@@ -19,6 +20,7 @@ import {
 import {TokenAmount} from "../src/TokenUtils.sol";
 import {Ticket} from "@stargatefinance/stg-evm-v2/src/interfaces/IStargate.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
+import {TestDAI} from "./utils/DummyDAI.sol";
 
 /// @dev Mock Stargate that implements IStargate interface for testing.
 contract MockStargate {
@@ -157,7 +159,8 @@ contract DaimoPayStargateBridgerTest is Test {
             dstEid: DEST_EID,
             app: address(mockStargate),
             bridgeTokenOut: address(usdc),
-            bridgeTokenIn: address(usdc)
+            bridgeTokenIn: address(usdc),
+            bridgeTokenOutDecimals: usdc.decimals()
         });
 
         bridger = new DaimoPayStargateBridger(chainIds, routes);
@@ -178,13 +181,15 @@ contract DaimoPayStargateBridgerTest is Test {
             uint32 dstEid,
             address app,
             address bridgeTokenOut,
-            address bridgeTokenIn
+            address bridgeTokenIn,
+            uint256 bridgeTokenOutDecimals
         ) = bridger.bridgeRouteMapping(DEST_CHAIN);
 
         assertEq(dstEid, DEST_EID);
         assertEq(app, address(mockStargate));
         assertEq(bridgeTokenOut, address(usdc));
         assertEq(bridgeTokenIn, address(usdc));
+        assertEq(bridgeTokenOutDecimals, usdc.decimals());
     }
 
     function test_constructor_revertsOnMismatchedArrayLengths() public {
@@ -198,7 +203,8 @@ contract DaimoPayStargateBridgerTest is Test {
             dstEid: DEST_EID,
             app: address(mockStargate),
             bridgeTokenOut: address(usdc),
-            bridgeTokenIn: address(usdc)
+            bridgeTokenIn: address(usdc),
+            bridgeTokenOutDecimals: usdc.decimals()
         });
 
         vm.expectRevert("DPLZB: wrong routes length");
@@ -216,13 +222,15 @@ contract DaimoPayStargateBridgerTest is Test {
             dstEid: DEST_EID,
             app: address(mockStargate),
             bridgeTokenOut: address(usdc),
-            bridgeTokenIn: address(usdc)
+            bridgeTokenIn: address(usdc),
+            bridgeTokenOutDecimals: usdc.decimals()
         });
         routes[1] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30111, // Optimism EID
             app: address(mockStargate),
             bridgeTokenOut: address(usdc),
-            bridgeTokenIn: address(usdc)
+            bridgeTokenIn: address(usdc),
+            bridgeTokenOutDecimals: usdc.decimals()
         });
 
         DaimoPayStargateBridger multiBridger = new DaimoPayStargateBridger(
@@ -230,8 +238,8 @@ contract DaimoPayStargateBridgerTest is Test {
             routes
         );
 
-        (uint32 dstEid1, , , ) = multiBridger.bridgeRouteMapping(DEST_CHAIN);
-        (uint32 dstEid2, , , ) = multiBridger.bridgeRouteMapping(10);
+        (uint32 dstEid1, , , , ) = multiBridger.bridgeRouteMapping(DEST_CHAIN);
+        (uint32 dstEid2, , , , ) = multiBridger.bridgeRouteMapping(10);
 
         assertEq(dstEid1, DEST_EID);
         assertEq(dstEid2, 30111);
@@ -512,6 +520,199 @@ contract DaimoPayStargateBridgerTest is Test {
         assertEq(tokenIn, address(usdc));
         // With 1% fee, need to send 100 USDC to receive 99 USDC
         assertEq(amountIn, 100_000_000);
+    }
+
+    // =========================================================================
+    // Decimal conversion tests
+    // =========================================================================
+
+    /// @dev Test conversion when destination token has 18 decimals but source
+    /// token has 6 decimals (scale down with round up).
+    function test_getBridgeTokenIn_18decDestTo6decSource() public {
+        // Create 18-decimal token for destination
+        TestDAI dai = new TestDAI();
+
+        // Setup bridger: bridgeTokenIn = 6 decimals (usdc), bridgeTokenOut = 18 decimals
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = DEST_CHAIN;
+
+        DaimoPayLayerZeroBridger.LZBridgeRoute[]
+            memory routes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+        routes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: DEST_EID,
+            app: address(mockStargate),
+            bridgeTokenOut: address(dai), // 18 decimals on dest
+            bridgeTokenIn: address(usdc), // 6 decimals on source
+            bridgeTokenOutDecimals: dai.decimals()
+        });
+
+        DaimoPayStargateBridger decBridger = new DaimoPayStargateBridger(
+            chainIds,
+            routes
+        );
+
+        // Want 1e18 (1 token with 18 decimals) on destination
+        uint256 desiredOut = 1e18;
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(dai)),
+            amount: desiredOut
+        });
+
+        (address tokenIn, uint256 amountIn) = decBridger.getBridgeTokenIn(
+            DEST_CHAIN,
+            opts
+        );
+
+        assertEq(tokenIn, address(usdc));
+        // 1e18 in 18-decimal format = 1e6 in 6-decimal format
+        assertEq(amountIn, 1e6);
+    }
+
+    /// @dev Test conversion when destination token has 6 decimals but source
+    /// token has 18 decimals (scale up).
+    function test_getBridgeTokenIn_6decDestTo18decSource() public {
+        // Create 18-decimal token for source
+        TestDAI dai = new TestDAI();
+
+        // Setup bridger: bridgeTokenIn = 18 decimals, bridgeTokenOut = 6 decimals (usdc)
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = DEST_CHAIN;
+
+        DaimoPayLayerZeroBridger.LZBridgeRoute[]
+            memory routes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+        routes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: DEST_EID,
+            app: address(mockStargate),
+            bridgeTokenOut: address(usdc), // 6 decimals on dest
+            bridgeTokenIn: address(dai), // 18 decimals on source
+            bridgeTokenOutDecimals: usdc.decimals()
+        });
+
+        DaimoPayStargateBridger decBridger = new DaimoPayStargateBridger(
+            chainIds,
+            routes
+        );
+
+        // Want 1e6 (1 USDC with 6 decimals) on destination
+        uint256 desiredOut = 1e6;
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(usdc)),
+            amount: desiredOut
+        });
+
+        (address tokenIn, uint256 amountIn) = decBridger.getBridgeTokenIn(
+            DEST_CHAIN,
+            opts
+        );
+
+        assertEq(tokenIn, address(dai));
+        // 1e6 in 6-decimal format = 1e18 in 18-decimal format
+        assertEq(amountIn, 1e18);
+    }
+
+    /// @dev Test that round up is applied when scaling down with remainder.
+    function test_getBridgeTokenIn_roundsUpOnScaleDown() public {
+        // Create 18-decimal token for destination
+        TestDAI dai = new TestDAI();
+
+        // Setup bridger: bridgeTokenIn = 6 decimals, bridgeTokenOut = 18 decimals
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = DEST_CHAIN;
+
+        DaimoPayLayerZeroBridger.LZBridgeRoute[]
+            memory routes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+        routes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: DEST_EID,
+            app: address(mockStargate),
+            bridgeTokenOut: address(dai), // 18 decimals on dest
+            bridgeTokenIn: address(usdc), // 6 decimals on source
+            bridgeTokenOutDecimals: dai.decimals()
+        });
+
+        DaimoPayStargateBridger decBridger = new DaimoPayStargateBridger(
+            chainIds,
+            routes
+        );
+
+        // Want 1e18 + 1 wei on destination (not evenly divisible)
+        // 1e18 + 1 in 18 decimals should round up to 1e6 + 1 in 6 decimals to
+        // guarantee sufficient output amount.
+        uint256 desiredOut = 1e18 + 1;
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(dai)),
+            amount: desiredOut
+        });
+
+        (address tokenIn, uint256 amountIn) = decBridger.getBridgeTokenIn(
+            DEST_CHAIN,
+            opts
+        );
+
+        assertEq(tokenIn, address(usdc));
+        // (1e18 + 1) / 1e12 with round up = 1e6 + 1
+        assertEq(amountIn, 1e6 + 1);
+    }
+
+    /// @dev Test decimal conversion in sendToChain with 18-dec dest to 6-dec source.
+    function test_sendToChain_withDecimalConversion() public {
+        // Create 18-decimal token for destination
+        TestDAI dai = new TestDAI();
+
+        // Setup bridger: bridgeTokenIn = 6 decimals (usdc), bridgeTokenOut = 18 decimals
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = DEST_CHAIN;
+
+        DaimoPayLayerZeroBridger.LZBridgeRoute[]
+            memory routes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+        routes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: DEST_EID,
+            app: address(mockStargate),
+            bridgeTokenOut: address(dai), // 18 decimals on dest
+            bridgeTokenIn: address(usdc), // 6 decimals on source
+            bridgeTokenOutDecimals: dai.decimals()
+        });
+
+        DaimoPayStargateBridger decBridger = new DaimoPayStargateBridger(
+            chainIds,
+            routes
+        );
+
+        // Approve bridger to spend our tokens
+        usdc.approve(address(decBridger), type(uint256).max);
+
+        // Configure mock to pull usdc tokens
+        mockStargate.setBridgeTokenIn(address(usdc));
+
+        // Want 1e18 (1 token with 18 decimals) on destination
+        uint256 desiredOut = 1e18;
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(dai)),
+            amount: desiredOut
+        });
+
+        // Fund the bridger with native for fees
+        vm.deal(address(decBridger), 0.001 ether);
+
+        uint256 balanceBefore = usdc.balanceOf(address(this));
+
+        decBridger.sendToChain(
+            DEST_CHAIN,
+            RECIPIENT,
+            opts,
+            REFUND_ADDRESS,
+            bytes("")
+        );
+
+        uint256 balanceAfter = usdc.balanceOf(address(this));
+        // Should transfer 1e6 USDC (converted from 1e18 in 18 decimals)
+        assertEq(balanceBefore - balanceAfter, 1e6);
+
+        // Verify tokens were sent to MockStargate
+        assertEq(mockStargate.lastSentAmount(), 1e6);
     }
 
     // =========================================================================

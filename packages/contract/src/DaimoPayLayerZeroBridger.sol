@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayBridger.sol";
 import {
@@ -25,10 +26,13 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
         uint32 dstEid;
         /// @notice OFT/OFTAdapter/Stargate application on the source chain.
         address app;
-        /// @notice Expected token address on the destination chain.
-        address bridgeTokenOut;
         /// @notice Token address custodied on the source chain.
         address bridgeTokenIn;
+        /// @notice Expected token address on the destination chain.
+        address bridgeTokenOut;
+        /// @notice Decimals of the bridgeTokenOut. Used to convert the output
+        /// amount decimals to the bridgeTokenIn decimals.
+        uint256 bridgeTokenOutDecimals;
     }
 
     /// @notice Accounting policy returned by subclasses to parameterize accounting send.
@@ -206,13 +210,14 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
     /// @param toChainId Destination EVM chain ID.
     /// @param bridgeTokenOutOptions Candidate destination token/amount options.
     /// @return route The configured route for `toChainId`.
-    /// @return outAmount Desired destination amount (local decimals).
+    /// @return outAmountLD Desired destination amount (local decimals).
     function _resolveRouteAndOut(
         uint256 toChainId,
         TokenAmount[] calldata bridgeTokenOutOptions
-    ) internal view returns (LZBridgeRoute memory route, uint256 outAmount) {
+    ) internal view returns (LZBridgeRoute memory route, uint256 outAmountLD) {
         route = bridgeRouteMapping[toChainId];
         require(route.dstEid != 0, "DPLZB: route not found");
+
         uint256 n = bridgeTokenOutOptions.length;
         uint256 idx = 0;
         for (; idx < n; ++idx) {
@@ -222,8 +227,19 @@ abstract contract DaimoPayLayerZeroBridger is IDaimoPayBridger {
             ) break;
         }
         require(idx < n, "DPLZB: bad bridge token");
-        outAmount = bridgeTokenOutOptions[idx].amount;
+
+        uint256 outAmount = bridgeTokenOutOptions[idx].amount;
         require(outAmount > 0, "DPLZB: zero amount");
+
+        // LayerZero uses "local decimals" for amounts. e.g. if the token has
+        // 6 decimals on the source chain and 18 decimals on the dest chain,
+        // represent the bridge output amount using 6 decimals.
+        outAmountLD = TokenUtils.convertTokenAmountDecimals({
+            amount: outAmount,
+            fromDecimals: route.bridgeTokenOutDecimals,
+            toDecimals: IERC20Metadata(route.bridgeTokenIn).decimals(),
+            roundUp: true
+        });
     }
 
     /// @dev Casts an EVM address to 32-byte representation used by OFT.

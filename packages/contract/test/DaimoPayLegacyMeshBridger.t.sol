@@ -54,7 +54,8 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
             dstEid: DEST_EID,
             app: address(mockOFT),
             bridgeTokenOut: address(usdt), // Simplified
-            bridgeTokenIn: address(usdt)
+            bridgeTokenIn: address(usdt),
+            bridgeTokenOutDecimals: usdt.decimals()
         });
 
         bridger = new DaimoPayLegacyMeshBridger(chainIds, routes);

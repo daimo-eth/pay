@@ -111,4 +111,33 @@ library TokenUtils {
         }
         return n;
     }
+
+    /// @notice Converts a token amount between different decimal representations.
+    /// @param amount The token amount in the source decimal format.
+    /// @param fromDecimals Decimals of the source token (e.g., 6 for USDC).
+    /// @param toDecimals Decimals of the destination token (e.g., 18 for DAI).
+    /// @param roundUp If true, rounds up when scaling down (losing precision).
+    ///        Use true when calculating required input amounts (user pays more).
+    ///        Use false when calculating output amounts (user receives less).
+    /// @return The converted amount in the destination decimal format.
+    function convertTokenAmountDecimals(
+        uint256 amount,
+        uint256 fromDecimals,
+        uint256 toDecimals,
+        bool roundUp
+    ) internal pure returns (uint256) {
+        if (toDecimals == fromDecimals) {
+            return amount;
+        } else if (toDecimals > fromDecimals) {
+            return amount * 10 ** (toDecimals - fromDecimals);
+        } else {
+            uint256 decimalDiff = fromDecimals - toDecimals;
+            uint256 divisor = 10 ** decimalDiff;
+            if (roundUp) {
+                return (amount + divisor - 1) / divisor;
+            } else {
+                return amount / divisor;
+            }
+        }
+    }
 }

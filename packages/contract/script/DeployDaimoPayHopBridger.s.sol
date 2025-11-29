@@ -10,7 +10,7 @@ import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 import {getHopChain, getHopBridgeRoutes} from "./constants/HopBridgeRouteConstants.sol";
 
 bytes32 constant DEPLOY_SALT_HOP_BRIDGER = keccak256(
-    "DaimoPayHopBridger-deploy7"
+    "DaimoPayHopBridger-deploy8"
 );
 
 contract DeployDaimoPayHopBridger is Script {
@@ -39,6 +39,19 @@ contract DeployDaimoPayHopBridger is Script {
             finalChains.length == finalChainCoins.length,
             "DPHB: length mismatch"
         );
+
+        // Log hop configuration and final coin specs
+        console.log("Hop chain ID:", hopChainId);
+        console.log("Hop coin address:", hopCoinAddr);
+        console.log("Hop coin decimals:", hopCoinDecimals);
+        console.log("First hop bridger:", firstHopBridger);
+        console.log("--------------------------------");
+        for (uint256 i = 0; i < finalChains.length; ++i) {
+            console.log("Final chain:", finalChains[i]);
+            console.log("Final coin address:", finalChainCoins[i].coinAddr);
+            console.log("Final coin decimals:", finalChainCoins[i].coinDecimals);
+            console.log("--------------------------------");
+        }
 
         vm.startBroadcast();
         address deployedHopBridger = CREATE3.deploy(

@@ -8,7 +8,7 @@ import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
-    "DaimoPayLegacyMeshBridger-deploy6"
+    "DaimoPayLegacyMeshBridger-deploy7"
 );
 
 contract DeployDaimoPayLegacyMeshBridger is Script {

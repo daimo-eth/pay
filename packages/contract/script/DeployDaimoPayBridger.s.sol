@@ -11,20 +11,24 @@ import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/HopBridgeRouteConstants.sol";
 import "./constants/LegacyMeshBridgeRouteConstants.sol";
+import "./constants/StargateBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
 import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
 import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
 import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 import {DEPLOY_SALT_HOP_BRIDGER} from "./DeployDaimoPayHopBridger.s.sol";
-import {DEPLOY_SALT_LEGACY_MESH_BRIDGER} from "./DeployDaimoPayLegacyMeshBridger.s.sol";
+import {
+    DEPLOY_SALT_LEGACY_MESH_BRIDGER
+} from "./DeployDaimoPayLegacyMeshBridger.s.sol";
+import {
+    DEPLOY_SALT_STARGATE_BRIDGER
+} from "./DeployDaimoPayStargateBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy25");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy27");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
-        vm.startBroadcast();
-
         (
             uint256[] memory chainIds,
             address[] memory bridgers
@@ -35,6 +39,8 @@ contract DeployDaimoPayBridger is Script {
             console.log("toChain:", chainIds[i], "bridger:", bridgers[i]);
         }
         console.log("--------------------------------");
+
+        vm.startBroadcast();
 
         address bridger = CREATE3.deploy(
             DEPLOY_SALT_BRIDGER,
@@ -85,6 +91,10 @@ contract DeployDaimoPayBridger is Script {
             msg.sender,
             DEPLOY_SALT_LEGACY_MESH_BRIDGER
         );
+        address stargateBridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_STARGATE_BRIDGER
+        );
 
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
@@ -92,6 +102,7 @@ contract DeployDaimoPayBridger is Script {
         console.log("axelarBridger address:", axelarBridger);
         console.log("hopBridger address:", hopBridger);
         console.log("legacyMeshBridger address:", legacyMeshBridger);
+        console.log("stargateBridger address:", stargateBridger);
 
         // Get all supported destination chains from the generated constants
         // CCTP
@@ -123,13 +134,19 @@ contract DeployDaimoPayBridger is Script {
             block.chainid
         );
 
+        // Stargate
+        (uint256[] memory stargateChainIds, ) = getStargateBridgeRoutes(
+            block.chainid
+        );
+
         // Count total number of supported chains
         uint256 totalChains = cctpChainIds.length +
             cctpV2ChainIds.length +
             acrossChainIds.length +
             axelarChainIds.length +
             hopDestChainIds.length +
-            legacyMeshChainIds.length;
+            legacyMeshChainIds.length +
+            stargateChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -177,6 +194,13 @@ contract DeployDaimoPayBridger is Script {
         for (uint256 i = 0; i < legacyMeshChainIds.length; i++) {
             chainIds[index] = legacyMeshChainIds[i];
             bridgers[index] = legacyMeshBridger;
+            index++;
+        }
+
+        // Add Stargate routes
+        for (uint256 i = 0; i < stargateChainIds.length; i++) {
+            chainIds[index] = stargateChainIds[i];
+            bridgers[index] = stargateBridger;
             index++;
         }
 

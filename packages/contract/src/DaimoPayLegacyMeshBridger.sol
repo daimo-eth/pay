@@ -2,7 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./DaimoPayLayerZeroBridger.sol";
-import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {
+    IOFT
+} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 
 interface IUsdtOFT is IOFT {
     function feeBps() external view returns (uint16);
@@ -32,7 +34,6 @@ contract DaimoPayLegacyMeshBridger is DaimoPayLayerZeroBridger {
         uint256 denom = 10_000 - bps;
         uint256 gross = (desiredOutLD * 10_000 + denom - 1) / denom; // ceil div
 
-        a.inAmountLD = gross; // pull from user
         a.sendAmountLD = gross; // send via OFT
         a.minAmountLD = desiredOutLD; // exact-out guarantee
         a.extraOptions = bytes(""); // rely on enforced options (empty is OK)

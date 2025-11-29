@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import "./DaimoPayLayerZeroBridger.sol";
-import {IOFT, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
@@ -23,7 +22,6 @@ contract DaimoPayUSDT0Bridger is DaimoPayLayerZeroBridger {
         bytes memory /*extraData*/
     ) internal pure override returns (Accounting memory a) {
         // Plain OFT path: exact-out, no transfer bps.
-        a.inAmountLD = desiredOutLD; // pull from user
         a.sendAmountLD = desiredOutLD; // send via OFT
         a.minAmountLD = desiredOutLD; // strict out guarantee
         a.extraOptions = bytes(""); // rely on enforced options

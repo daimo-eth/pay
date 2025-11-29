@@ -54,7 +54,8 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
             dstEid: DEST_EID,
             app: address(mockOFT),
             bridgeTokenOut: address(usdt), // Simplified
-            bridgeTokenIn: address(usdt)
+            bridgeTokenIn: address(usdt),
+            bridgeTokenOutDecimals: usdt.decimals()
         });
 
         bridger = new DaimoPayLegacyMeshBridger(chainIds, routes);
@@ -115,7 +116,7 @@ contract DaimoPayLegacyMeshBridgerTest is Test {
             amount: 1_000_000
         });
 
-        vm.expectRevert("same chain");
+        vm.expectRevert("DPLZB: same chain");
         bridger.sendToChain(
             SOURCE_CHAIN, // Same as current chain
             address(this),

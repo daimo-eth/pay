@@ -16,5 +16,8 @@
   },
   "lib/solmate": {
     "rev": "97bdb2003b70382996a79a406813f76417b1cf90"
+  },
+  "lib/stargate-v2": {
+    "rev": "21d9dde3b0b5efc1dd86314fc9853f0537232def"
   }
 }

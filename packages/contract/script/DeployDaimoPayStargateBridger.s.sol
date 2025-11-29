@@ -3,20 +3,20 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 
-import "../src/DaimoPayLegacyMeshBridger.sol";
-import "./constants/LegacyMeshBridgeRouteConstants.sol";
+import "../src/DaimoPayStargateBridger.sol";
+import "./constants/StargateBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
-bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
-    "DaimoPayLegacyMeshBridger-deploy7"
+bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
+    "DaimoPayStargateBridger-deploy3"
 );
 
-contract DeployDaimoPayLegacyMeshBridger is Script {
+contract DeployDaimoPayStargateBridger is Script {
     function run() public {
         (
             uint256[] memory chainIds,
             DaimoPayLayerZeroBridger.LZBridgeRoute[] memory bridgeRoutes
-        ) = getLegacyMeshBridgeRoutes(block.chainid);
+        ) = getStargateBridgeRoutes(block.chainid);
 
         // Log route details
         for (uint256 i = 0; i < bridgeRoutes.length; ++i) {
@@ -25,22 +25,23 @@ contract DeployDaimoPayLegacyMeshBridger is Script {
             console.log("App:", bridgeRoutes[i].app);
             console.log("Bridge token in:", bridgeRoutes[i].bridgeTokenIn);
             console.log("Bridge token out:", bridgeRoutes[i].bridgeTokenOut);
+            console.log(
+                "Bridge token out decimals:",
+                bridgeRoutes[i].bridgeTokenOutDecimals
+            );
             console.log("--------------------------------");
         }
 
         vm.startBroadcast();
 
         address bridger = CREATE3.deploy(
-            DEPLOY_SALT_LEGACY_MESH_BRIDGER,
+            DEPLOY_SALT_STARGATE_BRIDGER,
             abi.encodePacked(
-                type(DaimoPayLegacyMeshBridger).creationCode,
+                type(DaimoPayStargateBridger).creationCode,
                 abi.encode(chainIds, bridgeRoutes)
             )
         );
-        console.log(
-            "Legacy Mesh bridger deployed at address:",
-            address(bridger)
-        );
+        console.log("Stargate bridger deployed at address:", address(bridger));
 
         vm.stopBroadcast();
     }

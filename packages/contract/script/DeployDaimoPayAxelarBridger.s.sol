@@ -9,7 +9,7 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_AXELAR_BRIDGER = keccak256(
-    "DaimoPayAxelarBridger-deploy6"
+    "DaimoPayAxelarBridger-deploy7"
 );
 
 contract DeployDaimoPayAxelarBridger is Script {
@@ -28,8 +28,12 @@ contract DeployDaimoPayAxelarBridger is Script {
             DaimoPayAxelarBridger.AxelarBridgeRoute[] memory bridgeRoutes
         ) = getAxelarBridgeRoutes(block.chainid, axelarReceiver);
 
+        // Receiver chains still need to have the contract deployed even if there
+        // are no bridge routes so that the _execute and _executeWithToken
+        // functions on the contract can be called. The Axelar protocol requires
+        // the receiver contract implement these functions.
         if (chainIds.length == 0) {
-            revert("No Axelar bridge routes found");
+            console.log("WARNING: No Axelar bridge routes found");
         }
 
         for (uint32 i = 0; i < chainIds.length; ++i) {

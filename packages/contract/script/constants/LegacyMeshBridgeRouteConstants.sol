@@ -26,8 +26,8 @@ function getLegacyMeshBridgeRoutes(
         bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30125,
             app: 0x1F748c76dE468e9D11bd340fA9D5CBADf315dFB0,
-            bridgeTokenOut: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             bridgeTokenIn: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
+            bridgeTokenOut: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             bridgeTokenOutDecimals: 6
         });
 
@@ -44,8 +44,8 @@ function getLegacyMeshBridgeRoutes(
         bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30125,
             app: 0x77652D5aba086137b595875263FC200182919B92,
-            bridgeTokenOut: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             bridgeTokenIn: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            bridgeTokenOut: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             bridgeTokenOutDecimals: 6
         });
 
@@ -62,8 +62,8 @@ function getLegacyMeshBridgeRoutes(
         bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30101,
             app: 0xf10E161027410128E63E75D0200Fb6d34b2db243,
-            bridgeTokenOut: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
             bridgeTokenIn: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
+            bridgeTokenOut: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
             bridgeTokenOutDecimals: 6
         });
         // 42220 -> 42161
@@ -71,8 +71,8 @@ function getLegacyMeshBridgeRoutes(
         bridgeRoutes[1] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30110,
             app: 0xf10E161027410128E63E75D0200Fb6d34b2db243,
-            bridgeTokenOut: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
             bridgeTokenIn: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
+            bridgeTokenOut: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
             bridgeTokenOutDecimals: 6
         });
 

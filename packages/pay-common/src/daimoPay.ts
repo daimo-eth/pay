@@ -62,6 +62,14 @@ export enum DaimoPayIntentStatus {
   BOUNCED = "payment_bounced",
 }
 
+/**
+ * Source screening status.
+ */
+export enum DaimoPaySourceCheck {
+  OK = "ok",
+  BLOCKED = "blocked",
+}
+
 export interface DaimoPayOrderItem {
   name: string;
   description: string;
@@ -213,6 +221,7 @@ export type DaimoPayHydratedOrder = {
   sourceInitiateTxHash: Hex | null;
   sourceStartTxHash: Hex | null;
   sourceStatus: DaimoPayOrderStatusSource;
+  sourceCheck: DaimoPaySourceCheck | null;
   destStatus: DaimoPayOrderStatusDest;
   destFastFinishTxHash: Hex | null;
   destClaimTxHash: Hex | null;

@@ -9,10 +9,16 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
+import { useConnect } from "wagmi";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
+import {
+  captureBaseProvider,
+  useBaseWalletInjection,
+  usePrivyWalletInjection,
+} from "./dev-wallet";
 
 type Config = {
   recipientAddress: string;
@@ -30,15 +36,25 @@ export default function DemoDeposit() {
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
   const { resetPayment } = useDaimoPayUI();
+  const { connectors } = useConnect();
 
-  // Ensure our dev wallet is injected as soon as the page renders
+  const [hasBaseProvider, setHasBaseProvider] = useState(false);
+
   useEffect(() => {
-    async function injectWallet() {
-      const { injectWalletById } = await import("./dev-wallet");
-      injectWalletById("com.coinbase.wallet");
-    }
-    void injectWallet();
-  }, []);
+    let cancelled = false;
+    captureBaseProvider(connectors).then((captured) => {
+      if (!cancelled && captured) {
+        setHasBaseProvider(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [connectors]);
+
+  // Ensure Privy overrides first, then announce Base provider for the bug repro
+  usePrivyWalletInjection();
+  useBaseWalletInjection(hasBaseProvider);
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);

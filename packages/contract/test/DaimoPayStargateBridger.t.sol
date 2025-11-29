@@ -26,15 +26,17 @@ import {TestDAI} from "./utils/DummyDAI.sol";
 contract MockStargate {
     /// @dev Fee basis points (100 = 1%).
     uint256 public feeBps;
-    /// @dev Available liquidity in the pool. 0 = unlimited.
-    uint256 public availableLiquidity;
     uint256 public lastSentAmount;
     address public bridgeTokenIn;
+    /// @dev Minimum amount allowed. 0 = use default of 1.
+    uint256 public minAmountLD;
+    /// @dev Maximum amount allowed. 0 = unlimited.
+    uint256 public maxAmountLD;
 
     constructor() {
-        // Default: no fee, unlimited liquidity
         feeBps = 0;
-        availableLiquidity = 0;
+        minAmountLD = 0;
+        maxAmountLD = 0;
     }
 
     /// @dev Set the bridge token for pulling tokens in sendToken.
@@ -47,10 +49,14 @@ contract MockStargate {
         feeBps = _feeBps;
     }
 
-    /// @dev Set the available liquidity in the pool. 0 = unlimited.
-    /// If the normal output would exceed this, return the available liquidity.
-    function setAvailableLiquidity(uint256 _liquidity) external {
-        availableLiquidity = _liquidity;
+    /// @dev Set the minimum amount allowed. 0 = use default of 1.
+    function setMinAmountLD(uint256 _minAmountLD) external {
+        minAmountLD = _minAmountLD;
+    }
+
+    /// @dev Set the maximum amount allowed. 0 = unlimited.
+    function setMaxAmountLD(uint256 _maxAmountLD) external {
+        maxAmountLD = _maxAmountLD;
     }
 
     function quoteOFT(
@@ -64,16 +70,13 @@ contract MockStargate {
             OFTReceipt memory receipt
         )
     {
-        limit = OFTLimit({minAmountLD: 1, maxAmountLD: type(uint256).max});
+        uint256 minAmount = minAmountLD > 0 ? minAmountLD : 1;
+        uint256 maxAmount = maxAmountLD > 0 ? maxAmountLD : type(uint256).max;
+        limit = OFTLimit({minAmountLD: minAmount, maxAmountLD: maxAmount});
         oftFeeDetails = new OFTFeeDetail[](0);
 
         // Apply fee: output = input * (10000 - feeBps) / 10000
         uint256 received = (_sendParam.amountLD * (10000 - feeBps)) / 10000;
-
-        // Cap at available liquidity if set (non-zero)
-        if (availableLiquidity > 0 && received > availableLiquidity) {
-            received = availableLiquidity;
-        }
 
         receipt = OFTReceipt({
             amountSentLD: _sendParam.amountLD,
@@ -407,7 +410,7 @@ contract DaimoPayStargateBridgerTest is Test {
         );
     }
 
-    function test_sendToChain_revertsOnInsufficientLiquidity() public {
+    function test_sendToChain_revertsOnDesiredOutBelowMin() public {
         uint256 desiredOut = 1_000_000;
 
         TokenAmount[] memory opts = new TokenAmount[](1);
@@ -416,12 +419,12 @@ contract DaimoPayStargateBridgerTest is Test {
             amount: desiredOut
         });
 
-        // Set available liquidity to less than desired output
-        mockStargate.setAvailableLiquidity(desiredOut / 2);
+        // Set min amount higher than desired output
+        mockStargate.setMinAmountLD(desiredOut + 1);
 
         vm.deal(address(bridger), 0.01 ether);
 
-        vm.expectRevert("DPSB: could not find input amount");
+        vm.expectRevert("DPSB: desiredOutLD < minAmountLD");
         bridger.sendToChain(
             DEST_CHAIN,
             RECIPIENT,
@@ -429,6 +432,62 @@ contract DaimoPayStargateBridgerTest is Test {
             REFUND_ADDRESS,
             bytes("")
         );
+    }
+
+    function test_sendToChain_revertsOnDesiredOutAboveMax() public {
+        uint256 desiredOut = 1_000_000;
+
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(usdc)),
+            amount: desiredOut
+        });
+
+        // Set max amount lower than desired output
+        mockStargate.setMaxAmountLD(desiredOut - 1);
+
+        vm.deal(address(bridger), 0.01 ether);
+
+        vm.expectRevert("DPSB: desiredOutLD > maxAmountLD");
+        bridger.sendToChain(
+            DEST_CHAIN,
+            RECIPIENT,
+            opts,
+            REFUND_ADDRESS,
+            bytes("")
+        );
+    }
+
+    function test_getBridgeTokenIn_revertsOnDesiredOutBelowMin() public {
+        uint256 desiredOut = 1_000_000;
+
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(usdc)),
+            amount: desiredOut
+        });
+
+        // Set min amount higher than desired output
+        mockStargate.setMinAmountLD(desiredOut + 1);
+
+        vm.expectRevert("DPSB: desiredOutLD < minAmountLD");
+        bridger.getBridgeTokenIn(DEST_CHAIN, opts);
+    }
+
+    function test_getBridgeTokenIn_revertsOnDesiredOutAboveMax() public {
+        uint256 desiredOut = 1_000_000;
+
+        TokenAmount[] memory opts = new TokenAmount[](1);
+        opts[0] = TokenAmount({
+            token: IERC20(address(usdc)),
+            amount: desiredOut
+        });
+
+        // Set max amount lower than desired output
+        mockStargate.setMaxAmountLD(desiredOut - 1);
+
+        vm.expectRevert("DPSB: desiredOutLD > maxAmountLD");
+        bridger.getBridgeTokenIn(DEST_CHAIN, opts);
     }
 
     function test_sendToChain_selectsCorrectTokenFromMultipleOptions() public {

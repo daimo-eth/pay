@@ -5,6 +5,9 @@ import "./DaimoPayLayerZeroBridger.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {
+    OFTLimit
+} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {
     IStargate,
     MessagingFee,
     OFTReceipt
@@ -51,9 +54,17 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
                 oftCmd: "" // Empty for taxi mode
             });
 
-            (, , OFTReceipt memory receipt) = IStargate(route.app).quoteOFT({
-                _sendParam: sp
-            });
+            (OFTLimit memory limit, , OFTReceipt memory receipt) = IStargate(
+                route.app
+            ).quoteOFT({_sendParam: sp});
+            require(
+                desiredOutLD >= limit.minAmountLD,
+                "DPSB: desiredOutLD < minAmountLD"
+            );
+            require(
+                desiredOutLD <= limit.maxAmountLD,
+                "DPSB: desiredOutLD > maxAmountLD"
+            );
 
             if (receipt.amountReceivedLD >= desiredOutLD) {
                 a.sendAmountLD = amountLD;

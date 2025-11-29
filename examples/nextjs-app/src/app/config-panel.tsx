@@ -4,6 +4,7 @@ import {
   solana,
   supportedChains,
   Token,
+  tron,
 } from "@daimo/pay-common";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -100,8 +101,10 @@ export function ConfigPanel({
   // Extract unique chains
   const chains = supportedChains.filter(
     (chain) =>
-      chain.chainId !== solana.chainId && chain.chainId !== ethereum.chainId,
-  ); // Exclude Solana and Ethereum
+      chain.chainId !== solana.chainId &&
+      chain.chainId !== ethereum.chainId &&
+      chain.chainId !== tron.chainId,
+  );
 
   // Get tokens for selected chain
   let tokens: Token[] = [];

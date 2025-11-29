@@ -111,7 +111,6 @@ export function usePrivyWalletInjection() {
     provider.isPrivyInjected = true;
 
     w.ethereum = provider;
-    w.ethereum.providers = [provider];
 
     announce(PRIVY_PROVIDER_INFO, provider);
   }, []);
@@ -126,7 +125,6 @@ export function useBaseWalletInjection(enabled: boolean) {
     const provider: any = capturedBaseProvider;
     const w = window as any;
     w.ethereum = provider;
-    w.ethereum.providers = [provider];
 
     announce(BASE_PROVIDER_INFO, provider);
   }, [enabled]);

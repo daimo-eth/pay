@@ -310,7 +310,12 @@ export function usePaymentState({
     const paymentTxHash = await (async () => {
       const dest = walletOption.passthroughAddress ?? hydratedOrder.intentAddr;
       try {
-        if (isNativeToken(getAddress(required.token.token))) {
+        if (
+          isNativeToken(
+            required.token.chainId,
+            getAddress(required.token.token),
+          )
+        ) {
           return await sendTransactionAsync({
             to: dest,
             value: paymentAmount,

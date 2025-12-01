@@ -914,8 +914,12 @@ const tokensByChainAndType: Map<
   ],
 ]);
 
-export function isNativeToken(token: Address): boolean {
-  return token === NATIVE_TOKEN_ADDRESS;
+export function isNativeToken(chainId: number, token: Address): boolean {
+  const nativeToken = tokensByChainAndType.get(chainId)?.[TokenType.NATIVE];
+  if (nativeToken == null) {
+    return false;
+  }
+  return getAddress(nativeToken.token) === getAddress(token);
 }
 
 export function getChainNativeToken(chainId: number): Token {

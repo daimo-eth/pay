@@ -8,7 +8,6 @@ import { baseAccount } from "@wagmi/connectors";
 import { type ReactNode } from "react";
 import { createConfig } from "wagmi";
 import { DAIMOPAY_API_URL } from "../shared";
-import { usePrivyWalletInjection } from "./dev-wallet";
 import { ErudaProvider } from "./eruda-index";
 
 export const wagmiConfig = createConfig(
@@ -21,8 +20,6 @@ export const wagmiConfig = createConfig(
 const queryClient = new QueryClient();
 
 export function Providers(props: { children: ReactNode }) {
-  usePrivyWalletInjection();
-
   return (
     <ErudaProvider>
       <PrivyProvider

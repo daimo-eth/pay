@@ -7,13 +7,13 @@ import {
   getChainNativeToken,
   knownTokens,
 } from "@daimo/pay-common";
-import { useEffect, useState } from "react";
+import { useCreateWallet, usePrivy, useWallets } from "@privy-io/react-auth";
+import { useEffect, useRef, useState } from "react";
 import { getAddress } from "viem";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
-import { usePrivyWalletInjection } from "./dev-wallet";
 
 type Config = {
   recipientAddress: string;
@@ -32,9 +32,6 @@ export default function DemoDeposit() {
   const [codeSnippet, setCodeSnippet] = useState("");
   const { resetPayment } = useDaimoPayUI();
 
-  // Inject Privy wallet via EIP-6963 without overriding existing providers
-  usePrivyWalletInjection();
-
   const handleSetConfig = (config: Config) => {
     setConfig(config);
     resetPayment({
@@ -43,6 +40,39 @@ export default function DemoDeposit() {
       toToken: getAddress(config.tokenAddress),
     });
   };
+
+  // Privy auth + embedded wallet creation
+  const { ready, authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
+  const { createWallet } = useCreateWallet({
+    onSuccess: ({ wallet }) => {
+      console.log("[privy] created wallet:", wallet.address);
+    },
+    onError: (error) => {
+      console.error("[privy] failed to create wallet:", error);
+    },
+  });
+
+  const hasEmbeddedWallet = wallets.some((w) => w.walletClientType === "privy");
+  const initStarted = useRef(false);
+
+  useEffect(() => {
+    if (!ready || initStarted.current) return;
+
+    const init = async () => {
+      initStarted.current = true;
+      if (!authenticated) {
+        await login();
+      }
+    };
+    init();
+  }, [ready, authenticated, login]);
+
+  // Create wallet after authentication
+  useEffect(() => {
+    if (!authenticated || hasEmbeddedWallet) return;
+    createWallet();
+  }, [authenticated, hasEmbeddedWallet, createWallet]);
 
   // Only render the DaimoPayButton when we have valid config
   const hasValidConfig =
@@ -133,7 +163,6 @@ export default function DemoDeposit() {
                 printEvent(e);
                 setTxHash(e.txHash);
               }}
-              prioritizedWalletId="com.coinbase.wallet"
             />
             {txHash && (
               <TextLink

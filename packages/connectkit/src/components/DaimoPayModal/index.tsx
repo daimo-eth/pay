@@ -152,6 +152,7 @@ export const DaimoPayModal: React.FC<{
     } else if (context.route === ROUTES.WAITING_EXTERNAL) {
       setPaymentWaitingMessage(undefined);
       if (isDepositFlow) {
+        generatePreviewOrder();
         context.setRoute(ROUTES.SELECT_EXTERNAL_AMOUNT, meta);
       } else {
         setSelectedExternalOption(undefined);

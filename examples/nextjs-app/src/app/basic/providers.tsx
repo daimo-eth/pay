@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { createConfig, WagmiProvider } from "wagmi";
 import { DAIMOPAY_API_URL } from "../shared";
-import { ErudaProvider } from "./eruda-index";
 
 export const wagmiConfig = createConfig(
   getDefaultConfig({
@@ -20,7 +19,7 @@ export function Providers(props: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <DaimoPayProvider payApiUrl={DAIMOPAY_API_URL} debugMode>
-          <ErudaProvider>{props.children}</ErudaProvider>
+          {props.children}
         </DaimoPayProvider>
       </QueryClientProvider>
     </WagmiProvider>

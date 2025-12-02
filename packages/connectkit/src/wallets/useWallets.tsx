@@ -92,6 +92,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
         if (isBaseAccountConnector(connector.id)) return;
         if (isGeminiConnector(connector.id)) return;
         if (!isInjectedConnector(connector.type)) return;
+        if (mobileWallets.some((w) => w.id === connector.id)) return;
         // Skip any connectors that mention WalletConnect
         if (connector.name?.toLowerCase().includes("walletconnect")) return;
         mobileWallets.push({

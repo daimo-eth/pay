@@ -104,6 +104,9 @@ export const DaimoPayModal: React.FC<{
   } = useAccount();
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
+
+  // Get prioritized wallet if specified
+  const prioritizedWalletId = paymentState.buttonProps?.prioritizedWalletId;
   const pendingWallet = useWalletById(context.pendingConnectorId || "");
 
   // if chain is unsupported we enforce a "switch chain" prompt
@@ -615,6 +618,8 @@ export const DaimoPayModal: React.FC<{
     const solanaOptionsCount =
       paymentState.solanaPaymentOptions.options?.length ?? 0;
     const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
+    // Use prioritized wallet if specified
+    const walletIdToUse = prioritizedWalletId ?? connector?.id;
     if (
       (!hasUniqueOption || isWalletsUniquePaymentOption) &&
       isEthConnected &&
@@ -624,9 +629,13 @@ export const DaimoPayModal: React.FC<{
       evmOptionsCount > 0
     ) {
       paymentState.setTokenMode("evm");
+      // Set the selected wallet if we have a wallet ID
+      if (walletIdToUse && walletConfigs[walletIdToUse]) {
+        setSelectedWallet(walletConfigs[walletIdToUse]);
+      }
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
-        walletId: connector?.id,
+        walletId: walletIdToUse,
         chainId: chain?.id,
         address,
       });
@@ -659,6 +668,7 @@ export const DaimoPayModal: React.FC<{
     address,
     chain?.id,
     connector?.id,
+    prioritizedWalletId,
     context.uniquePaymentMethodPage,
   ]);
 

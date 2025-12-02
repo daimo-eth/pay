@@ -72,10 +72,10 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
         <CustomQRCode
           value={url}
           image={
-            wallet?.id ? (
-              wallet.icon
-            ) : externalOption?.logoURI ? (
+            externalOption?.logoURI ? (
               <SquircleIcon icon={externalOption.logoURI} alt="Logo" />
+            ) : wallet?.id ? (
+              wallet.icon
             ) : (
               <div
                 style={{

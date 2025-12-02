@@ -9,16 +9,11 @@ import {
 } from "@daimo/pay-common";
 import { useEffect, useState } from "react";
 import { getAddress } from "viem";
-import { useConnect } from "wagmi";
 import { Text, TextLink } from "../../shared/tailwind-catalyst/text";
 import CodeSnippet from "../code-snippet";
 import { ConfigPanel } from "../config-panel";
 import { APP_ID, Container, printEvent, usePersistedConfig } from "../shared";
-import {
-  captureBaseProvider,
-  useBaseWalletInjection,
-  usePrivyWalletInjection,
-} from "./dev-wallet";
+import { usePrivyWalletInjection } from "./dev-wallet";
 
 type Config = {
   recipientAddress: string;
@@ -36,25 +31,9 @@ export default function DemoDeposit() {
   } as Config);
   const [codeSnippet, setCodeSnippet] = useState("");
   const { resetPayment } = useDaimoPayUI();
-  const { connectors } = useConnect();
 
-  const [hasBaseProvider, setHasBaseProvider] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    captureBaseProvider(connectors).then((captured) => {
-      if (!cancelled && captured) {
-        setHasBaseProvider(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [connectors]);
-
-  // Ensure Privy overrides first, then announce Base provider for the bug repro
+  // Inject Privy wallet via EIP-6963 without overriding existing providers
   usePrivyWalletInjection();
-  useBaseWalletInjection(hasBaseProvider);
 
   const handleSetConfig = (config: Config) => {
     setConfig(config);

@@ -163,6 +163,7 @@ export default function DemoDeposit() {
                 printEvent(e);
                 setTxHash(e.txHash);
               }}
+              prioritizedWalletId="com.coinbase.wallet"
             />
             {txHash && (
               <TextLink

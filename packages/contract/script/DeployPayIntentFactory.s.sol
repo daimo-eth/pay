@@ -7,7 +7,7 @@ import "../src/PayIntentFactory.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_PAY_INTENT_FACTORY = keccak256(
-    "PayIntentFactory-deploy2"
+    "PayIntentFactory-deploy3"
 );
 
 contract DeployPayIntentFactory is Script {

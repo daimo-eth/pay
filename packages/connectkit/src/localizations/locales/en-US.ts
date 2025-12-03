@@ -111,7 +111,7 @@ const enUS = {
   signInWithEthereumScreen_signedIn_button: "Sign Out",
   // New translations for Daimo Pay and additional UI
   payButton_defaultLabel: "Pay",
-  insufficientBalance: "Insufficient balance.",
+  insufficientBalance: "Insufficient balance",
   payWith: "Pay with",
   payWithWallet: "Pay with wallet",
   payWithAnotherWallet: "Pay with another wallet",

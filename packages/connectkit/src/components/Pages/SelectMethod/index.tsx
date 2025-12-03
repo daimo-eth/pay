@@ -9,7 +9,7 @@ import {
   getAddressContraction,
 } from "@daimo/pay-common";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connector, useAccount, useDisconnect } from "wagmi";
+import { Connector, useAccount, useConnections, useDisconnect } from "wagmi";
 import { Base, Ethereum, Polygon, Solana, Tron } from "../../../assets/chains";
 import {
   MetaMask,
@@ -48,6 +48,7 @@ export default function SelectMethod() {
   const { setRoute, paymentState, log, disableMobileInjector } =
     usePayContext();
   const { disconnectAsync } = useDisconnect();
+  const connections = useConnections();
 
   const { externalPaymentOptions, senderEnsName, topOptionsOrder } =
     paymentState;
@@ -190,7 +191,10 @@ export default function SelectMethod() {
         : locales.payWithWallet,
     icons: getBestUnconnectedWalletIcons(connector, isMobile, walletOrder),
     onClick: async () => {
-      await disconnectAsync();
+      // Disconnect all wagmi connections
+      for (const connection of connections) {
+        await disconnectAsync({ connector: connection.connector });
+      }
       await disconnectSolana();
       setRoute(ROUTES.CONNECTORS);
     },

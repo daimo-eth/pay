@@ -1,6 +1,6 @@
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useEffect, useRef } from "react";
+import { useAccount, useConnect } from "wagmi";
 
 import {
   DepositAddressPaymentOptions,
@@ -9,6 +9,7 @@ import {
 import { ROUTES } from "../../constants/routes";
 import { getAppName } from "../../defaultConfig";
 import { useChainIsSupported } from "../../hooks/useChainIsSupported";
+import { useConnector } from "../../hooks/useConnectors";
 import { useDaimoPay } from "../../hooks/useDaimoPay";
 import useIsMobile from "../../hooks/useIsMobile";
 import { usePayContext } from "../../hooks/usePayContext";
@@ -104,10 +105,16 @@ export const DaimoPayModal: React.FC<{
   } = useAccount();
   const { connected: isSolanaConnected } = useWallet();
   const chainIsSupported = useChainIsSupported(chain?.id);
-
-  // Get prioritized wallet if specified
-  const prioritizedWalletId = paymentState.buttonProps?.prioritizedWalletId;
   const pendingWallet = useWalletById(context.pendingConnectorId || "");
+
+  // Get prioritized wallet connector if specified
+  const prioritizedWalletId = paymentState.buttonProps?.prioritizedWalletId;
+  const prioritizedConnector = useConnector(prioritizedWalletId ?? "");
+  const { connect } = useConnect();
+
+  // Track if we've already handled the initial modal open routing
+  // This prevents auto-connecting to prioritized wallet after user navigates away
+  const hasHandledInitialOpen = useRef(false);
 
   // if chain is unsupported we enforce a "switch chain" prompt
   // closeable is independent of the warning state; warning is handled separately below
@@ -345,7 +352,11 @@ export const DaimoPayModal: React.FC<{
   // 3. If the user has no wallet connected upon opening the modal, go to the
   // select method screen
   useEffect(() => {
-    if (!context.open) return;
+    // Reset the flag when modal closes
+    if (!context.open) {
+      hasHandledInitialOpen.current = false;
+      return;
+    }
     if (context.route !== ROUTES.SELECT_METHOD) return;
 
     const paymentOptions = paymentState.buttonProps?.paymentOptions;
@@ -618,8 +629,6 @@ export const DaimoPayModal: React.FC<{
     const solanaOptionsCount =
       paymentState.solanaPaymentOptions.options?.length ?? 0;
     const isSolanaLoading = paymentState.solanaPaymentOptions.isLoading;
-    // Use prioritized wallet if specified
-    const walletIdToUse = prioritizedWalletId ?? connector?.id;
     if (
       (!hasUniqueOption || isWalletsUniquePaymentOption) &&
       isEthConnected &&
@@ -628,14 +637,20 @@ export const DaimoPayModal: React.FC<{
       !isEvmLoading &&
       evmOptionsCount > 0
     ) {
-      paymentState.setTokenMode("evm");
-      // Set the selected wallet if we have a wallet ID
-      if (walletIdToUse && walletConfigs[walletIdToUse]) {
-        setSelectedWallet(walletConfigs[walletIdToUse]);
+      // Only auto-connect to prioritized wallet on first modal open
+      if (
+        !hasHandledInitialOpen.current &&
+        prioritizedWalletId &&
+        prioritizedConnector &&
+        connector?.id !== prioritizedWalletId
+      ) {
+        connect({ connector: prioritizedConnector });
       }
+      hasHandledInitialOpen.current = true;
+      paymentState.setTokenMode("evm");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
-        walletId: walletIdToUse,
+        walletId: connector?.id,
         chainId: chain?.id,
         address,
       });
@@ -647,6 +662,7 @@ export const DaimoPayModal: React.FC<{
       !isSolanaLoading &&
       solanaOptionsCount > 0
     ) {
+      hasHandledInitialOpen.current = true;
       paymentState.setTokenMode("solana");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "solana_connected_on_open",
@@ -668,7 +684,6 @@ export const DaimoPayModal: React.FC<{
     address,
     chain?.id,
     connector?.id,
-    prioritizedWalletId,
     context.uniquePaymentMethodPage,
   ]);
 

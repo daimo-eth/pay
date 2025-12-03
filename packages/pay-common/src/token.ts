@@ -53,6 +53,7 @@ export enum TokenLogo {
   MNT = "https://pay.daimo.com/coin-logos/mnt.png",
   CELO = "https://pay.daimo.com/coin-logos/celo.png",
   cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
+  XDAI = "https://pay.daimo.com/coin-logos/xdai.png",
 }
 
 const NATIVE_TOKEN_ADDRESS = zeroAddress;
@@ -406,7 +407,7 @@ export const gnosisXDAI: Token = nativeToken({
   chainId: gnosis.chainId,
   name: "XDAI",
   symbol: "XDAI",
-  logoURI: "", // TODO
+  logoURI: TokenLogo.XDAI,
   token: NATIVE_TOKEN_ADDRESS,
   decimals: 18,
 });

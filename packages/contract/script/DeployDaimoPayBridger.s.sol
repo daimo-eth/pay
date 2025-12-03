@@ -25,7 +25,7 @@ import {
     DEPLOY_SALT_STARGATE_BRIDGER
 } from "./DeployDaimoPayStargateBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy27");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy28");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {

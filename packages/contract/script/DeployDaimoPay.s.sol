@@ -8,7 +8,7 @@ import "./constants/Constants.s.sol";
 import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
 import {DEPLOY_SALT_PAY_INTENT_FACTORY} from "./DeployPayIntentFactory.s.sol";
 
-bytes32 constant DEPLOY_SALT_DAIMO_PAY = keccak256("DaimoPay-deploy5");
+bytes32 constant DEPLOY_SALT_DAIMO_PAY = keccak256("DaimoPay-deploy6");
 
 contract DeployDaimoPay is Script {
     function run() public {

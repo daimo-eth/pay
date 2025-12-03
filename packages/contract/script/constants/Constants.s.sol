@@ -35,6 +35,7 @@ uint256 constant BLAST_MAINNET = 81457;
 uint256 constant BSC_MAINNET = 56;
 uint256 constant CELO_MAINNET = 42220;
 uint256 constant ETH_MAINNET = 1;
+uint256 constant GNOSIS_MAINNET = 100;
 uint256 constant LINEA_MAINNET = 59144;
 uint256 constant LISK_MAINNET = 1135;
 uint256 constant MANTLE_MAINNET = 5000;
@@ -110,6 +111,7 @@ address constant ARBITRUM_MAINNET_BRIDGED_USDC = 0xFF970A61A04b1cA14834A43f5dE45
 address constant AVAX_MAINNET_BRIDGED_USDC = 0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664;
 address constant BASE_MAINNET_BRIDGED_USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
 address constant BSC_MAINNET_BRIDGED_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d; // NOTE: Binance pegged USDC has 18 decimals on BSC.
+address constant GNOSIS_MAINNET_BRIDGED_USDC = 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0;
 address constant MANTLE_MAINNET_BRIDGED_USDC = 0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9;
 address constant MODE_MAINNET_BRIDGED_USDC = 0xd988097fb8612cc24eeC14542bC03424c656005f;
 address constant OP_MAINNET_BRIDGED_USDC = 0x7F5c764cBc14f9669B88837ca1490cCa17c31607;
@@ -162,6 +164,7 @@ function getHopCoinDecimals(address token) pure returns (uint256) {
     if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;
     if (token == AVAX_MAINNET_BRIDGED_USDC) return 6;
     if (token == BASE_MAINNET_BRIDGED_USDC) return 6;
+    if (token == GNOSIS_MAINNET_BRIDGED_USDC) return 6;
     if (token == MANTLE_MAINNET_BRIDGED_USDC) return 6;
     if (token == MODE_MAINNET_BRIDGED_USDC) return 6;
     if (token == OP_MAINNET_BRIDGED_USDC) return 6;

@@ -40,6 +40,13 @@ export const ethereum: Chain = {
   cctpDomain: 0,
 };
 
+export const gnosis: Chain = {
+  type: "evm",
+  chainId: 100,
+  name: "Gnosis",
+  cctpDomain: null,
+};
+
 export const linea: Chain = {
   type: "evm",
   chainId: 59144,
@@ -99,6 +106,7 @@ export const supportedChains: Chain[] = [
   bsc,
   celo,
   ethereum,
+  gnosis,
   linea,
   optimism,
   polygon,
@@ -140,6 +148,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://celoscan.io";
     case ethereum.chainId:
       return "https://etherscan.io";
+    case gnosis.chainId:
+      return "https://gnosisscan.io";
     case linea.chainId:
       return "https://lineascan.build";
     case optimism.chainId:
@@ -160,7 +170,10 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
 /**
  * Get block explorer address URL for chain ID and address.
  */
-export function getChainExplorerAddressUrl(chainId: number, address: string) {
+export function getChainExplorerAddressUrl(
+  chainId: number,
+  address: string,
+): string | undefined {
   const explorer = getChainExplorerByChainId(chainId);
   if (!explorer) {
     return undefined;
@@ -171,7 +184,10 @@ export function getChainExplorerAddressUrl(chainId: number, address: string) {
 /**
  * Get block explorer transaction URL for chain ID and transaction hash.
  */
-export function getChainExplorerTxUrl(chainId: number, txHash: string) {
+export function getChainExplorerTxUrl(
+  chainId: number,
+  txHash: string,
+): string | undefined {
   const explorer = getChainExplorerByChainId(chainId);
   if (!explorer) {
     return undefined;

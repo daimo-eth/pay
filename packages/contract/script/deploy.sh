@@ -40,6 +40,7 @@ CHAINS=(
     # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "wss://gnosis-rpc.publicnode.com"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -58,6 +59,11 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         echo "RPC_URL          : $RPC_URL"
 
         FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+
+        # Override gas price for Gnosis chain to reliably get txs through
+        if [[ "$RPC_URL" == *"gnosis"* ]]; then
+            FORGE_CMD="$FORGE_CMD --with-gas-price 3000000000 --priority-gas-price 1000000000"
+        fi
 
         echo $FORGE_CMD
         echo ""

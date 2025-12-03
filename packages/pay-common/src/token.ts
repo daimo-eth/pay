@@ -6,6 +6,7 @@ import {
   bsc,
   celo,
   ethereum,
+  gnosis,
   linea,
   optimism,
   polygon,
@@ -398,6 +399,31 @@ const ethereumTokens: Token[] = [
 ];
 
 //
+// Gnosis
+//
+
+export const gnosisXDAI: Token = nativeToken({
+  chainId: gnosis.chainId,
+  name: "XDAI",
+  symbol: "XDAI",
+  logoURI: "", // TODO
+  token: NATIVE_TOKEN_ADDRESS,
+  decimals: 18,
+});
+
+export const gnosisUSDCe: Token = token({
+  chainId: gnosis.chainId,
+  token: getAddress("0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Bridged USD Coin",
+  symbol: "USDCe",
+  logoURI: TokenLogo.USDC,
+});
+
+const gnosisTokens: Token[] = [gnosisXDAI, gnosisUSDCe];
+
+//
 // Linea
 //
 
@@ -759,13 +785,14 @@ const knownTokensByChain = new Map<number, Token[]>([
   [bsc.chainId, bscTokens],
   [celo.chainId, celoTokens],
   [ethereum.chainId, ethereumTokens],
+  [gnosis.chainId, gnosisTokens],
   [linea.chainId, lineaTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
   [scroll.chainId, scrollTokens],
   [solana.chainId, solanaTokens],
-  [worldchain.chainId, worldchainTokens],
   [tron.chainId, tronTokens],
+  [worldchain.chainId, worldchainTokens],
 ]);
 
 /**
@@ -854,6 +881,13 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: ethereumWETH,
       [TokenType.NATIVE_USDC]: ethereumUSDC,
       [TokenType.DAI]: ethereumDAI,
+    },
+  ],
+  [
+    gnosis.chainId,
+    {
+      [TokenType.NATIVE]: gnosisXDAI,
+      [TokenType.NATIVE_USDC]: gnosisUSDCe,
     },
   ],
   [

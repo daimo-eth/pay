@@ -40,7 +40,7 @@ CHAINS=(
     # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://gnosis-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "wss://gnosis-rpc.publicnode.com"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"

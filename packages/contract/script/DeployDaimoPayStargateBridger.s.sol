@@ -8,7 +8,7 @@ import "./constants/StargateBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
-    "DaimoPayStargateBridger-deploy3"
+    "DaimoPayStargateBridger-deploy4"
 );
 
 contract DeployDaimoPayStargateBridger is Script {
@@ -33,7 +33,6 @@ contract DeployDaimoPayStargateBridger is Script {
         }
 
         vm.startBroadcast();
-
         address bridger = CREATE3.deploy(
             DEPLOY_SALT_STARGATE_BRIDGER,
             abi.encodePacked(
@@ -41,9 +40,9 @@ contract DeployDaimoPayStargateBridger is Script {
                 abi.encode(chainIds, bridgeRoutes)
             )
         );
-        console.log("Stargate bridger deployed at address:", address(bridger));
-
         vm.stopBroadcast();
+
+        console.log("Stargate bridger deployed at address:", address(bridger));
     }
 
     // Exclude from forge coverage

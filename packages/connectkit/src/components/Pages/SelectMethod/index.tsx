@@ -191,10 +191,12 @@ export default function SelectMethod() {
         : locales.payWithWallet,
     icons: getBestUnconnectedWalletIcons(connector, isMobile, walletOrder),
     onClick: async () => {
-      // Disconnect all wagmi connections
-      for (const connection of connections) {
-        await disconnectAsync({ connector: connection.connector });
-      }
+      // Disconnect all wagmi connections in parallel
+      await Promise.allSettled(
+        connections.map((connection) =>
+          disconnectAsync({ connector: connection.connector }),
+        ),
+      );
       await disconnectSolana();
       setRoute(ROUTES.CONNECTORS);
     },

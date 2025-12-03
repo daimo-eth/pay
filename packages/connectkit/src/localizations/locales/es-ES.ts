@@ -112,7 +112,7 @@ const esES: LocaleProps = {
   signInWithEthereumScreen_signedIn_button: "Cerrar sesión",
   // Nuevas traducciones para Daimo Pay y textos adicionales
   payButton_defaultLabel: "Pagar",
-  insufficientBalance: "Saldo insuficiente.",
+  insufficientBalance: "Saldo insuficiente",
   payWith: "Pagar con",
   payWithWallet: "Pagar con billetera",
   payWithAnotherWallet: "Pagar con otra billetera",

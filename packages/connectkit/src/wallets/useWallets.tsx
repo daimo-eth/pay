@@ -237,7 +237,6 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
 
     return mobileWallets;
   }
-  // console.log("connectors ", connectors);
 
   const wallets = connectors.map((connector): WalletProps => {
     // First, attempt to find a config by matching connector.id (existing logic).

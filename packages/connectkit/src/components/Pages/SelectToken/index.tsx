@@ -52,6 +52,8 @@ export default function SelectToken() {
 
 function InsufficientBalance() {
   const locales = useLocales();
+  const { paymentState } = usePayContext();
+  const { tokenMode } = paymentState;
   return (
     <ModalContent
       style={{
@@ -63,7 +65,7 @@ function InsufficientBalance() {
       }}
     >
       <ModalH1>{locales.insufficientBalance}</ModalH1>
-      <SelectAnotherMethodButton />
+      {tokenMode !== "all" && <SelectAnotherMethodButton />}
     </ModalContent>
   );
 }

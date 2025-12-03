@@ -638,15 +638,17 @@ export const DaimoPayModal: React.FC<{
       evmOptionsCount > 0
     ) {
       // Only auto-connect to prioritized wallet on first modal open
-      if (
-        !hasHandledInitialOpen.current &&
-        prioritizedWalletId &&
-        prioritizedConnector &&
-        connector?.id !== prioritizedWalletId
-      ) {
-        connect({ connector: prioritizedConnector });
+      if (!hasHandledInitialOpen.current) {
+        hasHandledInitialOpen.current = true;
+
+        if (
+          prioritizedWalletId &&
+          prioritizedConnector &&
+          connector?.id !== prioritizedWalletId
+        ) {
+          connect({ connector: prioritizedConnector });
+        }
       }
-      hasHandledInitialOpen.current = true;
       paymentState.setTokenMode("evm");
       context.setRoute(ROUTES.SELECT_TOKEN, {
         event: "eth_connected_on_open",
@@ -708,6 +710,33 @@ export const DaimoPayModal: React.FC<{
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEthConnected, context.route, connector?.id, chain?.id, address]);
+
+  // Handle connectedWalletOnly flow: when modal opens directly on SELECT_TOKEN,
+  // switch to prioritized wallet if needed
+  useEffect(() => {
+    if (!context.open) return;
+    if (context.route !== ROUTES.SELECT_TOKEN) return;
+    if (hasHandledInitialOpen.current) return;
+    if (!isEthConnected) return;
+
+    // Switch to prioritized wallet if different from current
+    if (
+      prioritizedWalletId &&
+      prioritizedConnector &&
+      connector?.id !== prioritizedWalletId
+    ) {
+      hasHandledInitialOpen.current = true;
+      connect({ connector: prioritizedConnector });
+    }
+  }, [
+    context.open,
+    context.route,
+    isEthConnected,
+    prioritizedWalletId,
+    prioritizedConnector,
+    connector?.id,
+    connect,
+  ]);
 
   useEffect(() => setMode(mode), [mode, setMode]);
   useEffect(() => setTheme(theme), [theme, setTheme]);

@@ -54,6 +54,7 @@ export enum TokenLogo {
   CELO = "https://pay.daimo.com/coin-logos/celo.png",
   cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
   XDAI = "https://pay.daimo.com/coin-logos/xdai.png",
+  EURe = "https://pay.daimo.com/coin-logos/eure.png",
 }
 
 const NATIVE_TOKEN_ADDRESS = zeroAddress;
@@ -422,7 +423,17 @@ export const gnosisUSDCe: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-const gnosisTokens: Token[] = [gnosisXDAI, gnosisUSDCe];
+export const gnosisEURe: Token = token({
+  chainId: gnosis.chainId,
+  token: getAddress("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430"),
+  decimals: 18,
+  fiatISO: "EUR",
+  name: "Monerium EURe",
+  symbol: "EURe",
+  logoURI: TokenLogo.EURe,
+});
+
+const gnosisTokens: Token[] = [gnosisXDAI, gnosisUSDCe, gnosisEURe];
 
 //
 // Linea

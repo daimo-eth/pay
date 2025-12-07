@@ -8,7 +8,7 @@ import "./constants/StargateBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 
 bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
-    "DaimoPayStargateBridger-deploy4"
+    "DaimoPayStargateBridger-deploy5"
 );
 
 contract DeployDaimoPayStargateBridger is Script {

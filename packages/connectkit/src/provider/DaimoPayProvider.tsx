@@ -422,7 +422,11 @@ export const DaimoPayProvider = (props: DaimoPayProviderProps) => {
   );
 
   return (
-    <PaymentProvider payApiUrl={payApiUrl} log={log}>
+    <PaymentProvider
+      payApiUrl={payApiUrl}
+      log={log}
+      debugMode={props.debugMode}
+    >
       <SolanaContextProvider solanaRpcUrl={props.solanaRpcUrl}>
         <DaimoPayUIProvider {...props} payApiUrl={payApiUrl} log={log} />
       </SolanaContextProvider>

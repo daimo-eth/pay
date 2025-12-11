@@ -19,3 +19,17 @@ export function dateToUnix(d: Date): number {
 export function unixToDate(unix: number): Date {
   return new Date(unix * 1000);
 }
+
+/** Returns a time like "Dec 11, 2:46 PM" */
+export function formatTime(unixS: number): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(unixS * 1000));
+  } catch {
+    return "";
+  }
+}

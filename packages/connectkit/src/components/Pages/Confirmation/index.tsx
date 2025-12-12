@@ -15,6 +15,7 @@ import {
   getChainExplorerTxUrl,
   getOrderDestChainId,
   getOrderSourceChainId,
+  writeDaimoPayOrderID,
 } from "@daimo/pay-common";
 import { motion } from "framer-motion";
 import { Hex } from "viem";
@@ -61,6 +62,14 @@ const Confirmation: React.FC = () => {
     }
   }, [done, onSuccess]);
 
+  // Footer
+  let supportUrl: string | undefined, receiptUrl: string | undefined;
+  if (order?.id != null) {
+    const screen = done ? "Confirmed" : "Confirming";
+    supportUrl = getSupportUrl(order.id.toString(), screen);
+    receiptUrl = `https://pay.daimo.com/receipt?id=${writeDaimoPayOrderID(BigInt(order.id))}`;
+  }
+
   return (
     <PageContent
       style={{
@@ -98,19 +107,7 @@ const Confirmation: React.FC = () => {
             )}
           </>
         )}
-
-        <PoweredByFooter
-          // If showContactSupport is false, we don't want to show the support
-          // link, so we pass undefined
-          supportUrl={
-            showContactSupport
-              ? getSupportUrl(
-                  order?.id?.toString() ?? "",
-                  done ? "Confirmed" : "Confirming",
-                )
-              : undefined
-          }
-        />
+        <PoweredByFooter supportUrl={supportUrl} receiptUrl={receiptUrl} />
       </ModalContent>
     </PageContent>
   );

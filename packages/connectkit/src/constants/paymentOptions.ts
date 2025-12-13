@@ -26,6 +26,7 @@ export const WALLET_OPTION_IDS: ExternalPaymentOptionsString[] = [
   ExternalPaymentOptions.Rainbow,
   ExternalPaymentOptions.BaseApp,
   ExternalPaymentOptions.Backpack,
+  ExternalPaymentOptions.BinanceWallet,
   ExternalPaymentOptions.Bitget,
   ExternalPaymentOptions.Family,
   ExternalPaymentOptions.Farcaster,

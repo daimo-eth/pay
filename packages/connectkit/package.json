@@ -33,6 +33,7 @@
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
   },
   "dependencies": {
+    "@binance/w3w-utils": "^1.1.8",
     "@daimo/pay-common": "1.19.6-dev",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",

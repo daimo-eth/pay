@@ -1,3 +1,4 @@
+import { getDeepLink } from "@binance/w3w-utils";
 import type { Connector } from "wagmi";
 import Logos from "../assets/logos";
 
@@ -94,6 +95,20 @@ export const walletConfigs: {
       return `https://backpack.app/ul/v1/browse/${url}`;
     },
   },
+  binanceWallet: {
+    id: "binanceWallet",
+    name: "Binance Wallet",
+    shortName: "Binance Wallet",
+    icon: <Logos.Binance />,
+    iconConnector: <Logos.Binance />,
+    iconShape: "squircle",
+    showInMobileConnectors: true,
+    showOnAndroid: true,
+    showOnIOS: true,
+    getDaimoPayDeeplink: (payId: string) => {
+      return getDeepLink(getDaimoPayUrl(payId), 56).http;
+    },
+  },
   bitget: {
     id: "bitget",
     name: "Bitget",
@@ -123,6 +138,7 @@ export const walletConfigs: {
     },
     showInMobileConnectors: true,
   },
+
   "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK": {
     id: "metaMask",
     name: "MetaMask",

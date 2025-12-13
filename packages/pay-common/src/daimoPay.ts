@@ -417,6 +417,7 @@ export enum ExternalPaymentOptions {
   Rainbow = "Rainbow",
   BaseApp = "Base App",
   Backpack = "Backpack",
+  BinanceWallet = "Binance Wallet",
   Bitget = "Bitget",
   Family = "Family",
   Farcaster = "Farcaster",

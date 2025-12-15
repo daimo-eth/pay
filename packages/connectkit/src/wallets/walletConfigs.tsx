@@ -98,7 +98,7 @@ export const walletConfigs: {
   binanceWallet: {
     id: "binanceWallet",
     name: "Binance Wallet",
-    shortName: "Binance Wallet",
+    shortName: "Binance",
     icon: <Logos.Binance />,
     iconConnector: <Logos.Binance />,
     iconShape: "squircle",
@@ -106,7 +106,7 @@ export const walletConfigs: {
     showOnAndroid: true,
     showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
-      return getDeepLink(getDaimoPayUrl(payId), 56).http;
+      return getDeepLink(encodeURIComponent(getDaimoPayUrl(payId)), 56).http;
     },
   },
   bitget: {

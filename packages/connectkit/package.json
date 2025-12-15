@@ -6,17 +6,22 @@
   "homepage": "https://pay.daimo.com",
   "license": "BSD-2-Clause license",
   "description": "Seamless crypto payments. Onboard users from any chain, any coin into your app with one click.",
-  "main": "./src/index.ts",
+  "main": "./build/pay/packages/connectkit/src/index.js",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./build/src/index.js",
+      "import": "./build/pay/packages/connectkit/src/index.js",
+      "require": "./build/pay/packages/connectkit/src/index.js",
+      "default": "./build/pay/packages/connectkit/src/index.js",
       "types": "./build/index.d.ts"
     },
     "./world": {
-      "import": "./build/src/world.js",
+      "import": "./build/pay/packages/connectkit/src/world.js",
+      "require": "./build/pay/packages/connectkit/src/world.js",
+      "default": "./build/pay/packages/connectkit/src/world.js",
       "types": "./build/world.d.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "types": "./build/index.d.ts",
   "engines": {

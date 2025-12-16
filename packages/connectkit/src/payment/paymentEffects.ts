@@ -32,7 +32,7 @@ function stopPoller(key: string) {
  * @param store The payment store to subscribe to.
  * @param trpc TRPC client pointing to the Daimo Pay API.
  * @param log The logger to use for logging.
- * @param debugMode Whether to enable debug mode features like polling.
+ * @param debugMode Whether to enable debug mode to log polling activity.
  * @returns A function that can be used to unsubscribe from the store.
  */
 export function attachPaymentEffectHandlers(

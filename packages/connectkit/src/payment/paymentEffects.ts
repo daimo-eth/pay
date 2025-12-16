@@ -32,12 +32,14 @@ function stopPoller(key: string) {
  * @param store The payment store to subscribe to.
  * @param trpc TRPC client pointing to the Daimo Pay API.
  * @param log The logger to use for logging.
+ * @param debugMode Whether to enable debug mode to log polling activity.
  * @returns A function that can be used to unsubscribe from the store.
  */
 export function attachPaymentEffectHandlers(
   store: PaymentStore,
   trpc: TrpcClient,
   log: (msg: string) => void,
+  debugMode: boolean,
 ): () => void {
   const unsubscribe = store.subscribe(({ prev, next, event }) => {
     log(
@@ -49,12 +51,12 @@ export function attachPaymentEffectHandlers(
     if (prev.type !== next.type) {
       // Start watching for source payment
       if (next.type === "payment_unpaid") {
-        pollFindPayments(store, trpc, next.order.id);
+        pollFindPayments(store, trpc, next.order.id, debugMode);
       }
 
       // Refresh the order to watch for destination processing
       if (next.type === "payment_started") {
-        pollRefreshOrder(store, trpc, next.order.id);
+        pollRefreshOrder(store, trpc, next.order.id, debugMode);
       }
 
       // Stop all pollers when the payment flow is completed or reset
@@ -131,6 +133,7 @@ async function pollFindPayments(
   store: PaymentStore,
   trpc: TrpcClient,
   orderId: bigint,
+  debugMode: boolean,
 ) {
   const key = `${PollerType.FIND_SOURCE_PAYMENT}:${orderId}`;
 
@@ -147,6 +150,7 @@ async function pollFindPayments(
       store.dispatch({ type: "order_refreshed", order });
     },
     onError: () => {},
+    debugMode,
   });
 
   pollers.set(key, stopPolling);
@@ -156,6 +160,7 @@ async function pollRefreshOrder(
   store: PaymentStore,
   trpc: TrpcClient,
   orderId: bigint,
+  debugMode: boolean,
 ) {
   const key = `${PollerType.REFRESH_ORDER}:${orderId}`;
 
@@ -175,6 +180,7 @@ async function pollRefreshOrder(
       store.dispatch({ type: "order_refreshed", order });
     },
     onError: () => {},
+    debugMode,
   });
 
   pollers.set(key, stopPolling);

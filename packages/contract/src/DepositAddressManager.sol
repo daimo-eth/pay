@@ -455,13 +455,13 @@ contract DepositAddressManager is
         // Mark intent as claimed
         receiverToRecipient[receiverAddress] = ADDR_MAX;
 
-        // Deploy BridgeReceiver if necessary then sweep tokens.
-        BridgeReceiver receiver;
+        // Deploy DepositAddressReceiver if necessary then sweep tokens.
+        DepositAddressReceiver receiver;
         if (receiverAddress.code.length == 0) {
-            receiver = new BridgeReceiver{salt: recvSalt}();
+            receiver = new DepositAddressReceiver{salt: recvSalt}();
             require(receiverAddress == address(receiver), "DAM: receiver");
         } else {
-            receiver = BridgeReceiver(payable(receiverAddress));
+            receiver = DepositAddressReceiver(payable(receiverAddress));
         }
 
         // Pull bridged tokens from the deterministic receiver into this contract.
@@ -567,15 +567,15 @@ contract DepositAddressManager is
         });
     }
 
-    /// @notice Computes a deterministic BridgeReceiver address.
+    /// @notice Computes a deterministic DepositAddressReceiver address.
     /// @param intent The bridge intent
-    /// @return addr The computed address for the BridgeReceiver contract
-    /// @return recvSalt The CREATE2 salt used to deploy the BridgeReceiver
+    /// @return addr The computed address for the DepositAddressReceiver contract
+    /// @return recvSalt The CREATE2 salt used to deploy the DepositAddressReceiver
     function computeReceiverAddress(
         DepositAddressIntent memory intent
     ) public view returns (address payable addr, bytes32 recvSalt) {
         recvSalt = keccak256(abi.encode(intent));
-        bytes memory initCode = type(BridgeReceiver).creationCode;
+        bytes memory initCode = type(DepositAddressReceiver).creationCode;
         addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
     }
 
@@ -650,20 +650,19 @@ contract DepositAddressManager is
 // ---------------------------------------------------------------------
 
 /// @notice Minimal deterministic contract that receives bridged tokens and
-///         allows the Universal Address Manager to sweep them.
+///         allows the Deposit Address Manager to sweep them.
 /// @dev Deployed via CREATE2 using a salt that encodes bridge transfer
 ///      parameters into the deployment address, creating predictable addresses
 ///      that are unique to each bridge transfer. Only the deploying manager
 ///      can pull funds from this contract.
-contract BridgeReceiver {
+contract DepositAddressReceiver {
     using SafeERC20 for IERC20;
 
     /// @notice Address allowed to pull funds from this contract
-    ///         (in UA protocol, it's the Universal Address Manager contract above).
-    address payable public immutable universalAddressManager;
+    address payable public immutable depositAddressManager;
 
     constructor() {
-        universalAddressManager = payable(msg.sender);
+        depositAddressManager = payable(msg.sender);
 
         // Emit event for any ETH that arrived before deployment
         if (address(this).balance > 0) {
@@ -684,11 +683,11 @@ contract BridgeReceiver {
     ///         token == IERC20(address(0))) to the deployer address.
     /// @return amount The amount of tokens pulled
     function pull(IERC20 token) external returns (uint256) {
-        require(msg.sender == universalAddressManager, "BR: not authorized");
+        require(msg.sender == depositAddressManager, "BR: not authorized");
         return
             TokenUtils.transferBalance({
                 token: token,
-                recipient: universalAddressManager
+                recipient: depositAddressManager
             });
     }
 }

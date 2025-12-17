@@ -7,7 +7,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {
     DepositAddressManager,
-    BridgeReceiver
+    DepositAddressReceiver
 } from "../src/DepositAddressManager.sol";
 import {DepositAddressFactory} from "../src/DepositAddressFactory.sol";
 import {
@@ -2506,7 +2506,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT * 3);
     }
 
-    function test_claimIntent_DeploysBridgeReceiver() public {
+    function test_claimIntent_DeploysDepositAddressReceiver() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2561,7 +2561,7 @@ contract DepositAddressManagerTest is Test {
         assertTrue(receiverAddress.code.length > 0);
     }
 
-    function test_claimIntent_WithExistingBridgeReceiver() public {
+    function test_claimIntent_WithExistingDepositAddressReceiver() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2583,9 +2583,9 @@ contract DepositAddressManagerTest is Test {
         (address receiverAddress, bytes32 recvSalt) = manager
             .computeReceiverAddress(intent);
 
-        // Deploy BridgeReceiver as the manager (so CREATE2 address matches)
+        // Deploy DepositAddressReceiver as the manager (so CREATE2 address matches)
         vm.prank(address(manager));
-        BridgeReceiver receiver = new BridgeReceiver{salt: recvSalt}();
+        DepositAddressReceiver receiver = new DepositAddressReceiver{salt: recvSalt}();
         assertEq(address(receiver), receiverAddress);
 
         // Verify receiver is deployed

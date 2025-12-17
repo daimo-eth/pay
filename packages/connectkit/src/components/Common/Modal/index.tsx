@@ -355,10 +355,14 @@ const Modal: React.FC<ModalProps> = ({
     "--width": dimensions.width,
   } as React.CSSProperties;
 
-  // Show "Scan with phone" title for wallets with deeplinks (unique payment options)
+  // Show "Scan with phone" title only when we expect to show a QR/deeplink flow.
+  // Some wallets (e.g. MetaMask) support both injected connectors and deeplinks;
+  // if the extension is installed we should show the wallet name, not "Scan with phone".
   const hasDeeplink = wallet && wallet.getDaimoPayDeeplink;
+  const hasConnector = wallet && "connector" in wallet && wallet.connector != null;
+  const isInstalled = wallet && "isInstalled" in wallet && wallet.isInstalled;
   const shouldShowWalletQRCodeOnDesktop =
-    isExternalWallet(wallet) || hasDeeplink;
+    isExternalWallet(wallet) || (hasDeeplink && hasConnector && !isInstalled);
 
   function getHeading() {
     const payWithString = flattenChildren(locales.payWith).join("");

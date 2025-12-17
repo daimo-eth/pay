@@ -24,6 +24,7 @@ import {
   isGeminiConnector,
   isInjectedConnector,
 } from "../utils";
+import { isMetaMask } from "../utils/wallets";
 import { WalletConfigProps, walletConfigs } from "./walletConfigs";
 
 // ids moved to ../constants/wallets
@@ -62,6 +63,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
   // Solana wallets available in the session (desktop & mobile)
   const solanaWallet = useSolanaWalletAdapter();
   const locales = useLocales();
+  const isMetaMaskInstalled = isMetaMask();
 
   // Use prioritized id from button props
   const prioritizedId = context.paymentState.buttonProps?.prioritizedWalletId;
@@ -274,12 +276,26 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       ),
       connector,
       iconShape: connector.id === RABBY_CONNECTOR_ID ? "circle" : "squircle",
+      // wagmi connector ids are not always consistent (metaMask vs metaMaskSDK vs io.metamask),
+      // so detect MetaMask via its injected flag rather than connector id/type alone.
       isInstalled:
         connector.type === "mock" ||
-        (connector.type === "injected" && connector.id !== "metaMask") ||
         connector.type === "farcasterFrame" ||
         isBaseAccountConnector(connector.id) ||
-        isGeminiConnector(connector.id),
+        isGeminiConnector(connector.id) ||
+        (() => {
+          const id = (connector.id ?? "").toLowerCase();
+          const name = (connector.name ?? "").toLowerCase();
+          const isMetaMaskConnector =
+            id === "metamask" ||
+            id === "metamasksdk" ||
+            id === "metamask-io" ||
+            id === "io.metamask" ||
+            id === "io.metamask.mobile" ||
+            name.includes("metamask");
+          if (isMetaMaskConnector) return isMetaMaskInstalled;
+          return connector.type === "injected";
+        })(),
     };
 
     if (walletConfigKey) {

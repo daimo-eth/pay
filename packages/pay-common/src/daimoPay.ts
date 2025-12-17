@@ -18,6 +18,7 @@ import { assertNotNull } from "./assert";
 import {
   BigIntStr,
   SolanaPublicKey,
+  UUID,
   zAddress,
   zBigIntStr,
 } from "./primitiveTypes";
@@ -290,7 +291,7 @@ export function isDehydrated(
 export type DaimoPayOrderView = {
   id: DaimoPayOrderID;
   status: DaimoPayIntentStatus;
-  createdAt: string;
+  createdAt: string; // Seconds since epoch
   display: {
     intent: string;
     paymentValue: string;
@@ -615,3 +616,45 @@ export type DaimoPayEvent =
   | PaymentCompletedEvent
   | PaymentBouncedEvent
   | PaymentRefundedEvent;
+
+export enum DAFulfillmentStatus {
+  STARTED = "deposit_started",
+  COMPLETED = "deposit_completed",
+}
+
+export type DAFulfillment = {
+  id: UUID;
+  daAddr: Address;
+  status: DAFulfillmentStatus;
+  createdAt: string; // Seconds since epoch
+  source: {
+    payerAddress: Address | SolanaPublicKey | null;
+    txHash: Hex | string | null;
+    chainId: string;
+    tokenAddress: Address | SolanaPublicKey;
+    tokenSymbol: string;
+    amountUnits: string;
+    usdValue: string;
+  };
+  destination: {
+    destinationAddress: Address;
+    chainId: string;
+    tokenAddress: Address;
+    tokenSymbol: string;
+    amountUnits: string | null;
+    txHash: Hex | null;
+  };
+};
+
+export type DA = {
+  daAddr: Address;
+  org: DaimoPayOrgPublicInfo;
+  destinationChainId: string;
+  destinationAddress: Address;
+  destinationTokenAddress: Address;
+  destinationTokenSymbol: string;
+  refundAddress: Address;
+  expiresAt: string; // Seconds since epoch
+  createdAt: string; // Seconds since epoch
+  fulfillments: DAFulfillment[];
+};

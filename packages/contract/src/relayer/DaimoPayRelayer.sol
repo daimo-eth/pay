@@ -9,6 +9,9 @@ import "../DaimoPay.sol";
 import "../TokenUtils.sol";
 import "../UniversalAddress.sol";
 import "../interfaces/IUniversalAddressManager.sol";
+import {DepositAddressManager} from "../DepositAddressManager.sol";
+import {DepositAddressRoute} from "../DepositAddress.sol";
+import {PriceData} from "../interfaces/IDaimoPayPricer.sol";
 
 /// @author Daimo, Inc
 /// @notice Reference relayer contract. This is a private, untrusted relayer.
@@ -59,6 +62,10 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
+    // ------------------------------------------------------------
+    // Balance Management
+    // ------------------------------------------------------------
+
     // Role management is handled via AccessControl.grantRole/renounceRole.
 
     /// Withdraws an amount of tokens from the contract to the admin.
@@ -75,6 +82,10 @@ contract DaimoPayRelayer is AccessControl {
     ) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
         return TokenUtils.transferBalance(token, payable(msg.sender));
     }
+
+    // ------------------------------------------------------------
+    // SWAP AND TIP
+    // ------------------------------------------------------------
 
     /// Perform a user-funded token swap, optionally topped-up (“tipped”)
     /// by the relayer, and deliver a guaranteed output amount to the caller.
@@ -316,6 +327,10 @@ contract DaimoPayRelayer is AccessControl {
         });
     }
 
+    // ------------------------------------------------------------
+    // Order Intent Execution
+    // ------------------------------------------------------------
+
     /// Starts a new intent.
     function startIntent(
         Call[] calldata preCalls,
@@ -437,6 +452,10 @@ contract DaimoPayRelayer is AccessControl {
 
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
+
+    // ------------------------------------------------------------
+    // Universal Address Execution
+    // ------------------------------------------------------------
 
     /// Starts a new UA intent.
     function uaStartIntent(
@@ -611,6 +630,229 @@ contract DaimoPayRelayer is AccessControl {
         }
 
         approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    // ------------------------------------------------------------
+    // Deposit Address Execution
+    // ------------------------------------------------------------
+
+    /// Starts a new Deposit Address intent.
+    function daStartIntent(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        IERC20 paymentToken,
+        TokenAmount calldata bridgeTokenOut,
+        PriceData calldata paymentTokenPrice,
+        PriceData calldata bridgeTokenInPrice,
+        bytes32 relaySalt,
+        Call[] calldata startCalls,
+        bytes calldata bridgeExtraData,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-start calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the start intent
+        manager.startIntent({
+            route: route,
+            paymentToken: paymentToken,
+            bridgeTokenOut: bridgeTokenOut,
+            paymentTokenPrice: paymentTokenPrice,
+            bridgeTokenInPrice: bridgeTokenInPrice,
+            relaySalt: relaySalt,
+            calls: startCalls,
+            bridgeExtraData: bridgeExtraData
+        });
+
+        // Make post-start calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Same-chain finish for a Deposit Address intent.
+    function daSameChainFinish(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        IERC20 paymentToken,
+        PriceData calldata paymentTokenPrice,
+        PriceData calldata toTokenPrice,
+        uint256 toAmount,
+        Call[] calldata calls,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-finish calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the same-chain finish intent
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: paymentToken,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: toAmount,
+            calls: calls
+        });
+
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Fast finish for a Deposit Address intent.
+    function daFastFinish(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        TokenAmount calldata tokenIn,
+        PriceData calldata bridgeTokenOutPrice,
+        PriceData calldata toTokenPrice,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        Call[] calldata calls,
+        uint256 sourceChainId,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-finish calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Transfer the input tokens to the manager so that it can immediately
+        // forward them to the executor inside fastFinishIntent.
+        TokenUtils.transfer({
+            token: tokenIn.token,
+            recipient: payable(address(manager)),
+            amount: tokenIn.amount
+        });
+
+        // Call fastFinishIntent on the DepositAddressManager.
+        manager.fastFinishIntent({
+            route: route,
+            calls: calls,
+            token: tokenIn.token,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: sourceChainId
+        });
+
+        // Make post-finish calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        // Reset the allowance back to zero for cleanliness/security.
+        TokenUtils.approve({
+            token: tokenIn.token,
+            spender: address(manager),
+            amount: 0
+        });
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Claim a Deposit Address intent after bridge arrival.
+    function daClaimIntent(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        Call[] calldata calls,
+        TokenAmount calldata bridgeTokenOut,
+        PriceData calldata bridgeTokenOutPrice,
+        PriceData calldata toTokenPrice,
+        bytes32 relaySalt,
+        uint256 sourceChainId,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-claim calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the claim intent
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: sourceChainId
+        });
+
+        // Make post-claim calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Refund tokens from a Deposit Address after expiration.
+    function daRefundIntent(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        IERC20[] calldata tokens,
+        Call[] calldata postCalls
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Make pre-refund calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the refund intent
+        manager.refundIntent({route: route, tokens: tokens});
+
+        // Make post-refund calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
     }
 
     receive() external payable {}

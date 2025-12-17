@@ -77,6 +77,41 @@ contract DaimoPayExecutor is ReentrancyGuard {
         });
     }
 
+    /// Execute arbitrary calls. Revert if any fail.
+    /// Verify output token balance meets the expected minimum amount.
+    /// Transfer the full balance to the recipient and return the amount.
+    function executeAndSweep(
+        Call[] calldata calls,
+        TokenAmount calldata minOutputAmount,
+        address payable recipient
+    ) external nonReentrant returns (uint256 outputAmount) {
+        require(msg.sender == escrow, "DPCE: only escrow");
+
+        // Execute provided calls.
+        uint256 callsLength = calls.length;
+        for (uint256 i = 0; i < callsLength; ++i) {
+            Call calldata call = calls[i];
+            (bool success, ) = call.to.call{value: call.value}(call.data);
+            require(success, "DPCE: call failed");
+        }
+
+        outputAmount = TokenUtils.getBalanceOf({
+            token: minOutputAmount.token,
+            addr: address(this)
+        });
+        require(
+            outputAmount >= minOutputAmount.amount,
+            "DPCE: output below min"
+        );
+
+        // Transfer the full balance of the token to the recipient.
+        TokenUtils.transfer({
+            token: minOutputAmount.token,
+            recipient: recipient,
+            amount: outputAmount
+        });
+    }
+
     /// Execute a final call. Approve the final token and make the call.
     /// Return whether the call succeeded.
     function executeFinalCall(

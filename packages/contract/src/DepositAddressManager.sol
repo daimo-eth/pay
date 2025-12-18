@@ -317,7 +317,7 @@ contract DepositAddressManager is
             sellTokenPrice: paymentTokenPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: paymentAmount,
-            maxSlippage: route.maxFinishSlippageBps
+            maxSlippage: route.maxSameChainFinishSlippageBps
         });
         require(toAmount >= minSwapOutput.amount, "DAM: toAmount low");
 
@@ -400,7 +400,7 @@ contract DepositAddressManager is
             sellTokenPrice: bridgeTokenOutPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: bridgeTokenOut.amount,
-            maxSlippage: route.maxFinishSlippageBps
+            maxSlippage: route.maxFastFinishSlippageBps
         });
         uint256 outputAmount = _finishIntent({
             route: route,
@@ -502,7 +502,7 @@ contract DepositAddressManager is
                 sellTokenPrice: bridgeTokenOutPrice,
                 buyTokenPrice: toTokenPrice,
                 sellAmount: bridgedAmount,
-                maxSlippage: route.maxFinishSlippageBps
+                maxSlippage: route.maxFastFinishSlippageBps
             });
 
             // Finish the intent and return any leftover tokens to the caller

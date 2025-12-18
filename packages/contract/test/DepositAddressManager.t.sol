@@ -40,7 +40,7 @@ contract DepositAddressManagerTest is Test {
     uint256 private constant MAX_PRICE_AGE = 300; // 5 minutes
 
     uint256 private constant MAX_START_SLIPPAGE_BPS = 100; // 1%
-    uint256 private constant MAX_FINISH_SLIPPAGE_BPS = 50; // 0.5%
+    uint256 private constant MAX_FAST_FINISH_SLIPPAGE_BPS = 50; // 0.5%
 
     uint256 private constant USDC_PRICE = 1e18; // $1 with 18 decimals
     uint256 private constant PAYMENT_AMOUNT = 100e6; // 100 USDC (6 decimals)
@@ -102,7 +102,8 @@ contract DepositAddressManagerTest is Test {
                 bridger: IUniversalAddressBridger(address(bridger)),
                 pricer: pricer,
                 maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
-                maxFinishSlippageBps: MAX_FINISH_SLIPPAGE_BPS,
+                maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+                maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
                 expirationTimestamp: block.timestamp + 1000
             });
     }
@@ -1134,7 +1135,8 @@ contract DepositAddressManagerTest is Test {
             bridger: IUniversalAddressBridger(address(bridger)),
             pricer: pricer,
             maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
-            maxFinishSlippageBps: MAX_FINISH_SLIPPAGE_BPS,
+            maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+            maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
             expirationTimestamp: block.timestamp + 1000
         });
 
@@ -1528,7 +1530,7 @@ contract DepositAddressManagerTest is Test {
         address depositAddress = factory.getDepositAddress(route);
 
         // Calculate toAmount accounting for slippage
-        uint256 toAmount = (amount * (10_000 - MAX_FINISH_SLIPPAGE_BPS)) /
+        uint256 toAmount = (amount * (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) /
             10_000;
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -1692,7 +1694,7 @@ contract DepositAddressManagerTest is Test {
 
         // Calculate expected min output after slippage
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         // No swap calls needed (USDC -> USDC)
         Call[] memory calls = new Call[](0);
@@ -1731,7 +1733,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1771,7 +1773,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1828,7 +1830,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1865,7 +1867,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1944,7 +1946,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1983,7 +1985,7 @@ contract DepositAddressManagerTest is Test {
         toTokenPrice.signature = _signPriceData(toTokenPrice, 0xBAD);
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -2053,7 +2055,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FINISH_SLIPPAGE_BPS)) / 10_000;
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -2097,7 +2099,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         // Calculate minimum output after slippage
-        uint256 minOutput = (amount * (10_000 - MAX_FINISH_SLIPPAGE_BPS)) /
+        uint256 minOutput = (amount * (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) /
             10_000;
 
         Call[] memory calls = new Call[](0);
@@ -2125,7 +2127,7 @@ contract DepositAddressManagerTest is Test {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
-        route.maxFinishSlippageBps = slippageBps;
+        route.maxSameChainFinishSlippageBps = slippageBps;
 
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -2585,7 +2587,9 @@ contract DepositAddressManagerTest is Test {
 
         // Deploy DepositAddressReceiver as the manager (so CREATE2 address matches)
         vm.prank(address(manager));
-        DepositAddressReceiver receiver = new DepositAddressReceiver{salt: recvSalt}();
+        DepositAddressReceiver receiver = new DepositAddressReceiver{
+            salt: recvSalt
+        }();
         assertEq(address(receiver), receiverAddress);
 
         // Verify receiver is deployed

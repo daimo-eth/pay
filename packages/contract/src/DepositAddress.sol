@@ -27,10 +27,15 @@ struct DepositAddressRoute {
     IUniversalAddressBridger bridger;
     /// DaimoPayPricer contract
     IDaimoPayPricer pricer;
-    /// Maximum slippage allowed on starts
+    /// Maximum slippage allowed on starts. Expected slippage from token sent
+    /// by the user to the bridge token.
     uint256 maxStartSlippageBps;
-    /// Maximum slippage allowed on finishes
-    uint256 maxFinishSlippageBps;
+    /// Maximum slippage allowed on fast finishes. Expected slippage from bridge
+    /// token to final token.
+    uint256 maxFastFinishSlippageBps;
+    /// Maximum slippage allowed on same chain finishes. Expected slippage from
+    /// payment token to final token.
+    uint256 maxSameChainFinishSlippageBps;
     /// Timestamp after which the deposit address expires and can be refunded
     uint256 expirationTimestamp;
 }

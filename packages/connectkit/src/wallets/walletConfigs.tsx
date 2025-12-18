@@ -18,12 +18,6 @@ function getDaimoPayUrl(payId: string) {
   return daimoPayHost + "/pay?id=" + payId;
 }
 
-function getEncodedDaimoPayUrl(payId: string) {
-  let url = getDaimoPayUrl(payId);
-  let encodedUrl = encodeURIComponent(url);
-  return encodedUrl;
-}
-
 export type WalletConfigProps = {
   // Wallet ID, eg "io.rabby" or a sentinel value like WALLET_ID_OTHER_WALLET.
   id?: string;
@@ -70,28 +64,11 @@ export const walletConfigs: {
     deeplinkScheme: "cbwallet://",
     showOnAndroid: true,
     showOnIOS: true,
-    getDaimoPayDeeplink: (payId: string, platform?: string) => {
-      if (platform === "android") {
-        return (
-          "https://go.cb-w.com/dapp?cb_url=" + getEncodedDaimoPayUrl(payId)
-        );
-      }
-      return "cbwallet://dapp?url=" + getEncodedDaimoPayUrl(payId);
-    },
-  },
-  backpack: {
-    id: "backpack",
-    name: "Backpack",
-    shortName: "Backpack",
-    icon: <Logos.Backpack />,
-    iconConnector: <Logos.Backpack />,
-    iconShape: "squircle",
-    showInMobileConnectors: true,
-    showOnAndroid: true,
-    showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getDaimoPayUrl(payId));
-      return `https://backpack.app/ul/v1/browse/${url}`;
+      return (
+        "https://go.cb-w.com/dapp?cb_url=" +
+        encodeURIComponent(getDaimoPayUrl(payId))
+      );
     },
   },
   bitget: {
@@ -105,23 +82,8 @@ export const walletConfigs: {
     showOnIOS: true,
     deeplinkScheme: "bitkeep://",
     getDaimoPayDeeplink: (payId: string) => {
-      return "bitkeep://bkconnect?action=dapp&url=" + getDaimoPayUrl(payId);
+      return "https://bkcode.vip?action=dapp&url=" + getDaimoPayUrl(payId);
     },
-  },
-  "co.family.wallet": {
-    id: "co.family.wallet",
-    name: "Family",
-    shortName: "Family",
-    icon: <Logos.Family />,
-    iconConnector: <Logos.Family />,
-    iconShape: "squircle",
-    showOnAndroid: false,
-    showOnIOS: true,
-    deeplinkScheme: "familywallet://",
-    getDaimoPayDeeplink: (payId: string) => {
-      return "familywallet://browser?url=" + getDaimoPayUrl(payId);
-    },
-    showInMobileConnectors: true,
   },
   "metaMask, metaMask-io, io.metamask, io.metamask.mobile, metaMaskSDK": {
     id: "metaMask",
@@ -157,29 +119,6 @@ export const walletConfigs: {
       return `https://phantom.app/ul/browse/${url}?ref=${ref}`;
     },
   },
-  // porto: {
-  //   name: "Porto",
-  //   icon: <Logos.Porto />,
-  //   iconShape: "squircle",
-  //   showInMobileConnectors: true,
-  // },
-  farcaster: {
-    id: "farcaster",
-    name: "Farcaster",
-    icon: <Logos.Farcaster />,
-    iconConnector: <Logos.Farcaster />,
-    iconShape: "squircle",
-    // Temporarily hidden from mobile connectors to make room for World wallet.
-    // Will re-enable once /pay flow is fixed for Farcaster and we support more mobile wallets.
-    showInMobileConnectors: false,
-    showOnAndroid: true,
-    showOnIOS: true,
-    getDaimoPayDeeplink: (payId: string) => {
-      return (
-        "https://farcaster.xyz/miniapps/sGRsevnRvM9P/daimo-pay/?id=" + payId
-      );
-    },
-  },
   minipay: {
     id: "minipay",
     name: "MiniPay",
@@ -209,7 +148,7 @@ export const walletConfigs: {
     showOnAndroid: true,
     showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
-      return "rainbow://dapp?url=" + getDaimoPayUrl(payId);
+      return "https://rnbwapp.com/dapp?url=" + getDaimoPayUrl(payId);
     },
   },
   // "io.rabby": {
@@ -230,7 +169,10 @@ export const walletConfigs: {
     showOnAndroid: true,
     showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
-      return "trust://open_url?coin_id=60&url=" + getDaimoPayUrl(payId);
+      return (
+        "https://link.trustwallet.com/open_url?coin_id=60&url=" +
+        getDaimoPayUrl(payId)
+      );
     },
   },
   okx: {
@@ -243,24 +185,13 @@ export const walletConfigs: {
     showOnAndroid: true,
     showOnIOS: true,
     getDaimoPayDeeplink: (payId: string) => {
-      return "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId);
+      return (
+        "https://web3.okx.com/download?deeplink=" +
+        encodeURIComponent(
+          "okx://wallet/dapp/url?dappUrl=" + getDaimoPayUrl(payId),
+        )
+      );
     },
-  },
-  solflare: {
-    id: "solflare",
-    name: "Solflare",
-    icon: <Logos.Solflare />,
-    iconConnector: <Logos.Solflare />,
-    showInMobileConnectors: true,
-    showOnAndroid: true,
-    showOnIOS: true,
-    deeplinkScheme: "solflare://",
-    getDaimoPayDeeplink: (payId: string) => {
-      const url = encodeURIComponent(getDaimoPayUrl(payId));
-      const ref = encodeURIComponent(window.location.origin);
-      return `https://solflare.com/ul/v1/browse/${url}?ref=${ref}`;
-    },
-    isSolanaOnly: true,
   },
   // ledger: {
   //   name: "Ledger Live",
@@ -302,11 +233,8 @@ export const walletConfigs: {
     deeplinkScheme: "zerion://",
     showOnAndroid: true,
     showOnIOS: true,
-    getDaimoPayDeeplink: (payId: string, platform?: string) => {
+    getDaimoPayDeeplink: (payId: string) => {
       const payUrl = getDaimoPayUrl(payId);
-      if (platform === "ios") {
-        return "zerion://browser?url=" + payUrl;
-      }
       return "https://link.zerion.io/?url=" + encodeURIComponent(payUrl);
     },
   },

@@ -41,6 +41,7 @@ contract DepositAddressManagerTest is Test {
 
     uint256 private constant MAX_START_SLIPPAGE_BPS = 100; // 1%
     uint256 private constant MAX_FAST_FINISH_SLIPPAGE_BPS = 50; // 0.5%
+    uint256 private constant MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS = 120; // 1.20%
 
     uint256 private constant USDC_PRICE = 1e18; // $1 with 18 decimals
     uint256 private constant PAYMENT_AMOUNT = 100e6; // 100 USDC (6 decimals)
@@ -104,7 +105,7 @@ contract DepositAddressManagerTest is Test {
                 maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
                 maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
                 maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
-                expirationTimestamp: block.timestamp + 1000
+                expiresAt: block.timestamp + 1000
             });
     }
 
@@ -434,7 +435,7 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create price data
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -1137,7 +1138,7 @@ contract DepositAddressManagerTest is Test {
             maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
             maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
             maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
-            expirationTimestamp: block.timestamp + 1000
+            expiresAt: block.timestamp + 1000
         });
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -1273,7 +1274,7 @@ contract DepositAddressManagerTest is Test {
         DepositAddressRoute memory route = _createRoute();
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Fund relayer with tokens to fast finish
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
@@ -1894,7 +1895,7 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create price data
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -3355,7 +3356,7 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3377,7 +3378,7 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3415,7 +3416,7 @@ contract DepositAddressManagerTest is Test {
         usdc2.transfer(address(vault), amount2);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create tokens array with both tokens
         IERC20[] memory tokens = new IERC20[](2);
@@ -3440,7 +3441,7 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp to exact expiration timestamp
-        vm.warp(route.expirationTimestamp);
+        vm.warp(route.expiresAt);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3458,7 +3459,7 @@ contract DepositAddressManagerTest is Test {
         factory.createDepositAddress(route);
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3498,7 +3499,7 @@ contract DepositAddressManagerTest is Test {
         route.escrow = address(0x1234); // Wrong escrow
 
         // Warp past expiration
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3520,13 +3521,13 @@ contract DepositAddressManagerTest is Test {
 
     function test_isRouteExpired_ReturnsTrueAtExpiration() public {
         DepositAddressRoute memory route = _createRoute();
-        vm.warp(route.expirationTimestamp);
+        vm.warp(route.expiresAt);
         assertTrue(manager.isRouteExpired(route));
     }
 
     function test_isRouteExpired_ReturnsTrueAfterExpiration() public {
         DepositAddressRoute memory route = _createRoute();
-        vm.warp(route.expirationTimestamp + 1);
+        vm.warp(route.expiresAt + 1);
         assertTrue(manager.isRouteExpired(route));
     }
 }

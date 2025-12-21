@@ -37,7 +37,7 @@ struct DepositAddressRoute {
     /// payment token to final token.
     uint256 maxSameChainFinishSlippageBps;
     /// Timestamp after which the deposit address expires and can be refunded
-    uint256 expirationTimestamp;
+    uint256 expiresAt;
 }
 
 /// @notice Parameters that uniquely identify a single intent (cross-chain

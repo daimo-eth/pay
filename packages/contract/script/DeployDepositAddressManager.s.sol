@@ -12,13 +12,13 @@ import "./constants/Constants.s.sol";
 // CREATE3Factory constant CREATE3;
 
 bytes32 constant DEPLOY_SALT_DA_FACTORY = keccak256(
-    "DepositAddressFactory-1"
+    "DepositAddressFactory-DAtest1"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
-    "DepositAddressManager-1"
+    "DepositAddressManager-DAtest1"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER_IMPL = keccak256(
-    "DepositAddressManager-impl-1"
+    "DepositAddressManager-impl-DAtest1"
 );
 
 /// @title DeployDepositAddressManager

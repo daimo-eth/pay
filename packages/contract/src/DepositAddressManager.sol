@@ -152,8 +152,7 @@ contract DepositAddressManager is
     ///      specified token amount to it.
     /// @param route           The cross-chain route containing destination
     ///                        chain, recipient, and token details
-    /// @param paymentToken    The whitelisted stablecoin used to fund the
-    ///                        intent.
+    /// @param paymentToken    The token the user paid the intent.
     /// @param bridgeTokenOut  The token and amount to be bridged to the
     ///                        destination chain
     /// @param relaySalt       Unique salt provided by the relayer to generate
@@ -585,7 +584,7 @@ contract DepositAddressManager is
     function isRouteExpired(
         DepositAddressRoute calldata route
     ) public view returns (bool) {
-        return block.timestamp >= route.expirationTimestamp;
+        return block.timestamp >= route.expiresAt;
     }
 
     // ---------------------------------------------------------------------

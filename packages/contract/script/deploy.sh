@@ -25,6 +25,7 @@ SCRIPTS=(
     # Universal/Deposit Address
     # "script/DeployUniversalAddressBridger.s.sol"
     # "script/DeployUniversalAddressManager.s.sol"
+    # "script/DeployDaimoPayPricer.s.sol"
     # "script/DeployDepositAddressManager.s.sol"
 
     # Relayer

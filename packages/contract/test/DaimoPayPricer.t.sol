@@ -108,13 +108,6 @@ contract DaimoPayPricerTest is Test {
         new DaimoPayPricer(signer, 0);
     }
 
-    function testConstructor_EmitsTrustedSignerSet() public {
-        address signer = address(0x456);
-        vm.expectEmit(true, false, false, false);
-        emit DaimoPayPricer.TrustedSignerSet(signer);
-        new DaimoPayPricer(signer, 300);
-    }
-
     // ---------------------------------------------------------------------
     // validatePrice tests - Valid signatures
     // ---------------------------------------------------------------------

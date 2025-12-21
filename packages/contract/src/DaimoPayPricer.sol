@@ -19,15 +19,11 @@ contract DaimoPayPricer is IDaimoPayPricer {
     /// @notice Maximum age of price data in seconds before it's considered stale
     uint256 public immutable maxPriceAge;
 
-    /// @notice Emitted when the contract is deployed with a trusted signer
-    event TrustedSignerSet(address indexed signer);
-
     constructor(address _trustedSigner, uint256 _maxPriceAge) {
         require(_trustedSigner != address(0), "Invalid signer address");
         require(_maxPriceAge > 0, "Invalid max price age");
         trustedSigner = _trustedSigner;
         maxPriceAge = _maxPriceAge;
-        emit TrustedSignerSet(_trustedSigner);
     }
 
     /// @inheritdoc IDaimoPayPricer

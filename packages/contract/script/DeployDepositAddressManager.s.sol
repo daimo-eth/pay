@@ -12,13 +12,13 @@ import "./constants/Constants.s.sol";
 // CREATE3Factory constant CREATE3;
 
 bytes32 constant DEPLOY_SALT_DA_FACTORY = keccak256(
-    "DepositAddressFactory-DAtest1"
+    "DepositAddressFactory-DAtest2"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
-    "DepositAddressManager-DAtest1"
+    "DepositAddressManager-DAtest2"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER_IMPL = keccak256(
-    "DepositAddressManager-impl-DAtest1"
+    "DepositAddressManager-impl-DAtest2"
 );
 
 /// @title DeployDepositAddressManager
@@ -58,7 +58,7 @@ contract DeployDepositAddressManager is Script {
         // Prepare initializer calldata for the proxy
         bytes memory initData = abi.encodeCall(
             DepositAddressManager.initialize,
-            (DepositAddressFactory(daFactory))
+            (msg.sender, DepositAddressFactory(daFactory))
         );
 
         address daManager = CREATE3.deploy(
@@ -69,6 +69,7 @@ contract DeployDepositAddressManager is Script {
             )
         );
         console.log("DepositAddressManager proxy deployed at", daManager);
+        console.log("DepositAddressManager owner", msg.sender);
 
         vm.stopBroadcast();
     }

@@ -49,8 +49,8 @@ contract DepositAddressManager is
     // Storage
     // ---------------------------------------------------------------------
 
-    /// Authorized relayer address.
-    address public relayer;
+    /// Authorized relayer addresses.
+    mapping(address relayer => bool authorized) public relayerAuthorized;
 
     /// On the source chain, record receiver addresses that have been used.
     mapping(address receiver => bool used) public receiverUsed;
@@ -65,7 +65,7 @@ contract DepositAddressManager is
     // Events
     // ---------------------------------------------------------------------
 
-    event RelayerChanged(address indexed relayer);
+    event RelayerAuthorized(address indexed relayer, bool authorized);
 
     event Start(
         address indexed depositAddress,
@@ -112,7 +112,7 @@ contract DepositAddressManager is
 
     /// @dev Only allow designated relayers to call certain functions.
     modifier onlyRelayer() {
-        require(msg.sender == relayer, "DAM: not relayer");
+        require(relayerAuthorized[msg.sender], "DAM: not relayer");
         _;
     }
 
@@ -130,10 +130,11 @@ contract DepositAddressManager is
 
     /// @notice Initialize the contract.
     function initialize(
+        address _owner,
         DepositAddressFactory _depositAddressFactory
     ) external initializer {
         __ReentrancyGuard_init();
-        __Ownable_init(msg.sender);
+        __Ownable_init(_owner);
         __UUPSUpgradeable_init();
 
         depositAddressFactory = _depositAddressFactory;
@@ -631,10 +632,11 @@ contract DepositAddressManager is
     // ---------------------------------------------------------------------
 
     /// @notice Set the authorized relayer address.
-    /// @param _relayer The address of the new relayer
-    function setRelayer(address _relayer) external onlyOwner {
-        relayer = _relayer;
-        emit RelayerChanged(_relayer);
+    /// @param relayer The address of the new relayer
+    /// @param authorized Whether the relayer is authorized
+    function setRelayer(address relayer, bool authorized) external onlyOwner {
+        relayerAuthorized[relayer] = authorized;
+        emit RelayerAuthorized(relayer, authorized);
     }
 
     // ---------------------------------------------------------------------

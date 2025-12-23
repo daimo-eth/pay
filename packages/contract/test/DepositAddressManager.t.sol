@@ -77,11 +77,14 @@ contract DepositAddressManagerTest is Test {
         DepositAddressManager managerImpl = new DepositAddressManager();
         ERC1967Proxy managerProxy = new ERC1967Proxy(
             address(managerImpl),
-            abi.encodeCall(DepositAddressManager.initialize, (factory))
+            abi.encodeCall(
+                DepositAddressManager.initialize,
+                (address(this), factory)
+            )
         );
         manager = DepositAddressManager(payable(address(managerProxy)));
 
-        manager.setRelayer(RELAYER);
+        manager.setRelayer(RELAYER, true);
 
         // Deploy test USDC and mint to test contracts
         usdc = new TestUSDC();

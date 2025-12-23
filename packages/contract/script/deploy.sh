@@ -22,8 +22,11 @@ SCRIPTS=(
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
-    # Universal Address
+    # Universal/Deposit Address
+    # "script/DeployUniversalAddressBridger.s.sol"
     # "script/DeployUniversalAddressManager.s.sol"
+    # "script/DeployDaimoPayPricer.s.sol"
+    # "script/DeployDepositAddressManager.s.sol"
 
     # Relayer
     # The deployer must be the stage/dev LP that calls this contract.

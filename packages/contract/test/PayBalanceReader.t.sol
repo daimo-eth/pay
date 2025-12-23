@@ -2,7 +2,10 @@
 pragma solidity ^0.8.12;
 
 import "forge-std/Test.sol";
-import {PayBalanceFactory, PayBalanceReader} from "../src/relayer/PayBalanceReader.sol";
+import {
+    PayBalanceFactory,
+    PayBalanceReader
+} from "../src/relayer/PayBalanceReader.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -67,10 +70,38 @@ contract PayBalanceReaderTest is Test {
         assertEq(address(allTokens[1]), address(token2), "Addr 1 mismatch");
 
         // Step 5: Get token balances
-        uint256[] memory balances = reader.getTokenBalances(ALICE);
+        (uint256[] memory balances, uint256 blockNum) = reader.getTokenBalances(
+            ALICE
+        );
         assertEq(balances.length, 3, "Should have 2 tokens + ETH");
         assertEq(balances[0], AMOUNT1, "Token1 balance incorrect");
         assertEq(balances[1], AMOUNT2, "Token2 balance incorrect");
         assertEq(balances[2], 0, "ETH balance should be 0");
+        assertEq(blockNum, block.number, "Block number mismatch");
+    }
+
+    function testBlockNumberReturned() public {
+        // Setup
+        PayBalanceFactory factory = new PayBalanceFactory();
+        TestToken token = new TestToken("Token");
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = IERC20(address(token));
+
+        address deployedAddr = factory.deployBalanceReader(tokens);
+        PayBalanceReader reader = PayBalanceReader(deployedAddr);
+
+        // Get balances at current block
+        (, uint256 blockNum1) = reader.getTokenBalances(ALICE);
+        assertEq(blockNum1, block.number, "Block number should match current");
+
+        // Roll forward and verify block number changes
+        vm.roll(block.number + 10);
+        (, uint256 blockNum2) = reader.getTokenBalances(ALICE);
+        assertEq(blockNum2, block.number, "Block number should update");
+        assertEq(
+            blockNum2,
+            blockNum1 + 10,
+            "Block number should increase by 10"
+        );
     }
 }

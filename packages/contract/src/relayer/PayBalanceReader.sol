@@ -74,9 +74,10 @@ contract PayBalanceReader {
 
     /// Get the balances for all saved tokens and the balance of the native
     /// asset (the last array element) for a given owner.
+    /// Also returns the block number at which the balances were fetched.
     function getTokenBalances(
         address owner
-    ) public view returns (uint256[] memory balances) {
+    ) public view returns (uint256[] memory balances, uint256 blockNumber) {
         IERC20[] memory tokens = getAllTokens();
         uint256 n = tokens.length;
 
@@ -86,5 +87,6 @@ contract PayBalanceReader {
         }
 
         balances[n] = owner.balance;
+        blockNumber = block.number;
     }
 }

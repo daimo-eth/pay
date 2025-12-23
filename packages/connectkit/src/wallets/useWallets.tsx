@@ -276,7 +276,7 @@ export const useWallets = (isMobile?: boolean): WalletProps[] => {
       iconShape: connector.id === RABBY_CONNECTOR_ID ? "circle" : "squircle",
       isInstalled:
         connector.type === "mock" ||
-        (connector.type === "injected" && connector.id !== "metaMask") ||
+        connector.type === "injected" ||
         connector.type === "farcasterFrame" ||
         isBaseAccountConnector(connector.id) ||
         isGeminiConnector(connector.id),

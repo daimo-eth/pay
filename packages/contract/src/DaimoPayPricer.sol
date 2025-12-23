@@ -30,11 +30,6 @@ contract DaimoPayPricer is IDaimoPayPricer {
     function validatePrice(
         PriceData calldata priceData
     ) external view returns (bool) {
-        // Check that the price timestamp is not in the future
-        if (priceData.timestamp > block.timestamp) {
-            return false;
-        }
-
         // Check that the price is not stale
         if (block.timestamp > priceData.timestamp + maxPriceAge) {
             return false;

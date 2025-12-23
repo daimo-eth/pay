@@ -351,20 +351,6 @@ contract DaimoPayPricerTest is Test {
         assertFalse(isValid);
     }
 
-    function testValidatePrice_FutureTimestamp_ReturnsFalse() public {
-        // Create price data with timestamp in the future
-        PriceData memory priceData = _createPriceData(
-            TOKEN_ADDRESS,
-            2000e18,
-            block.timestamp + 1
-        );
-
-        priceData.signature = _signPriceData(priceData, TRUSTED_SIGNER_KEY);
-
-        bool isValid = pricer.validatePrice(priceData);
-        assertFalse(isValid);
-    }
-
     function testValidatePrice_ExactlyMaxAge_Valid() public {
         // Create price data with timestamp exactly maxPriceAge old
         // Contract uses > not >=, so exactly maxPriceAge is still valid

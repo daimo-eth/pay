@@ -156,6 +156,10 @@ export const zDaimoPayOrderMetadata = z.object({
     })
     .optional()
     .describe(""),
+  finalRefundUrl: z
+    .string()
+    .optional()
+    .describe("URL of the final refund transaction, if manually refunded."),
 });
 
 export type DaimoPayOrderMetadata = z.infer<typeof zDaimoPayOrderMetadata>;

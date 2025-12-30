@@ -658,3 +658,42 @@ export type DA = {
   createdAt: string; // Seconds since epoch
   fulfillments: DAFulfillment[];
 };
+
+// Session types for the new modal flow
+
+export type SessionState = "pending" | "complete" | "expired";
+
+export type NavNodeChooseOption = {
+  type: "ChooseOption";
+  id: string;
+  title: string;
+  options: NavNode[];
+};
+
+export type NavNodeDepositAddress = {
+  type: "DepositAddress";
+  id: string;
+  title: string;
+  address: Address;
+  chainId: number;
+};
+
+export type NavNodeDeeplink = {
+  type: "Deeplink";
+  id: string;
+  title: string;
+  url: string;
+  icon?: string;
+};
+
+export type NavNode =
+  | NavNodeChooseOption
+  | NavNodeDepositAddress
+  | NavNodeDeeplink;
+
+export type Session = {
+  sessionId: UUID;
+  state: SessionState;
+  da: DA;
+  navTree: NavNode[];
+};

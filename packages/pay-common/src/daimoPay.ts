@@ -658,3 +658,73 @@ export type DA = {
   createdAt: string; // Seconds since epoch
   fulfillments: DAFulfillment[];
 };
+
+// Session types for the new modal flow
+
+export type SessionState = "pending" | "paid" | "expired";
+
+/** Common fields for all navigation nodes */
+type NavNodeCommon = {
+  id: string;
+  /** Page header title when this node is active */
+  title: string;
+  /** Button label when shown as option in parent (defaults to title) */
+  label?: string;
+  /** Icons to display on option button (defaults to child icons or node icon) */
+  icons?: string[];
+};
+
+export type NavNodeChooseOption = NavNodeCommon & {
+  type: "ChooseOption";
+  options: NavNode[];
+  /** Layout for displaying options. Defaults to "list". */
+  layout?: "list" | "grid";
+};
+
+export type NavNodeDepositAddress = NavNodeCommon & {
+  type: "DepositAddress";
+  address: Address;
+  chainId: number;
+  icon?: string;
+  minimumUsd: number;
+  maximumUsd: number;
+  expiresAt: number; // Unix timestamp (createdAt + 1 hour)
+  tokenSuffix: string; // e.g., "USDT or USDC"
+};
+
+export type NavNodeDeeplink = NavNodeCommon & {
+  type: "Deeplink";
+  url: string;
+  icon?: string;
+};
+
+export type NavNodeExchange = NavNodeCommon & {
+  type: "Exchange";
+  exchangeId: "Coinbase" | "Binance" | "Lemon";
+  icon?: string;
+  minimumUsd: number;
+  maximumUsd: number;
+};
+
+export type NavNodeTronDeposit = NavNodeCommon & {
+  type: "TronDeposit";
+  icon?: string;
+  minimumUsd: number;
+  maximumUsd: number;
+};
+
+export type NavNode =
+  | NavNodeChooseOption
+  | NavNodeDepositAddress
+  | NavNodeDeeplink
+  | NavNodeExchange
+  | NavNodeTronDeposit;
+
+export type Session = {
+  sessionId: UUID;
+  state: SessionState;
+  da: DA;
+  navTree: NavNode[];
+  /** Custom theme CSS URL, overrides default theme */
+  themeCssUrl?: string;
+};

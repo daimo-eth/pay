@@ -10,6 +10,7 @@ import {
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
   ExternalPaymentOptionsString,
+  isHydrated,
   isNativeToken,
   PlatformType,
   readDaimoPayOrderID,
@@ -41,13 +42,10 @@ import { detectPlatform } from "../utils/platform";
 import { TrpcClient } from "../utils/trpc";
 import { WalletConfigProps } from "../wallets/walletConfigs";
 import { useDaimoPay } from "./useDaimoPay";
-import { useDepositAddressOptions } from "./useDepositAddressOptions";
-import { useExternalPaymentOptions } from "./useExternalPaymentOptions";
 import useIsMobile from "./useIsMobile";
 import { useOrderUsdLimits } from "./useOrderUsdLimits";
-import { useSolanaPaymentOptions } from "./useSolanaPaymentOptions";
+import { usePaymentOptions } from "./usePaymentOptions";
 import { useUntronAvailability } from "./useUntronAvailability";
-import { useWalletPaymentOptions } from "./useWalletPaymentOptions";
 
 /** Wallet payment details, sent to processSourcePayment after submitting tx. */
 export type SourcePayment = Parameters<
@@ -114,14 +112,22 @@ export interface PaymentState {
   /// True if the user is entering an amount (deposit) vs preset (checkout).
   isDepositFlow: boolean;
   paymentWaitingMessage: string | undefined;
-  /// External payment options, loaded from server and filtered by EITHER
-  /// 1. the DaimoPayButton paymentOptions, or 2. those of daimoPayOrder
-  externalPaymentOptions: ReturnType<typeof useExternalPaymentOptions>;
   selectedWallet: WalletConfigProps | undefined;
   selectedWalletDeepLink: string | undefined;
-  walletPaymentOptions: ReturnType<typeof useWalletPaymentOptions>;
-  solanaPaymentOptions: ReturnType<typeof useSolanaPaymentOptions>;
-  depositAddressOptions: ReturnType<typeof useDepositAddressOptions>;
+  /// External payment options, loaded from server and filtered by EITHER
+  /// 1. the DaimoPayButton paymentOptions, or 2. those of daimoPayOrder
+  externalPaymentOptions: ReturnType<
+    typeof usePaymentOptions
+  >["externalPaymentOptions"];
+  walletPaymentOptions: ReturnType<
+    typeof usePaymentOptions
+  >["walletPaymentOptions"];
+  solanaPaymentOptions: ReturnType<
+    typeof usePaymentOptions
+  >["solanaPaymentOptions"];
+  depositAddressOptions: ReturnType<
+    typeof usePaymentOptions
+  >["depositAddressOptions"];
   /** Whether Untron receivers are currently available. `null` when unknown. */
   untronAvailable: boolean | null;
   selectedExternalOption: ExternalPaymentOptionMetadata | undefined;
@@ -205,38 +211,32 @@ export function usePaymentState({
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
-  const externalPaymentOptions = useExternalPaymentOptions({
+  // Pass orderId only when order is hydrated; always pass appId when available
+  const hydratedOrderId =
+    pay.order != null && isHydrated(pay.order) ? pay.order.id : undefined;
+  const {
+    externalPaymentOptions,
+    walletPaymentOptions,
+    solanaPaymentOptions,
+    depositAddressOptions,
+  } = usePaymentOptions({
     trpc,
-    // allow <DaimoPayButton payId={...} paymentOptions={override} />
+    appId: currPayParams?.appId,
+    orderId: hydratedOrderId,
+    isDepositFlow,
+    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
+    solanaPubKey,
+    ethWalletAddress,
+    platform,
     filterIds:
       buttonProps?.paymentOptions ?? pay.order?.metadata.payer?.paymentOptions,
-    platform,
-    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
-    mode: pay.order?.mode,
-  });
-  const walletPaymentOptions = useWalletPaymentOptions({
-    trpc,
-    address: ethWalletAddress,
-    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
-    destChainId: pay.order?.destFinalCallTokenAmount.token.chainId,
-    destAddress: pay.order?.destFinalCall.to,
     preferredChains: pay.order?.metadata.payer?.preferredChains,
     preferredTokens: pay.order?.metadata.payer?.preferredTokens,
     evmChains: pay.order?.metadata.payer?.evmChains,
+    destChainId: pay.order?.destFinalCallTokenAmount.token.chainId,
     passthroughTokens: pay.order?.metadata.payer?.passthroughTokens,
-    isDepositFlow,
+    destAddress: pay.order?.destFinalCall.to,
     log,
-  });
-  const solanaPaymentOptions = useSolanaPaymentOptions({
-    trpc,
-    address: solanaPubKey,
-    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
-    isDepositFlow,
-  });
-  const depositAddressOptions = useDepositAddressOptions({
-    trpc,
-    usdRequired: pay.order?.destFinalCallTokenAmount.usd,
-    mode: pay.order?.mode,
   });
 
   // Poll for Untron receiver availability so components can disable unsupported chains promptly.

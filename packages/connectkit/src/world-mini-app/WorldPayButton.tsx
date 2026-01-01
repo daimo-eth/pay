@@ -108,7 +108,7 @@ export type WorldPayButtonCustomProps = WorldPayButtonCommonProps & {
   }) => ReactElement;
 };
 
-export function WorldPayButton(props: WorldPayButtonProps) {
+export function WorldPayButton(props: WorldPayButtonProps): JSX.Element {
   const { theme, mode, customTheme } = props;
   const context = usePayContext();
 
@@ -133,7 +133,7 @@ export function WorldPayButton(props: WorldPayButtonProps) {
   );
 }
 
-function WorldPayButtonCustom(props: WorldPayButtonCustomProps) {
+function WorldPayButtonCustom(props: WorldPayButtonCustomProps): JSX.Element {
   const pay = useDaimoPay();
   const context = usePayContext();
   const { paymentState, log } = context;

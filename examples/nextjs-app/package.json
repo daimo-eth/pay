@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@daimo/pay": "*",
-    "@farcaster/frame-sdk": "^0.0.26",
     "@headlessui/react": "^2.2.0",
     "@tanstack/react-query": "^5.51.11",
     "autoprefixer": "^10.4.20",

@@ -274,6 +274,20 @@ const Modal: React.FC<ModalProps> = ({
   const currentDepth = routeDepthMap[context.route as ROUTES] ?? 1;
   const prevDepth = usePrevious(currentDepth, currentDepth);
 
+  // Track when modal is in initial opening animation to prevent triggerResize updates
+  // This prevents dimension changes mid-animation when OptionsList loads
+  const isOpeningAnimation = useRef(false);
+  useEffect(() => {
+    if (open) {
+      isOpeningAnimation.current = true;
+      // BoxIn animation is 150ms, wait for it to complete before allowing resizes
+      const timer = setTimeout(() => {
+        isOpeningAnimation.current = false;
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   // eslint-disable-next-line react-hooks/rules-of-hooks
   if (!positionInside) useLockBodyScroll(mounted);
 
@@ -317,7 +331,7 @@ const Modal: React.FC<ModalProps> = ({
       // eslint-disable-next-line react-hooks/exhaustive-deps
       blockTimeout = setTimeout(() => setInTransition(false), 360);
 
-      // Calculate new content bounds
+      // Calculate new content bounds (always allowed for route changes)
       updateBounds(node);
     },
     [open, inTransition],
@@ -329,6 +343,8 @@ const Modal: React.FC<ModalProps> = ({
 
   const ref = useRef<any>(null);
   useEffect(() => {
+    // Skip triggerResize updates during opening animation to prevent mid-animation dimension changes
+    if (isOpeningAnimation.current) return;
     if (ref.current) updateBounds(ref.current);
   }, [chain, switchChain, mobile, context.options, context.resize]);
 

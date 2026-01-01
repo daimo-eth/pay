@@ -44,7 +44,7 @@ const WaitingExternal: React.FC = () => {
     if (!selectedExternalOption) return;
     payWithExternal(selectedExternalOption.id).then((url) => {
       setExternalURL(url);
-      if (!shouldShowExternalQRCodeOnDesktop) {
+      if (!shouldShowExternalQRCodeOnDesktop(selectedExternalOption.id)) {
         openExternalWindow(url);
       }
     });

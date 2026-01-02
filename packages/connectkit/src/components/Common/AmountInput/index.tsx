@@ -95,15 +95,21 @@ const MultiCurrencySelectAmount: React.FC<{
         usdNum > maxUsdLimit,
     );
 
+    // Format amounts based on current mode (USD or token)
+    const formatAmount = (usd: number) =>
+      newIsEditingUsd
+        ? formatUsd(usd)
+        : `${usdToRoundedTokenAmount(usd, balanceToken)} ${balanceToken.symbol}`;
+
     if (usdNum > selectedTokenOption.balance.usd) {
       setMessage(
-        `Amount exceeds your balance: ${formatUsd(selectedTokenOption.balance.usd)}`,
+        `Amount exceeds your balance: ${formatAmount(selectedTokenOption.balance.usd)}`,
       );
     } else if (usdNum > maxUsdLimit) {
-      setMessage(`Maximum ${formatUsd(maxUsdLimit)}`);
+      setMessage(`Maximum ${formatAmount(maxUsdLimit)}`);
     } else if (usdNum > 0 && usdNum < selectedTokenOption.minimumRequired.usd) {
       setMessage(
-        `Minimum ${formatUsd(selectedTokenOption.minimumRequired.usd, "up")}`,
+        `Minimum ${formatAmount(selectedTokenOption.minimumRequired.usd)}`,
       );
     } else {
       setMessage(getBalanceMessage(newIsEditingUsd));

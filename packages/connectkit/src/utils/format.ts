@@ -81,6 +81,9 @@ export function roundTokenAmountUnits(
   token: DaimoPayToken,
   round: "up" | "down" | "nearest" = "down",
 ): string {
+  if (amountUnits === 0) {
+    return "0";
+  }
   return roundDecimals(amountUnits, token.displayDecimals, round);
 }
 

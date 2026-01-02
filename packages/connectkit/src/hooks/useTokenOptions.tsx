@@ -95,11 +95,18 @@ function getEvmTokenOptions(
       : roundTokenAmount(option.required.amount, option.required.token);
     const title = `${titlePrice} ${option.balance.token.symbol} ${onString} ${chainName}`;
 
+    // In deposit mode, check if balance is under the minimum
+    const isBelowMinimum =
+      isDepositFlow && option.balance.usd < option.minimumRequired.usd;
+    const belowMinimumReason = `Minimum ${formatUsd(option.minimumRequired.usd, "up")}`;
+
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+
     let subtitle =
       option.disabledReason ??
+      (isBelowMinimum ? belowMinimumReason : null) ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;
-    const disabled = option.disabledReason != null;
+    const disabled = option.disabledReason != null || isBelowMinimum;
 
     // HACK: special handling for portfolio deposits
     if (nonPassthroughToken != null) {
@@ -155,11 +162,19 @@ function getSolanaTokenOptions(
       ? formatUsd(option.balance.usd)
       : roundTokenAmount(option.required.amount, option.required.token);
     const title = `${titlePrice} ${option.balance.token.symbol} ${onString} Solana`;
+
+    // In deposit mode, check if balance is under the minimum
+    const isBelowMinimum =
+      isDepositFlow && option.balance.usd < option.minimumRequired.usd;
+    const belowMinimumReason = `Minimum ${formatUsd(option.minimumRequired.usd, "up")}`;
+
     const balanceStr = `${roundTokenAmount(option.balance.amount, option.balance.token)} ${option.balance.token.symbol}`;
+
     const subtitle =
       option.disabledReason ??
+      (isBelowMinimum ? belowMinimumReason : null) ??
       `${isDepositFlow ? "" : "Balance: "}${balanceStr}`;
-    const disabled = option.disabledReason != null;
+    const disabled = option.disabledReason != null || isBelowMinimum;
 
     return {
       id: getDaimoTokenKey(option.balance.token),

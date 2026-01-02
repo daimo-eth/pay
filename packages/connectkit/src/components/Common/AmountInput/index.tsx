@@ -36,18 +36,20 @@ const MultiCurrencySelectAmount: React.FC<{
 
   const balanceToken = selectedTokenOption.balance.token;
 
-  const minimumMessage =
-    selectedTokenOption.minimumRequired.usd > 0
-      ? `Minimum 
-  ${formatUsd(selectedTokenOption.minimumRequired.usd, "up")}`
-      : null;
+  // Balance messages for USD and token modes
+  const isUsdStablecoin = balanceToken.fiatISO === "USD";
+  const usdBalanceMessage = isUsdStablecoin
+    ? `Balance: ${formatUsd(selectedTokenOption.balance.usd)}`
+    : `Balance: ${formatUsd(selectedTokenOption.balance.usd)} ${balanceToken.symbol}`;
+  const tokenBalanceMessage = `Balance: ${roundTokenAmount(selectedTokenOption.balance.amount, balanceToken)} ${balanceToken.symbol}`;
 
-  const [usdValue, setUsdValue] = useState("");
-  const [tokenValue, setTokenValue] = useState(
-    usdToRoundedTokenAmount(0, balanceToken),
-  );
+  const getBalanceMessage = (editingUsd: boolean) =>
+    editingUsd ? usdBalanceMessage : tokenBalanceMessage;
+
+  const [usdStr, setUsdValue] = useState("");
+  const [tokenStr, setTokenValue] = useState("");
   const [isEditingUsd, setIsEditingUsd] = useState(true);
-  const [message, setMessage] = useState<string | null>(minimumMessage);
+  const [message, setMessage] = useState<string | null>(usdBalanceMessage);
   const [continueDisabled, setContinueDisabled] = useState(true);
 
   useEffect(() => {
@@ -65,34 +67,52 @@ const MultiCurrencySelectAmount: React.FC<{
   ) => {
     const sanitizedUsdValue = sanitizeNumber(newUsdValue);
     const sanitizedTokenValue = sanitizeNumber(newTokenValue);
+    const usdNum = Number(sanitizedUsdValue);
+    const tokenNum = Number(sanitizedTokenValue);
 
     // Update the state. Don't sanitize the value if the user is editing it.
+    // Show empty for zero values so user can start typing immediately.
+    // Strip trailing zeros from token values for cleaner display.
+    const stripTrailingZeros = (val: string) =>
+      val.includes(".") ? val.replace(/\.?0+$/, "") : val;
+
     setUsdValue(
-      newIsEditingUsd ? newUsdValue : roundUsd(Number(sanitizedUsdValue)),
+      newIsEditingUsd ? newUsdValue : usdNum > 0 ? roundUsd(usdNum) : "",
     );
     setTokenValue(
       newIsEditingUsd
-        ? roundTokenAmountUnits(Number(sanitizedTokenValue), balanceToken)
+        ? tokenNum > 0
+          ? stripTrailingZeros(roundTokenAmountUnits(tokenNum, balanceToken))
+          : ""
         : newTokenValue,
     );
     setIsEditingUsd(newIsEditingUsd);
 
     setContinueDisabled(
-      Number(sanitizedUsdValue) <= 0 ||
-        Number(sanitizedUsdValue) < selectedTokenOption.minimumRequired.usd ||
-        Number(sanitizedUsdValue) > selectedTokenOption.balance.usd ||
-        Number(sanitizedUsdValue) > maxUsdLimit,
+      usdNum <= 0 ||
+        usdNum < selectedTokenOption.minimumRequired.usd ||
+        usdNum > selectedTokenOption.balance.usd ||
+        usdNum > maxUsdLimit,
     );
 
-    if (Number(sanitizedUsdValue) > selectedTokenOption.balance.usd) {
+    // Format amounts based on current mode (USD or token)
+    const formatAmount = (usd: number) =>
+      newIsEditingUsd
+        ? formatUsd(usd)
+        : `${usdToRoundedTokenAmount(usd, balanceToken)} ${balanceToken.symbol}`;
+
+    if (usdNum > selectedTokenOption.balance.usd) {
       setMessage(
-        `Amount exceeds your balance: 
-  ${formatUsd(selectedTokenOption.balance.usd)}`,
+        `Amount exceeds your balance: ${formatAmount(selectedTokenOption.balance.usd)}`,
       );
-    } else if (Number(usdValue) > maxUsdLimit) {
-      setMessage(`Maximum ${formatUsd(maxUsdLimit)}`);
+    } else if (usdNum > maxUsdLimit) {
+      setMessage(`Maximum ${formatAmount(maxUsdLimit)}`);
+    } else if (usdNum > 0 && usdNum < selectedTokenOption.minimumRequired.usd) {
+      setMessage(
+        `Minimum ${formatAmount(selectedTokenOption.minimumRequired.usd)}`,
+      );
     } else {
-      setMessage(minimumMessage);
+      setMessage(getBalanceMessage(newIsEditingUsd));
     }
   };
 
@@ -118,12 +138,12 @@ const MultiCurrencySelectAmount: React.FC<{
   };
 
   const handleMax = () => {
-    const usdValue = roundUsd(Number(selectedTokenOption.balance.usd));
-    const tokenValue = roundTokenAmount(
+    const usdStr = roundUsd(Number(selectedTokenOption.balance.usd));
+    const tokenStr = roundTokenAmount(
       selectedTokenOption.balance.amount,
       balanceToken,
     );
-    updateValues(usdValue, tokenValue, isEditingUsd);
+    updateValues(usdStr, tokenStr, isEditingUsd);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -133,11 +153,11 @@ const MultiCurrencySelectAmount: React.FC<{
   };
 
   const handleSwitchCurrency = () => {
-    updateValues(usdValue, tokenValue, !isEditingUsd);
+    updateValues(usdStr, tokenStr, !isEditingUsd);
   };
 
   const handleContinue = () => {
-    const usd = Number(sanitizeNumber(usdValue));
+    const usd = Number(sanitizeNumber(usdStr));
     const amountUnits = usd / balanceToken.usd;
     const amount = parseUnits(amountUnits.toString(), balanceToken.decimals);
     setSelectedTokenOption({
@@ -164,7 +184,7 @@ const MultiCurrencySelectAmount: React.FC<{
           {/* Invisible div to balance spacing */}
           <MaxButton style={{ visibility: "hidden" }}>Max</MaxButton>
           <AmountInputField
-            value={isEditingUsd ? usdValue : tokenValue}
+            value={isEditingUsd ? usdStr : tokenStr}
             onChange={handleAmountChange}
             currency={isEditingUsd ? "$" : balanceToken.symbol}
             onKeyDown={handleKeyDown}
@@ -177,8 +197,8 @@ const MultiCurrencySelectAmount: React.FC<{
             <SwitchButton onClick={handleSwitchCurrency}>
               <SecondaryAmount>
                 {isEditingUsd
-                  ? `${tokenValue} ${balanceToken.symbol}`
-                  : `$${usdValue}`}
+                  ? `${tokenStr || "0"} ${balanceToken.symbol}`
+                  : `$${usdStr || roundUsd(0)}`}
               </SecondaryAmount>
             </SwitchButton>
           </SwitchContainer>
@@ -200,6 +220,7 @@ const AmountInputContainer = styled.div`
   justify-content: center;
   gap: 6px;
 `;
+
 const SecondaryAmount = styled.div`
   font-size: 16px;
   font-weight: 400;

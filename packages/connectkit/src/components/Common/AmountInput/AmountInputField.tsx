@@ -32,19 +32,7 @@ const InputField = styled.input`
   max-width: 10ch;
 `;
 
-const AnimatedCurrency = styled(ModalBody)<{ $small?: boolean }>`
-  @keyframes fadeInDown {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  animation: fadeInDown 0.3s ease-out forwards;
+const Currency = styled(ModalBody)<{ $small?: boolean }>`
   font-size: ${(props) => (props.$small ? "16px" : "24px")};
 `;
 
@@ -60,9 +48,14 @@ const AmountInputField: React.FC<{
     inputRef.current?.focus();
   }, [value]);
 
+  // Select all text when switching between USD and token mode
+  useEffect(() => {
+    inputRef.current?.select();
+  }, [currency]);
+
   return (
     <Container>
-      {currency === "$" && <AnimatedCurrency>{currency}</AnimatedCurrency>}
+      {currency === "$" && <Currency>{currency}</Currency>}
       <InputField
         ref={inputRef}
         type="text"
@@ -72,9 +65,7 @@ const AmountInputField: React.FC<{
         placeholder="0.00"
         onKeyDown={onKeyDown}
       />
-      {currency !== "$" && (
-        <AnimatedCurrency $small>{currency}</AnimatedCurrency>
-      )}
+      {currency !== "$" && <Currency $small>{currency}</Currency>}
     </Container>
   );
 };

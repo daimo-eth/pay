@@ -46,8 +46,8 @@ const MultiCurrencySelectAmount: React.FC<{
   const getBalanceMessage = (editingUsd: boolean) =>
     editingUsd ? usdBalanceMessage : tokenBalanceMessage;
 
-  const [usdValue, setUsdValue] = useState("");
-  const [tokenValue, setTokenValue] = useState("");
+  const [usdStr, setUsdValue] = useState("");
+  const [tokenStr, setTokenValue] = useState("");
   const [isEditingUsd, setIsEditingUsd] = useState(true);
   const [message, setMessage] = useState<string | null>(usdBalanceMessage);
   const [continueDisabled, setContinueDisabled] = useState(true);
@@ -138,12 +138,12 @@ const MultiCurrencySelectAmount: React.FC<{
   };
 
   const handleMax = () => {
-    const usdValue = roundUsd(Number(selectedTokenOption.balance.usd));
-    const tokenValue = roundTokenAmount(
+    const usdStr = roundUsd(Number(selectedTokenOption.balance.usd));
+    const tokenStr = roundTokenAmount(
       selectedTokenOption.balance.amount,
       balanceToken,
     );
-    updateValues(usdValue, tokenValue, isEditingUsd);
+    updateValues(usdStr, tokenStr, isEditingUsd);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -153,11 +153,11 @@ const MultiCurrencySelectAmount: React.FC<{
   };
 
   const handleSwitchCurrency = () => {
-    updateValues(usdValue, tokenValue, !isEditingUsd);
+    updateValues(usdStr, tokenStr, !isEditingUsd);
   };
 
   const handleContinue = () => {
-    const usd = Number(sanitizeNumber(usdValue));
+    const usd = Number(sanitizeNumber(usdStr));
     const amountUnits = usd / balanceToken.usd;
     const amount = parseUnits(amountUnits.toString(), balanceToken.decimals);
     setSelectedTokenOption({
@@ -184,7 +184,7 @@ const MultiCurrencySelectAmount: React.FC<{
           {/* Invisible div to balance spacing */}
           <MaxButton style={{ visibility: "hidden" }}>Max</MaxButton>
           <AmountInputField
-            value={isEditingUsd ? usdValue : tokenValue}
+            value={isEditingUsd ? usdStr : tokenStr}
             onChange={handleAmountChange}
             currency={isEditingUsd ? "$" : balanceToken.symbol}
             onKeyDown={handleKeyDown}
@@ -197,8 +197,8 @@ const MultiCurrencySelectAmount: React.FC<{
             <SwitchButton onClick={handleSwitchCurrency}>
               <SecondaryAmount>
                 {isEditingUsd
-                  ? `${tokenValue || "0"} ${balanceToken.symbol}`
-                  : `$${usdValue || "0.00"}`}
+                  ? `${tokenStr || "0"} ${balanceToken.symbol}`
+                  : `$${usdStr || roundUsd(0)}`}
               </SecondaryAmount>
             </SwitchButton>
           </SwitchContainer>

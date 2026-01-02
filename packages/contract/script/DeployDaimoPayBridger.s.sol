@@ -25,7 +25,7 @@ import {
     DEPLOY_SALT_STARGATE_BRIDGER
 } from "./DeployDaimoPayStargateBridger.s.sol";
 
-bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy29");
+bytes32 constant DEPLOY_SALT_BRIDGER = keccak256("DaimoPayBridger-deploy30");
 
 contract DeployDaimoPayBridger is Script {
     function run() public {
@@ -60,12 +60,6 @@ contract DeployDaimoPayBridger is Script {
         view
         returns (uint256[] memory chainIds, address[] memory bridgers)
     {
-        bool testnet = _isTestnet(block.chainid);
-        if (testnet) {
-            // Bridging not supported on testnet.
-            return (new uint256[](0), new address[](0));
-        }
-
         // Get addresses of deployed bridger implementations
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,

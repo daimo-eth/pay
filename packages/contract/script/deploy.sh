@@ -42,6 +42,7 @@ CHAINS=(
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "wss://gnosis-rpc.publicnode.com"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -58,7 +59,12 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
         echo "RPC_URL          : $RPC_URL"
 
-        FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+        # Monad uses Sourcify for verification instead of Etherscan
+        if [[ "$RPC_URL" == *"monad"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/ --broadcast"
+        else
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+        fi
 
         # Override gas price for Gnosis chain to reliably get txs through
         if [[ "$RPC_URL" == *"gnosis"* ]]; then

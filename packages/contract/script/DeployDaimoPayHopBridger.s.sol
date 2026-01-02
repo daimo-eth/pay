@@ -10,7 +10,7 @@ import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
 import {getHopChain, getHopBridgeRoutes} from "./constants/HopBridgeRouteConstants.sol";
 
 bytes32 constant DEPLOY_SALT_HOP_BRIDGER = keccak256(
-    "DaimoPayHopBridger-deploy10"
+    "DaimoPayHopBridger-deploy11"
 );
 
 contract DeployDaimoPayHopBridger is Script {

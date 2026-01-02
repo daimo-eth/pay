@@ -173,12 +173,6 @@ contract DeployUniversalAddressManager is Script {
             address[] memory stableOuts
         )
     {
-        bool testnet = _isTestnet(sourceChainId);
-        if (testnet) {
-            // Bridging not supported on testnet.
-            return (new uint256[](0), new address[](0), new address[](0));
-        }
-
         // Collect destination chain IDs from each bridge type
         (
             uint256[] memory cctpChainIds,

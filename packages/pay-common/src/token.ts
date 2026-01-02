@@ -8,6 +8,7 @@ import {
   ethereum,
   gnosis,
   linea,
+  monad,
   optimism,
   polygon,
   scroll,
@@ -36,25 +37,23 @@ export type Token = {
 };
 
 export enum TokenLogo {
-  ETH = "https://pay.daimo.com/chain-logos/ethereum.png",
-  WETH = "https://pay.daimo.com/coin-logos/weth.png",
-  USDC = "https://pay.daimo.com/coin-logos/usdc.png",
-  EURC = "https://pay.daimo.com/coin-logos/eurc.png",
-  USDT = "https://pay.daimo.com/coin-logos/usdt.png",
-  DAI = "https://pay.daimo.com/coin-logos/dai.png",
-  POL = "https://pay.daimo.com/coin-logos/pol.png",
-  AVAX = "https://pay.daimo.com/coin-logos/avax.png",
   BNB = "https://pay.daimo.com/coin-logos/bnb.png",
-  SOL = "https://pay.daimo.com/coin-logos/sol.png",
-  WLD = "https://pay.daimo.com/coin-logos/wld.jpeg",
-  USDB = "https://pay.daimo.com/coin-logos/usdb.png",
-  BLAST = "https://pay.daimo.com/coin-logos/blast.jpg",
-  WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
-  MNT = "https://pay.daimo.com/coin-logos/mnt.png",
   CELO = "https://pay.daimo.com/coin-logos/celo.png",
   cUSD = "https://pay.daimo.com/coin-logos/cusd.png",
-  XDAI = "https://pay.daimo.com/coin-logos/xdai.png",
+  DAI = "https://pay.daimo.com/coin-logos/dai.png",
+  ETH = "https://pay.daimo.com/coin-logos/eth.png",
+  EURC = "https://pay.daimo.com/coin-logos/eurc.png",
   EURe = "https://pay.daimo.com/coin-logos/eure.png",
+  MON = "https://pay.daimo.com/coin-logos/mon.png",
+  POL = "https://pay.daimo.com/coin-logos/pol.png",
+  SOL = "https://pay.daimo.com/coin-logos/sol.png",
+  USDBc = "https://pay.daimo.com/coin-logos/usdbc.png",
+  USDC = "https://pay.daimo.com/coin-logos/usdc.png",
+  USDT = "https://pay.daimo.com/coin-logos/usdt.png",
+  WBTC = "https://pay.daimo.com/coin-logos/wbtc.png",
+  WETH = "https://pay.daimo.com/coin-logos/weth.png",
+  WLD = "https://pay.daimo.com/coin-logos/wld.jpeg",
+  XDAI = "https://pay.daimo.com/coin-logos/xdai.png",
 }
 
 const NATIVE_TOKEN_ADDRESS = zeroAddress;
@@ -178,7 +177,7 @@ export const baseUSDbC: Token = token({
   symbol: "USDbC",
   fiatISO: "USD",
   decimals: 6,
-  logoURI: "https://pay.daimo.com/coin-logos/usdbc.png",
+  logoURI: TokenLogo.USDBc,
 });
 
 export const baseDAI: Token = token({
@@ -487,6 +486,48 @@ const lineaTokens: Token[] = [
   lineaAxlUSDC,
   lineaDAI,
 ];
+
+//
+// Monad
+//
+
+export const monadMON = nativeToken({
+  chainId: monad.chainId,
+  name: "Monad",
+  symbol: "MON",
+  logoURI: TokenLogo.MON,
+});
+
+export const monadWMON: Token = token({
+  chainId: monad.chainId,
+  token: getAddress("0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"),
+  decimals: 18,
+  name: "Wrapped Monad",
+  symbol: "WMON",
+  logoURI: TokenLogo.MON,
+});
+
+export const monadUSDC: Token = token({
+  chainId: monad.chainId,
+  token: getAddress("0x754704Bc059F8C67012fEd69BC8A327a5aafb603"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+export const monadUSDT: Token = token({
+  chainId: monad.chainId,
+  token: getAddress("0xe7cd86e13AC4309349F30B3435a9d337750fC82D"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const monadTokens: Token[] = [monadMON, monadWMON, monadUSDC, monadUSDT];
 
 //
 // Optimism
@@ -799,6 +840,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [ethereum.chainId, ethereumTokens],
   [gnosis.chainId, gnosisTokens],
   [linea.chainId, lineaTokens],
+  [monad.chainId, monadTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
   [scroll.chainId, scrollTokens],
@@ -910,6 +952,14 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE_USDC]: lineaUSDC,
       [TokenType.AXL_USDC]: lineaAxlUSDC,
       [TokenType.DAI]: lineaDAI,
+    },
+  ],
+  [
+    monad.chainId,
+    {
+      [TokenType.NATIVE]: monadMON,
+      [TokenType.WRAPPED_NATIVE]: monadWMON,
+      [TokenType.NATIVE_USDC]: monadUSDC,
     },
   ],
   [

@@ -54,6 +54,13 @@ export const linea: Chain = {
   cctpDomain: 11,
 };
 
+export const monad: Chain = {
+  type: "evm",
+  chainId: 143,
+  name: "Monad",
+  cctpDomain: 15,
+};
+
 export const optimism: Chain = {
   type: "evm",
   chainId: 10,
@@ -108,6 +115,7 @@ export const supportedChains: Chain[] = [
   ethereum,
   gnosis,
   linea,
+  monad,
   optimism,
   polygon,
   scroll,
@@ -152,6 +160,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://gnosisscan.io";
     case linea.chainId:
       return "https://lineascan.build";
+    case monad.chainId:
+      return "https://monadvision.com";
     case optimism.chainId:
       return "https://optimistic.etherscan.io";
     case polygon.chainId:

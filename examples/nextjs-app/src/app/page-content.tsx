@@ -33,11 +33,6 @@ const demos: DemoCard[] = [
       "Onboard users from any chain, any exchange, any coin into your app.",
     path: "/deposit",
   },
-  {
-    title: "Mini App",
-    description: "Ship World and Farcaster mini apps with social distribution.",
-    path: "/mini-app",
-  },
 ];
 
 export function DemoPageContent() {

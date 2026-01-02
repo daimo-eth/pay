@@ -48,6 +48,11 @@ const AmountInputField: React.FC<{
     inputRef.current?.focus();
   }, [value]);
 
+  // Select all text when switching between USD and token mode
+  useEffect(() => {
+    inputRef.current?.select();
+  }, [currency]);
+
   return (
     <Container>
       {currency === "$" && <Currency>{currency}</Currency>}

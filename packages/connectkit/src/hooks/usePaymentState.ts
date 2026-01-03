@@ -10,7 +10,6 @@ import {
   ExternalPaymentOptionMetadata,
   ExternalPaymentOptions,
   ExternalPaymentOptionsString,
-  isHydrated,
   isNativeToken,
   PlatformType,
   readDaimoPayOrderID,
@@ -211,9 +210,9 @@ export function usePaymentState({
   const [isDepositFlow, setIsDepositFlow] = useState<boolean>(false);
 
   // UI state. Selection for external payment (Binance, etc) vs wallet payment.
-  // Pass orderId only when order is hydrated; always pass appId when available
-  const hydratedOrderId =
-    pay.order != null && isHydrated(pay.order) ? pay.order.id : undefined;
+  // Only pass orderId for orders persisted in DB (createdAt set). Preview orders
+  // (deposit mode) have createdAt=null and use appId only.
+  const orderId = pay.order?.createdAt != null ? pay.order.id : undefined;
   const {
     externalPaymentOptions,
     walletPaymentOptions,
@@ -222,7 +221,7 @@ export function usePaymentState({
   } = usePaymentOptions({
     trpc,
     appId: currPayParams?.appId,
-    orderId: hydratedOrderId,
+    orderId,
     isDepositFlow,
     usdRequired: pay.order?.destFinalCallTokenAmount.usd,
     solanaPubKey,

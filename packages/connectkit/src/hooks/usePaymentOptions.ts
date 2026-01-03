@@ -121,7 +121,10 @@ export function usePaymentOptions({
   useEffect(() => {
     const fetchPaymentOptions = async () => {
       // Must have platform and at least one of appId or orderId
-      if (!platform || (!appId && !orderId)) return;
+      if (!platform) return;
+      if (!appId && !orderId) return;
+      // Non-deposit flows require orderId or amount
+      if (!isDepositFlow && !orderId && !usdRequired) return;
 
       setLoading(true);
       try {

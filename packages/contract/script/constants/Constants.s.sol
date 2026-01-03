@@ -281,6 +281,23 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
     revert("Unsupported chainID for Axelar gas service");
 }
 
+// ----------------- Testnet Detection ----------------- //
+
+function _isTestnet(uint256 chainId) pure returns (bool) {
+    // Common testnets
+    if (chainId == 11155111) return true; // Sepolia
+    if (chainId == 84532) return true; // Base Sepolia
+    if (chainId == 421614) return true; // Arbitrum Sepolia
+    if (chainId == 11155420) return true; // OP Sepolia
+    if (chainId == 80002) return true; // Polygon Amoy
+    if (chainId == 97) return true; // BSC Testnet
+    if (chainId == 44787) return true; // Celo Alfajores
+    if (chainId == 59141) return true; // Linea Sepolia
+    if (chainId == 534351) return true; // Scroll Sepolia
+    if (chainId == 4801) return true; // World Chain Sepolia
+    return false;
+}
+
 // ----------------- Deployment ----------------- //
 
 // Deployed from commit hash 1f545cb93015444ab193629c7791e2a58c541c4c

@@ -683,6 +683,16 @@ export const polygonUSDCe: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
+export const polygonJPYC: Token = token({
+  chainId: polygon.chainId,
+  token: getAddress("0xe7c3d8c9a439fede00d2600032d5db0be71c3c29"),
+  decimals: 18,
+  fiatISO: "JPY",
+  name: "JPY Coin",
+  symbol: "JPYC",
+  logoURI: "https://assets.coingecko.com/coins/images/70314/large/JPYC_400x400.jpg",
+});
+
 const polygonTokens: Token[] = [
   polygonPOL,
   polygonWPOL,
@@ -692,6 +702,7 @@ const polygonTokens: Token[] = [
   polygonDAI,
   polygonUSDT,
   polygonUSDCe,
+  polygonJPYC,
 ];
 
 //

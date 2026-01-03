@@ -44,6 +44,7 @@ export enum TokenLogo {
   ETH = "https://pay.daimo.com/coin-logos/eth.png",
   EURC = "https://pay.daimo.com/coin-logos/eurc.png",
   EURe = "https://pay.daimo.com/coin-logos/eure.png",
+  JPYC = "https://pay.daimo.com/coin-logos/jpyc.png",
   MON = "https://pay.daimo.com/coin-logos/mon.png",
   POL = "https://pay.daimo.com/coin-logos/pol.png",
   SOL = "https://pay.daimo.com/coin-logos/sol.png",
@@ -683,6 +684,16 @@ export const polygonUSDCe: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
+export const polygonJPYC: Token = token({
+  chainId: polygon.chainId,
+  token: getAddress("0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29"),
+  decimals: 18,
+  fiatISO: "JPY",
+  name: "JPY Coin",
+  symbol: "JPYC",
+  logoURI: TokenLogo.JPYC,
+});
+
 const polygonTokens: Token[] = [
   polygonPOL,
   polygonWPOL,
@@ -692,6 +703,7 @@ const polygonTokens: Token[] = [
   polygonDAI,
   polygonUSDT,
   polygonUSDCe,
+  polygonJPYC,
 ];
 
 //

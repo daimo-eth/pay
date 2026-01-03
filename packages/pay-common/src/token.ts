@@ -7,6 +7,7 @@ import {
   celo,
   ethereum,
   gnosis,
+  hyperEvm,
   linea,
   monad,
   optimism,
@@ -44,6 +45,7 @@ export enum TokenLogo {
   ETH = "https://pay.daimo.com/coin-logos/eth.png",
   EURC = "https://pay.daimo.com/coin-logos/eurc.png",
   EURe = "https://pay.daimo.com/coin-logos/eure.png",
+  HYPE = "https://pay.daimo.com/coin-logos/hype.png",
   MON = "https://pay.daimo.com/coin-logos/mon.png",
   POL = "https://pay.daimo.com/coin-logos/pol.png",
   SOL = "https://pay.daimo.com/coin-logos/sol.png",
@@ -433,6 +435,38 @@ export const gnosisEURe: Token = token({
 });
 
 const gnosisTokens: Token[] = [gnosisXDAI, gnosisUSDCe, gnosisEURe];
+
+//
+// HyperEVM
+//
+
+export const hyperEvmHYPE = nativeToken({
+  chainId: hyperEvm.chainId,
+  name: "HYPE",
+  symbol: "HYPE",
+  logoURI: TokenLogo.HYPE,
+});
+
+export const hyperEvmWHYPE: Token = token({
+  chainId: hyperEvm.chainId,
+  token: getAddress("0x5555555555555555555555555555555555555555"),
+  decimals: 18,
+  name: "Wrapped HYPE",
+  symbol: "WHYPE",
+  logoURI: TokenLogo.HYPE,
+});
+
+export const hyperEvmUSDC: Token = token({
+  chainId: hyperEvm.chainId,
+  token: getAddress("0xb88339CB7199b77E23DB6E890353E22632Ba630f"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USD Coin",
+  symbol: "USDC",
+  logoURI: TokenLogo.USDC,
+});
+
+const hyperEvmTokens: Token[] = [hyperEvmHYPE, hyperEvmWHYPE, hyperEvmUSDC];
 
 //
 // Linea
@@ -839,6 +873,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [celo.chainId, celoTokens],
   [ethereum.chainId, ethereumTokens],
   [gnosis.chainId, gnosisTokens],
+  [hyperEvm.chainId, hyperEvmTokens],
   [linea.chainId, lineaTokens],
   [monad.chainId, monadTokens],
   [optimism.chainId, optimismTokens],
@@ -942,6 +977,14 @@ const tokensByChainAndType: Map<
     {
       [TokenType.NATIVE]: gnosisXDAI,
       [TokenType.NATIVE_USDC]: gnosisUSDCe,
+    },
+  ],
+  [
+    hyperEvm.chainId,
+    {
+      [TokenType.NATIVE]: hyperEvmHYPE,
+      [TokenType.WRAPPED_NATIVE]: hyperEvmWHYPE,
+      [TokenType.NATIVE_USDC]: hyperEvmUSDC,
     },
   ],
   [

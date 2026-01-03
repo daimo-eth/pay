@@ -6,10 +6,7 @@ import "forge-std/Script.sol";
 import "../src/DaimoPayStargateBridger.sol";
 import "./constants/StargateBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
-    "DaimoPayStargateBridger-deploy5"
-);
+import {DEPLOY_SALT_STARGATE_BRIDGER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayStargateBridger is Script {
     function run() public {

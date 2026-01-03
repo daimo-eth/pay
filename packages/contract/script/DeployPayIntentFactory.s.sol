@@ -5,10 +5,7 @@ import "forge-std/Script.sol";
 
 import "../src/PayIntentFactory.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_PAY_INTENT_FACTORY = keccak256(
-    "PayIntentFactory-deploy3"
-);
+import {DEPLOY_SALT_PAY_INTENT_FACTORY} from "./constants/DeploySalts.sol";
 
 contract DeployPayIntentFactory is Script {
     function run() public {

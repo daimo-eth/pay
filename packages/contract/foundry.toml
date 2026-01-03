@@ -8,7 +8,10 @@ fs_permissions = [{ access = "read", path = "./"}]
 solc = "0.8.26"
 via_ir = true
 optimizer = true
-optimizer_runs = 999_999
+# High optimizer_runs makes bytecode larger, which causes certain contract
+# deployments to exceed the block gas limit on low block gas limit chains
+# (e.g., HyperEVM has 3M block gas limit).
+optimizer_runs = 10_000
 evm_version = "london"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

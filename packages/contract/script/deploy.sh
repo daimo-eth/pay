@@ -20,16 +20,16 @@ SCRIPTS=(
     # "script/DeployDaimoPayHopBridger.s.sol"
     # "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployPayIntentFactory.s.sol"
+    # "script/DeployDaimoPayExecutor.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
     # Universal Address
     # "script/DeployUniversalAddressManager.s.sol"
 
     # Relayer
-    # The deployer must be the stage/dev LP that calls this contract.
     # Production relayers can be added via grantRelayerRole.
     # Stage/dev and production must use different relayer contract deployments.
-    # "script/DeployDaimoPayRelayer.s.sol" 
+    # "script/DeployDaimoPayRelayer.s.sol"
 
     # Utils
     # "script/DeployPayBalanceFactory.sol"
@@ -41,6 +41,7 @@ CHAINS=(
     # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "wss://gnosis-rpc.publicnode.com"
+    # "https://hyperliquid-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"

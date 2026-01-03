@@ -5,10 +5,11 @@ import "forge-std/Script.sol";
 
 import "../src/DaimoPay.sol";
 import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
-import {DEPLOY_SALT_PAY_INTENT_FACTORY} from "./DeployPayIntentFactory.s.sol";
-
-bytes32 constant DEPLOY_SALT_DAIMO_PAY = keccak256("DaimoPay-deploy6");
+import {
+    DEPLOY_SALT_DAIMO_PAY,
+    DEPLOY_SALT_PAY_INTENT_FACTORY,
+    DEPLOY_SALT_EXECUTOR
+} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPay is Script {
     function run() public {
@@ -20,11 +21,17 @@ contract DeployDaimoPay is Script {
         );
         console.log("using intent factory at", intentFactory);
 
+        address executor = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_EXECUTOR
+        );
+        console.log("using executor at", executor);
+
         address daimoPay = CREATE3.deploy(
             DEPLOY_SALT_DAIMO_PAY,
             abi.encodePacked(
                 type(DaimoPay).creationCode,
-                abi.encode(intentFactory)
+                abi.encode(intentFactory, executor)
             )
         );
 

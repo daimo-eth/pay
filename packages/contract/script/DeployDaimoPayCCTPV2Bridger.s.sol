@@ -7,10 +7,7 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/DaimoPayCCTPV2Bridger.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_CCTP_V2_BRIDGER = keccak256(
-    "DaimoPayCCTPV2Bridger-deploy6"
-);
+import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayCCTPV2Bridger is Script {
     function run() public {

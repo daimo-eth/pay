@@ -6,10 +6,7 @@ import "forge-std/Script.sol";
 import "../src/DaimoPayLegacyMeshBridger.sol";
 import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
-    "DaimoPayLegacyMeshBridger-deploy7"
-);
+import {DEPLOY_SALT_LEGACY_MESH_BRIDGER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayLegacyMeshBridger is Script {
     function run() public {

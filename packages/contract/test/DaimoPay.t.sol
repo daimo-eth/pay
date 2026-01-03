@@ -17,14 +17,15 @@ import "./utils/axelar.sol";
 import "./utils/cctp.sol";
 import "./utils/cctpv2.sol";
 
-address constant CCTP_INTENT_ADDR = 0xD6ef0804f3C72f84F35eb5B9D8A79982B513B915;
-address constant CCTP_V2_INTENT_ADDR = 0x1AA71B3C28BF3Fe248281c310b3BFbD0D124ABA1;
-address constant ACROSS_INTENT_ADDR = 0x4D0cE23320f2A429f4f1E9fd87d89B7A46E15498;
-address constant AXELAR_INTENT_ADDR = 0x117A62D4313Cdcd98929FCD7d74E629E7bB3031C;
+address constant CCTP_INTENT_ADDR = 0x8Ada781353EcaaE3Ce27B37e78D683ff4b4A8D87;
+address constant CCTP_V2_INTENT_ADDR = 0xb733ED68379963078073b78139ec0798b26CE8F6;
+address constant ACROSS_INTENT_ADDR = 0x5f7e954746A6823399CA5D9b488060FE76870b15;
+address constant AXELAR_INTENT_ADDR = 0x3bBd08e43E5AD5fb35f416EFC08d05c26c5DfF40;
 
 contract DaimoPayTest is Test {
     // Daimo Pay contracts
     DaimoPay public dp;
+    DaimoPayExecutor public dpExecutor;
     PayIntentFactory public intentFactory;
 
     // Bridging contracts
@@ -224,7 +225,12 @@ contract DaimoPayTest is Test {
         });
 
         intentFactory = new PayIntentFactory();
-        dp = new DaimoPay(intentFactory);
+
+        // Predict DaimoPay address to deploy executor first (reduces deploy gas)
+        uint256 nonce = vm.getNonce(address(this));
+        address predictedDp = vm.computeCreateAddress(address(this), nonce + 1);
+        dpExecutor = new DaimoPayExecutor(predictedDp);
+        dp = new DaimoPay(intentFactory, dpExecutor);
 
         // Log addresses of initialized contracts
         console.log("PayIntentFactory address:", address(intentFactory));

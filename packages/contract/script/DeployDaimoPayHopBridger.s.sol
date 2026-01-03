@@ -4,14 +4,11 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "../src/DaimoPayHopBridger.sol";
 import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
-import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
-import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
-import {getHopChain, getHopBridgeRoutes} from "./constants/HopBridgeRouteConstants.sol";
-
-bytes32 constant DEPLOY_SALT_HOP_BRIDGER = keccak256(
-    "DaimoPayHopBridger-deploy11"
-);
+import {DEPLOY_SALT_HOP_BRIDGER} from "./constants/DeploySalts.sol";
+import {
+    getHopChain,
+    getHopBridgeRoutes
+} from "./constants/HopBridgeRouteConstants.sol";
 
 contract DeployDaimoPayHopBridger is Script {
     function run() public {
@@ -49,7 +46,10 @@ contract DeployDaimoPayHopBridger is Script {
         for (uint256 i = 0; i < finalChains.length; ++i) {
             console.log("Final chain:", finalChains[i]);
             console.log("Final coin address:", finalChainCoins[i].coinAddr);
-            console.log("Final coin decimals:", finalChainCoins[i].coinDecimals);
+            console.log(
+                "Final coin decimals:",
+                finalChainCoins[i].coinDecimals
+            );
             console.log("--------------------------------");
         }
 

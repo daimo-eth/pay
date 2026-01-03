@@ -14,31 +14,18 @@ import "./constants/AxelarBridgeRouteConstants.sol";
 import "./constants/CCTPBridgeRouteConstants.sol";
 import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/UASharedConfigConstants.sol";
-
-import {DEPLOY_SALT_ACROSS_BRIDGER} from "./DeployDaimoPayAcrossBridger.s.sol";
-import {DEPLOY_SALT_AXELAR_BRIDGER} from "./DeployDaimoPayAxelarBridger.s.sol";
-import {DEPLOY_SALT_CCTP_BRIDGER} from "./DeployDaimoPayCCTPBridger.s.sol";
-import {DEPLOY_SALT_CCTP_V2_BRIDGER} from "./DeployDaimoPayCCTPV2Bridger.s.sol";
-
-// CREATE3 factory instance (declared in Constants.s.sol)
-// CREATE3Factory constant CREATE3;
-
-bytes32 constant DEPLOY_SALT_UA_FACTORY = keccak256(
-    "UniversalAddressFactory-deploy6"
-);
-bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
-    "UniversalAddressBridger-deploy6"
-);
-bytes32 constant DEPLOY_SALT_SHARED_CONFIG = keccak256("SharedConfig-deploy6");
-bytes32 constant DEPLOY_SALT_SHARED_CONFIG_IMPL = keccak256(
-    "SharedConfig-impl-deploy6"
-);
-bytes32 constant DEPLOY_SALT_UA_MANAGER = keccak256(
-    "UniversalAddressManager-deploy6"
-);
-bytes32 constant DEPLOY_SALT_UA_MANAGER_IMPL = keccak256(
-    "UniversalAddressManager-impl-deploy6"
-);
+import {
+    DEPLOY_SALT_ACROSS_BRIDGER,
+    DEPLOY_SALT_AXELAR_BRIDGER,
+    DEPLOY_SALT_CCTP_BRIDGER,
+    DEPLOY_SALT_CCTP_V2_BRIDGER,
+    DEPLOY_SALT_UA_FACTORY,
+    DEPLOY_SALT_UA_BRIDGER,
+    DEPLOY_SALT_SHARED_CONFIG,
+    DEPLOY_SALT_SHARED_CONFIG_IMPL,
+    DEPLOY_SALT_UA_MANAGER,
+    DEPLOY_SALT_UA_MANAGER_IMPL
+} from "./constants/DeploySalts.sol";
 
 /// @title DeployUniversalAddressManager
 /// @notice Foundry script that deploys:

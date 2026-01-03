@@ -91,9 +91,13 @@ contract DaimoPay is ReentrancyGuard {
         PayIntent intent
     );
 
-    constructor(PayIntentFactory _intentFactory) {
+    constructor(PayIntentFactory _intentFactory, DaimoPayExecutor _executor) {
         intentFactory = _intentFactory;
-        executor = new DaimoPayExecutor(address(this));
+        executor = _executor;
+        require(
+            _executor.escrow() == address(this),
+            "DP: executor escrow mismatch"
+        );
     }
 
     /// Starts an intent, bridging to the destination chain if necessary.

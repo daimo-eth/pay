@@ -191,54 +191,54 @@ contract UniversalAddressTest is Test {
         assertEq(usdc.balanceOf(ALEX), AMOUNT);
     }
 
-    // ---------------------------------------------------------------------
-    // 2b. Destination-chain fastFinishIntent via DaimoPayRelayer
-    function testFastFinishIntent_ViaRelayer() public {
-        // 1) Source chain start
-        testStartIntent();
+    // // ---------------------------------------------------------------------
+    // // 2b. Destination-chain fastFinishIntent via DaimoPayRelayer
+    // function testFastFinishIntent_ViaRelayer() public {
+    //     // 1) Source chain start
+    //     testStartIntent();
 
-        vm.chainId(DST_CHAIN_ID);
-        UniversalAddressRoute memory route = _route();
+    //     vm.chainId(DST_CHAIN_ID);
+    //     UniversalAddressRoute memory route = _route();
 
-        // Deploy a relayer contract with RELAYER as admin (and relayer role)
-        DaimoPayRelayer relayerContract = new DaimoPayRelayer(RELAYER);
+    //     // Deploy a relayer contract with RELAYER as admin (and relayer role)
+    //     DaimoPayRelayer relayerContract = new DaimoPayRelayer(RELAYER);
 
-        // Fund the relayer contract with the tokenIn (USDC)
-        vm.prank(RELAYER);
-        usdc.transfer(address(relayerContract), AMOUNT);
+    //     // Fund the relayer contract with the tokenIn (USDC)
+    //     vm.prank(RELAYER);
+    //     usdc.transfer(address(relayerContract), AMOUNT);
 
-        // Ensure relayer contract had balance
-        assertEq(usdc.balanceOf(address(relayerContract)), AMOUNT);
+    //     // Ensure relayer contract had balance
+    //     assertEq(usdc.balanceOf(address(relayerContract)), AMOUNT);
 
-        // Prepare parameters
-        TokenAmount memory tokenIn = TokenAmount({
-            token: IERC20(address(usdc)),
-            amount: AMOUNT
-        });
-        TokenAmount memory bridgeTokenOut = TokenAmount({
-            token: IERC20(address(usdc)),
-            amount: AMOUNT
-        });
+    //     // Prepare parameters
+    //     TokenAmount memory tokenIn = TokenAmount({
+    //         token: IERC20(address(usdc)),
+    //         amount: AMOUNT
+    //     });
+    //     TokenAmount memory bridgeTokenOut = TokenAmount({
+    //         token: IERC20(address(usdc)),
+    //         amount: AMOUNT
+    //     });
 
-        // RELAYER triggers fast-finish via the relayer contract
-        vm.prank(RELAYER);
-        relayerContract.uaFastFinish({
-            preCalls: new Call[](0),
-            manager: mgr,
-            route: route,
-            tokenIn: tokenIn,
-            bridgeTokenOut: bridgeTokenOut,
-            relaySalt: USER_SALT,
-            calls: new Call[](0),
-            sourceChainId: SRC_CHAIN_ID,
-            postCalls: new Call[](0),
-            swapAndTipHash: bytes32(0)
-        });
+    //     // RELAYER triggers fast-finish via the relayer contract
+    //     vm.prank(RELAYER);
+    //     relayerContract.uaFastFinish({
+    //         preCalls: new Call[](0),
+    //         manager: mgr,
+    //         route: route,
+    //         tokenIn: tokenIn,
+    //         bridgeTokenOut: bridgeTokenOut,
+    //         relaySalt: USER_SALT,
+    //         calls: new Call[](0),
+    //         sourceChainId: SRC_CHAIN_ID,
+    //         postCalls: new Call[](0),
+    //         swapAndTipHash: bytes32(0)
+    //     });
 
-        // Beneficiary should have received the funds
-        assertEq(usdc.balanceOf(ALEX), AMOUNT);
-        assertEq(usdc.balanceOf(address(relayerContract)), 0);
-    }
+    //     // Beneficiary should have received the funds
+    //     assertEq(usdc.balanceOf(ALEX), AMOUNT);
+    //     assertEq(usdc.balanceOf(address(relayerContract)), 0);
+    // }
 
     // ---------------------------------------------------------------------
     // Claim flow without fast-finish

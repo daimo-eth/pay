@@ -52,3 +52,50 @@ make coverage
 
 You can see line-by-line coverage in VSCode using the recommended extension. Run
 `Cmd+Shift+P` > `Coverage Gutters: Display Coverage`.
+
+### Tron Deployment
+
+Deploy `DepositAddressManagerTron` and related contracts to Tron mainnet.
+
+**Setup:**
+```bash
+cd packages/contract
+python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+```
+
+**API Keys (recommended):**
+- **TronGrid API key** - https://www.trongrid.io (avoids rate limits)
+- **Feee.io API key** - https://feee.io/console/buyer/api-key (automatic energy rental)
+
+**Dry run:**
+```bash
+source venv/bin/activate
+python3 script/deploy_tron_deposit_address.py --dry-run
+```
+
+**Deploy:**
+```bash
+source venv/bin/activate
+export TRON_PRIVATE_KEY="your_hex_key_no_0x"
+export TRON_API_KEY="your_trongrid_api_key"  # optional but recommended
+export FEEE_API_KEY="your_feee_api_key"      # optional: auto-rent energy
+python3 script/deploy_tron_deposit_address.py
+```
+
+**Energy Management:**
+- With `FEEE_API_KEY`: Energy is automatically rented before each operation
+- Without: Manually rent ~7M energy before deploying (~270 TRX)
+- Check energy: `python3 script/tron_energy.py check`
+- Manual rent: `python3 script/tron_energy.py rent 500000`
+
+**Operations:**
+```bash
+# Set relayer (required before startIntent)
+python3 script/tron_operations.py set-relayer
+
+# Get deposit address for Arbitrum recipient
+python3 script/tron_operations.py get-deposit 0xYourArbAddress $(($(date +%s) + 604800))
+
+# Start intent (after sending USDT to deposit address)
+python3 script/tron_operations.py start-intent 0xYourArbAddress $EXPIRES_AT 1.0
+```

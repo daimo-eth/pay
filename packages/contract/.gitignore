@@ -18,3 +18,7 @@ broadcast/*/*/runWithRandomSalt-latest.json
 
 # Deployment script
 chainlink-feeds.jsonl
+
+# Python venv
+venv/
+__pycache__/

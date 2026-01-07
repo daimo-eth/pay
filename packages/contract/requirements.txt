@@ -1,3 +1,4 @@
 tronpy
 eth-abi
 eth-account
+eth-hash[pycryptodome]

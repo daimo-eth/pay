@@ -5,13 +5,16 @@ set -e
 # Deploy DepositAddress contracts to Tron mainnet.
 # =============================================================================
 #
-# DEPLOYED CONTRACTS (2026-01-06):
-#   ✅ DepositAddressFactory:             TKjMyTrjW7FEp8enZUEsnWWmhzfDyBQ2GF
-#   ✅ DepositAddressManagerTron (impl):  TSeTWB5FhcKrg8BkY4QAVjAh1uZridemuQ
-#   ✅ DepositAddressManagerTron (proxy): TKqaUUBccHAR7x4XZYzPfS3sRe16aMg3sN
+# DEPLOYED CONTRACTS (2026-01-07):
+#   ✅ DepositAddressManagerTron:         TEugsLgvvyYYiYZ5Q4YAU2uZ6Lfd7zNVcX (non-upgradeable)
 #   ✅ DaimoPayLegacyMeshBridger:         TCJrFm5CLbCJsoQTCnMTauWc34FFjjJXfn
 #   ✅ DaimoPayPricer:                    TRYkSGnYqyucfFfejmwNakC8P3vX5mdeyj
 #   ✅ UniversalAddressBridger:           TGUdhENmUhxG6qSt985aVGjD337Uq5rUdn
+#
+# DepositAddressManagerTron features:
+#   - Inlined factory (no separate DepositAddressFactory needed)
+#   - DepositAddressTron vault (handles TRC20-USDT's non-standard transfer via balance-diff)
+#   - Correct getDepositAddress() using Tron's 0x41 CREATE2 prefix
 #
 # Requirements:
 #   pip install tronpy eth-abi

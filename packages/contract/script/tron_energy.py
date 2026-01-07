@@ -152,7 +152,7 @@ def feee_request(method: str, path: str, body: Optional[dict] = None) -> dict:
     
     headers = {
         "key": FEEE_API_KEY,
-        "User-Agent": "DaimoPay/1.0.0",
+        "User-Agent": "daimo-backend",
         "Content-Type": "application/json",
     }
     

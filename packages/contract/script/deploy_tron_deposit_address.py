@@ -29,11 +29,9 @@ from tronpy.keys import PrivateKey
 # Configuration - Comment/uncomment to control what gets deployed
 # =============================================================================
 
-# Already deployed contracts (for reference in proxy init, etc.)
+# Already deployed contracts
 DEPLOYED = {
-    "DepositAddressFactory": "TKjMyTrjW7FEp8enZUEsnWWmhzfDyBQ2GF",
-    "DepositAddressManagerTron_impl": "TSeTWB5FhcKrg8BkY4QAVjAh1uZridemuQ",
-    "DepositAddressManagerTron": "TKqaUUBccHAR7x4XZYzPfS3sRe16aMg3sN",
+    "DepositAddressManagerTron": "TXaGPWHUTV2N3PcyxC8JSWVWapyR4SQQRJ",
     "DaimoPayLegacyMeshBridger": "TCJrFm5CLbCJsoQTCnMTauWc34FFjjJXfn",
     "DaimoPayPricer": "TRYkSGnYqyucfFfejmwNakC8P3vX5mdeyj",
     "UniversalAddressBridger": "TGUdhENmUhxG6qSt985aVGjD337Uq5rUdn",
@@ -41,8 +39,8 @@ DEPLOYED = {
 
 # Contracts to deploy (set to True to deploy, False to skip)
 DEPLOY_FLAGS = {
-    "DepositAddressFactory": False,  # ✅ Deployed: TKjMyTrjW7FEp8enZUEsnWWmhzfDyBQ2GF
-    "DepositAddressManagerTron": False,  # ✅ Deployed: TKqaUUBccHAR7x4XZYzPfS3sRe16aMg3sN
+    # Non-upgradeable manager with inlined factory + DepositAddressTron + DaimoPayExecutorTron
+    "DepositAddressManagerTron": False,  # ✅ Deployed: TXaGPWHUTV2N3PcyxC8JSWVWapyR4SQQRJ
     "DaimoPayLegacyMeshBridger": False,  # ✅ Deployed: TCJrFm5CLbCJsoQTCnMTauWc34FFjjJXfn
     "DaimoPayPricer": False,  # ✅ Deployed: TRYkSGnYqyucfFfejmwNakC8P3vX5mdeyj
     "UniversalAddressBridger": False,  # ✅ Deployed: TGUdhENmUhxG6qSt985aVGjD337Uq5rUdn
@@ -79,9 +77,7 @@ TRON_LEGACY_MESH_OFT_HEX = base58_to_hex20(TRON_LEGACY_MESH_OFT_BASE58)
 # Fee limits in SUN (1 TRX = 1_000_000 SUN)
 # Even with rented energy, fee_limit must cover full energy at burn rate
 FEE_LIMITS = {
-    "DepositAddressFactory": 500_000_000,  # 500 TRX
     "DepositAddressManagerTron": 1_500_000_000,  # 1500 TRX
-    "ERC1967Proxy": 200_000_000,  # 200 TRX
     "DaimoPayLegacyMeshBridger": 600_000_000,  # 600 TRX
     "DaimoPayPricer": 300_000_000,  # 300 TRX
     "UniversalAddressBridger": 400_000_000,  # 400 TRX
@@ -300,73 +296,32 @@ def print_explorer_url(address: str) -> None:
 # =============================================================================
 
 
-def deploy_factory(
+def deploy_manager(
     client: Tron, priv_key: PrivateKey, dry_run: bool
 ) -> tuple[str, int]:
-    """Deploy DepositAddressFactory."""
-    bytecode, abi = load_artifact("DepositAddressFactory")
-    return deploy_contract(
-        client=client,
-        priv_key=priv_key,
-        name="DepositAddressFactory",
-        bytecode=bytecode,
-        abi=abi,
-        fee_limit=FEE_LIMITS["DepositAddressFactory"],
-        dry_run=dry_run,
-    )
-
-
-def deploy_manager(
-    client: Tron, priv_key: PrivateKey, factory_addr: str, dry_run: bool
-) -> tuple[str, str, int]:
-    """Deploy DepositAddressManagerTron (impl + proxy). Returns (proxy_addr, impl_addr, energy)."""
-    total_energy = 0
+    """Deploy DepositAddressManagerTron (non-upgradeable). Returns (address, energy).
+    
+    Constructor: (address owner)
+    Creates DepositAddressTron impl and DaimoPayExecutor on deploy.
+    """
     owner_address = priv_key.public_key.to_base58check_address()
     owner_hex = tron_address_to_hex(owner_address)[2:]  # 20 bytes, no 41 prefix
 
-    # 1. Deploy implementation
     bytecode, abi = load_artifact("DepositAddressManagerTron")
-    impl_addr, energy = deploy_contract(
+
+    # Constructor: (address owner)
+    from eth_abi import encode
+    constructor_data = encode(["address"], [bytes.fromhex(owner_hex)])
+
+    return deploy_contract(
         client=client,
         priv_key=priv_key,
-        name="DepositAddressManagerTron (impl)",
-        bytecode=bytecode,
+        name="DepositAddressManagerTron",
+        bytecode=bytecode + constructor_data.hex(),
         abi=abi,
         fee_limit=FEE_LIMITS["DepositAddressManagerTron"],
         dry_run=dry_run,
     )
-    total_energy += energy
-
-    # 2. Deploy proxy
-    proxy_bytecode, proxy_abi = load_artifact("ERC1967Proxy")
-
-    if not dry_run and factory_addr.startswith("T"):
-        factory_hex = tron_address_to_hex(factory_addr)[2:]
-        impl_hex = tron_address_to_hex(impl_addr)[2:]
-    else:
-        factory_hex = "0" * 40
-        impl_hex = "0" * 40
-
-    # Encode initialize(address owner, DepositAddressFactory factory) calldata
-    # selector = 0x485cc955
-    init_data = bytes.fromhex("485cc955") + bytes.fromhex(owner_hex.zfill(64)) + bytes.fromhex(factory_hex.zfill(64))
-
-    # Constructor: (address implementation, bytes memory _data)
-    from eth_abi import encode
-    constructor_data = encode(["address", "bytes"], [bytes.fromhex(impl_hex), init_data])
-
-    proxy_addr, energy = deploy_contract(
-        client=client,
-        priv_key=priv_key,
-        name="DepositAddressManagerTron (proxy)",
-        bytecode=proxy_bytecode + constructor_data.hex(),
-        abi=proxy_abi,
-        fee_limit=FEE_LIMITS["ERC1967Proxy"],
-        dry_run=dry_run,
-    )
-    total_energy += energy
-
-    return proxy_addr, impl_addr, total_energy
 
 
 def deploy_bridger(
@@ -478,28 +433,25 @@ def estimate_total_energy(dry_run: bool = False) -> int:
     """Estimate total energy needed for all flagged deployments."""
     total = 0
     
-    # Estimate based on bytecode size (~20 energy/byte)
-    if DEPLOY_FLAGS.get("DepositAddressFactory"):
-        bytecode, _ = load_artifact("DepositAddressFactory")
-        total += len(bytecode) // 2 * 20
-    
+    # DepositAddressManagerTron constructor deploys 3 contracts:
+    # - itself (19k bytes)
+    # - DepositAddressTron impl (2.8k bytes)  
+    # - DaimoPayExecutorTron (3.9k bytes)
+    # Observed actual: 2,624,280 energy. Use 2.8M for safety buffer.
     if DEPLOY_FLAGS.get("DepositAddressManagerTron"):
-        bytecode, _ = load_artifact("DepositAddressManagerTron")
-        total += len(bytecode) // 2 * 20
-        proxy_bytecode, _ = load_artifact("ERC1967Proxy")
-        total += len(proxy_bytecode) // 2 * 20
+        total += 2_800_000  # Based on actual observed deployment
     
     if DEPLOY_FLAGS.get("DaimoPayLegacyMeshBridger"):
         bytecode, _ = load_artifact("DaimoPayLegacyMeshBridger")
-        total += len(bytecode) // 2 * 20
+        total += len(bytecode) // 2 * 180
     
     if DEPLOY_FLAGS.get("DaimoPayPricer"):
         bytecode, _ = load_artifact("DaimoPayPricer")
-        total += len(bytecode) // 2 * 20
+        total += len(bytecode) // 2 * 180
     
     if DEPLOY_FLAGS.get("UniversalAddressBridger"):
         bytecode, _ = load_artifact("UniversalAddressBridger")
-        total += len(bytecode) // 2 * 20
+        total += len(bytecode) // 2 * 180
     
     return total
 
@@ -545,16 +497,9 @@ def deploy_all(dry_run: bool = False) -> dict[str, str]:
     # Deploy contracts based on flags
     # -------------------------------------------------------------------------
 
-    if DEPLOY_FLAGS.get("DepositAddressFactory"):
-        addr, energy = deploy_factory(client, priv_key, dry_run)
-        addresses["DepositAddressFactory"] = addr
-        total_energy += energy
-
     if DEPLOY_FLAGS.get("DepositAddressManagerTron"):
-        factory_addr = addresses.get("DepositAddressFactory", "T_DRY_RUN_FACTORY")
-        proxy_addr, impl_addr, energy = deploy_manager(client, priv_key, factory_addr, dry_run)
-        addresses["DepositAddressManagerTron"] = proxy_addr
-        addresses["DepositAddressManagerTron_impl"] = impl_addr
+        addr, energy = deploy_manager(client, priv_key, dry_run)
+        addresses["DepositAddressManagerTron"] = addr
         total_energy += energy
 
     if DEPLOY_FLAGS.get("DaimoPayLegacyMeshBridger"):

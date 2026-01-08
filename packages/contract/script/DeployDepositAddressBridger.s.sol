@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 
-import "../src/UniversalAddressBridger.sol";
+import "../src/DepositAddressBridger.sol";
 import "../src/DaimoPayCCTPBridger.sol";
 import "../src/DaimoPayCCTPV2Bridger.sol";
 import "../src/DaimoPayAcrossBridger.sol";
@@ -32,7 +32,7 @@ bytes32 constant DEPLOY_SALT_UA_BRIDGER = keccak256(
     "UniversalAddressBridger-deploy1"
 );
 
-contract DeployUniversalAddressBridger is Script {
+contract DeployDepositAddressBridger is Script {
     function run() public {
         (
             uint256[] memory chainIds,
@@ -53,14 +53,14 @@ contract DeployUniversalAddressBridger is Script {
         address universalBridger = CREATE3.deploy(
             DEPLOY_SALT_UA_BRIDGER,
             abi.encodePacked(
-                type(UniversalAddressBridger).creationCode,
+                type(DepositAddressBridger).creationCode,
                 abi.encode(chainIds, bridgers, stableOuts)
             )
         );
 
         vm.stopBroadcast();
 
-        console.log("UniversalAddressBridger deployed at:", universalBridger);
+        console.log("DepositAddressBridger deployed at:", universalBridger);
     }
 
     function _getBridgersAndChainIds()

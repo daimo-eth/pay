@@ -7,7 +7,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {DaimoPayHopBridger} from "../src/DaimoPayHopBridger.sol";
 import {IDaimoPayBridger} from "../src/interfaces/IDaimoPayBridger.sol";
 import {TokenAmount} from "../src/TokenUtils.sol";
-import {DummyUniversalBridger} from "./utils/DummyUniversalBridger.sol";
+import {DummyDepositAddressBridger} from "./utils/DummyDepositBridger.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {TestToken2Decimals} from "./utils/Dummy2DecimalsToken.sol";
 
@@ -37,7 +37,7 @@ contract DaimoPayHopBridgerHarness is DaimoPayHopBridger {
 }
 
 contract DaimoPayHopBridgerTest is Test {
-    DummyUniversalBridger private hop;
+    DummyDepositAddressBridger private hop;
     DaimoPayHopBridgerHarness private hb;
     TestUSDC private usdc6; // acts as final coin
     TestToken2Decimals private usdc2; // acts as hop coin (2 decimals)
@@ -46,7 +46,7 @@ contract DaimoPayHopBridgerTest is Test {
     uint256 constant DST_CHAIN = 10;
 
     function setUp() public {
-        hop = new DummyUniversalBridger();
+        hop = new DummyDepositAddressBridger();
         usdc6 = new TestUSDC();
         usdc2 = new TestToken2Decimals();
 

@@ -18,12 +18,12 @@ import {
 import {DaimoPayPricer} from "../src/DaimoPayPricer.sol";
 import {PriceData} from "../src/interfaces/IDaimoPayPricer.sol";
 import {
-    IUniversalAddressBridger
-} from "../src/interfaces/IUniversalAddressBridger.sol";
+    IDepositAddressBridger
+} from "../src/interfaces/IDepositAddressBridger.sol";
 import {TokenAmount} from "../src/TokenUtils.sol";
 import {Call} from "../src/DaimoPayExecutor.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
-import {DummyUniversalBridger} from "./utils/DummyUniversalBridger.sol";
+import {DummyDepositAddressBridger} from "./utils/DummyDepositBridger.sol";
 import {ReentrantToken} from "./utils/ReentrantToken.sol";
 
 contract DepositAddressManagerTest is Test {
@@ -54,7 +54,7 @@ contract DepositAddressManagerTest is Test {
     DepositAddressManager private manager;
     DepositAddressFactory private factory;
     DaimoPayPricer private pricer;
-    DummyUniversalBridger private bridger;
+    DummyDepositAddressBridger private bridger;
     TestUSDC private usdc;
 
     address private trustedSigner;
@@ -71,7 +71,7 @@ contract DepositAddressManagerTest is Test {
 
         // Deploy contracts
         pricer = new DaimoPayPricer(trustedSigner, MAX_PRICE_AGE);
-        bridger = new DummyUniversalBridger();
+        bridger = new DummyDepositAddressBridger();
         factory = new DepositAddressFactory();
 
         // Deploy manager as upgradeable proxy
@@ -104,7 +104,7 @@ contract DepositAddressManagerTest is Test {
                 toAddress: RECIPIENT,
                 refundAddress: REFUND_ADDRESS,
                 escrow: address(manager),
-                bridger: IUniversalAddressBridger(address(bridger)),
+                bridger: IDepositAddressBridger(address(bridger)),
                 pricer: pricer,
                 maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
                 maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
@@ -1137,7 +1137,7 @@ contract DepositAddressManagerTest is Test {
             toAddress: RECIPIENT,
             refundAddress: REFUND_ADDRESS,
             escrow: address(manager),
-            bridger: IUniversalAddressBridger(address(bridger)),
+            bridger: IDepositAddressBridger(address(bridger)),
             pricer: pricer,
             maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
             maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,

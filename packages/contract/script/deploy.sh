@@ -22,9 +22,8 @@ SCRIPTS=(
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
-    # Universal/Deposit Address
-    # "script/DeployUniversalAddressBridger.s.sol"
-    # "script/DeployUniversalAddressManager.s.sol"
+    # Deposit Address
+    # "script/DeployDepositAddressBridger.s.sol"
     # "script/DeployDaimoPayPricer.s.sol"
     # "script/DeployDepositAddressManager.s.sol"
 

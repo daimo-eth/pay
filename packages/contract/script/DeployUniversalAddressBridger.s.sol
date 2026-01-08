@@ -72,12 +72,6 @@ contract DeployUniversalAddressBridger is Script {
             address[] memory stableOuts
         )
     {
-        bool testnet = _isTestnet(block.chainid);
-        if (testnet) {
-            // Bridging not supported on testnet.
-            return (new uint256[](0), new address[](0), new address[](0));
-        }
-
         // Get addresses of deployed bridger implementations
         address cctpBridger = CREATE3.getDeployed(
             msg.sender,

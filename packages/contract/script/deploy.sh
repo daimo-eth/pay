@@ -7,10 +7,7 @@ set -e
 # ETHERSCAN_API_KEY_... for each target chain
 
 SCRIPTS=(
-    # Deployment
-    # "script/DeployCreate3Factory.s.sol"
-
-    # Daimo Pay
+    # Bridgers
     # "script/DeployDaimoPayCCTPBridger.s.sol"
     # "script/DeployDaimoPayCCTPV2Bridger.s.sol"
     # "script/DeployDaimoPayAcrossBridger.s.sol"
@@ -18,13 +15,15 @@ SCRIPTS=(
     # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
     # "script/DeployDaimoPayStargateBridger.s.sol"
     # "script/DeployDaimoPayHopBridger.s.sol"
+
     # "script/DeployDaimoPayBridger.s.sol"
+    # "script/DeployDepositAddressBridger.s.sol"
+
+    # Daimo Pay
     # "script/DeployPayIntentFactory.s.sol"
     # "script/DeployDaimoPay.s.sol"
 
-    # Universal/Deposit Address
-    # "script/DeployUniversalAddressBridger.s.sol"
-    # "script/DeployUniversalAddressManager.s.sol"
+    # Deposit Address
     # "script/DeployDaimoPayPricer.s.sol"
     # "script/DeployDepositAddressManager.s.sol"
 
@@ -35,7 +34,8 @@ SCRIPTS=(
     # "script/DeployDaimoPayRelayer.s.sol" 
 
     # Utils
-    # "script/DeployPayBalanceFactory.sol"
+    # "script/DeployCreate3Factory.s.sol"
+    # "script/DeployPayBalanceFactory.s.sol"
 )
 
 CHAINS=(

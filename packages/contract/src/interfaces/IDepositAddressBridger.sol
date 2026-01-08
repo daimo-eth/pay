@@ -5,10 +5,10 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "../TokenUtils.sol";
 
-/// @notice Simplified bridging interface for the Universal Address system
+/// @notice Simplified bridging interface for the Deposit Address system
 ///         that multiplexes between multiple bridge-specific adapters (e.g.
 ///         CCTP, Across, Axelar).
-interface IUniversalAddressBridger {
+interface IDepositAddressBridger {
     /// @notice Returns the bridge output token for the given destination chain ID.
     /// @param toChainId The destination chain ID
     /// @return stableOut The bridge output token

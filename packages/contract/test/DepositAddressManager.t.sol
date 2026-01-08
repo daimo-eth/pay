@@ -18,12 +18,13 @@ import {
 import {DaimoPayPricer} from "../src/DaimoPayPricer.sol";
 import {PriceData} from "../src/interfaces/IDaimoPayPricer.sol";
 import {
-    IUniversalAddressBridger
-} from "../src/interfaces/IUniversalAddressBridger.sol";
+    IDepositAddressBridger
+} from "../src/interfaces/IDepositAddressBridger.sol";
 import {TokenAmount} from "../src/TokenUtils.sol";
 import {Call} from "../src/DaimoPayExecutor.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
-import {DummyUniversalBridger} from "./utils/DummyUniversalBridger.sol";
+import {DummyDepositAddressBridger} from "./utils/DummyDepositBridger.sol";
+import {ReentrantToken} from "./utils/ReentrantToken.sol";
 
 contract DepositAddressManagerTest is Test {
     // ---------------------------------------------------------------------
@@ -53,7 +54,7 @@ contract DepositAddressManagerTest is Test {
     DepositAddressManager private manager;
     DepositAddressFactory private factory;
     DaimoPayPricer private pricer;
-    DummyUniversalBridger private bridger;
+    DummyDepositAddressBridger private bridger;
     TestUSDC private usdc;
 
     address private trustedSigner;
@@ -70,7 +71,7 @@ contract DepositAddressManagerTest is Test {
 
         // Deploy contracts
         pricer = new DaimoPayPricer(trustedSigner, MAX_PRICE_AGE);
-        bridger = new DummyUniversalBridger();
+        bridger = new DummyDepositAddressBridger();
         factory = new DepositAddressFactory();
 
         // Deploy manager as upgradeable proxy
@@ -103,7 +104,7 @@ contract DepositAddressManagerTest is Test {
                 toAddress: RECIPIENT,
                 refundAddress: REFUND_ADDRESS,
                 escrow: address(manager),
-                bridger: IUniversalAddressBridger(address(bridger)),
+                bridger: IDepositAddressBridger(address(bridger)),
                 pricer: pricer,
                 maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
                 maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
@@ -1136,7 +1137,7 @@ contract DepositAddressManagerTest is Test {
             toAddress: RECIPIENT,
             refundAddress: REFUND_ADDRESS,
             escrow: address(manager),
-            bridger: IUniversalAddressBridger(address(bridger)),
+            bridger: IDepositAddressBridger(address(bridger)),
             pricer: pricer,
             maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
             maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
@@ -3532,5 +3533,163 @@ contract DepositAddressManagerTest is Test {
         DepositAddressRoute memory route = _createRoute();
         vm.warp(route.expiresAt + 1);
         assertTrue(manager.isRouteExpired(route));
+    }
+
+    // ---------------------------------------------------------------------
+    // Reentrancy Protection Tests
+    // ---------------------------------------------------------------------
+
+    function test_startIntent_BlocksReentrancy() public {
+        // Deploy malicious token
+        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+
+        // Create route using the reentrant token
+        DepositAddressRoute memory route = _createRoute();
+        route.toToken = evilToken;
+
+        // Create deposit address
+        address vault = address(factory.createDepositAddress(route));
+
+        // Fund vault with malicious tokens (won't trigger reentrancy since
+        // we're not transferring to executor)
+        evilToken.transfer(vault, PAYMENT_AMOUNT);
+
+        // Create price data
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(evilToken),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory bridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Prepare intent parameters
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        Call[] memory startCalls = new Call[](0);
+        bytes memory bridgeExtraData = "";
+
+        // Attempt to start intent - the malicious token will try to re-enter
+        // via refundIntent, but ReentrancyGuard should block it
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
+        );
+        manager.startIntent({
+            route: route,
+            paymentToken: evilToken,
+            bridgeTokenOut: bridgeTokenOut,
+            paymentTokenPrice: paymentTokenPrice,
+            bridgeTokenInPrice: bridgeTokenInPrice,
+            relaySalt: bytes32(uint256(1)),
+            calls: startCalls,
+            bridgeExtraData: bridgeExtraData
+        });
+    }
+
+    function test_fastFinishIntent_BlocksReentrancy() public {
+        // Switch to destination chain for fast finish
+        vm.chainId(DEST_CHAIN_ID);
+
+        // Deploy malicious token
+        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+
+        // Create route
+        DepositAddressRoute memory route = _createRoute();
+        route.toToken = evilToken;
+
+        // Mint tokens to relayer
+        evilToken.transfer(RELAYER, PAYMENT_AMOUNT);
+
+        // Create price data
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(evilToken),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Prepare intent parameters
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        Call[] memory finishCalls = new Call[](0);
+
+        // Attempt fast finish - malicious token will try to re-enter
+        // Relayer must transfer tokens to manager first
+        vm.startPrank(RELAYER);
+        evilToken.transfer(address(manager), PAYMENT_AMOUNT);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
+        );
+        manager.fastFinishIntent({
+            route: route,
+            calls: finishCalls,
+            token: evilToken,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: bytes32(uint256(1)),
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        vm.stopPrank();
+
+        // Switch back to source chain
+        vm.chainId(SOURCE_CHAIN_ID);
+    }
+
+    function test_sameChainFinishIntent_BlocksReentrancy() public {
+        // Deploy malicious token
+        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+
+        // Create route with same source and dest chain
+        DepositAddressRoute memory route = _createRoute();
+        route.toChainId = SOURCE_CHAIN_ID; // Same chain
+        route.toToken = evilToken;
+
+        // Create deposit address and fund it
+        address vault = address(factory.createDepositAddress(route));
+        evilToken.transfer(vault, PAYMENT_AMOUNT);
+
+        // Create price data
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(evilToken),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(evilToken),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory finishCalls = new Call[](0);
+
+        // Attempt same chain finish - malicious token will try to re-enter
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
+        );
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: evilToken,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: PAYMENT_AMOUNT,
+            calls: finishCalls
+        });
     }
 }

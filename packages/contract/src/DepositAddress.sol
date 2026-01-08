@@ -8,7 +8,7 @@ import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import {Call} from "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
-import "./interfaces/IUniversalAddressBridger.sol";
+import "./interfaces/IDepositAddressBridger.sol";
 import "./interfaces/IDaimoPayPricer.sol";
 
 /// @notice Parameters that uniquely identify a Deposit Address.
@@ -23,8 +23,8 @@ struct DepositAddressRoute {
     address refundAddress;
     /// DepositAddressManager escrow contract
     address escrow;
-    /// UniversalAddressBridger contract
-    IUniversalAddressBridger bridger;
+    /// DepositAddressBridger contract
+    IDepositAddressBridger bridger;
     /// DaimoPayPricer contract
     IDaimoPayPricer pricer;
     /// Maximum slippage allowed on starts. Expected slippage from token sent

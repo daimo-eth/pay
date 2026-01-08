@@ -3,18 +3,20 @@ pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-import {UniversalAddressManager} from "../../src/UniversalAddressManager.sol";
-import {UniversalAddressRoute} from "../../src/UniversalAddress.sol";
+import {DepositAddressManager} from "../../src/DepositAddressManager.sol";
+import {DepositAddressRoute} from "../../src/DepositAddress.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-/// @notice ERC-20 that attempts to re-enter a UniversalAddressManager call
+/// @notice ERC-20 that attempts to re-enter a DepositAddressManager call
 ///         during `transfer`.
 contract ReentrantToken is ERC20 {
-    UniversalAddressManager public immutable mgr;
+    DepositAddressManager public immutable mgr;
+    address public immutable executor;
     bool private inAttack;
 
     constructor(address payable _mgr) ERC20("ReentrantToken", "evilUSDC") {
-        mgr = UniversalAddressManager(_mgr);
+        mgr = DepositAddressManager(_mgr);
+        executor = address(mgr.executor());
         _mint(msg.sender, 10_000_000e6);
     }
 
@@ -26,15 +28,18 @@ contract ReentrantToken is ERC20 {
     function transfer(address to, uint256 amount) public override returns (bool) {
         bool ok = super.transfer(to, amount);
 
-        // Only attempt reentrancy the first time mgr transfers tokens to executor.
-        if (!inAttack && msg.sender == address(mgr)) {
+        // Only attempt reentrancy when transferring to the executor.
+        // This is when the manager is actively processing an intent.
+        if (!inAttack && to == executor) {
             inAttack = true;
             // Craft dummy intent (all zeros) – will immediately fail due to
             // ReentrancyGuard before any deeper logic executes.
-            UniversalAddressRoute memory dummy;
+            DepositAddressRoute memory dummy;
             // We expect this to revert; propagate the revert to the caller so
             // the test can detect the ReentrancyGuard message.
-            mgr.refundIntent(dummy, IERC20(address(0)));
+            IERC20[] memory tokens = new IERC20[](1);
+            tokens[0] = IERC20(address(0));
+            mgr.refundIntent(dummy, tokens);
         }
 
         return ok;

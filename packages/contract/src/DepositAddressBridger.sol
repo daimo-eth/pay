@@ -6,13 +6,13 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./TokenUtils.sol"; // Provides TokenAmount struct
 import "./interfaces/IDaimoPayBridger.sol";
-import "./interfaces/IUniversalAddressBridger.sol";
+import "./interfaces/IDepositAddressBridger.sol";
 
 /// @author Daimo, Inc
-/// @notice Simplified bridging interface for the Universal Address system
+/// @notice Simplified bridging interface for the Deposit Address system
 ///         that multiplexes between multiple bridge-specific adapters (e.g.
 ///         CCTP, Across, Axelar).
-contract UniversalAddressBridger is IUniversalAddressBridger {
+contract DepositAddressBridger is IDepositAddressBridger {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -34,7 +34,7 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         uint256 n = toChainIds.length;
         require(
             n == bridgers.length && n == stableOut.length,
-            "UAB: length mismatch"
+            "DAB: length mismatch"
         );
         for (uint256 i; i < n; ++i) {
             chainIdToBridger[toChainIds[i]] = bridgers[i];
@@ -46,7 +46,7 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // Mutating state
     // ---------------------------------------------------------------------
 
-    /// @inheritdoc IUniversalAddressBridger
+    /// @inheritdoc IDepositAddressBridger
     function sendToChain(
         uint256 toChainId,
         address toAddress,
@@ -90,7 +90,7 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
     // View helpers
     // ---------------------------------------------------------------------
 
-    /// @inheritdoc IUniversalAddressBridger
+    /// @inheritdoc IDepositAddressBridger
     function getBridgeTokenIn(
         uint256 toChainId,
         TokenAmount calldata bridgeTokenOut
@@ -115,14 +115,14 @@ contract UniversalAddressBridger is IUniversalAddressBridger {
         view
         returns (IDaimoPayBridger adapter, TokenAmount[] memory opts)
     {
-        require(toChainId != block.chainid, "UAB: same chain");
+        require(toChainId != block.chainid, "DAB: same chain");
 
         adapter = chainIdToBridger[toChainId];
-        require(address(adapter) != address(0), "UAB: unknown chain");
+        require(address(adapter) != address(0), "DAB: unknown chain");
 
         // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
         address tokOut = chainIdToStableOut[toChainId];
-        require(address(bridgeTokenOut.token) == tokOut, "UAB: token mismatch");
+        require(address(bridgeTokenOut.token) == tokOut, "DAB: token mismatch");
 
         // Build a single-element TokenAmount[] expected by the adapter
         opts = new TokenAmount[](1);

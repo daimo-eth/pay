@@ -34,6 +34,7 @@ uint256 constant BSC_MAINNET = 56;
 uint256 constant CELO_MAINNET = 42220;
 uint256 constant ETH_MAINNET = 1;
 uint256 constant GNOSIS_MAINNET = 100;
+uint256 constant HYPEREVM_MAINNET = 999;
 uint256 constant LINEA_MAINNET = 59144;
 uint256 constant MONAD_MAINNET = 143;
 uint256 constant OP_MAINNET = 10;
@@ -48,6 +49,7 @@ address constant ARBITRUM_MAINNET_USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5
 address constant BASE_MAINNET_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 address constant CELO_MAINNET_USDC = 0xcebA9300f2b948710d2653dD7B07f33A8B32118C;
 address constant ETH_MAINNET_USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+address constant HYPEREVM_MAINNET_USDC = 0xb88339CB7199b77E23DB6E890353E22632Ba630f;
 address constant LINEA_MAINNET_USDC = 0x176211869cA2b568f2A7D4EE941E073a821EE1ff;
 address constant MONAD_MAINNET_USDC = 0x754704Bc059F8C67012fEd69BC8A327a5aafb603;
 address constant OP_MAINNET_USDC = 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85;
@@ -108,6 +110,7 @@ function getHopCoinDecimals(address token) pure returns (uint256) {
     if (token == BASE_MAINNET_USDC) return 6;
     if (token == CELO_MAINNET_USDC) return 6;
     if (token == ETH_MAINNET_USDC) return 6;
+    if (token == HYPEREVM_MAINNET_USDC) return 6;
     if (token == LINEA_MAINNET_USDC) return 6;
     if (token == MONAD_MAINNET_USDC) return 6;
     if (token == OP_MAINNET_USDC) return 6;
@@ -185,6 +188,7 @@ function _getTokenMessengerV2Address(uint256 chainId) pure returns (address) {
     if (chainId == ARBITRUM_MAINNET) return TOKEN_MESSENGER_V2;
     if (chainId == BASE_MAINNET) return TOKEN_MESSENGER_V2;
     if (chainId == ETH_MAINNET) return TOKEN_MESSENGER_V2;
+    if (chainId == HYPEREVM_MAINNET) return TOKEN_MESSENGER_V2;
     if (chainId == LINEA_MAINNET) return TOKEN_MESSENGER_V2;
     if (chainId == MONAD_MAINNET) return TOKEN_MESSENGER_V2;
     if (chainId == OP_MAINNET) return TOKEN_MESSENGER_V2;
@@ -201,6 +205,7 @@ function _getTokenMinterV2Address(uint256 chainId) pure returns (address) {
     if (chainId == ARBITRUM_MAINNET) return TOKEN_MINTER_V2;
     if (chainId == BASE_MAINNET) return TOKEN_MINTER_V2;
     if (chainId == ETH_MAINNET) return TOKEN_MINTER_V2;
+    if (chainId == HYPEREVM_MAINNET) return TOKEN_MINTER_V2;
     if (chainId == LINEA_MAINNET) return TOKEN_MINTER_V2;
     if (chainId == MONAD_MAINNET) return TOKEN_MINTER_V2;
     if (chainId == OP_MAINNET) return TOKEN_MINTER_V2;

@@ -648,31 +648,5 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Refund tokens from a Deposit Address after expiration.
-    function daRefundIntent(
-        Call[] calldata preCalls,
-        DepositAddressManager manager,
-        DepositAddressRoute calldata route,
-        IERC20[] calldata tokens,
-        Call[] calldata postCalls
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Make pre-refund calls
-        for (uint256 i = 0; i < preCalls.length; ++i) {
-            Call calldata c = preCalls[i];
-            (bool success, ) = c.to.call{value: c.value}(c.data);
-            require(success, "DPR: preCall failed");
-        }
-
-        // Execute the refund intent
-        manager.refundIntent({route: route, tokens: tokens});
-
-        // Make post-refund calls
-        for (uint256 i = 0; i < postCalls.length; ++i) {
-            Call calldata c = postCalls[i];
-            (bool success, ) = c.to.call{value: c.value}(c.data);
-            require(success, "DPR: postCall failed");
-        }
-    }
-
     receive() external payable {}
 }

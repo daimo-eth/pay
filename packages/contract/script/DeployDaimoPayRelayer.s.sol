@@ -6,10 +6,7 @@ import "forge-std/console2.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-DAtest"
-);
+import {DEPLOY_SALT_DAIMO_PAY_RELAYER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayRelayer is Script {
     function run() public {

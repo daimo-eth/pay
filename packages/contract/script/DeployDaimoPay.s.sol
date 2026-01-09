@@ -5,10 +5,10 @@ import "forge-std/Script.sol";
 
 import "../src/DaimoPay.sol";
 import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_BRIDGER} from "./DeployDaimoPayBridger.s.sol";
-import {DEPLOY_SALT_PAY_INTENT_FACTORY} from "./DeployPayIntentFactory.s.sol";
-
-bytes32 constant DEPLOY_SALT_DAIMO_PAY = keccak256("DaimoPay-deploy6");
+import {
+    DEPLOY_SALT_DAIMO_PAY,
+    DEPLOY_SALT_PAY_INTENT_FACTORY
+} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPay is Script {
     function run() public {

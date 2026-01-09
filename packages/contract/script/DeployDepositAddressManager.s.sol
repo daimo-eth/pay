@@ -7,19 +7,11 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/DepositAddressManager.sol";
 import "../src/DepositAddressFactory.sol";
 import "./constants/Constants.s.sol";
-
-// CREATE3 factory instance (declared in Constants.s.sol)
-// CREATE3Factory constant CREATE3;
-
-bytes32 constant DEPLOY_SALT_DA_FACTORY = keccak256(
-    "DepositAddressFactory-DAtest2"
-);
-bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
-    "DepositAddressManager-DAtest2"
-);
-bytes32 constant DEPLOY_SALT_DA_MANAGER_IMPL = keccak256(
-    "DepositAddressManager-impl-DAtest2"
-);
+import {
+    DEPLOY_SALT_DA_FACTORY,
+    DEPLOY_SALT_DA_MANAGER,
+    DEPLOY_SALT_DA_MANAGER_IMPL
+} from "./constants/DeploySalts.sol";
 
 /// @title DeployDepositAddressManager
 /// @notice Foundry script that deploys:

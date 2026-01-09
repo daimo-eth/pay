@@ -7,10 +7,7 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/DaimoPayAcrossBridger.sol";
 import "./constants/AcrossBridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
-
-bytes32 constant DEPLOY_SALT_ACROSS_BRIDGER = keccak256(
-    "DaimoPayAcrossBridger-deploy6"
-);
+import {DEPLOY_SALT_ACROSS_BRIDGER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayAcrossBridger is Script {
     function run() public {

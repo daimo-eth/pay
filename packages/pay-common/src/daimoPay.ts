@@ -704,11 +704,19 @@ export type NavNodeExchange = NavNodeCommon & {
   maximumUsd: number;
 };
 
+export type NavNodeTronDeposit = NavNodeCommon & {
+  type: "TronDeposit";
+  icon?: string;
+  minimumUsd: number;
+  maximumUsd: number;
+};
+
 export type NavNode =
   | NavNodeChooseOption
   | NavNodeDepositAddress
   | NavNodeDeeplink
-  | NavNodeExchange;
+  | NavNodeExchange
+  | NavNodeTronDeposit;
 
 export type Session = {
   sessionId: UUID;

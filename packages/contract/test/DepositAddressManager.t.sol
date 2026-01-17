@@ -4015,4 +4015,641 @@ contract DepositAddressManagerTest is Test {
             calls: finishCalls
         });
     }
+
+    // ---------------------------------------------------------------------
+    // hopIntent - Success cases
+    // ---------------------------------------------------------------------
+
+    uint256 private constant HOP_CHAIN_ID = 42161; // Arbitrum
+
+    function test_hopIntent_Success() public {
+        // Set chain to hop chain (Arbitrum)
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        // Leg 1: source -> hop (e.g., Scroll -> Arbitrum)
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        // Leg 2: hop -> dest (e.g., Arbitrum -> Base)
+        // Use same amount since dummy bridger doesn't charge fees
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg2RelaySalt = keccak256("leg2-salt");
+
+        // Compute leg 1 receiver (where funds from source->hop arrive)
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+
+        // Fund the hop receiver (simulating leg 1 bridge arrival)
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        // Create price data for hop chain
+        PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2BridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+        bytes memory bridgeExtraData = "";
+
+        // Execute hopIntent
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            leg2RelaySalt: leg2RelaySalt,
+            calls: calls,
+            bridgeExtraData: bridgeExtraData
+        });
+
+        // Verify hop receiver is marked as claimed
+        assertEq(
+            manager.receiverToRecipient(hopReceiverAddress),
+            manager.ADDR_MAX()
+        );
+
+        // Verify leg 2 receiver is marked as used
+        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg2RelaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: HOP_CHAIN_ID
+        });
+        (address destReceiverAddress, ) = manager.computeReceiverAddress(
+            leg2Intent
+        );
+        assertTrue(manager.receiverUsed(destReceiverAddress));
+
+        // Verify bridger received tokens (burned to 0xdead by dummy bridger)
+        assertEq(usdc.balanceOf(address(0xdead)), leg2BridgeTokenOut.amount);
+    }
+
+    function test_hopIntent_EmitsHopEvent() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg2RelaySalt = keccak256("leg2-salt");
+
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg2RelaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: HOP_CHAIN_ID
+        });
+        (address destReceiverAddress, ) = manager.computeReceiverAddress(
+            leg2Intent
+        );
+
+        PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2BridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectEmit(true, true, true, false);
+        emit DepositAddressManager.Hop({
+            depositAddress: depositAddress,
+            hopReceiverAddress: hopReceiverAddress,
+            destReceiverAddress: destReceiverAddress,
+            route: route,
+            leg1Intent: leg1Intent,
+            leg2Intent: leg2Intent,
+            hopAmount: BRIDGE_AMOUNT
+        });
+
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            leg2RelaySalt: leg2RelaySalt,
+            calls: calls,
+            bridgeExtraData: ""
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    // hopIntent - Validation failures
+    // ---------------------------------------------------------------------
+
+    function test_hopIntent_RevertsOnSourceChain() public {
+        // Call on source chain (wrong)
+        vm.chainId(SOURCE_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: hop on source chain"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: keccak256("leg1"),
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsOnDestChain() public {
+        // Call on dest chain (wrong)
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: hop on dest chain"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: keccak256("leg1"),
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsWrongEscrow() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        route.escrow = address(0xDEAD); // Wrong escrow
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: wrong escrow"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: keccak256("leg1"),
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsExpired() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: expired"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: keccak256("leg1"),
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsNotRelayer() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: not relayer"));
+        vm.prank(address(0x1111)); // Not the relayer
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: keccak256("leg1"),
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsAlreadyClaimed() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg2RelaySalt = keccak256("leg2-salt");
+
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+        // Fund with exactly the expected amount
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        // First hop succeeds
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: leg2RelaySalt,
+            calls: calls,
+            bridgeExtraData: ""
+        });
+
+        // Second hop with same leg1 params should fail (already claimed)
+        vm.expectRevert(bytes("DAM: already claimed"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2-salt-2"), // Different leg2 salt
+            calls: calls,
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsInsufficientBridge() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+
+        // Fund with less than expected
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT / 2);
+
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: insufficient hop bridge"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsInvalidLeg1Price() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Invalid signature
+        PriceData memory leg1Price = PriceData({
+            token: address(usdc),
+            priceUsd: USDC_PRICE,
+            timestamp: block.timestamp,
+            signature: ""
+        });
+        leg1Price.signature = _signPriceData(leg1Price, 0xBAD);
+
+        PriceData memory leg2Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        vm.expectRevert(bytes("DAM: leg1 price invalid"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
+
+    function test_hopIntent_RevertsInvalidLeg2Price() public {
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt");
+
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        PriceData memory leg1Price = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Invalid signature
+        PriceData memory leg2Price = PriceData({
+            token: address(usdc),
+            priceUsd: USDC_PRICE,
+            timestamp: block.timestamp,
+            signature: ""
+        });
+        leg2Price.signature = _signPriceData(leg2Price, 0xBAD);
+
+        vm.expectRevert(bytes("DAM: leg2 price invalid"));
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenInPrice: leg2Price,
+            leg2RelaySalt: keccak256("leg2"),
+            calls: new Call[](0),
+            bridgeExtraData: ""
+        });
+    }
 }

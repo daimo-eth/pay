@@ -113,6 +113,15 @@ contract DepositAddressManager is
         IERC20[] tokens,
         uint256[] amounts
     );
+    event Hop(
+        address indexed depositAddress,
+        address indexed hopReceiverAddress,
+        address indexed destReceiverAddress,
+        DepositAddressRoute route,
+        DepositAddressIntent leg1Intent,
+        DepositAddressIntent leg2Intent,
+        uint256 hopAmount
+    );
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -572,6 +581,163 @@ contract DepositAddressManager is
             outputAmount: outputAmount,
             bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
             toTokenPriceUsd: toTokenPrice.priceUsd
+        });
+    }
+
+    /// @notice Continues a multi-hop transfer by pulling funds from a hop chain
+    ///         receiver and bridging to the final destination chain.
+    /// @dev Must be called on the hop chain. Pulls funds from the receiver
+    ///      created by the source→hop leg, then initiates hop→dest bridge.
+    /// @param route               The DepositAddressRoute for the intent
+    /// @param leg1BridgeTokenOut  Token and amount that was bridged in leg 1
+    ///                            (source → hop)
+    /// @param leg1RelaySalt       Relay salt used in leg 1
+    /// @param leg1SourceChainId   Source chain ID for leg 1
+    /// @param leg2BridgeTokenOut  Token and amount to bridge in leg 2 (hop → dest)
+    /// @param leg1BridgeTokenOutPrice  Price data for leg 1 bridge token out
+    /// @param leg2BridgeTokenInPrice   Price data for leg 2 bridge token in
+    /// @param leg2RelaySalt       Relay salt for leg 2
+    /// @param calls               Swap calls to convert leg 1 token to leg 2
+    ///                            bridge input token
+    /// @param bridgeExtraData     Additional data for the hop → dest bridge
+    function hopIntent(
+        DepositAddressRoute calldata route,
+        TokenAmount calldata leg1BridgeTokenOut,
+        bytes32 leg1RelaySalt,
+        uint256 leg1SourceChainId,
+        TokenAmount calldata leg2BridgeTokenOut,
+        PriceData calldata leg1BridgeTokenOutPrice,
+        PriceData calldata leg2BridgeTokenInPrice,
+        bytes32 leg2RelaySalt,
+        Call[] calldata calls,
+        bytes calldata bridgeExtraData
+    ) external nonReentrant onlyRelayer {
+        // Must be on hop chain (not source, not dest)
+        require(
+            block.chainid != leg1SourceChainId,
+            "DAM: hop on source chain"
+        );
+        require(block.chainid != route.toChainId, "DAM: hop on dest chain");
+        require(route.escrow == address(this), "DAM: wrong escrow");
+        require(!isRouteExpired(route), "DAM: expired");
+
+        // Validate prices
+        bool leg1PriceValid = route.pricer.validatePrice(leg1BridgeTokenOutPrice);
+        bool leg2PriceValid = route.pricer.validatePrice(leg2BridgeTokenInPrice);
+        require(leg1PriceValid, "DAM: leg1 price invalid");
+        require(leg2PriceValid, "DAM: leg2 price invalid");
+
+        // Compute and deploy/fetch the hop receiver from leg 1
+        address depositAddress = depositAddressFactory.getDepositAddress(route);
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: leg1SourceChainId
+        });
+        (address hopReceiverAddress, bytes32 hopRecvSalt) = computeReceiverAddress(
+            leg1Intent
+        );
+
+        // Check that leg1 hasn't been claimed already
+        address recipient = receiverToRecipient[hopReceiverAddress];
+        require(recipient != ADDR_MAX, "DAM: already claimed");
+        // Mark as claimed to prevent double-processing
+        receiverToRecipient[hopReceiverAddress] = ADDR_MAX;
+
+        // Deploy receiver if necessary and pull funds
+        DepositAddressReceiver hopReceiver;
+        if (hopReceiverAddress.code.length == 0) {
+            hopReceiver = new DepositAddressReceiver{salt: hopRecvSalt}();
+            require(
+                hopReceiverAddress == address(hopReceiver),
+                "DAM: hop receiver"
+            );
+        } else {
+            hopReceiver = DepositAddressReceiver(payable(hopReceiverAddress));
+        }
+
+        // Pull funds from the hop receiver
+        uint256 bridgedAmount = hopReceiver.pull(leg1BridgeTokenOut.token);
+        require(
+            bridgedAmount >= leg1BridgeTokenOut.amount,
+            "DAM: insufficient hop bridge"
+        );
+
+        // Compute leg 2 receiver address
+        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg2RelaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: block.chainid // hop chain is source for leg 2
+        });
+        (address destReceiverAddress, ) = computeReceiverAddress(leg2Intent);
+
+        // Ensure leg 2 receiver hasn't been used
+        require(!receiverUsed[destReceiverAddress], "DAM: receiver used");
+        receiverUsed[destReceiverAddress] = true;
+
+        // Get bridge input requirements for leg 2
+        (address bridgeTokenIn, uint256 inAmount) = route
+            .bridger
+            .getBridgeTokenIn({
+                toChainId: route.toChainId,
+                bridgeTokenOut: leg2BridgeTokenOut
+            });
+        require(
+            bridgeTokenIn == address(leg2BridgeTokenInPrice.token),
+            "DAM: bridge token mismatch"
+        );
+
+        // Validate swap output meets minimum requirements
+        TokenAmount memory minSwapOutput = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: leg1BridgeTokenOutPrice,
+            buyTokenPrice: leg2BridgeTokenInPrice,
+            sellAmount: bridgedAmount,
+            maxSlippage: route.maxStartSlippageBps
+        });
+        require(inAmount >= minSwapOutput.amount, "DAM: bridge input low");
+
+        // Send to executor, run swap calls, get bridge input
+        TokenUtils.transfer({
+            token: leg1BridgeTokenOut.token,
+            recipient: payable(address(executor)),
+            amount: bridgedAmount
+        });
+
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = TokenAmount({
+            token: IERC20(bridgeTokenIn),
+            amount: inAmount
+        });
+        executor.execute({
+            calls: calls,
+            expectedOutput: expectedOutput,
+            recipient: payable(address(this)),
+            surplusRecipient: payable(msg.sender)
+        });
+
+        // Approve bridger and initiate leg 2 bridge
+        IERC20(bridgeTokenIn).forceApprove({
+            spender: address(route.bridger),
+            value: inAmount
+        });
+        route.bridger.sendToChain({
+            toChainId: route.toChainId,
+            toAddress: destReceiverAddress,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            refundAddress: hopReceiverAddress, // refund to hop receiver if bridge fails
+            extraData: bridgeExtraData
+        });
+
+        emit Hop({
+            depositAddress: depositAddress,
+            hopReceiverAddress: hopReceiverAddress,
+            destReceiverAddress: destReceiverAddress,
+            route: route,
+            leg1Intent: leg1Intent,
+            leg2Intent: leg2Intent,
+            hopAmount: bridgedAmount
         });
     }
 

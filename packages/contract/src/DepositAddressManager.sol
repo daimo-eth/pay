@@ -89,7 +89,8 @@ contract DepositAddressManager is
         address indexed finalRecipient,
         DepositAddressRoute route,
         DepositAddressIntent intent,
-        uint256 outputAmount
+        uint256 outputAmount,
+        bool finishedInClaim
     );
     event SameChainFinish(
         address indexed depositAddress,
@@ -321,11 +322,12 @@ contract DepositAddressManager is
         });
         require(toAmount >= minSwapOutput.amount, "DAM: toAmount low");
 
-        // Finish the intent and return any leftover tokens to the caller
-        uint256 outputAmount = _finishIntent({
+        // Finish the intent: send exactly toAmount to user, surplus to relayer
+        _finishIntent({
             route: route,
             calls: calls,
-            minOutputAmount: minSwapOutput.amount
+            outputAmount: toAmount,
+            surplusRecipient: payable(msg.sender)
         });
 
         emit SameChainFinish({
@@ -333,7 +335,7 @@ contract DepositAddressManager is
             route: route,
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
-            outputAmount: outputAmount
+            outputAmount: toAmount
         });
     }
 
@@ -348,6 +350,8 @@ contract DepositAddressManager is
     /// @param bridgeTokenOut  The token and amount expected from the bridge
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
+    /// @param toAmount        The amount of toToken to deliver to the recipient.
+    ///                        Must be >= the minimum computed from price data.
     function fastFinishIntent(
         DepositAddressRoute calldata route,
         Call[] calldata calls,
@@ -356,7 +360,8 @@ contract DepositAddressManager is
         PriceData calldata toTokenPrice,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
-        uint256 sourceChainId
+        uint256 sourceChainId,
+        uint256 toAmount
     ) external nonReentrant onlyRelayer {
         require(sourceChainId != block.chainid, "DAM: same chain finish");
         require(route.toChainId == block.chainid, "DAM: wrong chain");
@@ -391,21 +396,27 @@ contract DepositAddressManager is
         // Record relayer as new recipient when the bridged tokens arrive
         receiverToRecipient[receiverAddress] = msg.sender;
 
-        // Finish the intent and return any leftover tokens to the caller
-        TokenUtils.transferBalance({
-            token: token,
-            recipient: payable(address(executor))
-        });
-        TokenAmount memory toTokenAmount = SwapMath.computeMinSwapOutput({
+        // Validate toAmount is above the minimum output required by price data
+        TokenAmount memory minSwapOutput = SwapMath.computeMinSwapOutput({
             sellTokenPrice: bridgeTokenOutPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: bridgeTokenOut.amount,
             maxSlippage: route.maxFastFinishSlippageBps
         });
-        uint256 outputAmount = _finishIntent({
+        require(toAmount >= minSwapOutput.amount, "DAM: toAmount low");
+
+        // Transfer relayer's tokens to the executor for the swap
+        TokenUtils.transferBalance({
+            token: token,
+            recipient: payable(address(executor))
+        });
+
+        // Finish the intent: send exactly toAmount to user, surplus to relayer
+        _finishIntent({
             route: route,
             calls: calls,
-            minOutputAmount: toTokenAmount.amount
+            outputAmount: toAmount,
+            surplusRecipient: payable(msg.sender)
         });
 
         emit FastFinish({
@@ -414,7 +425,7 @@ contract DepositAddressManager is
             newRecipient: msg.sender,
             route: route,
             intent: intent,
-            outputAmount: outputAmount
+            outputAmount: toAmount
         });
     }
 
@@ -425,6 +436,9 @@ contract DepositAddressManager is
     /// @param bridgeTokenOut  The token and amount that was bridged
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
+    /// @param toAmount        The amount of toToken to deliver to the recipient
+    ///                        when no fast finish occurred. Must be >= minimum
+    ///                        computed from price data.
     function claimIntent(
         DepositAddressRoute calldata route,
         Call[] calldata calls,
@@ -432,7 +446,8 @@ contract DepositAddressManager is
         PriceData calldata bridgeTokenOutPrice,
         PriceData calldata toTokenPrice,
         bytes32 relaySalt,
-        uint256 sourceChainId
+        uint256 sourceChainId,
+        uint256 toAmount
     ) external nonReentrant onlyRelayer {
         require(route.toChainId == block.chainid, "DAM: wrong chain");
         require(route.escrow == address(this), "DAM: wrong escrow");
@@ -474,7 +489,8 @@ contract DepositAddressManager is
         );
 
         uint256 outputAmount = 0;
-        if (recipient == address(0)) {
+        bool finishInClaim = recipient == address(0);
+        if (finishInClaim) {
             // Validate prices
             bool bridgeTokenOutPriceValid = route.pricer.validatePrice(
                 bridgeTokenOutPrice
@@ -490,6 +506,15 @@ contract DepositAddressManager is
             // recipient to the route's recipient.
             recipient = route.toAddress;
 
+            // Validate toAmount is above the minimum output required by price data
+            TokenAmount memory minSwapOutput = SwapMath.computeMinSwapOutput({
+                sellTokenPrice: bridgeTokenOutPrice,
+                buyTokenPrice: toTokenPrice,
+                sellAmount: bridgedAmount,
+                maxSlippage: route.maxFastFinishSlippageBps
+            });
+            require(toAmount >= minSwapOutput.amount, "DAM: toAmount low");
+
             // Send tokens to the executor contract to run relayer-provided
             // calls in _finishIntent.
             TokenUtils.transfer({
@@ -498,19 +523,14 @@ contract DepositAddressManager is
                 amount: bridgedAmount
             });
 
-            TokenAmount memory toTokenAmount = SwapMath.computeMinSwapOutput({
-                sellTokenPrice: bridgeTokenOutPrice,
-                buyTokenPrice: toTokenPrice,
-                sellAmount: bridgedAmount,
-                maxSlippage: route.maxFastFinishSlippageBps
-            });
-
-            // Finish the intent and return any leftover tokens to the caller
-            outputAmount = _finishIntent({
+            // Finish the intent: send exactly toAmount to user, surplus to relayer
+            _finishIntent({
                 route: route,
                 calls: calls,
-                minOutputAmount: toTokenAmount.amount
+                outputAmount: toAmount,
+                surplusRecipient: payable(msg.sender)
             });
+            outputAmount = toAmount;
         } else {
             // Otherwise, the relayer fastFinished the intent. Repay them.
             TokenUtils.transfer({
@@ -527,7 +547,8 @@ contract DepositAddressManager is
             finalRecipient: recipient,
             route: route,
             intent: intent,
-            outputAmount: outputAmount
+            outputAmount: outputAmount,
+            finishedInClaim: finishInClaim
         });
     }
 
@@ -593,28 +614,34 @@ contract DepositAddressManager is
     // ---------------------------------------------------------------------
 
     /// @dev Internal helper that completes an intent by executing swaps,
-    ///      delivering toToken to the recipient, and handling any surplus.
+    ///      delivering an exact amount of toToken to the recipient, and sending
+    ///      any surplus to the specified address.
     ///      Precondition: input tokens must already be in PayExecutor.
-    /// @param route            The UniversalAddressRoute containing
-    ///                         recipient details
-    /// @param calls            Arbitrary swap calls to be executed by the
-    ///                         executor
-    /// @param minOutputAmount  The minimum amount of target token to deliver to
-    ///                         the recipient
+    ///      Use this for fastFinish/sameChainFinish where relayer gets surplus.
+    /// @param route            The DepositAddressRoute containing recipient details
+    /// @param calls            Arbitrary swap calls to be executed by the executor
+    /// @param outputAmount     The exact amount of target token to deliver to the
+    ///                         recipient
+    /// @param surplusRecipient The address to receive any surplus tokens from the
+    ///                         swap
     function _finishIntent(
         DepositAddressRoute calldata route,
         Call[] calldata calls,
-        uint256 minOutputAmount
-    ) internal returns (uint256 outputAmount) {
-        // Run arbitrary calls provided by the relayer to create toToken, and
-        // send the full output to the recipient.
-        outputAmount = executor.executeAndSweep({
+        uint256 outputAmount,
+        address payable surplusRecipient
+    ) internal {
+        // Run arbitrary calls provided by the relayer to create toToken.
+        // Send exactly outputAmount to the recipient, surplus to surplusRecipient.
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = TokenAmount({
+            token: route.toToken,
+            amount: outputAmount
+        });
+        executor.execute({
             calls: calls,
-            minOutputAmount: TokenAmount({
-                token: route.toToken,
-                amount: minOutputAmount
-            }),
-            recipient: payable(route.toAddress)
+            expectedOutput: expectedOutput,
+            recipient: payable(route.toAddress),
+            surplusRecipient: surplusRecipient
         });
     }
 

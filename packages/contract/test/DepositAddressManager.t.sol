@@ -2783,7 +2783,8 @@ contract DepositAddressManagerTest is Test {
             finalRecipient: RECIPIENT,
             route: route,
             intent: intent,
-            outputAmount: BRIDGE_AMOUNT
+            outputAmount: BRIDGE_AMOUNT,
+            finishedInClaim: true
         });
 
         vm.prank(RELAYER);
@@ -2860,7 +2861,8 @@ contract DepositAddressManagerTest is Test {
             finalRecipient: RELAYER,
             route: route,
             intent: intent,
-            outputAmount: BRIDGE_AMOUNT
+            outputAmount: BRIDGE_AMOUNT,
+            finishedInClaim: false
         });
 
         vm.prank(RELAYER);

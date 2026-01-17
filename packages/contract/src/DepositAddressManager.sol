@@ -89,7 +89,8 @@ contract DepositAddressManager is
         address indexed finalRecipient,
         DepositAddressRoute route,
         DepositAddressIntent intent,
-        uint256 outputAmount
+        uint256 outputAmount,
+        bool finishedInClaim
     );
     event SameChainFinish(
         address indexed depositAddress,
@@ -488,7 +489,8 @@ contract DepositAddressManager is
         );
 
         uint256 outputAmount = 0;
-        if (recipient == address(0)) {
+        bool finishInClaim = recipient == address(0);
+        if (finishInClaim) {
             // Validate prices
             bool bridgeTokenOutPriceValid = route.pricer.validatePrice(
                 bridgeTokenOutPrice
@@ -545,7 +547,8 @@ contract DepositAddressManager is
             finalRecipient: recipient,
             route: route,
             intent: intent,
-            outputAmount: outputAmount
+            outputAmount: outputAmount,
+            finishedInClaim: finishInClaim
         });
     }
 

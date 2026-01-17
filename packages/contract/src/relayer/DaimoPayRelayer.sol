@@ -617,6 +617,7 @@ contract DaimoPayRelayer is AccessControl {
         PriceData calldata toTokenPrice,
         bytes32 relaySalt,
         uint256 sourceChainId,
+        uint256 toAmount,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -637,7 +638,8 @@ contract DaimoPayRelayer is AccessControl {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: sourceChainId
+            sourceChainId: sourceChainId,
+            toAmount: toAmount
         });
 
         // Make post-claim calls

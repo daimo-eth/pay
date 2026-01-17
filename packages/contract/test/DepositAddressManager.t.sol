@@ -2641,7 +2641,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify intent marked as claimed
@@ -2724,7 +2725,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify intent marked as claimed
@@ -2792,7 +2794,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -2868,7 +2871,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -2923,7 +2927,8 @@ contract DepositAddressManagerTest is Test {
                 bridgeTokenOutPrice: bridgeTokenOutPrice,
                 toTokenPrice: toTokenPrice,
                 relaySalt: salts[i],
-                sourceChainId: SOURCE_CHAIN_ID
+                sourceChainId: SOURCE_CHAIN_ID,
+                toAmount: bridgeTokenOut.amount
             });
 
             // Verify intent marked as claimed
@@ -2985,7 +2990,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify receiver was deployed
@@ -3049,7 +3055,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify recipient received tokens
@@ -3057,6 +3064,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_claimIntent_WithSurplusBridgeAmount() public {
+        // This test verifies that when more tokens are bridged than expected,
+        // the user receives toAmount and the relayer receives the surplus.
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3078,8 +3087,8 @@ contract DepositAddressManagerTest is Test {
         (address receiverAddress, ) = manager.computeReceiverAddress(intent);
 
         // Fund with more than expected
-        uint256 surplusAmount = BRIDGE_AMOUNT + 10e6;
-        usdc.transfer(receiverAddress, surplusAmount);
+        uint256 bridgedAmount = BRIDGE_AMOUNT + 10e6;
+        usdc.transfer(receiverAddress, bridgedAmount);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3092,7 +3101,17 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
+        // Calculate min output based on actual bridged amount
+        uint256 minOutput = (bridgedAmount *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        // toAmount must be at least minOutput
+        uint256 toAmount = minOutput;
+        uint256 expectedSurplus = bridgedAmount - toAmount;
+
         Call[] memory calls = new Call[](0);
+
+        uint256 relayerBalanceBefore = usdc.balanceOf(RELAYER);
 
         vm.prank(RELAYER);
         manager.claimIntent({
@@ -3102,11 +3121,173 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: toAmount
         });
 
-        // Verify recipient received the full surplus amount
-        assertEq(usdc.balanceOf(RECIPIENT), surplusAmount);
+        // Verify recipient received exactly toAmount
+        assertEq(usdc.balanceOf(RECIPIENT), toAmount);
+
+        // Verify relayer received the surplus
+        assertEq(
+            usdc.balanceOf(RELAYER) - relayerBalanceBefore,
+            expectedSurplus,
+            "Relayer should receive surplus"
+        );
+    }
+
+    function test_claimIntent_SurplusExactCalculation() public {
+        // This test verifies the exact surplus calculation when
+        // minOutput < toAmount < swapOutput (bridgedAmount)
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt-exact");
+
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund receiver with exact expected amount
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Calculate min output (with slippage)
+        uint256 minOutput = (BRIDGE_AMOUNT *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        // swapOutput in this test = BRIDGE_AMOUNT (no actual swap, USDC -> USDC)
+        uint256 swapOutput = BRIDGE_AMOUNT;
+
+        // Set toAmount between minOutput and swapOutput
+        // minOutput < toAmount < swapOutput
+        uint256 toAmount = minOutput + (swapOutput - minOutput) / 2;
+
+        // Verify our test setup is correct
+        assertTrue(toAmount > minOutput, "toAmount should be > minOutput");
+        assertTrue(toAmount < swapOutput, "toAmount should be < swapOutput");
+
+        // Expected surplus is exactly swapOutput - toAmount
+        uint256 expectedSurplus = swapOutput - toAmount;
+
+        Call[] memory calls = new Call[](0);
+
+        uint256 relayerBalanceBefore = usdc.balanceOf(RELAYER);
+
+        vm.prank(RELAYER);
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: toAmount
+        });
+
+        // Verify recipient received exactly toAmount
+        assertEq(
+            usdc.balanceOf(RECIPIENT),
+            toAmount,
+            "Recipient should receive exactly toAmount"
+        );
+
+        // Verify relayer received exactly swapOutput - toAmount
+        assertEq(
+            usdc.balanceOf(RELAYER) - relayerBalanceBefore,
+            expectedSurplus,
+            "Relayer should receive exactly swapOutput - toAmount"
+        );
+
+        // Verify the math: recipient + relayer = swapOutput
+        assertEq(
+            usdc.balanceOf(RECIPIENT) +
+                (usdc.balanceOf(RELAYER) - relayerBalanceBefore),
+            swapOutput,
+            "Total distributed should equal swap output"
+        );
+    }
+
+    function test_claimIntent_RevertsToAmountBelowMin() public {
+        // This test verifies that claimIntent reverts when
+        // toAmount < minOutputAmount (computed from price data)
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt-revert");
+
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund receiver
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Calculate min output (with slippage)
+        uint256 minOutput = (BRIDGE_AMOUNT *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        // Set toAmount below minOutput - this should revert
+        uint256 toAmount = minOutput - 1;
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectRevert(bytes("DAM: toAmount low"));
+        vm.prank(RELAYER);
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: toAmount
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -3148,7 +3329,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3187,7 +3369,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3237,7 +3420,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Fund receiver again for second attempt
@@ -3253,7 +3437,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3303,7 +3488,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3361,7 +3547,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3414,7 +3601,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3463,7 +3651,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
     }
 
@@ -3560,7 +3749,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: invalidBridgeTokenOutPrice,
             toTokenPrice: invalidToTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify relayer was repaid
@@ -3618,7 +3808,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify intent marked as claimed
@@ -3678,7 +3869,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: salt1,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Claim with second salt should succeed
@@ -3699,7 +3891,8 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: salt2,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: bridgeTokenOut.amount
         });
 
         // Verify both marked as claimed
@@ -3742,8 +3935,8 @@ contract DepositAddressManagerTest is Test {
         (address receiverAddress, ) = manager.computeReceiverAddress(intent);
 
         // Fund with surplus
-        uint256 totalAmount = BRIDGE_AMOUNT + surplus;
-        usdc.transfer(receiverAddress, totalAmount);
+        uint256 bridgedAmount = BRIDGE_AMOUNT + surplus;
+        usdc.transfer(receiverAddress, bridgedAmount);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3756,7 +3949,17 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
+        // Calculate min output based on actual bridged amount
+        uint256 minOutput = (bridgedAmount *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        // toAmount must be at least minOutput
+        uint256 toAmount = minOutput;
+        uint256 expectedSurplus = bridgedAmount - toAmount;
+
         Call[] memory calls = new Call[](0);
+
+        uint256 relayerBalanceBefore = usdc.balanceOf(RELAYER);
 
         vm.prank(RELAYER);
         manager.claimIntent({
@@ -3766,11 +3969,19 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOutPrice: bridgeTokenOutPrice,
             toTokenPrice: toTokenPrice,
             relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID
+            sourceChainId: SOURCE_CHAIN_ID,
+            toAmount: toAmount
         });
 
-        // Verify recipient received the full surplus amount
-        assertEq(usdc.balanceOf(RECIPIENT), totalAmount);
+        // Verify recipient received exactly toAmount
+        assertEq(usdc.balanceOf(RECIPIENT), toAmount);
+
+        // Verify relayer received the surplus
+        assertEq(
+            usdc.balanceOf(RELAYER) - relayerBalanceBefore,
+            expectedSurplus,
+            "Relayer should receive surplus"
+        );
     }
 
     // ---------------------------------------------------------------------

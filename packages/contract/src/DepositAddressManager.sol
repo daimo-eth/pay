@@ -73,7 +73,9 @@ contract DepositAddressManager is
         DepositAddressRoute route,
         DepositAddressIntent intent,
         address paymentToken,
-        uint256 paymentAmount
+        uint256 paymentAmount,
+        uint256 paymentTokenPriceUsd,
+        uint256 bridgeTokenInPriceUsd
     );
     event FastFinish(
         address indexed depositAddress,
@@ -81,7 +83,9 @@ contract DepositAddressManager is
         address indexed newRecipient,
         DepositAddressRoute route,
         DepositAddressIntent intent,
-        uint256 outputAmount
+        uint256 outputAmount,
+        uint256 bridgeTokenOutPriceUsd,
+        uint256 toTokenPriceUsd
     );
     event Claim(
         address indexed depositAddress,
@@ -89,14 +93,18 @@ contract DepositAddressManager is
         address indexed finalRecipient,
         DepositAddressRoute route,
         DepositAddressIntent intent,
-        uint256 outputAmount
+        uint256 outputAmount,
+        uint256 bridgeTokenOutPriceUsd,
+        uint256 toTokenPriceUsd
     );
     event SameChainFinish(
         address indexed depositAddress,
         DepositAddressRoute route,
         address paymentToken,
         uint256 paymentAmount,
-        uint256 outputAmount
+        uint256 outputAmount,
+        uint256 paymentTokenPriceUsd,
+        uint256 toTokenPriceUsd
     );
     event Refund(
         address indexed depositAddress,
@@ -184,6 +192,10 @@ contract DepositAddressManager is
         );
         require(paymentTokenPriceValid, "DAM: payment price invalid");
         require(bridgeTokenInPriceValid, "DAM: bridge price invalid");
+        require(
+            paymentTokenPrice.token == address(paymentToken),
+            "DAM: payment token mismatch"
+        );
 
         // Deploy (or fetch) deposit address vault
         DepositAddress vault = depositAddressFactory.createDepositAddress(
@@ -269,7 +281,9 @@ contract DepositAddressManager is
             route: route,
             intent: intent,
             paymentToken: address(paymentToken),
-            paymentAmount: paymentAmount
+            paymentAmount: paymentAmount,
+            paymentTokenPriceUsd: paymentTokenPrice.priceUsd,
+            bridgeTokenInPriceUsd: bridgeTokenInPrice.priceUsd
         });
     }
 
@@ -285,7 +299,7 @@ contract DepositAddressManager is
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
-        uint256 toAmount,
+        uint256 toAmount, // TODO: remove - unused parameter
         Call[] calldata calls
     ) external nonReentrant onlyRelayer {
         require(route.toChainId == block.chainid, "DAM: wrong chain");
@@ -298,6 +312,14 @@ contract DepositAddressManager is
         bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
         require(paymentTokenPriceValid, "DAM: payment price invalid");
         require(toTokenPriceValid, "DAM: toToken price invalid");
+        require(
+            paymentTokenPrice.token == address(paymentToken),
+            "DAM: payment token mismatch"
+        );
+        require(
+            toTokenPrice.token == address(route.toToken),
+            "DAM: toToken mismatch"
+        );
 
         // Deploy (or fetch) the Deposit Address for this route.
         DepositAddress vault = depositAddressFactory.createDepositAddress(
@@ -333,7 +355,9 @@ contract DepositAddressManager is
             route: route,
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
-            outputAmount: outputAmount
+            outputAmount: outputAmount,
+            paymentTokenPriceUsd: paymentTokenPrice.priceUsd,
+            toTokenPriceUsd: toTokenPrice.priceUsd
         });
     }
 
@@ -372,6 +396,14 @@ contract DepositAddressManager is
             "DAM: bridge token out price invalid"
         );
         require(toTokenPriceValid, "DAM: toToken price invalid");
+        require(
+            bridgeTokenOutPrice.token == address(bridgeTokenOut.token),
+            "DAM: bridgeTokenOut mismatch"
+        );
+        require(
+            toTokenPrice.token == address(route.toToken),
+            "DAM: toToken mismatch"
+        );
 
         // Calculate salt for this bridge transfer.
         address depositAddress = depositAddressFactory.getDepositAddress(route);
@@ -414,7 +446,9 @@ contract DepositAddressManager is
             newRecipient: msg.sender,
             route: route,
             intent: intent,
-            outputAmount: outputAmount
+            outputAmount: outputAmount,
+            bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
+            toTokenPriceUsd: toTokenPrice.priceUsd
         });
     }
 
@@ -485,6 +519,14 @@ contract DepositAddressManager is
                 "DAM: bridge token out price invalid"
             );
             require(toTokenPriceValid, "DAM: toToken price invalid");
+            require(
+                bridgeTokenOutPrice.token == address(bridgeTokenOut.token),
+                "DAM: bridgeTokenOut mismatch"
+            );
+            require(
+                toTokenPrice.token == address(route.toToken),
+                "DAM: toToken mismatch"
+            );
 
             // No relayer showed up, so just complete the intent. Update the
             // recipient to the route's recipient.
@@ -527,7 +569,9 @@ contract DepositAddressManager is
             finalRecipient: recipient,
             route: route,
             intent: intent,
-            outputAmount: outputAmount
+            outputAmount: outputAmount,
+            bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
+            toTokenPriceUsd: toTokenPrice.priceUsd
         });
     }
 

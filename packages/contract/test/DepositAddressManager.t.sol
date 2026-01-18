@@ -269,7 +269,9 @@ contract DepositAddressManagerTest is Test {
             route: route,
             intent: intent,
             paymentToken: address(usdc),
-            paymentAmount: PAYMENT_AMOUNT
+            paymentAmount: PAYMENT_AMOUNT,
+            paymentTokenPriceUsd: USDC_PRICE,
+            bridgeTokenInPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
@@ -664,6 +666,48 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
+    function test_startIntent_RevertsPaymentTokenMismatch() public {
+        DepositAddressRoute memory route = _createRoute();
+        DepositAddress vault = factory.createDepositAddress(route);
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Create price data for wrong token (mismatch with paymentToken)
+        address wrongToken = address(0x999);
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        PriceData memory bridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+        Call[] memory calls = new Call[](0);
+        bytes memory bridgeExtraData = "";
+
+        vm.expectRevert(bytes("DAM: payment token mismatch"));
+        vm.prank(RELAYER);
+        manager.startIntent({
+            route: route,
+            paymentToken: usdc,
+            bridgeTokenOut: bridgeTokenOut,
+            paymentTokenPrice: paymentTokenPrice,
+            bridgeTokenInPrice: bridgeTokenInPrice,
+            relaySalt: relaySalt,
+            calls: calls,
+            bridgeExtraData: bridgeExtraData
+        });
+    }
+
     function test_startIntent_RevertsBridgeInputTooLow() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
@@ -1041,7 +1085,9 @@ contract DepositAddressManagerTest is Test {
             newRecipient: RELAYER,
             route: route,
             intent: intent,
-            outputAmount: BRIDGE_AMOUNT
+            outputAmount: BRIDGE_AMOUNT,
+            bridgeTokenOutPriceUsd: USDC_PRICE,
+            toTokenPriceUsd: USDC_PRICE
         });
 
         manager.fastFinishIntent({
@@ -1477,6 +1523,97 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
+    function test_fastFinishIntent_RevertsBridgeTokenOutMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        // Create price data for wrong token (mismatch with bridgeTokenOut.token)
+        address wrongToken = address(0x999);
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
+
+        vm.startPrank(RELAYER);
+        usdc.transfer(address(manager), BRIDGE_AMOUNT);
+        vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
+        manager.fastFinishIntent({
+            route: route,
+            calls: calls,
+            token: usdc,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        vm.stopPrank();
+    }
+
+    function test_fastFinishIntent_RevertsToTokenMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Create price data for wrong token (mismatch with route.toToken)
+        address wrongToken = address(0x999);
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
+
+        vm.startPrank(RELAYER);
+        usdc.transfer(address(manager), BRIDGE_AMOUNT);
+        vm.expectRevert(bytes("DAM: toToken mismatch"));
+        manager.fastFinishIntent({
+            route: route,
+            calls: calls,
+            token: usdc,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        vm.stopPrank();
+    }
+
     function test_fastFinishIntent_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
@@ -1749,7 +1886,9 @@ contract DepositAddressManagerTest is Test {
             route: route,
             paymentToken: address(usdc),
             paymentAmount: PAYMENT_AMOUNT,
-            outputAmount: PAYMENT_AMOUNT
+            outputAmount: PAYMENT_AMOUNT,
+            paymentTokenPriceUsd: USDC_PRICE,
+            toTokenPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
@@ -1995,6 +2134,81 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: toToken price invalid"));
+        vm.prank(RELAYER);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: usdc,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: minOutput,
+            calls: calls
+        });
+    }
+
+    function test_sameChainFinishIntent_RevertsPaymentTokenMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        DepositAddress vault = factory.createDepositAddress(route);
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Create price data for wrong token (mismatch with paymentToken)
+        address wrongToken = address(0x999);
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        uint256 minOutput = (PAYMENT_AMOUNT *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectRevert(bytes("DAM: payment token mismatch"));
+        vm.prank(RELAYER);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: usdc,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: minOutput,
+            calls: calls
+        });
+    }
+
+    function test_sameChainFinishIntent_RevertsToTokenMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        DepositAddress vault = factory.createDepositAddress(route);
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Create price data for wrong token (mismatch with route.toToken)
+        address wrongToken = address(0x999);
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        uint256 minOutput = (PAYMENT_AMOUNT *
+            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
         manager.sameChainFinishIntent({
             route: route,
@@ -2358,7 +2572,9 @@ contract DepositAddressManagerTest is Test {
             finalRecipient: RECIPIENT,
             route: route,
             intent: intent,
-            outputAmount: BRIDGE_AMOUNT
+            outputAmount: BRIDGE_AMOUNT,
+            bridgeTokenOutPriceUsd: USDC_PRICE,
+            toTokenPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
@@ -2433,7 +2649,9 @@ contract DepositAddressManagerTest is Test {
             finalRecipient: RELAYER,
             route: route,
             intent: intent,
-            outputAmount: BRIDGE_AMOUNT
+            outputAmount: BRIDGE_AMOUNT,
+            bridgeTokenOutPriceUsd: USDC_PRICE,
+            toTokenPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
@@ -2755,6 +2973,111 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
+        vm.prank(RELAYER);
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+    }
+
+    function test_claimIntent_RevertsBridgeTokenOutMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund receiver with bridged tokens
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Create price data for wrong token (mismatch with bridgeTokenOut.token)
+        address wrongToken = address(0x999);
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
+        vm.prank(RELAYER);
+        manager.claimIntent({
+            route: route,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+    }
+
+    function test_claimIntent_RevertsToTokenMismatch() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund receiver with bridged tokens
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        // Create price data for wrong token (mismatch with route.toToken)
+        address wrongToken = address(0x999);
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            wrongToken,
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
         manager.claimIntent({
             route: route,

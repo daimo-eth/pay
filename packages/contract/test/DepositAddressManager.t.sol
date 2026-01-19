@@ -4170,7 +4170,9 @@ contract DepositAddressManagerTest is Test {
             route: route,
             leg1Intent: leg1Intent,
             leg2Intent: leg2Intent,
-            hopAmount: BRIDGE_AMOUNT
+            hopAmount: BRIDGE_AMOUNT,
+            leg1BridgeTokenOutPriceUsd: USDC_PRICE,
+            leg2BridgeTokenInPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
@@ -4303,50 +4305,6 @@ contract DepositAddressManagerTest is Test {
         );
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
-        vm.prank(RELAYER);
-        manager.hopIntent({
-            route: route,
-            leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: keccak256("leg1"),
-            leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
-            leg1BridgeTokenOutPrice: leg1Price,
-            leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
-            calls: new Call[](0),
-            bridgeExtraData: ""
-        });
-    }
-
-    function test_hopIntent_RevertsExpired() public {
-        vm.chainId(HOP_CHAIN_ID);
-
-        DepositAddressRoute memory route = _createRoute();
-
-        // Warp past expiration
-        vm.warp(route.expiresAt + 1);
-
-        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
-            token: usdc,
-            amount: BRIDGE_AMOUNT
-        });
-        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
-            token: usdc,
-            amount: BRIDGE_AMOUNT
-        });
-
-        PriceData memory leg1Price = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-        PriceData memory leg2Price = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-
-        vm.expectRevert(bytes("DAM: expired"));
         vm.prank(RELAYER);
         manager.hopIntent({
             route: route,
@@ -4519,7 +4477,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        vm.expectRevert(bytes("DAM: insufficient hop bridge"));
+        vm.expectRevert(bytes("DPCE: insufficient output"));
         vm.prank(RELAYER);
         manager.hopIntent({
             route: route,

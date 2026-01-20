@@ -65,3 +65,8 @@ bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
 // bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
 //     "DaimoPayRelayer-dev3"
 // );
+
+// Final call adapters
+bytes32 constant DEPLOY_SALT_HYPERCORE_DEPOSIT_ADAPTER = keccak256(
+    "HypercoreDepositAdapter-deploy1"
+);

@@ -286,6 +286,12 @@ function _getAxelarGasServiceAddress(uint256 chainId) pure returns (address) {
     revert("Unsupported chainID for Axelar gas service");
 }
 
+// ----------------- Hypercore ----------------- //
+
+// CoreDepositWallet for depositing tokens from HyperEVM to Hypercore
+// https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/evm/hypercore-less-than-greater-than-hyperevm
+address constant HYPEREVM_MAINNET_CORE_DEPOSIT_WALLET = 0x6B9E773128f453f5c2C60935Ee2DE2CBc5390A24;
+
 // ----------------- Deployment ----------------- //
 
 // Deployed from commit hash 1f545cb93015444ab193629c7791e2a58c541c4c

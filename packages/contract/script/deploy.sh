@@ -37,6 +37,9 @@ SCRIPTS=(
     # Utils
     # "script/DeployCreate3Factory.s.sol"
     # "script/DeployPayBalanceFactory.s.sol"
+
+    # Final call adapters
+    # "script/DeployHypercoreDepositAdapter.s.sol"
 )
 
 CHAINS=(

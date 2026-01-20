@@ -504,7 +504,10 @@ contract DepositAddressManager is
 
         // Deploy receiver and pull bridged tokens
         uint256 bridgedAmount;
-        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(intent);
+        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
+            intent,
+            bridgeTokenOut.token
+        );
 
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
@@ -648,7 +651,8 @@ contract DepositAddressManager is
         // Deploy receiver and pull funds
         uint256 bridgedAmount;
         (hopReceiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
-            leg1Intent
+            leg1Intent,
+            leg1BridgeTokenOut.token
         );
 
         // Compute leg 2 receiver address
@@ -767,16 +771,19 @@ contract DepositAddressManager is
     /// @notice Refunds tokens from a receiver address to the designated refund
     ///         address after the route has expired.
     /// @param route The Deposit Address route containing the refund address
-    /// @param bridgeTokenOut The token and amount that was bridged
+    /// @param bridgeTokenOut The token and amount that was bridged (used to
+    ///        compute receiver address)
     /// @param relaySalt Unique salt from the original bridge transfer
     /// @param sourceChainId The chain ID where the bridge transfer originated
+    /// @param refundToken The token to refund from the receiver
     /// @dev Refunds are only allowed after the route expires. This allows
     ///      recovery of bridged funds that were never claimed or fast-finished.
     function refundReceiverIntent(
         DepositAddressRoute calldata route,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
-        uint256 sourceChainId
+        uint256 sourceChainId,
+        IERC20 refundToken
     ) external nonReentrant {
         require(route.escrow == address(this), "DAM: wrong escrow");
         require(isRouteExpired(route), "DAM: not expired");
@@ -790,14 +797,15 @@ contract DepositAddressManager is
             sourceChainId: sourceChainId
         });
 
-        // Deploy receiver if needed and pull funds to refund address
+        // Deploy receiver if needed and pull funds to this contract
         (address receiverAddress, uint256 amount) = _deployAndPullFromReceiver(
-            intent
+            intent,
+            refundToken
         );
 
         // Transfer the pulled funds to the refund address
         TokenUtils.transfer({
-            token: bridgeTokenOut.token,
+            token: refundToken,
             recipient: payable(route.refundAddress),
             amount: amount
         });
@@ -808,7 +816,7 @@ contract DepositAddressManager is
             route: route,
             intent: intent,
             refundAddress: route.refundAddress,
-            token: bridgeTokenOut.token,
+            token: refundToken,
             amount: amount
         });
     }
@@ -840,11 +848,13 @@ contract DepositAddressManager is
 
     /// @dev Deploy a DepositAddressReceiver if necessary and pull funds.
     /// @param intent The bridge intent used to compute receiver address
+    /// @param token The token to pull from the receiver
     /// @return receiverAddress The receiver contract address
-    /// @return bridgedAmount The amount pulled from the receiver
+    /// @return pulledAmount The amount pulled from the receiver
     function _deployAndPullFromReceiver(
-        DepositAddressIntent memory intent
-    ) internal returns (address receiverAddress, uint256 bridgedAmount) {
+        DepositAddressIntent memory intent,
+        IERC20 token
+    ) internal returns (address receiverAddress, uint256 pulledAmount) {
         bytes32 recvSalt;
         (receiverAddress, recvSalt) = computeReceiverAddress(intent);
 
@@ -858,7 +868,7 @@ contract DepositAddressManager is
         }
 
         // Pull funds from the receiver
-        bridgedAmount = receiver.pull(intent.bridgeTokenOut.token);
+        pulledAmount = receiver.pull(token);
     }
 
     /// @dev Internal helper that completes an intent by executing swaps,

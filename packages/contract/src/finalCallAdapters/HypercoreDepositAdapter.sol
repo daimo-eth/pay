@@ -46,11 +46,5 @@ contract HypercoreDepositAdapter {
         // Approve and deposit to Hypercore
         usdc.forceApprove(address(coreDepositWallet), balance);
         coreDepositWallet.depositFor(recipient, balance, destinationDex);
-
-        // Return any remaining tokens to the caller
-        uint256 remaining = usdc.balanceOf(address(this));
-        if (remaining > 0) {
-            usdc.safeTransfer(msg.sender, remaining);
-        }
     }
 }

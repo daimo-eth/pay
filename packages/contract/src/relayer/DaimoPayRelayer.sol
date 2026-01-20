@@ -454,8 +454,8 @@ contract DaimoPayRelayer is AccessControl {
     // Deposit Address Execution
     // ------------------------------------------------------------
 
-    /// Starts a new Deposit Address intent.
-    function daStartIntent(
+    /// Starts a new Deposit Address fulfillment.
+    function daStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
         DepositAddressRoute calldata route,
@@ -478,8 +478,8 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the start intent
-        manager.startIntent({
+        // Execute the start
+        manager.start({
             route: route,
             paymentToken: paymentToken,
             bridgeTokenOut: bridgeTokenOut,
@@ -500,7 +500,7 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Same-chain finish for a Deposit Address intent.
+    /// Same-chain finish for a Deposit Address fulfillment.
     function daSameChainFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
@@ -521,8 +521,8 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the same-chain finish intent
-        manager.sameChainFinishIntent({
+        // Execute the same-chain finish
+        manager.sameChainFinish({
             route: route,
             paymentToken: paymentToken,
             paymentTokenPrice: paymentTokenPrice,
@@ -540,7 +540,7 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Fast finish for a Deposit Address intent.
+    /// Fast finish for a Deposit Address fulfillment.
     function daFastFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
@@ -565,15 +565,15 @@ contract DaimoPayRelayer is AccessControl {
         }
 
         // Transfer the input tokens to the manager so that it can immediately
-        // forward them to the executor inside fastFinishIntent.
+        // forward them to the executor inside fastFinish.
         TokenUtils.transfer({
             token: tokenIn.token,
             recipient: payable(address(manager)),
             amount: tokenIn.amount
         });
 
-        // Call fastFinishIntent on the DepositAddressManager.
-        manager.fastFinishIntent({
+        // Call fastFinish on the DepositAddressManager.
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: tokenIn.token,
@@ -601,8 +601,8 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Claim a Deposit Address intent after bridge arrival.
-    function daClaimIntent(
+    /// Claim a Deposit Address fulfillment after bridge arrival.
+    function daClaim(
         Call[] calldata preCalls,
         DepositAddressManager manager,
         DepositAddressRoute calldata route,
@@ -624,8 +624,8 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the claim intent
-        manager.claimIntent({
+        // Execute the claim
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -646,7 +646,7 @@ contract DaimoPayRelayer is AccessControl {
     }
 
     /// Hop a Deposit Address intent: pull from hop receiver, bridge to dest.
-    function daHopIntent(
+    function daHopStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
         DepositAddressRoute calldata route,
@@ -671,8 +671,8 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the hop intent
-        manager.hopIntent({
+        // Execute the hop start
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,

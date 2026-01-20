@@ -46,7 +46,7 @@ struct DepositAddressRoute {
 
 /// @notice Parameters that uniquely identify a single intent (cross-chain
 ///         transfer) for a Deposit Address.
-struct DepositAddressIntent {
+struct DepositAddressFulfillment {
     /// The Deposit Address contract for this intent
     address depositAddress;
     /// Unique salt/nonce provided by the relayer

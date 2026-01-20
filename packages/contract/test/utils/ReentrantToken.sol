@@ -39,7 +39,7 @@ contract ReentrantToken is ERC20 {
             // the test can detect the ReentrancyGuard message.
             IERC20[] memory tokens = new IERC20[](1);
             tokens[0] = IERC20(address(0));
-            mgr.refundIntent(dummy, tokens);
+            mgr.refundDepositAddress(dummy, tokens);
         }
 
         return ok;

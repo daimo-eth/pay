@@ -12,7 +12,7 @@ import {DepositAddressFactory} from "../src/DepositAddressFactory.sol";
 import {
     DepositAddress,
     DepositAddressRoute,
-    DepositAddressIntent
+    DepositAddressFulfillment
 } from "../src/DepositAddress.sol";
 import {DaimoPayPricer} from "../src/DaimoPayPricer.sol";
 import {PriceData} from "../src/interfaces/IDaimoPayPricer.sol";
@@ -170,10 +170,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // startIntent - Success cases
+    // start - Success cases
     // ---------------------------------------------------------------------
 
-    function test_startIntent_Success() public {
+    function test_start_Success() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -205,9 +205,9 @@ contract DepositAddressManagerTest is Test {
 
         bytes memory bridgeExtraData = "";
 
-        // Execute startIntent
+        // Execute start
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -219,20 +219,23 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Verify receiver is marked as used
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
         assertTrue(manager.receiverUsed(receiverAddress));
 
         // Verify bridger burned the tokens
         assertTrue(usdc.balanceOf(address(0xdead)) == BRIDGE_AMOUNT);
     }
 
-    function test_startIntent_EmitsStartEvent() public {
+    function test_start_EmitsStartEvent() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -258,14 +261,17 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
         bytes memory bridgeExtraData = "";
 
-        // Create expected intent
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        // Create expected fulfillment
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Expect Start event
         vm.expectEmit(true, true, false, true);
@@ -273,7 +279,7 @@ contract DepositAddressManagerTest is Test {
             depositAddress: address(vault),
             receiverAddress: receiverAddress,
             route: route,
-            intent: intent,
+            fulfillment: fulfillment,
             paymentToken: address(usdc),
             paymentAmount: PAYMENT_AMOUNT,
             paymentTokenPriceUsd: USDC_PRICE,
@@ -281,7 +287,7 @@ contract DepositAddressManagerTest is Test {
         });
 
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -293,7 +299,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_MultipleDifferentSalts() public {
+    function test_start_MultipleDifferentSalts() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -327,7 +333,7 @@ contract DepositAddressManagerTest is Test {
             _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
             vm.prank(RELAYER);
-            manager.startIntent({
+            manager.start({
                 route: route,
                 paymentToken: usdc,
                 bridgeTokenOut: bridgeTokenOut,
@@ -339,24 +345,25 @@ contract DepositAddressManagerTest is Test {
             });
 
             // Verify each receiver is marked as used
-            DepositAddressIntent memory intent = DepositAddressIntent({
-                depositAddress: address(vault),
-                relaySalt: salts[i],
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+            DepositAddressFulfillment
+                memory fulfillment = DepositAddressFulfillment({
+                    depositAddress: address(vault),
+                    relaySalt: salts[i],
+                    bridgeTokenOut: bridgeTokenOut,
+                    sourceChainId: SOURCE_CHAIN_ID
+                });
             (address receiverAddress, ) = manager.computeReceiverAddress(
-                intent
+                fulfillment
             );
             assertTrue(manager.receiverUsed(receiverAddress));
         }
     }
 
     // ---------------------------------------------------------------------
-    // startIntent - Validation failures
+    // start - Validation failures
     // ---------------------------------------------------------------------
 
-    function test_startIntent_RevertsOnDestChain() public {
+    function test_start_RevertsOnDestChain() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -386,7 +393,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: start on dest chain"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -398,7 +405,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsWrongEscrow() public {
+    function test_start_RevertsWrongEscrow() public {
         DepositAddressRoute memory route = _createRoute();
         route.escrow = address(0xDEAD); // Wrong escrow
 
@@ -427,7 +434,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -439,7 +446,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsExpired() public {
+    function test_start_RevertsExpired() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -473,7 +480,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -485,7 +492,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsInvalidPaymentPrice() public {
+    function test_start_RevertsInvalidPaymentPrice() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -516,7 +523,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: payment price invalid"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -528,7 +535,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsInvalidBridgePrice() public {
+    function test_start_RevertsInvalidBridgePrice() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -562,7 +569,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: bridge price invalid"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -574,7 +581,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsReceiverAlreadyUsed() public {
+    function test_start_RevertsReceiverAlreadyUsed() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -601,7 +608,7 @@ contract DepositAddressManagerTest is Test {
 
         // First call succeeds
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -618,7 +625,7 @@ contract DepositAddressManagerTest is Test {
         // Second call with same salt should revert
         vm.expectRevert(bytes("DAM: receiver used"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -630,7 +637,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsBridgeTokenPriceMismatch() public {
+    function test_start_RevertsBridgeTokenPriceMismatch() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -660,7 +667,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: bridge token mismatch"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -672,7 +679,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsPaymentTokenMismatch() public {
+    function test_start_RevertsPaymentTokenMismatch() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -702,7 +709,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: payment token mismatch"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -714,7 +721,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsBridgeInputTooLow() public {
+    function test_start_RevertsBridgeInputTooLow() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -742,7 +749,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: bridge input low"));
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -754,7 +761,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_startIntent_RevertsNotRelayer() public {
+    function test_start_RevertsNotRelayer() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -781,7 +788,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111));
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -808,15 +815,20 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        (address addr1, bytes32 salt1) = manager.computeReceiverAddress(intent);
-        (address addr2, bytes32 salt2) = manager.computeReceiverAddress(intent);
+        (address addr1, bytes32 salt1) = manager.computeReceiverAddress(
+            fulfillment
+        );
+        (address addr2, bytes32 salt2) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Should be deterministic
         assertEq(addr1, addr2);
@@ -832,22 +844,24 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressIntent memory intent1 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: keccak256("salt-1"),
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment1 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: keccak256("salt-1"),
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        DepositAddressIntent memory intent2 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: keccak256("salt-2"),
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment2 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: keccak256("salt-2"),
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        (address addr1, ) = manager.computeReceiverAddress(intent1);
-        (address addr2, ) = manager.computeReceiverAddress(intent2);
+        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
+        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
 
         // Should be different
         assertTrue(addr1 != addr2);
@@ -859,22 +873,24 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent1 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: TokenAmount({token: usdc, amount: 100e6}),
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment1 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: TokenAmount({token: usdc, amount: 100e6}),
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        DepositAddressIntent memory intent2 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: TokenAmount({token: usdc, amount: 200e6}),
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment2 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: TokenAmount({token: usdc, amount: 200e6}),
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        (address addr1, ) = manager.computeReceiverAddress(intent1);
-        (address addr2, ) = manager.computeReceiverAddress(intent2);
+        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
+        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
 
         // Should be different
         assertTrue(addr1 != addr2);
@@ -884,7 +900,7 @@ contract DepositAddressManagerTest is Test {
     // Fuzz tests
     // ---------------------------------------------------------------------
 
-    function testFuzz_startIntent_DifferentAmounts(uint256 amount) public {
+    function testFuzz_start_DifferentAmounts(uint256 amount) public {
         // Bound to reasonable amounts (1 USDC to 1M USDC)
         amount = bound(amount, 1e6, 1_000_000e6);
 
@@ -916,7 +932,7 @@ contract DepositAddressManagerTest is Test {
         bytes memory bridgeExtraData = "";
 
         vm.prank(RELAYER);
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
@@ -928,13 +944,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Verify receiver is marked as used
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
         assertTrue(manager.receiverUsed(receiverAddress));
     }
 
@@ -952,32 +971,34 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressIntent memory intent1 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: salt1,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment1 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: salt1,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        DepositAddressIntent memory intent2 = DepositAddressIntent({
-            depositAddress: address(vault),
-            relaySalt: salt2,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment2 = DepositAddressFulfillment({
+                depositAddress: address(vault),
+                relaySalt: salt2,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        (address addr1, ) = manager.computeReceiverAddress(intent1);
-        (address addr2, ) = manager.computeReceiverAddress(intent2);
+        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
+        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
 
         // Different salts should produce different addresses
         assertTrue(addr1 != addr2);
     }
 
     // ---------------------------------------------------------------------
-    // fastFinishIntent - Success cases
+    // fastFinish - Success cases
     // ---------------------------------------------------------------------
 
-    function test_fastFinishIntent_Success() public {
+    function test_fastFinish_Success() public {
         // Switch to destination chain for fastFinish
         vm.chainId(DEST_CHAIN_ID);
 
@@ -1011,19 +1032,22 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
 
         // Compute expected receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
-        // Execute fastFinishIntent
+        // Execute fastFinish
         // Relayer transfers tokens to manager first (required by the contract)
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1042,7 +1066,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
     }
 
-    function test_fastFinishIntent_EmitsFastFinishEvent() public {
+    function test_fastFinish_EmitsFastFinishEvent() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1070,14 +1094,17 @@ contract DepositAddressManagerTest is Test {
 
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
 
-        // Create expected intent
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        // Create expected fulfillment
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Relayer transfers tokens to manager first
         vm.startPrank(RELAYER);
@@ -1090,13 +1117,13 @@ contract DepositAddressManagerTest is Test {
             receiverAddress: receiverAddress,
             newRecipient: RELAYER,
             route: route,
-            intent: intent,
+            fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
             toTokenPriceUsd: USDC_PRICE
         });
 
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1109,7 +1136,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_MultipleDifferentSalts() public {
+    function test_fastFinish_MultipleDifferentSalts() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1145,7 +1172,7 @@ contract DepositAddressManagerTest is Test {
 
             vm.startPrank(RELAYER);
             usdc.transfer(address(manager), BRIDGE_AMOUNT);
-            manager.fastFinishIntent({
+            manager.fastFinish({
                 route: route,
                 calls: calls,
                 token: usdc,
@@ -1158,14 +1185,15 @@ contract DepositAddressManagerTest is Test {
             vm.stopPrank();
 
             // Verify relayer recorded for each receiver address
-            DepositAddressIntent memory intent = DepositAddressIntent({
-                depositAddress: depositAddress,
-                relaySalt: salts[i],
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+            DepositAddressFulfillment
+                memory fulfillment = DepositAddressFulfillment({
+                    depositAddress: depositAddress,
+                    relaySalt: salts[i],
+                    bridgeTokenOut: bridgeTokenOut,
+                    sourceChainId: SOURCE_CHAIN_ID
+                });
             (address receiverAddress, ) = manager.computeReceiverAddress(
-                intent
+                fulfillment
             );
             assertEq(manager.receiverToRecipient(receiverAddress), RELAYER);
         }
@@ -1175,10 +1203,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // fastFinishIntent - Validation failures
+    // fastFinish - Validation failures
     // ---------------------------------------------------------------------
 
-    function test_fastFinishIntent_RevertsSameChain() public {
+    function test_fastFinish_RevertsSameChain() public {
         // Stay on source chain (same as sourceChainId)
         vm.chainId(SOURCE_CHAIN_ID);
 
@@ -1223,7 +1251,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: same chain finish"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1236,7 +1264,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsWrongChain() public {
+    function test_fastFinish_RevertsWrongChain() public {
         // Call on wrong chain
         vm.chainId(999999999);
 
@@ -1267,7 +1295,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: wrong chain"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1280,7 +1308,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsWrongEscrow() public {
+    function test_fastFinish_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1311,7 +1339,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: wrong escrow"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1324,7 +1352,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsExpired() public {
+    function test_fastFinish_RevertsExpired() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -1358,7 +1386,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1370,7 +1398,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_fastFinishIntent_RevertsInvalidBridgeTokenOutPrice() public {
+    function test_fastFinish_RevertsInvalidBridgeTokenOutPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1407,7 +1435,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1420,7 +1448,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsInvalidToTokenPrice() public {
+    function test_fastFinish_RevertsInvalidToTokenPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1454,7 +1482,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: toToken price invalid"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1467,7 +1495,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsAlreadyFinished() public {
+    function test_fastFinish_RevertsAlreadyFinished() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1498,7 +1526,7 @@ contract DepositAddressManagerTest is Test {
         // First fast finish succeeds
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1517,7 +1545,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: already finished"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1530,7 +1558,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsBridgeTokenOutMismatch() public {
+    function test_fastFinish_RevertsBridgeTokenOutMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1562,7 +1590,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1575,7 +1603,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsToTokenMismatch() public {
+    function test_fastFinish_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1608,7 +1636,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: toToken mismatch"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1621,7 +1649,7 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
     }
 
-    function test_fastFinishIntent_RevertsNotRelayer() public {
+    function test_fastFinish_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1652,7 +1680,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(notRelayer);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: not relayer"));
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1666,10 +1694,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // fastFinishIntent - Fuzz tests
+    // fastFinish - Fuzz tests
     // ---------------------------------------------------------------------
 
-    function testFuzz_fastFinishIntent_DifferentAmounts(uint256 amount) public {
+    function testFuzz_fastFinish_DifferentAmounts(uint256 amount) public {
         // Bound to reasonable amounts (1 USDC to 1M USDC)
         amount = bound(amount, 1e6, 1_000_000e6);
 
@@ -1706,7 +1734,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), amount);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1719,20 +1747,23 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
 
         // Verify relayer is recorded as recipient
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
         assertEq(manager.receiverToRecipient(receiverAddress), RELAYER);
 
         // Verify recipient got at least toAmount
         assertTrue(usdc.balanceOf(RECIPIENT) >= toAmount);
     }
 
-    function testFuzz_fastFinishIntent_UniqueSalts(
+    function testFuzz_fastFinish_UniqueSalts(
         bytes32 salt1,
         bytes32 salt2
     ) public {
@@ -1765,7 +1796,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1781,7 +1812,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -1794,21 +1825,27 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
 
         // Verify both receiver addresses recorded relayer
-        DepositAddressIntent memory intent1 = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: salt1,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        DepositAddressIntent memory intent2 = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: salt2,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment1 = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: salt1,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        DepositAddressFulfillment
+            memory fulfillment2 = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: salt2,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
 
-        (address receiverAddress1, ) = manager.computeReceiverAddress(intent1);
-        (address receiverAddress2, ) = manager.computeReceiverAddress(intent2);
+        (address receiverAddress1, ) = manager.computeReceiverAddress(
+            fulfillment1
+        );
+        (address receiverAddress2, ) = manager.computeReceiverAddress(
+            fulfillment2
+        );
 
         assertEq(manager.receiverToRecipient(receiverAddress1), RELAYER);
         assertEq(manager.receiverToRecipient(receiverAddress2), RELAYER);
@@ -1816,10 +1853,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // sameChainFinishIntent - Success cases
+    // sameChainFinish - Success cases
     // ---------------------------------------------------------------------
 
-    function test_sameChainFinishIntent_Success() public {
+    function test_sameChainFinish_Success() public {
         // Switch to destination chain for same chain finish
         vm.chainId(DEST_CHAIN_ID);
 
@@ -1844,9 +1881,9 @@ contract DepositAddressManagerTest is Test {
         // No swap calls needed (USDC -> USDC)
         Call[] memory calls = new Call[](0);
 
-        // Execute sameChainFinishIntent
+        // Execute sameChainFinish
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -1858,7 +1895,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), PAYMENT_AMOUNT);
     }
 
-    function test_sameChainFinishIntent_EmitsSameChainFinishEvent() public {
+    function test_sameChainFinish_EmitsSameChainFinishEvent() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -1891,7 +1928,7 @@ contract DepositAddressManagerTest is Test {
         });
 
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -1900,7 +1937,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_MultipleFinishes() public {
+    function test_sameChainFinish_MultipleFinishes() public {
         vm.chainId(DEST_CHAIN_ID);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -1930,7 +1967,7 @@ contract DepositAddressManagerTest is Test {
             _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
             vm.prank(RELAYER);
-            manager.sameChainFinishIntent({
+            manager.sameChainFinish({
                 route: route,
                 paymentToken: usdc,
                 paymentTokenPrice: paymentTokenPrice,
@@ -1944,10 +1981,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // sameChainFinishIntent - Validation failures
+    // sameChainFinish - Validation failures
     // ---------------------------------------------------------------------
 
-    function test_sameChainFinishIntent_RevertsWrongChain() public {
+    function test_sameChainFinish_RevertsWrongChain() public {
         // Stay on source chain (wrong chain for same chain finish)
         vm.chainId(SOURCE_CHAIN_ID);
 
@@ -1971,7 +2008,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong chain"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -1980,7 +2017,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsWrongEscrow() public {
+    function test_sameChainFinish_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2004,7 +2041,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2013,7 +2050,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsExpired() public {
+    function test_sameChainFinish_RevertsExpired() public {
         // Switch to destination chain for same-chain finish
         vm.chainId(DEST_CHAIN_ID);
 
@@ -2043,7 +2080,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2052,7 +2089,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsInvalidPaymentPrice() public {
+    function test_sameChainFinish_RevertsInvalidPaymentPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2078,7 +2115,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: payment price invalid"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2087,7 +2124,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsInvalidToTokenPrice() public {
+    function test_sameChainFinish_RevertsInvalidToTokenPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2113,7 +2150,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: toToken price invalid"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2122,7 +2159,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsPaymentTokenMismatch() public {
+    function test_sameChainFinish_RevertsPaymentTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2146,7 +2183,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: payment token mismatch"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2155,7 +2192,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsToTokenMismatch() public {
+    function test_sameChainFinish_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2180,7 +2217,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2189,7 +2226,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_RevertsNotRelayer() public {
+    function test_sameChainFinish_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2211,7 +2248,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2221,12 +2258,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // sameChainFinishIntent - Fuzz tests
+    // sameChainFinish - Fuzz tests
     // ---------------------------------------------------------------------
 
-    function testFuzz_sameChainFinishIntent_DifferentAmounts(
-        uint256 amount
-    ) public {
+    function testFuzz_sameChainFinish_DifferentAmounts(uint256 amount) public {
         // Bound to reasonable amounts (1 USDC to 1M USDC)
         amount = bound(amount, 1e6, 1_000_000e6);
 
@@ -2250,7 +2285,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2262,7 +2297,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), amount);
     }
 
-    function testFuzz_sameChainFinishIntent_DifferentSlippages(
+    function testFuzz_sameChainFinish_DifferentSlippages(
         uint256 slippageBps
     ) public {
         // Bound slippage to 0-10%
@@ -2290,7 +2325,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -2303,10 +2338,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // claimIntent - Success cases (no fast finish)
+    // claim - Success cases (no fast finish)
     // ---------------------------------------------------------------------
 
-    function test_claimIntent_Success_NoFastFinish() public {
+    function test_claim_Success_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2320,13 +2355,16 @@ contract DepositAddressManagerTest is Test {
         bytes32 relaySalt = keccak256("test-salt");
 
         // Compute receiver address and fund it (simulating bridge arrival)
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address (simulating bridged tokens arriving)
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -2345,9 +2383,9 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        // Execute claimIntent
+        // Execute claim
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2357,7 +2395,7 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Verify intent marked as claimed
+        // Verify fulfillment marked as claimed
         assertEq(
             manager.receiverToRecipient(receiverAddress),
             manager.ADDR_MAX()
@@ -2367,7 +2405,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
     }
 
-    function test_claimIntent_Success_AfterFastFinish() public {
+    function test_claim_Success_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2397,7 +2435,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -2413,13 +2451,16 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
 
         // Compute receiver address and fund it (simulating bridge arrival)
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address (simulating bridged tokens arriving)
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -2427,9 +2468,9 @@ contract DepositAddressManagerTest is Test {
         // Record relayer balance before claim
         uint256 relayerBalanceBefore = usdc.balanceOf(RELAYER);
 
-        // Execute claimIntent - should repay the relayer
+        // Execute claim - should repay the relayer
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2439,7 +2480,7 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Verify intent marked as claimed
+        // Verify fulfillment marked as claimed
         assertEq(
             manager.receiverToRecipient(receiverAddress),
             manager.ADDR_MAX()
@@ -2449,7 +2490,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RELAYER), relayerBalanceBefore + BRIDGE_AMOUNT);
     }
 
-    function test_claimIntent_EmitsClaimEvent_NoFastFinish() public {
+    function test_claim_EmitsClaimEvent_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2462,13 +2503,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -2492,14 +2536,14 @@ contract DepositAddressManagerTest is Test {
             receiverAddress: receiverAddress,
             finalRecipient: RECIPIENT,
             route: route,
-            intent: intent,
+            fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
             toTokenPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2510,7 +2554,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_EmitsClaimEvent_AfterFastFinish() public {
+    function test_claim_EmitsClaimEvent_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2540,7 +2584,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -2552,13 +2596,16 @@ contract DepositAddressManagerTest is Test {
         });
         vm.stopPrank();
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -2569,14 +2616,14 @@ contract DepositAddressManagerTest is Test {
             receiverAddress: receiverAddress,
             finalRecipient: RELAYER,
             route: route,
-            intent: intent,
+            fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
             toTokenPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2587,7 +2634,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_MultipleDifferentSalts() public {
+    function test_claim_MultipleDifferentSalts() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2617,21 +2664,22 @@ contract DepositAddressManagerTest is Test {
         salts[2] = keccak256("salt-3");
 
         for (uint256 i = 0; i < salts.length; i++) {
-            DepositAddressIntent memory intent = DepositAddressIntent({
-                depositAddress: depositAddress,
-                relaySalt: salts[i],
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+            DepositAddressFulfillment
+                memory fulfillment = DepositAddressFulfillment({
+                    depositAddress: depositAddress,
+                    relaySalt: salts[i],
+                    bridgeTokenOut: bridgeTokenOut,
+                    sourceChainId: SOURCE_CHAIN_ID
+                });
             (address receiverAddress, ) = manager.computeReceiverAddress(
-                intent
+                fulfillment
             );
 
             // Fund receiver
             usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
             vm.prank(RELAYER);
-            manager.claimIntent({
+            manager.claim({
                 route: route,
                 calls: calls,
                 bridgeTokenOut: bridgeTokenOut,
@@ -2641,7 +2689,7 @@ contract DepositAddressManagerTest is Test {
                 sourceChainId: SOURCE_CHAIN_ID
             });
 
-            // Verify intent marked as claimed
+            // Verify fulfillment marked as claimed
             assertEq(
                 manager.receiverToRecipient(receiverAddress),
                 manager.ADDR_MAX()
@@ -2652,7 +2700,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT * 3);
     }
 
-    function test_claimIntent_DeploysDepositAddressReceiver() public {
+    function test_claim_DeploysDepositAddressReceiver() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2665,13 +2713,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Verify receiver not deployed yet
         assertEq(receiverAddress.code.length, 0);
@@ -2693,7 +2744,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2707,7 +2758,7 @@ contract DepositAddressManagerTest is Test {
         assertTrue(receiverAddress.code.length > 0);
     }
 
-    function test_claimIntent_WithExistingDepositAddressReceiver() public {
+    function test_claim_WithExistingDepositAddressReceiver() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2720,14 +2771,15 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address receiverAddress, bytes32 recvSalt) = manager
-            .computeReceiverAddress(intent);
+            .computeReceiverAddress(fulfillment);
 
         // Deploy DepositAddressReceiver as the manager (so CREATE2 address matches)
         vm.prank(address(manager));
@@ -2757,7 +2809,7 @@ contract DepositAddressManagerTest is Test {
 
         // Should work with existing receiver
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2771,7 +2823,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
     }
 
-    function test_claimIntent_WithSurplusBridgeAmount() public {
+    function test_claim_WithSurplusBridgeAmount() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2784,13 +2836,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund with more than expected
         uint256 surplusAmount = BRIDGE_AMOUNT + 10e6;
@@ -2810,7 +2865,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2825,10 +2880,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // claimIntent - Validation failures
+    // claim - Validation failures
     // ---------------------------------------------------------------------
 
-    function test_claimIntent_RevertsWrongChain() public {
+    function test_claim_RevertsWrongChain() public {
         // Call on wrong chain
         vm.chainId(999999999);
 
@@ -2856,7 +2911,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong chain"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2867,7 +2922,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsWrongEscrow() public {
+    function test_claim_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2895,7 +2950,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2906,7 +2961,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsBridgeTokenOutMismatch() public {
+    function test_claim_RevertsBridgeTokenOutMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2919,13 +2974,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund receiver with bridged tokens
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -2947,7 +3005,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -2958,7 +3016,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsToTokenMismatch() public {
+    function test_claim_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -2971,13 +3029,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund receiver with bridged tokens
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -3000,7 +3061,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3011,7 +3072,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsAlreadyClaimed() public {
+    function test_claim_RevertsAlreadyClaimed() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3024,13 +3085,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund receiver for first claim
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -3050,7 +3114,7 @@ contract DepositAddressManagerTest is Test {
 
         // First claim succeeds
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3066,7 +3130,7 @@ contract DepositAddressManagerTest is Test {
         // Second claim with same salt should revert
         vm.expectRevert(bytes("DAM: already claimed"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3077,7 +3141,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsInsufficientBridge() public {
+    function test_claim_RevertsInsufficientBridge() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3090,13 +3154,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund with less than expected
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT - 10e6);
@@ -3116,7 +3183,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DPCE: output below min"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3127,7 +3194,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsInvalidBridgeTokenOutPrice_NoFastFinish()
+    function test_claim_RevertsInvalidBridgeTokenOutPrice_NoFastFinish()
         public
     {
         vm.chainId(DEST_CHAIN_ID);
@@ -3142,13 +3209,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -3174,7 +3244,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3185,7 +3255,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsInvalidToTokenPrice_NoFastFinish() public {
+    function test_claim_RevertsInvalidToTokenPrice_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3198,13 +3268,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -3227,7 +3300,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: toToken price invalid"));
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3238,7 +3311,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_claimIntent_RevertsNotRelayer() public {
+    function test_claim_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3251,13 +3324,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -3276,7 +3352,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3288,10 +3364,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // claimIntent - Price validation skipped for fast finish repayments
+    // claim - Price validation skipped for fast finish repayments
     // ---------------------------------------------------------------------
 
-    function test_claimIntent_SkipsPriceValidation_AfterFastFinish() public {
+    function test_claim_SkipsPriceValidation_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -3322,7 +3398,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,
@@ -3334,13 +3410,16 @@ contract DepositAddressManagerTest is Test {
         });
         vm.stopPrank();
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
@@ -3372,7 +3451,7 @@ contract DepositAddressManagerTest is Test {
 
         // Should succeed despite invalid prices
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3387,10 +3466,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // claimIntent - Fuzz tests
+    // claim - Fuzz tests
     // ---------------------------------------------------------------------
 
-    function testFuzz_claimIntent_DifferentAmounts(uint256 amount) public {
+    function testFuzz_claim_DifferentAmounts(uint256 amount) public {
         // Bound to reasonable amounts (1 USDC to 1M USDC)
         amount = bound(amount, 1e6, 1_000_000e6);
 
@@ -3406,13 +3485,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256(abi.encodePacked("salt", amount));
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         usdc.transfer(receiverAddress, amount);
 
@@ -3430,7 +3512,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3440,7 +3522,7 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Verify intent marked as claimed
+        // Verify fulfillment marked as claimed
         assertEq(
             manager.receiverToRecipient(receiverAddress),
             manager.ADDR_MAX()
@@ -3450,10 +3532,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), amount);
     }
 
-    function testFuzz_claimIntent_UniqueSalts(
-        bytes32 salt1,
-        bytes32 salt2
-    ) public {
+    function testFuzz_claim_UniqueSalts(bytes32 salt1, bytes32 salt2) public {
         vm.assume(salt1 != salt2);
 
         vm.chainId(DEST_CHAIN_ID);
@@ -3480,17 +3559,20 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         // Claim with first salt
-        DepositAddressIntent memory intent1 = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: salt1,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress1, ) = manager.computeReceiverAddress(intent1);
+        DepositAddressFulfillment
+            memory fulfillment1 = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: salt1,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress1, ) = manager.computeReceiverAddress(
+            fulfillment1
+        );
         usdc.transfer(receiverAddress1, BRIDGE_AMOUNT);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3501,17 +3583,20 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Claim with second salt should succeed
-        DepositAddressIntent memory intent2 = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: salt2,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress2, ) = manager.computeReceiverAddress(intent2);
+        DepositAddressFulfillment
+            memory fulfillment2 = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: salt2,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress2, ) = manager.computeReceiverAddress(
+            fulfillment2
+        );
         usdc.transfer(receiverAddress2, BRIDGE_AMOUNT);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3536,7 +3621,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT * 2);
     }
 
-    function testFuzz_claimIntent_SurplusAmounts(uint256 surplus) public {
+    function testFuzz_claim_SurplusAmounts(uint256 surplus) public {
         // Bound surplus to 0-100 USDC extra
         surplus = bound(surplus, 0, 100e6);
 
@@ -3552,13 +3637,16 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256(abi.encodePacked("salt", surplus));
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund with surplus
         uint256 totalAmount = BRIDGE_AMOUNT + surplus;
@@ -3578,7 +3666,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.claimIntent({
+        manager.claim({
             route: route,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
@@ -3593,10 +3681,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // refundIntent - Success cases
+    // refundDepositAddress - Success cases
     // ---------------------------------------------------------------------
 
-    function test_refundIntent_Success() public {
+    function test_refundDepositAddress_Success() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -3611,14 +3699,14 @@ contract DepositAddressManagerTest is Test {
         tokens[0] = usdc;
 
         // Execute refund
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
         assertEq(usdc.balanceOf(address(vault)), 0);
     }
 
-    function test_refundIntent_EmitsRefundEvent() public {
+    function test_refundDepositAddress_EmitsRefundEvent() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -3636,9 +3724,9 @@ contract DepositAddressManagerTest is Test {
         uint256[] memory expectedAmounts = new uint256[](1);
         expectedAmounts[0] = PAYMENT_AMOUNT;
 
-        // Expect the Refund event
+        // Expect the RefundDepositAddress event
         vm.expectEmit(true, false, false, true, address(manager));
-        emit DepositAddressManager.Refund({
+        emit DepositAddressManager.RefundDepositAddress({
             depositAddress: address(vault),
             route: route,
             refundAddress: REFUND_ADDRESS,
@@ -3647,10 +3735,10 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Execute refund
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
     }
 
-    function test_refundIntent_MultipleTokens() public {
+    function test_refundDepositAddress_MultipleTokens() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -3672,7 +3760,7 @@ contract DepositAddressManagerTest is Test {
         tokens[1] = IERC20(address(usdc2));
 
         // Execute refund
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
 
         // Verify refund address received both tokens
         assertEq(usdc.balanceOf(REFUND_ADDRESS), amount1);
@@ -3681,7 +3769,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc2.balanceOf(address(vault)), 0);
     }
 
-    function test_refundIntent_AtExactExpiration() public {
+    function test_refundDepositAddress_AtExactExpiration() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -3696,13 +3784,13 @@ contract DepositAddressManagerTest is Test {
         tokens[0] = usdc;
 
         // Execute refund - should succeed at exact expiration
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
     }
 
-    function test_refundIntent_ZeroBalance() public {
+    function test_refundDepositAddress_ZeroBalance() public {
         DepositAddressRoute memory route = _createRoute();
         factory.createDepositAddress(route);
 
@@ -3714,17 +3802,17 @@ contract DepositAddressManagerTest is Test {
         tokens[0] = usdc;
 
         // Execute refund - should succeed with zero balance
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
 
         // Verify no funds transferred (no revert)
         assertEq(usdc.balanceOf(REFUND_ADDRESS), 0);
     }
 
     // ---------------------------------------------------------------------
-    // refundIntent - Revert cases
+    // refundDepositAddress - Revert cases
     // ---------------------------------------------------------------------
 
-    function test_refundIntent_RevertsNotExpired() public {
+    function test_refundDepositAddress_RevertsNotExpired() public {
         DepositAddressRoute memory route = _createRoute();
         DepositAddress vault = factory.createDepositAddress(route);
 
@@ -3739,10 +3827,10 @@ contract DepositAddressManagerTest is Test {
 
         // Expect revert
         vm.expectRevert("DAM: not expired");
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
     }
 
-    function test_refundIntent_RevertsWrongEscrow() public {
+    function test_refundDepositAddress_RevertsWrongEscrow() public {
         DepositAddressRoute memory route = _createRoute();
         route.escrow = address(0x1234); // Wrong escrow
 
@@ -3755,14 +3843,14 @@ contract DepositAddressManagerTest is Test {
 
         // Expect revert
         vm.expectRevert("DAM: wrong escrow");
-        manager.refundIntent({route: route, tokens: tokens});
+        manager.refundDepositAddress({route: route, tokens: tokens});
     }
 
     // ---------------------------------------------------------------------
-    // refundReceiverIntent - Success cases
+    // refundFulfillment - Success cases
     // ---------------------------------------------------------------------
 
-    function test_refundReceiverIntent_Success() public {
+    function test_refundFulfillment_Success() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -3776,13 +3864,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address (simulating bridged tokens that were never claimed)
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -3796,7 +3887,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund as relayer
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -3809,7 +3900,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(receiverAddress), 0);
     }
 
-    function test_refundReceiverIntent_EmitsRefundReceiverEvent() public {
+    function test_refundFulfillment_EmitsRefundReceiverEvent() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -3823,13 +3914,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -3845,13 +3939,13 @@ contract DepositAddressManagerTest is Test {
         uint256[] memory expectedAmounts = new uint256[](1);
         expectedAmounts[0] = BRIDGE_AMOUNT;
 
-        // Expect the RefundReceiver event
+        // Expect the RefundFulfillment event
         vm.expectEmit(true, true, false, true, address(manager));
-        emit DepositAddressManager.RefundReceiver({
+        emit DepositAddressManager.RefundFulfillment({
             depositAddress: depositAddress,
             receiverAddress: receiverAddress,
             route: route,
-            intent: intent,
+            fulfillment: fulfillment,
             refundAddress: REFUND_ADDRESS,
             tokens: tokens,
             amounts: expectedAmounts
@@ -3859,7 +3953,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund as relayer
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -3868,7 +3962,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_refundReceiverIntent_MultipleTokens() public {
+    function test_refundFulfillment_MultipleTokens() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -3882,13 +3976,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Deploy a second token
         TestUSDC usdc2 = new TestUSDC();
@@ -3909,7 +4006,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund as relayer
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -3924,7 +4021,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc2.balanceOf(receiverAddress), 0);
     }
 
-    function test_refundReceiverIntent_AtExactExpiration() public {
+    function test_refundFulfillment_AtExactExpiration() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -3938,13 +4035,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -3958,7 +4058,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund as relayer - should succeed at exact expiration
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -3970,7 +4070,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
     }
 
-    function test_refundReceiverIntent_ZeroBalance() public {
+    function test_refundFulfillment_ZeroBalance() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -3994,7 +4094,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund as relayer - should succeed with zero balance
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -4007,10 +4107,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // refundReceiverIntent - Revert cases
+    // refundFulfillment - Revert cases
     // ---------------------------------------------------------------------
 
-    function test_refundReceiverIntent_RevertsNotExpired() public {
+    function test_refundFulfillment_RevertsNotExpired() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -4024,13 +4124,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -4044,7 +4147,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert
         vm.prank(RELAYER);
         vm.expectRevert("DAM: not expired");
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -4053,7 +4156,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_refundReceiverIntent_RevertsWrongEscrow() public {
+    function test_refundFulfillment_RevertsWrongEscrow() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -4076,7 +4179,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert
         vm.prank(RELAYER);
         vm.expectRevert("DAM: wrong escrow");
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -4085,7 +4188,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_refundReceiverIntent_RevertsNotRelayer() public {
+    function test_refundFulfillment_RevertsNotRelayer() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
@@ -4099,13 +4202,16 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Compute receiver address
-        DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
 
         // Fund the receiver address
         usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
@@ -4120,7 +4226,7 @@ contract DepositAddressManagerTest is Test {
         // Expect revert when called by non-relayer
         vm.prank(address(0xBEEF));
         vm.expectRevert("DAM: not relayer");
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
@@ -4129,7 +4235,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_refundReceiverIntent_HopChainRefund() public {
+    function test_refundFulfillment_HopChainRefund() public {
         // Test refunding tokens stuck on a hop chain after expiry
         // Scenario: source -> hop bridge completed, but hop -> dest never happened
 
@@ -4147,14 +4253,15 @@ contract DepositAddressManagerTest is Test {
         bytes32 leg1RelaySalt = keccak256("leg1-salt-refund");
 
         // Compute hop receiver address (where leg1 bridged tokens would arrive)
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
 
         // Fund the hop receiver (simulating leg1 bridge arrival that was never hopped)
@@ -4169,7 +4276,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund from the hop receiver
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: leg1BridgeTokenOut,
             relaySalt: leg1RelaySalt,
@@ -4182,7 +4289,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(hopReceiverAddress), 0);
     }
 
-    function test_refundReceiverIntent_Leg2ReceiverRefund() public {
+    function test_refundFulfillment_Leg2ReceiverRefund() public {
         // Test refunding tokens stuck on the destination chain after a hop
         // Scenario: source -> hop -> dest bridge completed, but never claimed
 
@@ -4207,14 +4314,15 @@ contract DepositAddressManagerTest is Test {
         bytes32 leg2RelaySalt = keccak256("leg2-salt-leg2refund");
 
         // Compute and fund leg1 receiver
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
@@ -4232,7 +4340,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4249,14 +4357,15 @@ contract DepositAddressManagerTest is Test {
         vm.chainId(DEST_CHAIN_ID);
 
         // Compute leg2 receiver address
-        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg2RelaySalt,
-            bridgeTokenOut: leg2BridgeTokenOut,
-            sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
-        });
+        DepositAddressFulfillment
+            memory leg2Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg2RelaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
+                sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
+            });
         (address destReceiverAddress, ) = manager.computeReceiverAddress(
-            leg2Intent
+            leg2Fulfillment
         );
 
         // Simulate leg2 bridge arrival (tokens land on dest chain but never claimed)
@@ -4271,7 +4380,7 @@ contract DepositAddressManagerTest is Test {
 
         // Execute refund from the destination receiver
         vm.prank(RELAYER);
-        manager.refundReceiverIntent({
+        manager.refundFulfillment({
             route: route,
             bridgeTokenOut: leg2BridgeTokenOut,
             relaySalt: leg2RelaySalt,
@@ -4309,7 +4418,7 @@ contract DepositAddressManagerTest is Test {
     // Reentrancy Protection Tests
     // ---------------------------------------------------------------------
 
-    function test_startIntent_BlocksReentrancy() public {
+    function test_start_BlocksReentrancy() public {
         // Deploy malicious token
         ReentrantToken evilToken = new ReentrantToken(
             payable(address(manager))
@@ -4338,7 +4447,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Prepare intent parameters
+        // Prepare fulfillment parameters
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
@@ -4347,13 +4456,13 @@ contract DepositAddressManagerTest is Test {
         Call[] memory startCalls = new Call[](0);
         bytes memory bridgeExtraData = "";
 
-        // Attempt to start intent - the malicious token will try to re-enter
-        // via refundIntent, but ReentrancyGuard should block it
+        // Attempt to start fulfillment - the malicious token will try to re-enter
+        // via refundDepositAddress, but ReentrancyGuard should block it
         vm.prank(RELAYER);
         vm.expectRevert(
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
-        manager.startIntent({
+        manager.start({
             route: route,
             paymentToken: evilToken,
             bridgeTokenOut: bridgeTokenOut,
@@ -4365,7 +4474,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_fastFinishIntent_BlocksReentrancy() public {
+    function test_fastFinish_BlocksReentrancy() public {
         // Switch to destination chain for fast finish
         vm.chainId(DEST_CHAIN_ID);
 
@@ -4393,7 +4502,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Prepare intent parameters
+        // Prepare fulfillment parameters
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
@@ -4409,7 +4518,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: finishCalls,
             token: evilToken,
@@ -4425,7 +4534,7 @@ contract DepositAddressManagerTest is Test {
         vm.chainId(SOURCE_CHAIN_ID);
     }
 
-    function test_sameChainFinishIntent_BlocksReentrancy() public {
+    function test_sameChainFinish_BlocksReentrancy() public {
         // Deploy malicious token
         ReentrantToken evilToken = new ReentrantToken(
             payable(address(manager))
@@ -4459,7 +4568,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: evilToken,
             paymentTokenPrice: paymentTokenPrice,
@@ -4469,12 +4578,12 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // hopIntent - Success cases
+    // hopStart - Success cases
     // ---------------------------------------------------------------------
 
     uint256 private constant HOP_CHAIN_ID = 42161; // Arbitrum
 
-    function test_hopIntent_Success() public {
+    function test_hopStart_Success() public {
         // Set chain to hop chain (Arbitrum)
         vm.chainId(HOP_CHAIN_ID);
 
@@ -4497,14 +4606,15 @@ contract DepositAddressManagerTest is Test {
         bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
         // Compute leg 1 receiver (where funds from source->hop arrive)
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
 
         // Fund the hop receiver (simulating leg 1 bridge arrival)
@@ -4525,9 +4635,9 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
         bytes memory bridgeExtraData = "";
 
-        // Execute hopIntent
+        // Execute hopStart
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4547,14 +4657,15 @@ contract DepositAddressManagerTest is Test {
         );
 
         // Verify leg 2 receiver is marked as used
-        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg2RelaySalt,
-            bridgeTokenOut: leg2BridgeTokenOut,
-            sourceChainId: HOP_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg2Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg2RelaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
+                sourceChainId: HOP_CHAIN_ID
+            });
         (address destReceiverAddress, ) = manager.computeReceiverAddress(
-            leg2Intent
+            leg2Fulfillment
         );
         assertTrue(manager.receiverUsed(destReceiverAddress));
 
@@ -4562,7 +4673,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(address(0xdead)), leg2BridgeTokenOut.amount);
     }
 
-    function test_hopIntent_EmitsHopEvent() public {
+    function test_hopStart_EmitsHopEvent() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4580,25 +4691,27 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
-        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg2RelaySalt,
-            bridgeTokenOut: leg2BridgeTokenOut,
-            sourceChainId: HOP_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg2Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg2RelaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
+                sourceChainId: HOP_CHAIN_ID
+            });
         (address destReceiverAddress, ) = manager.computeReceiverAddress(
-            leg2Intent
+            leg2Fulfillment
         );
 
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
@@ -4615,20 +4728,20 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.expectEmit(true, true, true, false);
-        emit DepositAddressManager.Hop({
+        emit DepositAddressManager.HopStart({
             depositAddress: depositAddress,
             hopReceiverAddress: hopReceiverAddress,
             destReceiverAddress: destReceiverAddress,
             route: route,
-            leg1Intent: leg1Intent,
-            leg2Intent: leg2Intent,
+            leg1Fulfillment: leg1Fulfillment,
+            leg2Fulfillment: leg2Fulfillment,
             hopAmount: BRIDGE_AMOUNT,
             leg1BridgeTokenOutPriceUsd: USDC_PRICE,
             leg2BridgeTokenInPriceUsd: USDC_PRICE
         });
 
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4643,10 +4756,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // hopIntent - Validation failures
+    // hopStart - Validation failures
     // ---------------------------------------------------------------------
 
-    function test_hopIntent_RevertsOnSourceChain() public {
+    function test_hopStart_RevertsOnSourceChain() public {
         // Call on source chain (wrong)
         vm.chainId(SOURCE_CHAIN_ID);
 
@@ -4674,7 +4787,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: hop on source chain"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: keccak256("leg1"),
@@ -4688,7 +4801,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsOnDestChain() public {
+    function test_hopStart_RevertsOnDestChain() public {
         // Call on dest chain (wrong)
         vm.chainId(DEST_CHAIN_ID);
 
@@ -4716,7 +4829,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: hop on dest chain"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: keccak256("leg1"),
@@ -4730,7 +4843,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsWrongEscrow() public {
+    function test_hopStart_RevertsWrongEscrow() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4758,7 +4871,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: keccak256("leg1"),
@@ -4772,7 +4885,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsNotRelayer() public {
+    function test_hopStart_RevertsNotRelayer() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4799,7 +4912,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: keccak256("leg1"),
@@ -4813,7 +4926,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsAlreadyClaimed() public {
+    function test_hopStart_RevertsAlreadyClaimed() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4831,14 +4944,15 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
         // Fund with exactly the expected amount
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
@@ -4858,7 +4972,7 @@ contract DepositAddressManagerTest is Test {
 
         // First hop succeeds
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4874,7 +4988,7 @@ contract DepositAddressManagerTest is Test {
         // Second hop with same leg1 params should fail (already claimed)
         vm.expectRevert(bytes("DAM: already claimed"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4888,7 +5002,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsInsufficientBridge() public {
+    function test_hopStart_RevertsInsufficientBridge() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4900,14 +5014,15 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
 
         // Fund with less than expected
@@ -4931,7 +5046,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DPCE: insufficient output"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -4945,7 +5060,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsInvalidLeg1Price() public {
+    function test_hopStart_RevertsInvalidLeg1Price() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -4957,14 +5072,15 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
@@ -4990,7 +5106,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: leg1 price invalid"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -5004,7 +5120,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_hopIntent_RevertsInvalidLeg2Price() public {
+    function test_hopStart_RevertsInvalidLeg2Price() public {
         vm.chainId(HOP_CHAIN_ID);
 
         DepositAddressRoute memory route = _createRoute();
@@ -5016,14 +5132,15 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
+        DepositAddressFulfillment
+            memory leg1Fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: leg1RelaySalt,
+                bridgeTokenOut: leg1BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Intent
+            leg1Fulfillment
         );
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
@@ -5049,7 +5166,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.expectRevert(bytes("DAM: leg2 price invalid"));
         vm.prank(RELAYER);
-        manager.hopIntent({
+        manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1RelaySalt: leg1RelaySalt,
@@ -5067,7 +5184,7 @@ contract DepositAddressManagerTest is Test {
     // finalCall - Success cases
     // ---------------------------------------------------------------------
 
-    function test_sameChainFinishIntent_WithFinalCall_Success() public {
+    function test_sameChainFinish_WithFinalCall_Success() public {
         vm.chainId(DEST_CHAIN_ID);
 
         // Deploy mock adapter
@@ -5111,9 +5228,9 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        // Execute sameChainFinishIntent with finalCall
+        // Execute sameChainFinish with finalCall
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -5132,7 +5249,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), 0);
     }
 
-    function test_sameChainFinishIntent_WithFinalCall_EmitsFinalCallExecutedEvent()
+    function test_sameChainFinish_WithFinalCall_EmitsFinalCallExecutedEvent()
         public
     {
         vm.chainId(DEST_CHAIN_ID);
@@ -5187,7 +5304,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -5196,7 +5313,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_sameChainFinishIntent_WithFinalCall_PartialUseRefundsRemainder()
+    function test_sameChainFinish_WithFinalCall_PartialUseRefundsRemainder()
         public
     {
         vm.chainId(DEST_CHAIN_ID);
@@ -5254,7 +5371,7 @@ contract DepositAddressManagerTest is Test {
         );
 
         vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
+        manager.sameChainFinish({
             route: route,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
@@ -5276,7 +5393,7 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(address(partialAdapter)), expectedUsed);
     }
 
-    function test_fastFinishIntent_WithFinalCall_Success() public {
+    function test_fastFinish_WithFinalCall_Success() public {
         vm.chainId(DEST_CHAIN_ID);
 
         MockDepositAdapter adapter = new MockDepositAdapter(usdc);
@@ -5321,7 +5438,7 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
-        manager.fastFinishIntent({
+        manager.fastFinish({
             route: route,
             calls: calls,
             token: usdc,

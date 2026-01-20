@@ -784,7 +784,7 @@ contract DepositAddressManager is
         bytes32 relaySalt,
         uint256 sourceChainId,
         IERC20[] calldata tokens
-    ) external nonReentrant {
+    ) external nonReentrant onlyRelayer {
         require(route.escrow == address(this), "DAM: wrong escrow");
         require(isRouteExpired(route), "DAM: not expired");
 

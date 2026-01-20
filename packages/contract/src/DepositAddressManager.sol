@@ -4,10 +4,8 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
-import "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 
 import "./DepositAddressFactory.sol";
@@ -22,12 +20,7 @@ import "./interfaces/IDaimoPayPricer.sol";
 /// @custom:security-contact security@daimo.com
 /// @notice Central escrow contract that manages the lifecycle of Deposit
 ///         Addresses
-contract DepositAddressManager is
-    Initializable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable
-{
+contract DepositAddressManager is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -150,29 +143,21 @@ contract DepositAddressManager is
     }
 
     // ---------------------------------------------------------------------
-    // Constructor & Initializer
+    // Constructor
     // ---------------------------------------------------------------------
 
-    /// @dev Disable initializers on the implementation contract.
-    constructor() {
-        _disableInitializers();
+    /// @notice Initialize the contract.
+    constructor(
+        address _owner,
+        DepositAddressFactory _depositAddressFactory,
+        DaimoPayExecutor _executor
+    ) Ownable(_owner) {
+        depositAddressFactory = _depositAddressFactory;
+        executor = _executor;
     }
 
     // Accept native asset deposits (for swaps).
     receive() external payable {}
-
-    /// @notice Initialize the contract.
-    function initialize(
-        address _owner,
-        DepositAddressFactory _depositAddressFactory
-    ) external initializer {
-        __ReentrancyGuard_init();
-        __Ownable_init(_owner);
-        __UUPSUpgradeable_init();
-
-        depositAddressFactory = _depositAddressFactory;
-        executor = new DaimoPayExecutor(address(this));
-    }
 
     // ---------------------------------------------------------------------
     // External user / relayer entrypoints
@@ -930,15 +915,6 @@ contract DepositAddressManager is
     }
 
     // ---------------------------------------------------------------------
-    // UUPS upgrade authorization
-    // ---------------------------------------------------------------------
-
-    /// @dev Restrict upgrades to the contract owner.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
-
-    // ---------------------------------------------------------------------
     // Admin functions
     // ---------------------------------------------------------------------
 
@@ -949,12 +925,6 @@ contract DepositAddressManager is
         relayerAuthorized[relayer] = authorized;
         emit RelayerAuthorized(relayer, authorized);
     }
-
-    // ---------------------------------------------------------------------
-    // Storage gap for upgradeability
-    // ---------------------------------------------------------------------
-
-    uint256[50] private __gap;
 }
 
 // ---------------------------------------------------------------------

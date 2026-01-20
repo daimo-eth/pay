@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {
@@ -21,7 +20,7 @@ import {
     IDepositAddressBridger
 } from "../src/interfaces/IDepositAddressBridger.sol";
 import {TokenAmount} from "../src/TokenUtils.sol";
-import {Call} from "../src/DaimoPayExecutor.sol";
+import {DaimoPayExecutor, Call} from "../src/DaimoPayExecutor.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {DummyDepositAddressBridger} from "./utils/DummyDepositBridger.sol";
 import {ReentrantToken} from "./utils/ReentrantToken.sol";
@@ -78,16 +77,18 @@ contract DepositAddressManagerTest is Test {
         bridger = new DummyDepositAddressBridger();
         factory = new DepositAddressFactory();
 
-        // Deploy manager as upgradeable proxy
-        DepositAddressManager managerImpl = new DepositAddressManager();
-        ERC1967Proxy managerProxy = new ERC1967Proxy(
-            address(managerImpl),
-            abi.encodeCall(
-                DepositAddressManager.initialize,
-                (address(this), factory)
-            )
+        // Compute the manager address so we can deploy executor pointing to it
+        address predictedManager = vm.computeCreateAddress(
+            address(this),
+            vm.getNonce(address(this)) + 1
         );
-        manager = DepositAddressManager(payable(address(managerProxy)));
+        DaimoPayExecutor executor = new DaimoPayExecutor(predictedManager);
+
+        manager = new DepositAddressManager(address(this), factory, executor);
+        require(
+            address(manager) == predictedManager,
+            "Manager address mismatch"
+        );
 
         manager.setRelayer(RELAYER, true);
 

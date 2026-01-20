@@ -113,6 +113,15 @@ contract DepositAddressManager is
         IERC20[] tokens,
         uint256[] amounts
     );
+    event RefundReceiver(
+        address indexed depositAddress,
+        address indexed receiverAddress,
+        DepositAddressRoute route,
+        DepositAddressIntent intent,
+        address refundAddress,
+        IERC20[] tokens,
+        uint256[] amounts
+    );
     event Hop(
         address indexed depositAddress,
         address indexed hopReceiverAddress,
@@ -495,7 +504,10 @@ contract DepositAddressManager is
 
         // Deploy receiver and pull bridged tokens
         uint256 bridgedAmount;
-        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(intent);
+        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
+            intent,
+            bridgeTokenOut.token
+        );
 
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
@@ -639,7 +651,8 @@ contract DepositAddressManager is
         // Deploy receiver and pull funds
         uint256 bridgedAmount;
         (hopReceiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
-            leg1Intent
+            leg1Intent,
+            leg1BridgeTokenOut.token
         );
 
         // Compute leg 2 receiver address
@@ -755,6 +768,61 @@ contract DepositAddressManager is
         });
     }
 
+    /// @notice Refunds tokens from a receiver address to the designated refund
+    ///         address after the route has expired.
+    /// @param route The Deposit Address route containing the refund address
+    /// @param bridgeTokenOut The token and amount that was bridged (used to
+    ///        compute receiver address)
+    /// @param relaySalt Unique salt from the original bridge transfer
+    /// @param sourceChainId The chain ID where the bridge transfer originated
+    /// @param tokens The tokens to refund from the receiver
+    /// @dev Refunds are only allowed after the route expires. This allows
+    ///      recovery of bridged funds that were never claimed or fast-finished.
+    function refundReceiverIntent(
+        DepositAddressRoute calldata route,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        uint256 sourceChainId,
+        IERC20[] calldata tokens
+    ) external nonReentrant onlyRelayer {
+        require(route.escrow == address(this), "DAM: wrong escrow");
+        require(isRouteExpired(route), "DAM: not expired");
+
+        // Compute the receiver address for this intent
+        address da = depositAddressFactory.getDepositAddress(route);
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: da,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: sourceChainId
+        });
+
+        // Pull and transfer each token to the refund address
+        address receiverAddress;
+        uint256[] memory amounts = new uint256[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            (receiverAddress, amounts[i]) = _deployAndPullFromReceiver(
+                intent,
+                tokens[i]
+            );
+            TokenUtils.transfer({
+                token: tokens[i],
+                recipient: payable(route.refundAddress),
+                amount: amounts[i]
+            });
+        }
+
+        emit RefundReceiver({
+            depositAddress: da,
+            receiverAddress: receiverAddress,
+            route: route,
+            intent: intent,
+            refundAddress: route.refundAddress,
+            tokens: tokens,
+            amounts: amounts
+        });
+    }
+
     /// @notice Computes a deterministic DepositAddressReceiver address.
     /// @param intent The bridge intent
     /// @return addr The computed address for the DepositAddressReceiver contract
@@ -782,11 +850,13 @@ contract DepositAddressManager is
 
     /// @dev Deploy a DepositAddressReceiver if necessary and pull funds.
     /// @param intent The bridge intent used to compute receiver address
+    /// @param token The token to pull from the receiver
     /// @return receiverAddress The receiver contract address
-    /// @return bridgedAmount The amount pulled from the receiver
+    /// @return pulledAmount The amount pulled from the receiver
     function _deployAndPullFromReceiver(
-        DepositAddressIntent memory intent
-    ) internal returns (address receiverAddress, uint256 bridgedAmount) {
+        DepositAddressIntent memory intent,
+        IERC20 token
+    ) internal returns (address receiverAddress, uint256 pulledAmount) {
         bytes32 recvSalt;
         (receiverAddress, recvSalt) = computeReceiverAddress(intent);
 
@@ -800,7 +870,7 @@ contract DepositAddressManager is
         }
 
         // Pull funds from the receiver
-        bridgedAmount = receiver.pull(intent.bridgeTokenOut.token);
+        pulledAmount = receiver.pull(token);
     }
 
     /// @dev Internal helper that completes an intent by executing swaps,

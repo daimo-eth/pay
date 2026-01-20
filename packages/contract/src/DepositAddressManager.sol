@@ -113,6 +113,15 @@ contract DepositAddressManager is
         IERC20[] tokens,
         uint256[] amounts
     );
+    event RefundReceiver(
+        address indexed depositAddress,
+        address indexed receiverAddress,
+        DepositAddressRoute route,
+        DepositAddressIntent intent,
+        address refundAddress,
+        IERC20 token,
+        uint256 amount
+    );
     event Hop(
         address indexed depositAddress,
         address indexed hopReceiverAddress,
@@ -752,6 +761,55 @@ contract DepositAddressManager is
             refundAddress: route.refundAddress,
             tokens: tokens,
             amounts: amounts
+        });
+    }
+
+    /// @notice Refunds tokens from a receiver address to the designated refund
+    ///         address after the route has expired.
+    /// @param route The Deposit Address route containing the refund address
+    /// @param bridgeTokenOut The token and amount that was bridged
+    /// @param relaySalt Unique salt from the original bridge transfer
+    /// @param sourceChainId The chain ID where the bridge transfer originated
+    /// @dev Refunds are only allowed after the route expires. This allows
+    ///      recovery of bridged funds that were never claimed or fast-finished.
+    function refundReceiverIntent(
+        DepositAddressRoute calldata route,
+        TokenAmount calldata bridgeTokenOut,
+        bytes32 relaySalt,
+        uint256 sourceChainId
+    ) external nonReentrant {
+        require(route.escrow == address(this), "DAM: wrong escrow");
+        require(isRouteExpired(route), "DAM: not expired");
+
+        // Compute the receiver address for this intent
+        address da = depositAddressFactory.getDepositAddress(route);
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: da,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: sourceChainId
+        });
+
+        // Deploy receiver if needed and pull funds to refund address
+        (address receiverAddress, uint256 amount) = _deployAndPullFromReceiver(
+            intent
+        );
+
+        // Transfer the pulled funds to the refund address
+        TokenUtils.transfer({
+            token: bridgeTokenOut.token,
+            recipient: payable(route.refundAddress),
+            amount: amount
+        });
+
+        emit RefundReceiver({
+            depositAddress: da,
+            receiverAddress: receiverAddress,
+            route: route,
+            intent: intent,
+            refundAddress: route.refundAddress,
+            token: bridgeTokenOut.token,
+            amount: amount
         });
     }
 

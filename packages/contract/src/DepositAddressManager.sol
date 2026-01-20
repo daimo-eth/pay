@@ -281,8 +281,7 @@ contract DepositAddressManager is
             toChainId: route.toChainId,
             toAddress: receiverAddress,
             bridgeTokenOut: bridgeTokenOut,
-            // Refund to the vault so that startIntent can be retried
-            refundAddress: address(vault),
+            refundAddress: route.refundAddress,
             extraData: bridgeExtraData
         });
 
@@ -404,7 +403,7 @@ contract DepositAddressManager is
         bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
         require(
             bridgeTokenOutPriceValid,
-            "DAM: bridge token out price invalid"
+            "DAM: bridgeTokenOut price invalid"
         );
         require(toTokenPriceValid, "DAM: toToken price invalid");
         require(
@@ -502,12 +501,6 @@ contract DepositAddressManager is
         uint256 bridgedAmount;
         (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(intent);
 
-        // Check that sufficient amount was bridged
-        require(
-            bridgedAmount >= bridgeTokenOut.amount,
-            "DAM: insufficient bridge"
-        );
-
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
             // Validate prices
@@ -517,7 +510,7 @@ contract DepositAddressManager is
             bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
             require(
                 bridgeTokenOutPriceValid,
-                "DAM: bridge token out price invalid"
+                "DAM: bridgeTokenOut price invalid"
             );
             require(toTokenPriceValid, "DAM: toToken price invalid");
             require(
@@ -541,10 +534,13 @@ contract DepositAddressManager is
                 amount: bridgedAmount
             });
 
+            // Compute the minimum amount of toToken that is required to
+            // complete the intent. This uses the promised bridgeTokenOut, even
+            // if the actual bridgedAmount is slightly less.
             TokenAmount memory toTokenAmount = SwapMath.computeMinSwapOutput({
                 sellTokenPrice: bridgeTokenOutPrice,
                 buyTokenPrice: toTokenPrice,
-                sellAmount: bridgedAmount,
+                sellAmount: bridgeTokenOut.amount,
                 maxSlippage: route.maxFastFinishSlippageBps
             });
 
@@ -597,26 +593,35 @@ contract DepositAddressManager is
         TokenAmount calldata leg1BridgeTokenOut,
         bytes32 leg1RelaySalt,
         uint256 leg1SourceChainId,
-        TokenAmount calldata leg2BridgeTokenOut,
         PriceData calldata leg1BridgeTokenOutPrice,
-        PriceData calldata leg2BridgeTokenInPrice,
+        TokenAmount calldata leg2BridgeTokenOut,
         bytes32 leg2RelaySalt,
+        PriceData calldata leg2BridgeTokenInPrice,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) external nonReentrant onlyRelayer {
         // Must be on hop chain (not source, not dest)
-        require(
-            block.chainid != leg1SourceChainId,
-            "DAM: hop on source chain"
-        );
+        require(block.chainid != leg1SourceChainId, "DAM: hop on source chain");
         require(block.chainid != route.toChainId, "DAM: hop on dest chain");
         require(route.escrow == address(this), "DAM: wrong escrow");
 
         // Validate prices
-        bool leg1PriceValid = route.pricer.validatePrice(leg1BridgeTokenOutPrice);
-        bool leg2PriceValid = route.pricer.validatePrice(leg2BridgeTokenInPrice);
+        bool leg1PriceValid = route.pricer.validatePrice(
+            leg1BridgeTokenOutPrice
+        );
+        bool leg2PriceValid = route.pricer.validatePrice(
+            leg2BridgeTokenInPrice
+        );
         require(leg1PriceValid, "DAM: leg1 price invalid");
         require(leg2PriceValid, "DAM: leg2 price invalid");
+        require(
+            leg1BridgeTokenOutPrice.token == address(leg1BridgeTokenOut.token),
+            "DAM: leg1 bridge token mismatch"
+        );
+        require(
+            leg2BridgeTokenInPrice.token == address(leg2BridgeTokenOut.token),
+            "DAM: leg2 bridge token mismatch"
+        );
 
         // Compute and deploy/fetch the hop receiver from leg 1
         address depositAddress = depositAddressFactory.getDepositAddress(route);

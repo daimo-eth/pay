@@ -1399,7 +1399,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        vm.expectRevert(bytes("DAM: bridge token out price invalid"));
+        vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
         manager.fastFinishIntent({
             route: route,
             calls: calls,
@@ -3193,7 +3193,7 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        vm.expectRevert(bytes("DAM: insufficient bridge"));
+        vm.expectRevert(bytes("DPCE: output below min"));
         vm.prank(RELAYER);
         manager.claimIntent({
             route: route,
@@ -3251,7 +3251,7 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        vm.expectRevert(bytes("DAM: bridge token out price invalid"));
+        vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
         vm.prank(RELAYER);
         manager.claimIntent({
             route: route,

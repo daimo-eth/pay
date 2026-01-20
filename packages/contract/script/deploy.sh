@@ -25,6 +25,8 @@ SCRIPTS=(
 
     # Deposit Address
     # "script/DeployDaimoPayPricer.s.sol"
+    # "script/DeployDAExecutor.s.sol"
+    # "script/DeployDepositAddressFactory.s.sol"
     # "script/DeployDepositAddressManager.s.sol"
 
     # Relayer
@@ -35,6 +37,9 @@ SCRIPTS=(
     # Utils
     # "script/DeployCreate3Factory.s.sol"
     # "script/DeployPayBalanceFactory.s.sol"
+
+    # Final call adapters
+    # "script/DeployHypercoreDepositAdapter.s.sol"
 )
 
 CHAINS=(

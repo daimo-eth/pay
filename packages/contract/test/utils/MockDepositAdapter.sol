@@ -5,7 +5,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice Mock adapter for testing finalCall functionality.
-///      and records the deposit for verification.
+/// @dev Uses approve-and-pull pattern.
 contract MockDepositAdapter {
     using SafeERC20 for IERC20;
 
@@ -21,13 +21,15 @@ contract MockDepositAdapter {
         token = _token;
     }
 
-    /// @notice Simulates a deposit using the contract's token balance.
+    /// @notice Simulates a deposit by pulling the full approved amount.
     function deposit(address recipient, uint32 destinationDex) external {
-        uint256 balance = token.balanceOf(address(this));
-        require(balance > 0, "MockAdapter: no balance");
+        // Pull the full approved amount from caller
+        uint256 amount = token.allowance(msg.sender, address(this));
+        require(amount > 0, "MockAdapter: no allowance");
+        token.safeTransferFrom(msg.sender, address(this), amount);
 
         lastRecipient = recipient;
-        lastAmount = balance;
+        lastAmount = amount;
         lastDestinationDex = destinationDex;
         depositCount++;
 
@@ -55,12 +57,14 @@ contract PartialDepositAdapter {
     }
 
     function deposit(address recipient, uint32) external {
-        uint256 balance = token.balanceOf(address(this));
-        require(balance > 0, "PartialAdapter: no balance");
+        // Pull the full approved amount from caller
+        uint256 amount = token.allowance(msg.sender, address(this));
+        require(amount > 0, "PartialAdapter: no allowance");
+        token.safeTransferFrom(msg.sender, address(this), amount);
 
         // Use only a portion of the tokens
-        uint256 amountToUse = (balance * usePercentBps) / 10_000;
-        uint256 amountToReturn = balance - amountToUse;
+        uint256 amountToUse = (amount * usePercentBps) / 10_000;
+        uint256 amountToReturn = amount - amountToUse;
 
         lastRecipient = recipient;
         lastAmountUsed = amountToUse;

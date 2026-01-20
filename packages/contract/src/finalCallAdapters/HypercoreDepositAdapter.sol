@@ -35,16 +35,18 @@ contract HypercoreDepositAdapter {
     }
 
     /// @notice Deposit to Hypercore on behalf of a recipient.
-    /// @dev Caller must transfer USDC to this contract before calling.
-    ///      Any remaining tokens after deposit are returned to the caller.
+    /// @dev Caller must approve this contract to spend USDC before calling.
+    ///      Pulls the full approved amount from the caller.
     /// @param recipient The address to credit on HyperCore
     /// @param destinationDex 0 = perps DEX, type(uint32).max = spot DEX
     function deposit(address recipient, uint32 destinationDex) external {
-        uint256 balance = usdc.balanceOf(address(this));
-        require(balance > 0, "HDA: no balance");
+        // Pull the full approved amount from caller
+        uint256 amount = usdc.allowance(msg.sender, address(this));
+        require(amount > 0, "HDA: no allowance");
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         // Approve and deposit to Hypercore
-        usdc.forceApprove(address(coreDepositWallet), balance);
-        coreDepositWallet.depositFor(recipient, balance, destinationDex);
+        usdc.forceApprove(address(coreDepositWallet), amount);
+        coreDepositWallet.depositFor(recipient, amount, destinationDex);
     }
 }

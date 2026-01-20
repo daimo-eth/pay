@@ -1834,10 +1834,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Calculate expected min output after slippage
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         // No swap calls needed (USDC -> USDC)
         Call[] memory calls = new Call[](0);
 
@@ -1848,7 +1844,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
 
@@ -1874,9 +1869,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         // Expect SameChainFinish event
@@ -1897,7 +1889,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -1915,9 +1906,6 @@ contract DepositAddressManagerTest is Test {
             USDC_PRICE,
             block.timestamp
         );
-
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
 
         Call[] memory calls = new Call[](0);
 
@@ -1940,7 +1928,6 @@ contract DepositAddressManagerTest is Test {
                 paymentToken: usdc,
                 paymentTokenPrice: paymentTokenPrice,
                 toTokenPrice: toTokenPrice,
-                toAmount: minOutput,
                 calls: calls
             });
 
@@ -1973,9 +1960,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: wrong chain"));
@@ -1985,7 +1969,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2010,9 +1993,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: wrong escrow"));
@@ -2022,7 +2002,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2062,7 +2041,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: PAYMENT_AMOUNT,
             calls: calls
         });
     }
@@ -2089,9 +2067,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: payment price invalid"));
@@ -2101,7 +2076,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2128,9 +2102,6 @@ contract DepositAddressManagerTest is Test {
         });
         toTokenPrice.signature = _signPriceData(toTokenPrice, 0xBAD);
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: toToken price invalid"));
@@ -2140,7 +2111,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2165,9 +2135,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: payment token mismatch"));
@@ -2177,7 +2144,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2203,9 +2169,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: toToken mismatch"));
@@ -2215,42 +2178,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
-            calls: calls
-        });
-    }
-
-    function test_sameChainFinishIntent_RevertsToAmountTooLow() public {
-        vm.chainId(DEST_CHAIN_ID);
-
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
-        _fundDepositAddress(vault, PAYMENT_AMOUNT);
-
-        PriceData memory paymentTokenPrice = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-        PriceData memory toTokenPrice = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-
-        // toAmount too low - well below minimum after slippage
-        uint256 tooLowAmount = 50e6;
-
-        Call[] memory calls = new Call[](0);
-
-        vm.expectRevert(bytes("DAM: toAmount low"));
-        vm.prank(RELAYER);
-        manager.sameChainFinishIntent({
-            route: route,
-            paymentToken: usdc,
-            paymentTokenPrice: paymentTokenPrice,
-            toTokenPrice: toTokenPrice,
-            toAmount: tooLowAmount,
             calls: calls
         });
     }
@@ -2273,9 +2200,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.expectRevert(bytes("DAM: not relayer"));
@@ -2285,7 +2209,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -2317,10 +2240,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Calculate minimum output after slippage
-        uint256 minOutput = (amount * (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) /
-            10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
@@ -2329,7 +2248,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
 
@@ -2362,9 +2280,6 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Calculate minimum output after slippage
-        uint256 minOutput = (PAYMENT_AMOUNT * (10_000 - slippageBps)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         vm.prank(RELAYER);
@@ -2373,7 +2288,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
 
@@ -3864,7 +3778,9 @@ contract DepositAddressManagerTest is Test {
 
     function test_startIntent_BlocksReentrancy() public {
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route using the reentrant token
         DepositAddressRoute memory route = _createRoute();
@@ -3921,7 +3837,9 @@ contract DepositAddressManagerTest is Test {
         vm.chainId(DEST_CHAIN_ID);
 
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route
         DepositAddressRoute memory route = _createRoute();
@@ -3976,7 +3894,9 @@ contract DepositAddressManagerTest is Test {
 
     function test_sameChainFinishIntent_BlocksReentrancy() public {
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route with same source and dest chain
         DepositAddressRoute memory route = _createRoute();
@@ -4011,7 +3931,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: evilToken,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: PAYMENT_AMOUNT,
             calls: finishCalls
         });
     }

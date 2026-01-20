@@ -508,7 +508,6 @@ contract DaimoPayRelayer is AccessControl {
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
-        uint256 toAmount,
         Call[] calldata calls,
         Call[] calldata postCalls,
         bytes32 swapAndTipHash
@@ -528,7 +527,6 @@ contract DaimoPayRelayer is AccessControl {
             paymentToken: paymentToken,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: toAmount,
             calls: calls
         });
 

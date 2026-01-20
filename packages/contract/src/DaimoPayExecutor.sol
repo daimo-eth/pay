@@ -139,29 +139,28 @@ contract DaimoPayExecutor is ReentrancyGuard {
     }
 
     /// Execute a final call using the full token balance.
-    /// Transfers tokens to finalCall.to, executes the call, and refunds any
+    /// Transfers tokens to target, executes the call, and refunds any
     /// remaining tokens to the refund address.
-    /// @param finalCall The contract call to execute
+    /// @param target The contract to call (receives tokens first)
+    /// @param callData The calldata to execute on target
     /// @param token The token to transfer and use for the call
     /// @param refundAddr Address to receive any remaining tokens
     /// @return success Whether the call succeeded
     function executeFinalCallWithBalance(
-        Call calldata finalCall,
+        address target,
+        bytes calldata callData,
         IERC20 token,
         address payable refundAddr
     ) external nonReentrant returns (bool success) {
         require(msg.sender == escrow, "DPCE: only escrow");
 
         // Transfer full balance to target (adapter) contract
-        TokenUtils.transferBalance({
-            token: token,
-            recipient: payable(finalCall.to)
-        });
+        TokenUtils.transferBalance({token: token, recipient: payable(target)});
 
-        // Call the adapter (adapter should return any remaining tokens)
-        (success, ) = finalCall.to.call{value: finalCall.value}(finalCall.data);
+        // Call the target (should return any remaining tokens)
+        (success, ) = target.call(callData);
 
-        // Refund any tokens returned by the adapter
+        // Refund any tokens returned by the target
         TokenUtils.transferBalance({token: token, recipient: refundAddr});
     }
 

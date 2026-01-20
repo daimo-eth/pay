@@ -824,7 +824,7 @@ contract DepositAddressManager is
         Call[] calldata calls,
         uint256 minOutputAmount
     ) internal returns (uint256 outputAmount) {
-        if (route.finalCall.data.length > 0) {
+        if (route.finalCallData.length > 0) {
             // Swap and send tokens directly to executor for final call
             outputAmount = executor.executeAndSendBalance({
                 calls: calls,
@@ -838,12 +838,13 @@ contract DepositAddressManager is
 
             // Execute final call with the balance present in executor
             bool success = executor.executeFinalCallWithBalance({
-                finalCall: route.finalCall,
+                target: route.toAddress,
+                callData: route.finalCallData,
                 token: route.toToken,
                 refundAddr: payable(route.refundAddress)
             });
 
-            emit FinalCallExecuted(depositAddress, route.finalCall.to, success);
+            emit FinalCallExecuted(depositAddress, route.toAddress, success);
         } else {
             // No final call - send directly to recipient
             outputAmount = executor.executeAndSendBalance({

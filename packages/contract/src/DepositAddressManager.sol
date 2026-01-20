@@ -291,7 +291,6 @@ contract DepositAddressManager is
     ///
     /// @param route        The DepositAddressRoute for the intent
     /// @param paymentToken Token to be used to pay the intent
-    /// @param toAmount     The amount of `toToken` to deliver to the recipient
     /// @param calls        Arbitrary swap calls to be executed by the executor
     ///                     Can be empty when assets are already `toToken`
     function sameChainFinishIntent(
@@ -299,7 +298,6 @@ contract DepositAddressManager is
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
-        uint256 toAmount, // TODO: remove - unused parameter
         Call[] calldata calls
     ) external nonReentrant onlyRelayer {
         require(route.toChainId == block.chainid, "DAM: wrong chain");
@@ -333,15 +331,13 @@ contract DepositAddressManager is
             recipient: payable(address(executor))
         });
 
-        // Validate the toAmount is above the minimum output required by the
-        // swap.
+        // Compute the minimum amount of toToken the user should receive.
         TokenAmount memory minSwapOutput = SwapMath.computeMinSwapOutput({
             sellTokenPrice: paymentTokenPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: paymentAmount,
             maxSlippage: route.maxSameChainFinishSlippageBps
         });
-        require(toAmount >= minSwapOutput.amount, "DAM: toAmount low");
 
         // Finish the intent and return any leftover tokens to the caller
         uint256 outputAmount = _finishIntent({

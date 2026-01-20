@@ -21,6 +21,10 @@ struct DepositAddressRoute {
     address toAddress;
     /// Recipient for refunds
     address refundAddress;
+    /// Optional contract call to execute after swapping to toToken. If
+    /// finalCall.data is empty, tokens are transferred to toAddress. Otherwise,
+    /// toToken is approved to finalCall.to and the call is executed.
+    Call finalCall;
     /// DepositAddressManager escrow contract
     address escrow;
     /// DepositAddressBridger contract

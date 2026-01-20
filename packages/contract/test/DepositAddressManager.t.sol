@@ -25,6 +25,10 @@ import {Call} from "../src/DaimoPayExecutor.sol";
 import {TestUSDC} from "./utils/DummyUSDC.sol";
 import {DummyDepositAddressBridger} from "./utils/DummyDepositBridger.sol";
 import {ReentrantToken} from "./utils/ReentrantToken.sol";
+import {
+    MockDepositAdapter,
+    PartialDepositAdapter
+} from "./utils/MockDepositAdapter.sol";
 
 contract DepositAddressManagerTest is Test {
     // ---------------------------------------------------------------------
@@ -3864,7 +3868,9 @@ contract DepositAddressManagerTest is Test {
 
     function test_startIntent_BlocksReentrancy() public {
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route using the reentrant token
         DepositAddressRoute memory route = _createRoute();
@@ -3921,7 +3927,9 @@ contract DepositAddressManagerTest is Test {
         vm.chainId(DEST_CHAIN_ID);
 
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route
         DepositAddressRoute memory route = _createRoute();
@@ -3976,7 +3984,9 @@ contract DepositAddressManagerTest is Test {
 
     function test_sameChainFinishIntent_BlocksReentrancy() public {
         // Deploy malicious token
-        ReentrantToken evilToken = new ReentrantToken(payable(address(manager)));
+        ReentrantToken evilToken = new ReentrantToken(
+            payable(address(manager))
+        );
 
         // Create route with same source and dest chain
         DepositAddressRoute memory route = _createRoute();
@@ -4609,5 +4619,283 @@ contract DepositAddressManagerTest is Test {
             calls: new Call[](0),
             bridgeExtraData: ""
         });
+    }
+
+    // ---------------------------------------------------------------------
+    // finalCall - Success cases
+    // ---------------------------------------------------------------------
+
+    function test_sameChainFinishIntent_WithFinalCall_Success() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        // Deploy mock adapter
+        MockDepositAdapter adapter = new MockDepositAdapter(usdc);
+
+        // Create route with finalCallData - toAddress is now the adapter
+        DepositAddressRoute memory route = DepositAddressRoute({
+            toChainId: DEST_CHAIN_ID,
+            toToken: usdc,
+            toAddress: address(adapter),
+            refundAddress: REFUND_ADDRESS,
+            finalCallData: abi.encodeCall(
+                MockDepositAdapter.deposit,
+                (RECIPIENT, 0)
+            ),
+            escrow: address(manager),
+            bridger: IDepositAddressBridger(address(bridger)),
+            pricer: pricer,
+            maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
+            maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+            maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
+            expiresAt: block.timestamp + 1000
+        });
+
+        DepositAddress vault = factory.createDepositAddress(route);
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        uint256 minOutput = (PAYMENT_AMOUNT *
+            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        Call[] memory calls = new Call[](0);
+
+        // Execute sameChainFinishIntent with finalCall
+        vm.prank(RELAYER);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: usdc,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: minOutput,
+            calls: calls
+        });
+
+        // Verify adapter received the tokens
+        assertEq(usdc.balanceOf(address(adapter)), PAYMENT_AMOUNT);
+        assertEq(adapter.lastRecipient(), RECIPIENT);
+        assertEq(adapter.lastAmount(), PAYMENT_AMOUNT);
+        assertEq(adapter.lastDestinationDex(), 0);
+        assertEq(adapter.depositCount(), 1);
+
+        // Verify recipient did NOT receive tokens (they went to adapter)
+        assertEq(usdc.balanceOf(RECIPIENT), 0);
+    }
+
+    function test_sameChainFinishIntent_WithFinalCall_EmitsFinalCallExecutedEvent()
+        public
+    {
+        vm.chainId(DEST_CHAIN_ID);
+
+        MockDepositAdapter adapter = new MockDepositAdapter(usdc);
+
+        DepositAddressRoute memory route = DepositAddressRoute({
+            toChainId: DEST_CHAIN_ID,
+            toToken: usdc,
+            toAddress: address(adapter),
+            refundAddress: REFUND_ADDRESS,
+            finalCallData: abi.encodeCall(
+                MockDepositAdapter.deposit,
+                (RECIPIENT, 0)
+            ),
+            escrow: address(manager),
+            bridger: IDepositAddressBridger(address(bridger)),
+            pricer: pricer,
+            maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
+            maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+            maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
+            expiresAt: block.timestamp + 1000
+        });
+
+        DepositAddress vault = factory.createDepositAddress(route);
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        uint256 minOutput = (PAYMENT_AMOUNT *
+            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        Call[] memory calls = new Call[](0);
+
+        address depositAddress = factory.getDepositAddress(route);
+
+        // Expect FinalCallExecuted event
+        vm.expectEmit(true, true, false, true);
+        emit DepositAddressManager.FinalCallExecuted(
+            depositAddress,
+            address(adapter),
+            true
+        );
+
+        vm.prank(RELAYER);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: usdc,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: minOutput,
+            calls: calls
+        });
+    }
+
+    function test_sameChainFinishIntent_WithFinalCall_PartialUseRefundsRemainder()
+        public
+    {
+        vm.chainId(DEST_CHAIN_ID);
+
+        // Deploy adapter that only uses 50% of tokens
+        PartialDepositAdapter partialAdapter = new PartialDepositAdapter(
+            usdc,
+            5000 // 50%
+        );
+
+        DepositAddressRoute memory route = DepositAddressRoute({
+            toChainId: DEST_CHAIN_ID,
+            toToken: usdc,
+            toAddress: address(partialAdapter),
+            refundAddress: REFUND_ADDRESS,
+            finalCallData: abi.encodeCall(
+                PartialDepositAdapter.deposit,
+                (RECIPIENT, 0)
+            ),
+            escrow: address(manager),
+            bridger: IDepositAddressBridger(address(bridger)),
+            pricer: pricer,
+            maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
+            maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+            maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
+            expiresAt: block.timestamp + 1000
+        });
+
+        DepositAddress da = factory.createDepositAddress(route);
+        _fundDepositAddress(da, PAYMENT_AMOUNT);
+
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        uint256 minOutput = (PAYMENT_AMOUNT *
+            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
+
+        Call[] memory calls = new Call[](0);
+
+        address depositAddress = factory.getDepositAddress(route);
+
+        vm.expectEmit(true, true, false, true);
+        emit DepositAddressManager.FinalCallExecuted(
+            depositAddress,
+            address(partialAdapter),
+            true
+        );
+
+        vm.prank(RELAYER);
+        manager.sameChainFinishIntent({
+            route: route,
+            paymentToken: usdc,
+            paymentTokenPrice: paymentTokenPrice,
+            toTokenPrice: toTokenPrice,
+            toAmount: minOutput,
+            calls: calls
+        });
+
+        // Verify adapter used 50% of tokens
+        uint256 expectedUsed = PAYMENT_AMOUNT / 2;
+        uint256 expectedRefund = PAYMENT_AMOUNT - expectedUsed;
+
+        assertEq(partialAdapter.lastAmountUsed(), expectedUsed);
+        assertEq(partialAdapter.lastAmountReturned(), expectedRefund);
+
+        // Verify unused tokens were refunded to refundAddress
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), expectedRefund);
+
+        // Verify adapter kept the used portion
+        assertEq(usdc.balanceOf(address(partialAdapter)), expectedUsed);
+    }
+
+    function test_fastFinishIntent_WithFinalCall_Success() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        MockDepositAdapter adapter = new MockDepositAdapter(usdc);
+
+        DepositAddressRoute memory route = DepositAddressRoute({
+            toChainId: DEST_CHAIN_ID,
+            toToken: usdc,
+            toAddress: address(adapter),
+            refundAddress: REFUND_ADDRESS,
+            finalCallData: abi.encodeCall(
+                MockDepositAdapter.deposit,
+                (RECIPIENT, type(uint32).max)
+            ),
+            escrow: address(manager),
+            bridger: IDepositAddressBridger(address(bridger)),
+            pricer: pricer,
+            maxStartSlippageBps: MAX_START_SLIPPAGE_BPS,
+            maxFastFinishSlippageBps: MAX_FAST_FINISH_SLIPPAGE_BPS,
+            maxSameChainFinishSlippageBps: MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS,
+            expiresAt: block.timestamp + 1000
+        });
+
+        // Relayer sends tokens directly to escrow
+        usdc.transfer(address(manager), PAYMENT_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: PAYMENT_AMOUNT
+        });
+
+        Call[] memory calls = new Call[](0);
+
+        vm.prank(RELAYER);
+        manager.fastFinishIntent({
+            route: route,
+            calls: calls,
+            token: usdc,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: keccak256("test-salt"),
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+
+        // Verify adapter received the tokens
+        assertEq(usdc.balanceOf(address(adapter)), PAYMENT_AMOUNT);
+        assertEq(adapter.lastRecipient(), RECIPIENT);
+        assertEq(adapter.lastDestinationDex(), type(uint32).max);
     }
 }

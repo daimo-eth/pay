@@ -3758,6 +3758,532 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
+    // refundReceiverIntent - Success cases
+    // ---------------------------------------------------------------------
+
+    function test_refundReceiverIntent_Success() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund the receiver address (simulating bridged tokens that were never claimed)
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund as relayer
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+        assertEq(usdc.balanceOf(receiverAddress), 0);
+    }
+
+    function test_refundReceiverIntent_EmitsRefundReceiverEvent() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund the receiver address
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Prepare expected amounts
+        uint256[] memory expectedAmounts = new uint256[](1);
+        expectedAmounts[0] = BRIDGE_AMOUNT;
+
+        // Expect the RefundReceiver event
+        vm.expectEmit(true, true, false, true, address(manager));
+        emit DepositAddressManager.RefundReceiver({
+            depositAddress: depositAddress,
+            receiverAddress: receiverAddress,
+            route: route,
+            intent: intent,
+            refundAddress: REFUND_ADDRESS,
+            tokens: tokens,
+            amounts: expectedAmounts
+        });
+
+        // Execute refund as relayer
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_refundReceiverIntent_MultipleTokens() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Deploy a second token
+        TestUSDC usdc2 = new TestUSDC();
+
+        // Fund the receiver with both tokens
+        uint256 amount1 = BRIDGE_AMOUNT;
+        uint256 amount2 = 50e6;
+        usdc.transfer(receiverAddress, amount1);
+        usdc2.transfer(receiverAddress, amount2);
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array with both tokens
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = IERC20(address(usdc2));
+
+        // Execute refund as relayer
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received both tokens
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), amount1);
+        assertEq(usdc2.balanceOf(REFUND_ADDRESS), amount2);
+        assertEq(usdc.balanceOf(receiverAddress), 0);
+        assertEq(usdc2.balanceOf(receiverAddress), 0);
+    }
+
+    function test_refundReceiverIntent_AtExactExpiration() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund the receiver address
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Warp to exact expiration timestamp
+        vm.warp(route.expiresAt);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund as relayer - should succeed at exact expiration
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+    }
+
+    function test_refundReceiverIntent_ZeroBalance() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Don't fund the receiver - it has zero balance
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund as relayer - should succeed with zero balance
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify no funds transferred (no revert)
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // refundReceiverIntent - Revert cases
+    // ---------------------------------------------------------------------
+
+    function test_refundReceiverIntent_RevertsNotExpired() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund the receiver address
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Don't warp past expiration
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Expect revert
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: not expired");
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_refundReceiverIntent_RevertsWrongEscrow() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        route.escrow = address(0x1234); // Wrong escrow
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Expect revert
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: wrong escrow");
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_refundReceiverIntent_RevertsNotRelayer() public {
+        // Switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        // Compute receiver address
+        DepositAddressIntent memory intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address receiverAddress, ) = manager.computeReceiverAddress(intent);
+
+        // Fund the receiver address
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Expect revert when called by non-relayer
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("DAM: not relayer");
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_refundReceiverIntent_HopChainRefund() public {
+        // Test refunding tokens stuck on a hop chain after expiry
+        // Scenario: source -> hop bridge completed, but hop -> dest never happened
+
+        // Switch to hop chain
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        // Leg 1: source -> hop (simulating Scroll -> Arbitrum)
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt-refund");
+
+        // Compute hop receiver address (where leg1 bridged tokens would arrive)
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+
+        // Fund the hop receiver (simulating leg1 bridge arrival that was never hopped)
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiration - the hop never happened
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund from the hop receiver
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            relaySalt: leg1RelaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+        assertEq(usdc.balanceOf(hopReceiverAddress), 0);
+    }
+
+    function test_refundReceiverIntent_Leg2ReceiverRefund() public {
+        // Test refunding tokens stuck on the destination chain after a hop
+        // Scenario: source -> hop -> dest bridge completed, but never claimed
+
+        // First, execute the hop to create leg2 receiver
+        vm.chainId(HOP_CHAIN_ID);
+
+        DepositAddressRoute memory route = _createRoute();
+        address depositAddress = factory.getDepositAddress(route);
+
+        // Leg 1: source -> hop
+        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg1RelaySalt = keccak256("leg1-salt-leg2refund");
+
+        // Leg 2: hop -> dest
+        TokenAmount memory leg2BridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 leg2RelaySalt = keccak256("leg2-salt-leg2refund");
+
+        // Compute and fund leg1 receiver
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+            leg1Intent
+        );
+        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+
+        // Execute the hop
+        PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory leg2BridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        Call[] memory calls = new Call[](0);
+
+        vm.prank(RELAYER);
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: SOURCE_CHAIN_ID,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            leg2RelaySalt: leg2RelaySalt,
+            calls: calls,
+            bridgeExtraData: ""
+        });
+
+        // Now switch to destination chain
+        vm.chainId(DEST_CHAIN_ID);
+
+        // Compute leg2 receiver address
+        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg2RelaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
+        });
+        (address destReceiverAddress, ) = manager.computeReceiverAddress(
+            leg2Intent
+        );
+
+        // Simulate leg2 bridge arrival (tokens land on dest chain but never claimed)
+        usdc.transfer(destReceiverAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiration
+        vm.warp(route.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund from the destination receiver
+        vm.prank(RELAYER);
+        manager.refundReceiverIntent({
+            route: route,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            relaySalt: leg2RelaySalt,
+            sourceChainId: HOP_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+        assertEq(usdc.balanceOf(destReceiverAddress), 0);
+    }
+
+    // ---------------------------------------------------------------------
     // isRouteExpired - View function tests
     // ---------------------------------------------------------------------
 
@@ -4591,7 +5117,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
 
@@ -4666,7 +5191,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
     }
@@ -4734,7 +5258,6 @@ contract DepositAddressManagerTest is Test {
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
-            toAmount: minOutput,
             calls: calls
         });
 

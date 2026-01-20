@@ -23,7 +23,6 @@ contract DaimoPayRelayer is AccessControl {
     bytes32 private constant NO_APPROVED_HASH = bytes32(uint256(1));
 
     /// @param requiredTokenIn (token, amount) the swap must receive as input
-    /// @param suppliedAmountIn amount the user actually sent
     /// @param requiredTokenOut (token, amount) the swap is expected to output
     /// @param maxPreTip ceiling on input-side tip
     /// @param maxPostTip ceiling on output-side tip
@@ -639,6 +638,56 @@ contract DaimoPayRelayer is AccessControl {
         });
 
         // Make post-claim calls
+        for (uint256 i = 0; i < postCalls.length; ++i) {
+            Call calldata c = postCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: postCall failed");
+        }
+
+        approvedSwapAndTipHash = NO_APPROVED_HASH;
+    }
+
+    /// Hop a Deposit Address intent: pull from hop receiver, bridge to dest.
+    function daHopIntent(
+        Call[] calldata preCalls,
+        DepositAddressManager manager,
+        DepositAddressRoute calldata route,
+        TokenAmount calldata leg1BridgeTokenOut,
+        bytes32 leg1RelaySalt,
+        uint256 leg1SourceChainId,
+        PriceData calldata leg1BridgeTokenOutPrice,
+        TokenAmount calldata leg2BridgeTokenOut,
+        bytes32 leg2RelaySalt,
+        PriceData calldata leg2BridgeTokenInPrice,
+        Call[] calldata calls,
+        bytes calldata bridgeExtraData,
+        Call[] calldata postCalls,
+        bytes32 swapAndTipHash
+    ) public payable onlyRole(DEFAULT_ADMIN_ROLE) {
+        approvedSwapAndTipHash = swapAndTipHash;
+
+        // Make pre-hop calls
+        for (uint256 i = 0; i < preCalls.length; ++i) {
+            Call calldata c = preCalls[i];
+            (bool success, ) = c.to.call{value: c.value}(c.data);
+            require(success, "DPR: preCall failed");
+        }
+
+        // Execute the hop intent
+        manager.hopIntent({
+            route: route,
+            leg1BridgeTokenOut: leg1BridgeTokenOut,
+            leg1RelaySalt: leg1RelaySalt,
+            leg1SourceChainId: leg1SourceChainId,
+            leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
+            leg2RelaySalt: leg2RelaySalt,
+            leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            calls: calls,
+            bridgeExtraData: bridgeExtraData
+        });
+
+        // Make post-hop calls
         for (uint256 i = 0; i < postCalls.length; ++i) {
             Call calldata c = postCalls[i];
             (bool success, ) = c.to.call{value: c.value}(c.data);

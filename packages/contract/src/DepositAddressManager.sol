@@ -113,6 +113,17 @@ contract DepositAddressManager is
         IERC20[] tokens,
         uint256[] amounts
     );
+    event Hop(
+        address indexed depositAddress,
+        address indexed hopReceiverAddress,
+        address indexed destReceiverAddress,
+        DepositAddressRoute route,
+        DepositAddressIntent leg1Intent,
+        DepositAddressIntent leg2Intent,
+        uint256 hopAmount,
+        uint256 leg1BridgeTokenOutPriceUsd,
+        uint256 leg2BridgeTokenInPriceUsd
+    );
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -270,8 +281,7 @@ contract DepositAddressManager is
             toChainId: route.toChainId,
             toAddress: receiverAddress,
             bridgeTokenOut: bridgeTokenOut,
-            // Refund to the vault so that startIntent can be retried
-            refundAddress: address(vault),
+            refundAddress: route.refundAddress,
             extraData: bridgeExtraData
         });
 
@@ -393,7 +403,7 @@ contract DepositAddressManager is
         bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
         require(
             bridgeTokenOutPriceValid,
-            "DAM: bridge token out price invalid"
+            "DAM: bridgeTokenOut price invalid"
         );
         require(toTokenPriceValid, "DAM: toToken price invalid");
         require(
@@ -479,9 +489,7 @@ contract DepositAddressManager is
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: sourceChainId
         });
-        (address receiverAddress, bytes32 recvSalt) = computeReceiverAddress(
-            intent
-        );
+        (address receiverAddress, ) = computeReceiverAddress(intent);
 
         // Check the recipient for this intent.
         address recipient = receiverToRecipient[receiverAddress];
@@ -489,23 +497,9 @@ contract DepositAddressManager is
         // Mark intent as claimed
         receiverToRecipient[receiverAddress] = ADDR_MAX;
 
-        // Deploy DepositAddressReceiver if necessary then sweep tokens.
-        DepositAddressReceiver receiver;
-        if (receiverAddress.code.length == 0) {
-            receiver = new DepositAddressReceiver{salt: recvSalt}();
-            require(receiverAddress == address(receiver), "DAM: receiver");
-        } else {
-            receiver = DepositAddressReceiver(payable(receiverAddress));
-        }
-
-        // Pull bridged tokens from the deterministic receiver into this contract.
-        uint256 bridgedAmount = receiver.pull(bridgeTokenOut.token);
-
-        // Check that sufficient amount was bridged.
-        require(
-            bridgedAmount >= bridgeTokenOut.amount,
-            "DAM: insufficient bridge"
-        );
+        // Deploy receiver and pull bridged tokens
+        uint256 bridgedAmount;
+        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(intent);
 
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
@@ -516,7 +510,7 @@ contract DepositAddressManager is
             bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
             require(
                 bridgeTokenOutPriceValid,
-                "DAM: bridge token out price invalid"
+                "DAM: bridgeTokenOut price invalid"
             );
             require(toTokenPriceValid, "DAM: toToken price invalid");
             require(
@@ -540,10 +534,13 @@ contract DepositAddressManager is
                 amount: bridgedAmount
             });
 
+            // Compute the minimum amount of toToken that is required to
+            // complete the intent. This uses the promised bridgeTokenOut, even
+            // if the actual bridgedAmount is slightly less.
             TokenAmount memory toTokenAmount = SwapMath.computeMinSwapOutput({
                 sellTokenPrice: bridgeTokenOutPrice,
                 buyTokenPrice: toTokenPrice,
-                sellAmount: bridgedAmount,
+                sellAmount: bridgeTokenOut.amount,
                 maxSlippage: route.maxFastFinishSlippageBps
             });
 
@@ -572,6 +569,158 @@ contract DepositAddressManager is
             outputAmount: outputAmount,
             bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
             toTokenPriceUsd: toTokenPrice.priceUsd
+        });
+    }
+
+    /// @notice Continues a multi-hop transfer by pulling funds from a hop chain
+    ///         receiver and bridging to the final destination chain.
+    /// @dev Must be called on the hop chain. Pulls funds from the receiver
+    ///      created by the source→hop leg, then initiates hop→dest bridge.
+    /// @param route               The DepositAddressRoute for the intent
+    /// @param leg1BridgeTokenOut  Token and amount that was bridged in leg 1
+    ///                            (source → hop)
+    /// @param leg1RelaySalt       Relay salt used in leg 1
+    /// @param leg1SourceChainId   Source chain ID for leg 1
+    /// @param leg2BridgeTokenOut  Token and amount to bridge in leg 2 (hop → dest)
+    /// @param leg1BridgeTokenOutPrice  Price data for leg 1 bridge token out
+    /// @param leg2BridgeTokenInPrice   Price data for leg 2 bridge token in
+    /// @param leg2RelaySalt       Relay salt for leg 2
+    /// @param calls               Swap calls to convert leg 1 token to leg 2
+    ///                            bridge input token
+    /// @param bridgeExtraData     Additional data for the hop → dest bridge
+    function hopIntent(
+        DepositAddressRoute calldata route,
+        TokenAmount calldata leg1BridgeTokenOut,
+        bytes32 leg1RelaySalt,
+        uint256 leg1SourceChainId,
+        PriceData calldata leg1BridgeTokenOutPrice,
+        TokenAmount calldata leg2BridgeTokenOut,
+        bytes32 leg2RelaySalt,
+        PriceData calldata leg2BridgeTokenInPrice,
+        Call[] calldata calls,
+        bytes calldata bridgeExtraData
+    ) external nonReentrant onlyRelayer {
+        // Must be on hop chain (not source, not dest)
+        require(block.chainid != leg1SourceChainId, "DAM: hop on source chain");
+        require(block.chainid != route.toChainId, "DAM: hop on dest chain");
+        require(route.escrow == address(this), "DAM: wrong escrow");
+
+        // Validate prices
+        bool leg1PriceValid = route.pricer.validatePrice(
+            leg1BridgeTokenOutPrice
+        );
+        bool leg2PriceValid = route.pricer.validatePrice(
+            leg2BridgeTokenInPrice
+        );
+        require(leg1PriceValid, "DAM: leg1 price invalid");
+        require(leg2PriceValid, "DAM: leg2 price invalid");
+        require(
+            leg1BridgeTokenOutPrice.token == address(leg1BridgeTokenOut.token),
+            "DAM: leg1 bridge token mismatch"
+        );
+        require(
+            leg2BridgeTokenInPrice.token == address(leg2BridgeTokenOut.token),
+            "DAM: leg2 bridge token mismatch"
+        );
+
+        // Compute and deploy/fetch the hop receiver from leg 1
+        address depositAddress = depositAddressFactory.getDepositAddress(route);
+        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: leg1SourceChainId
+        });
+        (address hopReceiverAddress, ) = computeReceiverAddress(leg1Intent);
+
+        // Check that leg1 hasn't been claimed already
+        address recipient = receiverToRecipient[hopReceiverAddress];
+        require(recipient != ADDR_MAX, "DAM: already claimed");
+        // Mark as claimed to prevent double-processing
+        receiverToRecipient[hopReceiverAddress] = ADDR_MAX;
+
+        // Deploy receiver and pull funds
+        uint256 bridgedAmount;
+        (hopReceiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
+            leg1Intent
+        );
+
+        // Compute leg 2 receiver address
+        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
+            depositAddress: depositAddress,
+            relaySalt: leg2RelaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: block.chainid // hop chain is source for leg 2
+        });
+        (address destReceiverAddress, ) = computeReceiverAddress(leg2Intent);
+
+        // Ensure leg 2 receiver hasn't been used
+        require(!receiverUsed[destReceiverAddress], "DAM: receiver used");
+        receiverUsed[destReceiverAddress] = true;
+
+        // Get bridge input requirements for leg 2
+        (address bridgeTokenIn, uint256 inAmount) = route
+            .bridger
+            .getBridgeTokenIn({
+                toChainId: route.toChainId,
+                bridgeTokenOut: leg2BridgeTokenOut
+            });
+        require(
+            bridgeTokenIn == address(leg2BridgeTokenInPrice.token),
+            "DAM: bridge token mismatch"
+        );
+
+        // Validate swap output meets minimum requirements
+        TokenAmount memory minSwapOutput = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: leg1BridgeTokenOutPrice,
+            buyTokenPrice: leg2BridgeTokenInPrice,
+            sellAmount: leg1BridgeTokenOut.amount,
+            maxSlippage: route.maxStartSlippageBps
+        });
+        require(inAmount >= minSwapOutput.amount, "DAM: bridge input low");
+
+        // Send to executor, run swap calls, get bridge input
+        TokenUtils.transfer({
+            token: leg1BridgeTokenOut.token,
+            recipient: payable(address(executor)),
+            amount: bridgedAmount
+        });
+
+        TokenAmount[] memory expectedOutput = new TokenAmount[](1);
+        expectedOutput[0] = TokenAmount({
+            token: IERC20(bridgeTokenIn),
+            amount: inAmount
+        });
+        executor.execute({
+            calls: calls,
+            expectedOutput: expectedOutput,
+            recipient: payable(address(this)),
+            surplusRecipient: payable(msg.sender)
+        });
+
+        // Approve bridger and initiate leg 2 bridge
+        IERC20(bridgeTokenIn).forceApprove({
+            spender: address(route.bridger),
+            value: inAmount
+        });
+        route.bridger.sendToChain({
+            toChainId: route.toChainId,
+            toAddress: destReceiverAddress,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            refundAddress: route.refundAddress,
+            extraData: bridgeExtraData
+        });
+
+        emit Hop({
+            depositAddress: depositAddress,
+            hopReceiverAddress: hopReceiverAddress,
+            destReceiverAddress: destReceiverAddress,
+            route: route,
+            leg1Intent: leg1Intent,
+            leg2Intent: leg2Intent,
+            hopAmount: bridgedAmount,
+            leg1BridgeTokenOutPriceUsd: leg1BridgeTokenOutPrice.priceUsd,
+            leg2BridgeTokenInPriceUsd: leg2BridgeTokenInPrice.priceUsd
         });
     }
 
@@ -635,6 +784,29 @@ contract DepositAddressManager is
     // ---------------------------------------------------------------------
     // Internal helpers
     // ---------------------------------------------------------------------
+
+    /// @dev Deploy a DepositAddressReceiver if necessary and pull funds.
+    /// @param intent The bridge intent used to compute receiver address
+    /// @return receiverAddress The receiver contract address
+    /// @return bridgedAmount The amount pulled from the receiver
+    function _deployAndPullFromReceiver(
+        DepositAddressIntent memory intent
+    ) internal returns (address receiverAddress, uint256 bridgedAmount) {
+        bytes32 recvSalt;
+        (receiverAddress, recvSalt) = computeReceiverAddress(intent);
+
+        // Deploy receiver if necessary
+        DepositAddressReceiver receiver;
+        if (receiverAddress.code.length == 0) {
+            receiver = new DepositAddressReceiver{salt: recvSalt}();
+            require(receiverAddress == address(receiver), "DAM: receiver");
+        } else {
+            receiver = DepositAddressReceiver(payable(receiverAddress));
+        }
+
+        // Pull funds from the receiver
+        bridgedAmount = receiver.pull(intent.bridgeTokenOut.token);
+    }
 
     /// @dev Internal helper that completes an intent by executing swaps,
     ///      delivering toToken to the recipient, and handling any surplus.

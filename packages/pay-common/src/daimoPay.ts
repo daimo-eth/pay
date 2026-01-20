@@ -250,7 +250,7 @@ export type DaimoPayHydratedOrder = {
   hopChainId: number | null;
   /** Transaction hash for hop start */
   hopStartTxHash: Hex | null;
-  /** If set, indicates slow finish path with estimated completion time. Unix timestamp. */
+  /** If set, indicates slow finish with estimated completion time. Unix timestamp. */
   finishSlowEta: number | null;
 };
 

@@ -119,8 +119,8 @@ contract DepositAddressManager is
         DepositAddressRoute route,
         DepositAddressIntent intent,
         address refundAddress,
-        IERC20 token,
-        uint256 amount
+        IERC20[] tokens,
+        uint256[] amounts
     );
     event Hop(
         address indexed depositAddress,
@@ -775,7 +775,7 @@ contract DepositAddressManager is
     ///        compute receiver address)
     /// @param relaySalt Unique salt from the original bridge transfer
     /// @param sourceChainId The chain ID where the bridge transfer originated
-    /// @param refundToken The token to refund from the receiver
+    /// @param tokens The tokens to refund from the receiver
     /// @dev Refunds are only allowed after the route expires. This allows
     ///      recovery of bridged funds that were never claimed or fast-finished.
     function refundReceiverIntent(
@@ -783,7 +783,7 @@ contract DepositAddressManager is
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         uint256 sourceChainId,
-        IERC20 refundToken
+        IERC20[] calldata tokens
     ) external nonReentrant {
         require(route.escrow == address(this), "DAM: wrong escrow");
         require(isRouteExpired(route), "DAM: not expired");
@@ -797,18 +797,20 @@ contract DepositAddressManager is
             sourceChainId: sourceChainId
         });
 
-        // Deploy receiver if needed and pull funds to this contract
-        (address receiverAddress, uint256 amount) = _deployAndPullFromReceiver(
-            intent,
-            refundToken
-        );
-
-        // Transfer the pulled funds to the refund address
-        TokenUtils.transfer({
-            token: refundToken,
-            recipient: payable(route.refundAddress),
-            amount: amount
-        });
+        // Pull and transfer each token to the refund address
+        address receiverAddress;
+        uint256[] memory amounts = new uint256[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            (receiverAddress, amounts[i]) = _deployAndPullFromReceiver(
+                intent,
+                tokens[i]
+            );
+            TokenUtils.transfer({
+                token: tokens[i],
+                recipient: payable(route.refundAddress),
+                amount: amounts[i]
+            });
+        }
 
         emit RefundReceiver({
             depositAddress: da,
@@ -816,8 +818,8 @@ contract DepositAddressManager is
             route: route,
             intent: intent,
             refundAddress: route.refundAddress,
-            token: refundToken,
-            amount: amount
+            tokens: tokens,
+            amounts: amounts
         });
     }
 

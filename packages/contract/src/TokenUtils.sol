@@ -43,6 +43,7 @@ library TokenUtils {
         address payable recipient,
         uint256 amount
     ) internal {
+        if (recipient == address(this)) return; // No-op: tokens already here
         if (address(token) != address(0)) {
             token.safeTransfer({to: recipient, value: amount});
         } else {
@@ -58,6 +59,7 @@ library TokenUtils {
         address payable recipient,
         uint256 amount
     ) internal returns (bool) {
+        if (recipient == address(this)) return true; // No-op: tokens already here
         if (address(token) != address(0)) {
             return token.trySafeTransfer({to: recipient, value: amount});
         } else {

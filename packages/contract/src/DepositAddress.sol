@@ -6,7 +6,6 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import {Call} from "./DaimoPayExecutor.sol";
 import "./TokenUtils.sol";
 import "./interfaces/IDepositAddressBridger.sol";
 import "./interfaces/IDaimoPayPricer.sol";
@@ -17,10 +16,15 @@ struct DepositAddressRoute {
     uint256 toChainId;
     /// Final token received on destination chain
     IERC20 toToken;
-    /// Beneficiary address on destination chain
+    /// Destination address. If finalCallData is empty, tokens are transferred
+    /// here. Otherwise, tokens are transferred here and a call is made with
+    /// finalCallData (e.g., toAddress is an adapter contract).
     address toAddress;
     /// Recipient for refunds
     address refundAddress;
+    /// Optional calldata to execute on toAddress after swapping to toToken.
+    /// If empty, tokens are simply transferred to toAddress.
+    bytes finalCallData;
     /// DepositAddressManager escrow contract
     address escrow;
     /// DepositAddressBridger contract

@@ -124,6 +124,11 @@ contract DepositAddressManager is
         uint256 leg1BridgeTokenOutPriceUsd,
         uint256 leg2BridgeTokenInPriceUsd
     );
+    event FinalCallExecuted(
+        address indexed depositAddress,
+        address indexed target,
+        bool success
+    );
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -165,8 +170,8 @@ contract DepositAddressManager is
     // ---------------------------------------------------------------------
 
     /// @notice Initiates a cross-chain transfer by pulling funds from the
-    ///         Universal Address vault, executing swaps if needed, and
-    ///         initiating a bridge to the destination chain.
+    ///         deposit address, executing swaps if needed, and initiating a
+    ///         bridge transfer to the destination chain.
     /// @dev Must be called on the source chain. Creates a deterministic
     ///      receiver address on the destination chain and bridges the
     ///      specified token amount to it.
@@ -208,13 +213,11 @@ contract DepositAddressManager is
             "DAM: payment token mismatch"
         );
 
-        // Deploy (or fetch) deposit address vault
-        DepositAddress vault = depositAddressFactory.createDepositAddress(
-            route
-        );
+        // Deploy (or fetch) deposit address
+        DepositAddress da = depositAddressFactory.createDepositAddress(route);
 
         DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: address(vault),
+            depositAddress: address(da),
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: block.chainid
@@ -240,7 +243,7 @@ contract DepositAddressManager is
         );
 
         // Send payment token to executor
-        uint256 paymentAmount = vault.sendBalance({
+        uint256 paymentAmount = da.sendBalance({
             route: route,
             token: paymentToken,
             recipient: payable(address(executor))
@@ -286,7 +289,7 @@ contract DepositAddressManager is
         });
 
         emit Start({
-            depositAddress: address(vault),
+            depositAddress: address(da),
             receiverAddress: receiverAddress,
             route: route,
             intent: intent,
@@ -330,12 +333,10 @@ contract DepositAddressManager is
         );
 
         // Deploy (or fetch) the Deposit Address for this route.
-        DepositAddress vault = depositAddressFactory.createDepositAddress(
-            route
-        );
+        DepositAddress da = depositAddressFactory.createDepositAddress(route);
 
-        // Pull specified token balances from the vault into the executor.
-        uint256 paymentAmount = vault.sendBalance({
+        // Pull specified token balances from the da into the executor.
+        uint256 paymentAmount = da.sendBalance({
             route: route,
             token: paymentToken,
             recipient: payable(address(executor))
@@ -351,13 +352,14 @@ contract DepositAddressManager is
 
         // Finish the intent and return any leftover tokens to the caller
         uint256 outputAmount = _finishIntent({
+            depositAddress: address(da),
             route: route,
             calls: calls,
             minOutputAmount: minSwapOutput.amount
         });
 
         emit SameChainFinish({
-            depositAddress: address(vault),
+            depositAddress: address(da),
             route: route,
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
@@ -397,10 +399,7 @@ contract DepositAddressManager is
             bridgeTokenOutPrice
         );
         bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
-        require(
-            bridgeTokenOutPriceValid,
-            "DAM: bridgeTokenOut price invalid"
-        );
+        require(bridgeTokenOutPriceValid, "DAM: bridgeTokenOut price invalid");
         require(toTokenPriceValid, "DAM: toToken price invalid");
         require(
             bridgeTokenOutPrice.token == address(bridgeTokenOut.token),
@@ -412,9 +411,9 @@ contract DepositAddressManager is
         );
 
         // Calculate salt for this bridge transfer.
-        address depositAddress = depositAddressFactory.getDepositAddress(route);
+        address da = depositAddressFactory.getDepositAddress(route);
         DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
+            depositAddress: da,
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: sourceChainId
@@ -441,13 +440,14 @@ contract DepositAddressManager is
             maxSlippage: route.maxFastFinishSlippageBps
         });
         uint256 outputAmount = _finishIntent({
+            depositAddress: da,
             route: route,
             calls: calls,
             minOutputAmount: toTokenAmount.amount
         });
 
         emit FastFinish({
-            depositAddress: depositAddress,
+            depositAddress: da,
             receiverAddress: receiverAddress,
             newRecipient: msg.sender,
             route: route,
@@ -478,9 +478,9 @@ contract DepositAddressManager is
         require(route.escrow == address(this), "DAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address depositAddress = depositAddressFactory.getDepositAddress(route);
+        address da = depositAddressFactory.getDepositAddress(route);
         DepositAddressIntent memory intent = DepositAddressIntent({
-            depositAddress: depositAddress,
+            depositAddress: da,
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: sourceChainId
@@ -542,6 +542,7 @@ contract DepositAddressManager is
 
             // Finish the intent and return any leftover tokens to the caller
             outputAmount = _finishIntent({
+                depositAddress: da,
                 route: route,
                 calls: calls,
                 minOutputAmount: toTokenAmount.amount
@@ -557,7 +558,7 @@ contract DepositAddressManager is
         }
 
         emit Claim({
-            depositAddress: depositAddress,
+            depositAddress: da,
             receiverAddress: receiverAddress,
             finalRecipient: recipient,
             route: route,
@@ -720,10 +721,10 @@ contract DepositAddressManager is
         });
     }
 
-    /// @notice Refunds tokens from a Deposit Address vault to its designated
+    /// @notice Refunds tokens from a deposit address to its designated
     ///         refund address after the deposit address has expired.
     /// @param route The Deposit Address route containing the refund address
-    /// @param tokens The tokens to refund from the vault
+    /// @param tokens The tokens to refund from the deposit address
     /// @dev Refunds are only allowed after the deposit address expires
     function refundIntent(
         DepositAddressRoute calldata route,
@@ -733,14 +734,12 @@ contract DepositAddressManager is
         require(isRouteExpired(route), "DAM: not expired");
 
         // Deploy (or fetch) the Deposit Address for this route
-        DepositAddress vault = depositAddressFactory.createDepositAddress(
-            route
-        );
+        DepositAddress da = depositAddressFactory.createDepositAddress(route);
 
         // Send refund to the designated refund address
         uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
-            amounts[i] = vault.sendBalance({
+            amounts[i] = da.sendBalance({
                 route: route,
                 token: tokens[i],
                 recipient: payable(route.refundAddress)
@@ -748,7 +747,7 @@ contract DepositAddressManager is
         }
 
         emit Refund({
-            depositAddress: address(vault),
+            depositAddress: address(da),
             route: route,
             refundAddress: route.refundAddress,
             tokens: tokens,
@@ -806,28 +805,58 @@ contract DepositAddressManager is
 
     /// @dev Internal helper that completes an intent by executing swaps,
     ///      delivering toToken to the recipient, and handling any surplus.
+    ///      If the route has a finalCall, executes the call after swapping.
     ///      Precondition: input tokens must already be in PayExecutor.
-    /// @param route            The UniversalAddressRoute containing
-    ///                         recipient details
+    /// @param depositAddress   The deposit address for this intent (for events)
+    /// @param route            The DepositAddressRoute containing
+    ///                         recipient details and optional finalCall
     /// @param calls            Arbitrary swap calls to be executed by the
     ///                         executor
     /// @param minOutputAmount  The minimum amount of target token to deliver to
     ///                         the recipient
     function _finishIntent(
+        address depositAddress,
         DepositAddressRoute calldata route,
         Call[] calldata calls,
         uint256 minOutputAmount
     ) internal returns (uint256 outputAmount) {
-        // Run arbitrary calls provided by the relayer to create toToken, and
-        // send the full output to the recipient.
-        outputAmount = executor.executeAndSweep({
-            calls: calls,
-            minOutputAmount: TokenAmount({
-                token: route.toToken,
-                amount: minOutputAmount
-            }),
-            recipient: payable(route.toAddress)
-        });
+        if (route.finalCallData.length > 0) {
+            // Swap and keep tokens in executor for final call
+            outputAmount = executor.executeAndSendBalance({
+                calls: calls,
+                minOutputAmount: TokenAmount({
+                    token: route.toToken,
+                    amount: minOutputAmount
+                }),
+                recipient: payable(address(executor))
+            });
+
+            // Execute final call - approves token to toAddress and calls it
+            bool success = executor.executeFinalCall({
+                finalCall: Call({
+                    to: route.toAddress,
+                    value: 0,
+                    data: route.finalCallData
+                }),
+                finalCallToken: TokenAmount({
+                    token: route.toToken,
+                    amount: outputAmount
+                }),
+                refundAddr: payable(route.refundAddress)
+            });
+
+            emit FinalCallExecuted(depositAddress, route.toAddress, success);
+        } else {
+            // No final call - send directly to recipient
+            outputAmount = executor.executeAndSendBalance({
+                calls: calls,
+                minOutputAmount: TokenAmount({
+                    token: route.toToken,
+                    amount: minOutputAmount
+                }),
+                recipient: payable(route.toAddress)
+            });
+        }
     }
 
     // ---------------------------------------------------------------------

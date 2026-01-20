@@ -80,7 +80,7 @@ contract DaimoPayExecutor is ReentrancyGuard {
     /// Execute arbitrary calls. Revert if any fail.
     /// Verify output token balance meets the expected minimum amount.
     /// Transfer the full balance to the recipient and return the amount.
-    function executeAndSweep(
+    function executeAndSendBalance(
         Call[] calldata calls,
         TokenAmount calldata minOutputAmount,
         address payable recipient

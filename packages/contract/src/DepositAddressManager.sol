@@ -612,10 +612,6 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             leg1BridgeTokenOutPrice.token == address(leg1BridgeTokenOut.token),
             "DAM: leg1 bridge token mismatch"
         );
-        require(
-            leg2BridgeTokenInPrice.token == address(leg2BridgeTokenOut.token),
-            "DAM: leg2 bridge token mismatch"
-        );
 
         // Compute and deploy/fetch the hop receiver from leg 1
         address depositAddress = depositAddressFactory.getDepositAddress(route);

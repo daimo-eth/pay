@@ -12,13 +12,13 @@ bytes32 constant DEPLOY_SALT_PAY_INTENT_FACTORY = keccak256(
 
 // Deposit address contracts
 bytes32 constant DEPLOY_SALT_DA_FACTORY = keccak256(
-    "DepositAddressFactory-deploy4"
+    "DepositAddressFactory-deploy8"
+);
+bytes32 constant DEPLOY_SALT_DA_EXECUTOR = keccak256(
+    "DaimoPayExecutor-deploy8"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
-    "DepositAddressManager-deploy4"
-);
-bytes32 constant DEPLOY_SALT_DA_MANAGER_IMPL = keccak256(
-    "DepositAddressManager-impl-deploy4"
+    "DepositAddressManager-deploy8"
 );
 
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_PRICER = keccak256(
@@ -60,8 +60,8 @@ bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
 
 // Relayer contract
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-prod2"
+    "DaimoPayRelayer-prod3"
 );
 // bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-//     "DaimoPayRelayer-dev2"
+//     "DaimoPayRelayer-dev3"
 // );

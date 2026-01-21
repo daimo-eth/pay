@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
 import {DepositAddressManager} from "../DepositAddressManager.sol";
-import {DepositAddressRoute} from "../DepositAddress.sol";
+import {DAParams} from "../DepositAddress.sol";
 import {PriceData} from "../interfaces/IDaimoPayPricer.sol";
 
 /// @author Daimo, Inc
@@ -458,7 +458,7 @@ contract DaimoPayRelayer is AccessControl {
     function daStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         IERC20 paymentToken,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata paymentTokenPrice,
@@ -480,7 +480,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Execute the start
         manager.start({
-            route: route,
+            params: params,
             paymentToken: paymentToken,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -504,7 +504,7 @@ contract DaimoPayRelayer is AccessControl {
     function daSameChainFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
@@ -523,7 +523,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Execute the same-chain finish
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: paymentToken,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -544,7 +544,7 @@ contract DaimoPayRelayer is AccessControl {
     function daFastFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         TokenAmount calldata tokenIn,
         PriceData calldata bridgeTokenOutPrice,
         PriceData calldata toTokenPrice,
@@ -574,7 +574,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Call fastFinish on the DepositAddressManager.
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: tokenIn.token,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -605,7 +605,7 @@ contract DaimoPayRelayer is AccessControl {
     function daClaim(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata bridgeTokenOutPrice,
@@ -626,7 +626,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Execute the claim
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -645,11 +645,12 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Hop a Deposit Address intent: pull from hop receiver, bridge to dest.
+    /// Hop a Deposit Address fulfillment: pull from fulfillment address,
+    /// initiate bridge to dest.
     function daHopStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         TokenAmount calldata leg1BridgeTokenOut,
         uint256 leg1SourceChainId,
         PriceData calldata leg1BridgeTokenOutPrice,
@@ -672,7 +673,7 @@ contract DaimoPayRelayer is AccessControl {
 
         // Execute the hop start
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: leg1SourceChainId,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,

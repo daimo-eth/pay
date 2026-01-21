@@ -6,13 +6,13 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {
     DepositAddressManager,
-    DepositAddressReceiver
+    DAFulfillment
 } from "../src/DepositAddressManager.sol";
 import {DepositAddressFactory} from "../src/DepositAddressFactory.sol";
 import {
     DepositAddress,
-    DepositAddressRoute,
-    DepositAddressFulfillment
+    DAParams,
+    DAFulfillmentParams
 } from "../src/DepositAddress.sol";
 import {DaimoPayPricer} from "../src/DaimoPayPricer.sol";
 import {PriceData} from "../src/interfaces/IDaimoPayPricer.sol";
@@ -100,10 +100,10 @@ contract DepositAddressManagerTest is Test {
     // Helper functions
     // ---------------------------------------------------------------------
 
-    /// @dev Creates a standard route for testing
-    function _createRoute() internal view returns (DepositAddressRoute memory) {
+    /// @dev Creates a standard params for testing
+    function _createDAParams() internal view returns (DAParams memory) {
         return
-            DepositAddressRoute({
+            DAParams({
                 toChainId: DEST_CHAIN_ID,
                 toToken: usdc,
                 toAddress: RECIPIENT,
@@ -174,8 +174,8 @@ contract DepositAddressManagerTest is Test {
     // ---------------------------------------------------------------------
 
     function test_start_Success() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -208,7 +208,7 @@ contract DepositAddressManagerTest is Test {
         // Execute start
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -218,26 +218,25 @@ contract DepositAddressManagerTest is Test {
             bridgeExtraData: bridgeExtraData
         });
 
-        // Verify receiver is marked as used
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Verify fulfillment is marked as used
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        assertTrue(manager.receiverUsed(receiverAddress));
+        assertTrue(manager.fulfillmentUsed(fulfillmentAddress));
 
         // Verify bridger burned the tokens
         assertTrue(usdc.balanceOf(address(0xdead)) == BRIDGE_AMOUNT);
     }
 
     function test_start_EmitsStartEvent() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
@@ -262,14 +261,13 @@ contract DepositAddressManagerTest is Test {
         bytes memory bridgeExtraData = "";
 
         // Create expected fulfillment
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
@@ -277,8 +275,8 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, true, false, true);
         emit DepositAddressManager.Start({
             depositAddress: address(vault),
-            receiverAddress: receiverAddress,
-            route: route,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
             fulfillment: fulfillment,
             paymentToken: address(usdc),
             paymentAmount: PAYMENT_AMOUNT,
@@ -288,7 +286,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -300,8 +298,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_MultipleDifferentSalts() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
             address(usdc),
@@ -334,7 +332,7 @@ contract DepositAddressManagerTest is Test {
 
             vm.prank(RELAYER);
             manager.start({
-                route: route,
+                params: params,
                 paymentToken: usdc,
                 bridgeTokenOut: bridgeTokenOut,
                 paymentTokenPrice: paymentTokenPrice,
@@ -344,18 +342,17 @@ contract DepositAddressManagerTest is Test {
                 bridgeExtraData: bridgeExtraData
             });
 
-            // Verify each receiver is marked as used
-            DepositAddressFulfillment
-                memory fulfillment = DepositAddressFulfillment({
-                    depositAddress: address(vault),
-                    relaySalt: salts[i],
-                    bridgeTokenOut: bridgeTokenOut,
-                    sourceChainId: SOURCE_CHAIN_ID
-                });
-            (address receiverAddress, ) = manager.computeReceiverAddress(
+            // Verify each fulfillment is marked as used
+            DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+                depositAddress: address(vault),
+                relaySalt: salts[i],
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+            (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
                 fulfillment
             );
-            assertTrue(manager.receiverUsed(receiverAddress));
+            assertTrue(manager.fulfillmentUsed(fulfillmentAddress));
         }
     }
 
@@ -367,8 +364,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -394,7 +391,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: start on dest chain"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -406,10 +403,10 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsWrongEscrow() public {
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0xDEAD); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0xDEAD); // Wrong escrow
 
-        DepositAddress vault = factory.createDepositAddress(route);
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -435,7 +432,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -447,14 +444,14 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsExpired() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create price data
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -481,7 +478,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -493,8 +490,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsInvalidPaymentPrice() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Create price data signed by wrong signer
@@ -524,7 +521,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: payment price invalid"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -536,8 +533,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsInvalidBridgePrice() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -570,7 +567,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: bridge price invalid"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -581,9 +578,9 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_start_RevertsReceiverAlreadyUsed() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+    function test_start_RevertsFulfillmentAlreadyUsed() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -609,7 +606,7 @@ contract DepositAddressManagerTest is Test {
         // First call succeeds
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -623,10 +620,10 @@ contract DepositAddressManagerTest is Test {
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Second call with same salt should revert
-        vm.expectRevert(bytes("DAM: receiver used"));
+        vm.expectRevert(bytes("DAM: fulfillment used"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -638,8 +635,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsBridgeTokenPriceMismatch() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -668,7 +665,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: bridge token mismatch"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -680,8 +677,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsPaymentTokenMismatch() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Create price data for wrong token (mismatch with paymentToken)
@@ -710,7 +707,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: payment token mismatch"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -722,8 +719,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsBridgeInputTooLow() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -750,7 +747,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: bridge input low"));
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -762,8 +759,8 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_start_RevertsNotRelayer() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -789,7 +786,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111));
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -801,12 +798,12 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
-    // computeReceiverAddress tests
+    // computeFulfillmentAddress tests
     // ---------------------------------------------------------------------
 
-    function test_computeReceiverAddress_Deterministic() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+    function test_computeFulfillmentAddress_Deterministic() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -815,18 +812,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        (address addr1, bytes32 salt1) = manager.computeReceiverAddress(
+        (address addr1, bytes32 salt1) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        (address addr2, bytes32 salt2) = manager.computeReceiverAddress(
+        (address addr2, bytes32 salt2) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
@@ -835,62 +831,62 @@ contract DepositAddressManagerTest is Test {
         assertEq(salt1, salt2);
     }
 
-    function test_computeReceiverAddress_DifferentForDifferentSalts() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+    function test_computeFulfillmentAddress_DifferentForDifferentSalts()
+        public
+    {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressFulfillment
-            memory fulfillment1 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: keccak256("salt-1"),
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment1 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: keccak256("salt-1"),
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        DepositAddressFulfillment
-            memory fulfillment2 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: keccak256("salt-2"),
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment2 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: keccak256("salt-2"),
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
-        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
+        (address addr1, ) = manager.computeFulfillmentAddress(fulfillment1);
+        (address addr2, ) = manager.computeFulfillmentAddress(fulfillment2);
 
         // Should be different
         assertTrue(addr1 != addr2);
     }
 
-    function test_computeReceiverAddress_DifferentForDifferentAmounts() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+    function test_computeFulfillmentAddress_DifferentForDifferentAmounts()
+        public
+    {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment1 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: TokenAmount({token: usdc, amount: 100e6}),
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment1 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: TokenAmount({token: usdc, amount: 100e6}),
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        DepositAddressFulfillment
-            memory fulfillment2 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: TokenAmount({token: usdc, amount: 200e6}),
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment2 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: TokenAmount({token: usdc, amount: 200e6}),
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
-        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
+        (address addr1, ) = manager.computeFulfillmentAddress(fulfillment1);
+        (address addr2, ) = manager.computeFulfillmentAddress(fulfillment2);
 
         // Should be different
         assertTrue(addr1 != addr2);
@@ -904,8 +900,8 @@ contract DepositAddressManagerTest is Test {
         // Bound to reasonable amounts (1 USDC to 1M USDC)
         amount = bound(amount, 1e6, 1_000_000e6);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, amount);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -933,7 +929,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.start({
-            route: route,
+            params: params,
             paymentToken: usdc,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -943,52 +939,49 @@ contract DepositAddressManagerTest is Test {
             bridgeExtraData: bridgeExtraData
         });
 
-        // Verify receiver is marked as used
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Verify fulfillment is marked as used
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        assertTrue(manager.receiverUsed(receiverAddress));
+        assertTrue(manager.fulfillmentUsed(fulfillmentAddress));
     }
 
-    function testFuzz_computeReceiverAddress_UniqueSalts(
+    function testFuzz_computeFulfillmentAddress_UniqueSalts(
         bytes32 salt1,
         bytes32 salt2
     ) public {
         vm.assume(salt1 != salt2);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressFulfillment
-            memory fulfillment1 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: salt1,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment1 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: salt1,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        DepositAddressFulfillment
-            memory fulfillment2 = DepositAddressFulfillment({
-                depositAddress: address(vault),
-                relaySalt: salt2,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
+        DAFulfillmentParams memory fulfillment2 = DAFulfillmentParams({
+            depositAddress: address(vault),
+            relaySalt: salt2,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
 
-        (address addr1, ) = manager.computeReceiverAddress(fulfillment1);
-        (address addr2, ) = manager.computeReceiverAddress(fulfillment2);
+        (address addr1, ) = manager.computeFulfillmentAddress(fulfillment1);
+        (address addr2, ) = manager.computeFulfillmentAddress(fulfillment2);
 
         // Different salts should produce different addresses
         assertTrue(addr1 != addr2);
@@ -1002,8 +995,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain for fastFinish
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         // Create bridge token out
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -1031,15 +1024,14 @@ contract DepositAddressManagerTest is Test {
         // Fund relayer with tokens to deliver early
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
 
-        // Compute expected receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute expected fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
@@ -1048,7 +1040,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1059,8 +1051,8 @@ contract DepositAddressManagerTest is Test {
         });
         vm.stopPrank();
 
-        // Verify relayer is recorded as recipient for the receiver address
-        assertEq(manager.receiverToRecipient(receiverAddress), RELAYER);
+        // Verify relayer is recorded as recipient for the fulfillment address
+        assertEq(manager.fulfillmentToRecipient(fulfillmentAddress), RELAYER);
 
         // Verify recipient received the toToken
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
@@ -1069,8 +1061,8 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_EmitsFastFinishEvent() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1095,14 +1087,13 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
 
         // Create expected fulfillment
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
@@ -1114,9 +1105,9 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, true, true, true);
         emit DepositAddressManager.FastFinish({
             depositAddress: depositAddress,
-            receiverAddress: receiverAddress,
+            fulfillmentAddress: fulfillmentAddress,
             newRecipient: RELAYER,
-            route: route,
+            params: params,
             fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
@@ -1124,7 +1115,7 @@ contract DepositAddressManagerTest is Test {
         });
 
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1139,8 +1130,8 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_MultipleDifferentSalts() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1173,7 +1164,7 @@ contract DepositAddressManagerTest is Test {
             vm.startPrank(RELAYER);
             usdc.transfer(address(manager), BRIDGE_AMOUNT);
             manager.fastFinish({
-                route: route,
+                params: params,
                 calls: calls,
                 token: usdc,
                 bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1184,18 +1175,20 @@ contract DepositAddressManagerTest is Test {
             });
             vm.stopPrank();
 
-            // Verify relayer recorded for each receiver address
-            DepositAddressFulfillment
-                memory fulfillment = DepositAddressFulfillment({
-                    depositAddress: depositAddress,
-                    relaySalt: salts[i],
-                    bridgeTokenOut: bridgeTokenOut,
-                    sourceChainId: SOURCE_CHAIN_ID
-                });
-            (address receiverAddress, ) = manager.computeReceiverAddress(
+            // Verify relayer recorded for each fulfillment address
+            DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+                depositAddress: depositAddress,
+                relaySalt: salts[i],
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+            (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
                 fulfillment
             );
-            assertEq(manager.receiverToRecipient(receiverAddress), RELAYER);
+            assertEq(
+                manager.fulfillmentToRecipient(fulfillmentAddress),
+                RELAYER
+            );
         }
 
         // Verify recipient received all tokens
@@ -1210,8 +1203,8 @@ contract DepositAddressManagerTest is Test {
         // Stay on source chain (same as sourceChainId)
         vm.chainId(SOURCE_CHAIN_ID);
 
-        // Create route that points to source chain
-        DepositAddressRoute memory route = DepositAddressRoute({
+        // Create params that points to source chain
+        DAParams memory params = DAParams({
             toChainId: SOURCE_CHAIN_ID,
             toToken: usdc,
             toAddress: RECIPIENT,
@@ -1252,7 +1245,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: same chain finish"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1268,7 +1261,7 @@ contract DepositAddressManagerTest is Test {
         // Call on wrong chain
         vm.chainId(999999999);
 
-        DepositAddressRoute memory route = _createRoute(); // toChainId = DEST_CHAIN_ID
+        DAParams memory params = _createDAParams(); // toChainId = DEST_CHAIN_ID
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1296,7 +1289,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: wrong chain"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1311,8 +1304,8 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0xDEAD); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0xDEAD); // Wrong escrow
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1340,7 +1333,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: wrong escrow"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1356,10 +1349,10 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Fund relayer with tokens to fast finish
         usdc.transfer(RELAYER, BRIDGE_AMOUNT);
@@ -1387,7 +1380,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1401,7 +1394,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsInvalidBridgeTokenOutPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1436,7 +1429,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1451,7 +1444,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsInvalidToTokenPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1483,7 +1476,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: toToken price invalid"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1498,7 +1491,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsAlreadyFinished() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1527,7 +1520,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1546,7 +1539,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: already finished"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1561,7 +1554,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsBridgeTokenOutMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1591,7 +1584,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1606,7 +1599,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1621,7 +1614,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Create price data for wrong token (mismatch with route.toToken)
+        // Create price data for wrong token (mismatch with params.toToken)
         address wrongToken = address(0x999);
         PriceData memory toTokenPrice = _createSignedPriceData(
             wrongToken,
@@ -1637,7 +1630,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: toToken mismatch"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1652,7 +1645,7 @@ contract DepositAddressManagerTest is Test {
     function test_fastFinish_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -1681,7 +1674,7 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         vm.expectRevert(bytes("DAM: not relayer"));
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1703,8 +1696,8 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         // Calculate toAmount accounting for slippage
         uint256 toAmount = (amount * (10_000 - MAX_FAST_FINISH_SLIPPAGE_BPS)) /
@@ -1735,7 +1728,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), amount);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -1747,109 +1740,19 @@ contract DepositAddressManagerTest is Test {
         vm.stopPrank();
 
         // Verify relayer is recorded as recipient
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        assertEq(manager.receiverToRecipient(receiverAddress), RELAYER);
+        assertEq(manager.fulfillmentToRecipient(fulfillmentAddress), RELAYER);
 
         // Verify recipient got at least toAmount
         assertTrue(usdc.balanceOf(RECIPIENT) >= toAmount);
-    }
-
-    function testFuzz_fastFinish_UniqueSalts(
-        bytes32 salt1,
-        bytes32 salt2
-    ) public {
-        vm.assume(salt1 != salt2);
-
-        vm.chainId(DEST_CHAIN_ID);
-
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
-
-        TokenAmount memory bridgeTokenOut = TokenAmount({
-            token: usdc,
-            amount: BRIDGE_AMOUNT
-        });
-
-        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-        PriceData memory toTokenPrice = _createSignedPriceData(
-            address(usdc),
-            USDC_PRICE,
-            block.timestamp
-        );
-
-        Call[] memory calls = new Call[](0);
-
-        // Fast finish with first salt
-        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
-        vm.startPrank(RELAYER);
-        usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinish({
-            route: route,
-            calls: calls,
-            token: usdc,
-            bridgeTokenOutPrice: bridgeTokenOutPrice,
-            toTokenPrice: toTokenPrice,
-            bridgeTokenOut: bridgeTokenOut,
-            relaySalt: salt1,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        vm.stopPrank();
-
-        // Fast finish with second salt should succeed
-        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
-        vm.startPrank(RELAYER);
-        usdc.transfer(address(manager), BRIDGE_AMOUNT);
-        manager.fastFinish({
-            route: route,
-            calls: calls,
-            token: usdc,
-            bridgeTokenOutPrice: bridgeTokenOutPrice,
-            toTokenPrice: toTokenPrice,
-            bridgeTokenOut: bridgeTokenOut,
-            relaySalt: salt2,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        vm.stopPrank();
-
-        // Verify both receiver addresses recorded relayer
-        DepositAddressFulfillment
-            memory fulfillment1 = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: salt1,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        DepositAddressFulfillment
-            memory fulfillment2 = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: salt2,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-
-        (address receiverAddress1, ) = manager.computeReceiverAddress(
-            fulfillment1
-        );
-        (address receiverAddress2, ) = manager.computeReceiverAddress(
-            fulfillment2
-        );
-
-        assertEq(manager.receiverToRecipient(receiverAddress1), RELAYER);
-        assertEq(manager.receiverToRecipient(receiverAddress2), RELAYER);
-        assertTrue(receiverAddress1 != receiverAddress2);
     }
 
     // ---------------------------------------------------------------------
@@ -1860,8 +1763,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain for same chain finish
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -1884,7 +1787,7 @@ contract DepositAddressManagerTest is Test {
         // Execute sameChainFinish
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -1898,8 +1801,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_EmitsSameChainFinishEvent() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -1919,7 +1822,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, false, false, true);
         emit DepositAddressManager.SameChainFinish({
             depositAddress: address(vault),
-            route: route,
+            params: params,
             paymentToken: address(usdc),
             paymentAmount: PAYMENT_AMOUNT,
             outputAmount: PAYMENT_AMOUNT,
@@ -1929,7 +1832,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -1953,22 +1856,22 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        // Create multiple routes with different recipients
+        // Create multiple paramss with different recipients
         address[] memory recipients = new address[](3);
         recipients[0] = address(0x1111);
         recipients[1] = address(0x2222);
         recipients[2] = address(0x3333);
 
         for (uint256 i = 0; i < recipients.length; i++) {
-            DepositAddressRoute memory route = _createRoute();
-            route.toAddress = recipients[i];
+            DAParams memory params = _createDAParams();
+            params.toAddress = recipients[i];
 
-            DepositAddress vault = factory.createDepositAddress(route);
+            DepositAddress vault = factory.createDepositAddress(params);
             _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
             vm.prank(RELAYER);
             manager.sameChainFinish({
-                route: route,
+                params: params,
                 paymentToken: usdc,
                 paymentTokenPrice: paymentTokenPrice,
                 toTokenPrice: toTokenPrice,
@@ -1988,9 +1891,9 @@ contract DepositAddressManagerTest is Test {
         // Stay on source chain (wrong chain for same chain finish)
         vm.chainId(SOURCE_CHAIN_ID);
 
-        // _createRoute() returns toChainId = DEST_CHAIN_ID, different from current
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        // _createDAParams() returns toChainId = DEST_CHAIN_ID, different from current
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2009,7 +1912,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong chain"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2020,10 +1923,10 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0xDEAD); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0xDEAD); // Wrong escrow
 
-        DepositAddress vault = factory.createDepositAddress(route);
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2042,7 +1945,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2054,14 +1957,14 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain for same-chain finish
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create price data
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2081,7 +1984,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert("DAM: expired");
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2092,8 +1995,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsInvalidPaymentPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Create price data signed by wrong signer
@@ -2116,7 +2019,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: payment price invalid"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2127,8 +2030,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsInvalidToTokenPrice() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2151,7 +2054,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: toToken price invalid"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2162,8 +2065,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsPaymentTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Create price data for wrong token (mismatch with paymentToken)
@@ -2184,7 +2087,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: payment token mismatch"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2195,8 +2098,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2205,7 +2108,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Create price data for wrong token (mismatch with route.toToken)
+        // Create price data for wrong token (mismatch with params.toToken)
         address wrongToken = address(0x999);
         PriceData memory toTokenPrice = _createSignedPriceData(
             wrongToken,
@@ -2218,7 +2121,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2229,8 +2132,8 @@ contract DepositAddressManagerTest is Test {
     function test_sameChainFinish_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2249,7 +2152,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2267,8 +2170,8 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, amount);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2286,7 +2189,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2305,10 +2208,10 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.maxSameChainFinishSlippageBps = slippageBps;
+        DAParams memory params = _createDAParams();
+        params.maxSameChainFinishSlippageBps = slippageBps;
 
-        DepositAddress vault = factory.createDepositAddress(route);
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -2326,7 +2229,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -2344,8 +2247,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_Success_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2354,20 +2257,19 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        // Compute receiver address and fund it (simulating bridge arrival)
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address and fund it (simulating bridge arrival)
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address (simulating bridged tokens arriving)
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address (simulating bridged tokens arriving)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Create price data
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
@@ -2386,7 +2288,7 @@ contract DepositAddressManagerTest is Test {
         // Execute claim
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2397,7 +2299,7 @@ contract DepositAddressManagerTest is Test {
 
         // Verify fulfillment marked as claimed
         assertEq(
-            manager.receiverToRecipient(receiverAddress),
+            manager.fulfillmentToRecipient(fulfillmentAddress),
             manager.ADDR_MAX()
         );
 
@@ -2408,8 +2310,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_Success_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2436,7 +2338,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2450,20 +2352,19 @@ contract DepositAddressManagerTest is Test {
         // Verify recipient received tokens from fast finish
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
 
-        // Compute receiver address and fund it (simulating bridge arrival)
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address and fund it (simulating bridge arrival)
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address (simulating bridged tokens arriving)
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address (simulating bridged tokens arriving)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Record relayer balance before claim
         uint256 relayerBalanceBefore = usdc.balanceOf(RELAYER);
@@ -2471,7 +2372,7 @@ contract DepositAddressManagerTest is Test {
         // Execute claim - should repay the relayer
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2482,7 +2383,7 @@ contract DepositAddressManagerTest is Test {
 
         // Verify fulfillment marked as claimed
         assertEq(
-            manager.receiverToRecipient(receiverAddress),
+            manager.fulfillmentToRecipient(fulfillmentAddress),
             manager.ADDR_MAX()
         );
 
@@ -2493,8 +2394,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_EmitsClaimEvent_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2503,18 +2404,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -2529,13 +2429,13 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        // Expect Claim event with recipient as route.toAddress
+        // Expect Claim event with recipient as params.toAddress
         vm.expectEmit(true, true, true, true);
         emit DepositAddressManager.Claim({
             depositAddress: depositAddress,
-            receiverAddress: receiverAddress,
+            fulfillmentAddress: fulfillmentAddress,
             finalRecipient: RECIPIENT,
-            route: route,
+            params: params,
             fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
@@ -2544,7 +2444,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2557,8 +2457,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_EmitsClaimEvent_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2585,7 +2485,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2596,26 +2496,25 @@ contract DepositAddressManagerTest is Test {
         });
         vm.stopPrank();
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Expect Claim event with recipient as RELAYER (who fast finished)
         vm.expectEmit(true, true, true, true);
         emit DepositAddressManager.Claim({
             depositAddress: depositAddress,
-            receiverAddress: receiverAddress,
+            fulfillmentAddress: fulfillmentAddress,
             finalRecipient: RELAYER,
-            route: route,
+            params: params,
             fulfillment: fulfillment,
             outputAmount: BRIDGE_AMOUNT,
             bridgeTokenOutPriceUsd: USDC_PRICE,
@@ -2624,7 +2523,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2637,8 +2536,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_MultipleDifferentSalts() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2664,23 +2563,22 @@ contract DepositAddressManagerTest is Test {
         salts[2] = keccak256("salt-3");
 
         for (uint256 i = 0; i < salts.length; i++) {
-            DepositAddressFulfillment
-                memory fulfillment = DepositAddressFulfillment({
-                    depositAddress: depositAddress,
-                    relaySalt: salts[i],
-                    bridgeTokenOut: bridgeTokenOut,
-                    sourceChainId: SOURCE_CHAIN_ID
-                });
-            (address receiverAddress, ) = manager.computeReceiverAddress(
+            DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+                depositAddress: depositAddress,
+                relaySalt: salts[i],
+                bridgeTokenOut: bridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+            (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
                 fulfillment
             );
 
-            // Fund receiver
-            usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+            // Fund fulfillment
+            usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
             vm.prank(RELAYER);
             manager.claim({
-                route: route,
+                params: params,
                 calls: calls,
                 bridgeTokenOut: bridgeTokenOut,
                 bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2691,7 +2589,7 @@ contract DepositAddressManagerTest is Test {
 
             // Verify fulfillment marked as claimed
             assertEq(
-                manager.receiverToRecipient(receiverAddress),
+                manager.fulfillmentToRecipient(fulfillmentAddress),
                 manager.ADDR_MAX()
             );
         }
@@ -2700,11 +2598,11 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT * 3);
     }
 
-    function test_claim_DeploysDepositAddressReceiver() public {
+    function test_claim_DeploysDAFulfillment() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2713,22 +2611,21 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Verify receiver not deployed yet
-        assertEq(receiverAddress.code.length, 0);
+        // Verify fulfillment not deployed yet
+        assertEq(fulfillmentAddress.code.length, 0);
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -2745,7 +2642,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2754,15 +2651,15 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Verify receiver was deployed
-        assertTrue(receiverAddress.code.length > 0);
+        // Verify fulfillment was deployed
+        assertTrue(fulfillmentAddress.code.length > 0);
     }
 
-    function test_claim_WithExistingDepositAddressReceiver() public {
+    function test_claim_WithExistingDAFulfillment() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2771,28 +2668,25 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, bytes32 recvSalt) = manager
-            .computeReceiverAddress(fulfillment);
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, bytes32 recvSalt) = manager
+            .computeFulfillmentAddress(fulfillment);
 
-        // Deploy DepositAddressReceiver as the manager (so CREATE2 address matches)
+        // Deploy DAFulfillment as the manager (so CREATE2 address matches)
         vm.prank(address(manager));
-        DepositAddressReceiver receiver = new DepositAddressReceiver{
-            salt: recvSalt
-        }();
-        assertEq(address(receiver), receiverAddress);
+        DAFulfillment fulfillmentContract = new DAFulfillment{salt: recvSalt}();
+        assertEq(address(fulfillmentContract), fulfillmentAddress);
 
-        // Verify receiver is deployed
-        assertTrue(receiverAddress.code.length > 0);
+        // Verify fulfillment is deployed
+        assertTrue(fulfillmentAddress.code.length > 0);
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -2807,10 +2701,10 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        // Should work with existing receiver
+        // Should work with existing fulfillment
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2826,8 +2720,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_WithSurplusBridgeAmount() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2836,20 +2730,19 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
         // Fund with more than expected
         uint256 surplusAmount = BRIDGE_AMOUNT + 10e6;
-        usdc.transfer(receiverAddress, surplusAmount);
+        usdc.transfer(fulfillmentAddress, surplusAmount);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -2866,7 +2759,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2887,7 +2780,7 @@ contract DepositAddressManagerTest is Test {
         // Call on wrong chain
         vm.chainId(999999999);
 
-        DepositAddressRoute memory route = _createRoute(); // toChainId = DEST_CHAIN_ID
+        DAParams memory params = _createDAParams(); // toChainId = DEST_CHAIN_ID
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2912,7 +2805,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong chain"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2925,8 +2818,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsWrongEscrow() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0xDEAD); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0xDEAD); // Wrong escrow
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2951,7 +2844,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -2964,8 +2857,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsBridgeTokenOutMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -2974,19 +2867,18 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund receiver with bridged tokens
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund fulfillment with bridged tokens
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Create price data for wrong token (mismatch with bridgeTokenOut.token)
         address wrongToken = address(0x999);
@@ -3006,7 +2898,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: bridgeTokenOut mismatch"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3019,8 +2911,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsToTokenMismatch() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3029,19 +2921,18 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund receiver with bridged tokens
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund fulfillment with bridged tokens
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3049,7 +2940,7 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        // Create price data for wrong token (mismatch with route.toToken)
+        // Create price data for wrong token (mismatch with params.toToken)
         address wrongToken = address(0x999);
         PriceData memory toTokenPrice = _createSignedPriceData(
             wrongToken,
@@ -3062,7 +2953,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: toToken mismatch"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3075,8 +2966,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsAlreadyClaimed() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3085,19 +2976,18 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund receiver for first claim
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund fulfillment for first claim
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3115,7 +3005,7 @@ contract DepositAddressManagerTest is Test {
         // First claim succeeds
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3124,14 +3014,14 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Fund receiver again for second attempt
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund fulfillment again for second attempt
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Second claim with same salt should revert
         vm.expectRevert(bytes("DAM: already claimed"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3144,8 +3034,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsInsufficientBridge() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3154,19 +3044,18 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
         // Fund with less than expected
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT - 10e6);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT - 10e6);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3184,7 +3073,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DPCE: output below min"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3199,8 +3088,8 @@ contract DepositAddressManagerTest is Test {
     {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3209,18 +3098,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Create price data signed by wrong signer
         PriceData memory bridgeTokenOutPrice = PriceData({
@@ -3245,7 +3133,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: bridgeTokenOut price invalid"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3258,8 +3146,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsInvalidToTokenPrice_NoFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3268,18 +3156,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3301,7 +3188,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: toToken price invalid"));
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3314,8 +3201,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_RevertsNotRelayer() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3324,18 +3211,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256("test-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3353,7 +3239,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3370,8 +3256,8 @@ contract DepositAddressManagerTest is Test {
     function test_claim_SkipsPriceValidation_AfterFastFinish() public {
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3399,7 +3285,7 @@ contract DepositAddressManagerTest is Test {
         vm.startPrank(RELAYER);
         usdc.transfer(address(manager), BRIDGE_AMOUNT);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3410,18 +3296,17 @@ contract DepositAddressManagerTest is Test {
         });
         vm.stopPrank();
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Create INVALID price data for claim - should still succeed because
         // price validation is skipped when repaying relayer
@@ -3452,7 +3337,7 @@ contract DepositAddressManagerTest is Test {
         // Should succeed despite invalid prices
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: invalidBridgeTokenOutPrice,
@@ -3475,8 +3360,8 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3485,18 +3370,17 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256(abi.encodePacked("salt", amount));
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        usdc.transfer(receiverAddress, amount);
+        usdc.transfer(fulfillmentAddress, amount);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3513,7 +3397,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3524,7 +3408,7 @@ contract DepositAddressManagerTest is Test {
 
         // Verify fulfillment marked as claimed
         assertEq(
-            manager.receiverToRecipient(receiverAddress),
+            manager.fulfillmentToRecipient(fulfillmentAddress),
             manager.ADDR_MAX()
         );
 
@@ -3537,8 +3421,8 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3559,21 +3443,20 @@ contract DepositAddressManagerTest is Test {
         Call[] memory calls = new Call[](0);
 
         // Claim with first salt
-        DepositAddressFulfillment
-            memory fulfillment1 = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: salt1,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress1, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment1 = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: salt1,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress1, ) = manager.computeFulfillmentAddress(
             fulfillment1
         );
-        usdc.transfer(receiverAddress1, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress1, BRIDGE_AMOUNT);
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3583,21 +3466,20 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Claim with second salt should succeed
-        DepositAddressFulfillment
-            memory fulfillment2 = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: salt2,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress2, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment2 = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: salt2,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress2, ) = manager.computeFulfillmentAddress(
             fulfillment2
         );
-        usdc.transfer(receiverAddress2, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress2, BRIDGE_AMOUNT);
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3608,14 +3490,14 @@ contract DepositAddressManagerTest is Test {
 
         // Verify both marked as claimed
         assertEq(
-            manager.receiverToRecipient(receiverAddress1),
+            manager.fulfillmentToRecipient(fulfillmentAddress1),
             manager.ADDR_MAX()
         );
         assertEq(
-            manager.receiverToRecipient(receiverAddress2),
+            manager.fulfillmentToRecipient(fulfillmentAddress2),
             manager.ADDR_MAX()
         );
-        assertTrue(receiverAddress1 != receiverAddress2);
+        assertTrue(fulfillmentAddress1 != fulfillmentAddress2);
 
         // Verify recipient received all tokens
         assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT * 2);
@@ -3627,8 +3509,8 @@ contract DepositAddressManagerTest is Test {
 
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
@@ -3637,20 +3519,19 @@ contract DepositAddressManagerTest is Test {
 
         bytes32 relaySalt = keccak256(abi.encodePacked("salt", surplus));
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
         // Fund with surplus
         uint256 totalAmount = BRIDGE_AMOUNT + surplus;
-        usdc.transfer(receiverAddress, totalAmount);
+        usdc.transfer(fulfillmentAddress, totalAmount);
 
         PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -3667,7 +3548,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.claim({
-            route: route,
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -3685,21 +3566,21 @@ contract DepositAddressManagerTest is Test {
     // ---------------------------------------------------------------------
 
     function test_refundDepositAddress_Success() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
         // Execute refund
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
@@ -3707,14 +3588,14 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_refundDepositAddress_EmitsRefundEvent() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3728,19 +3609,19 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, false, false, true, address(manager));
         emit DepositAddressManager.RefundDepositAddress({
             depositAddress: address(vault),
-            route: route,
+            params: params,
             refundAddress: REFUND_ADDRESS,
             tokens: tokens,
             amounts: expectedAmounts
         });
 
         // Execute refund
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
     }
 
     function test_refundDepositAddress_MultipleTokens() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Deploy a second token
         TestUSDC usdc2 = new TestUSDC();
@@ -3752,7 +3633,7 @@ contract DepositAddressManagerTest is Test {
         usdc2.transfer(address(vault), amount2);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array with both tokens
         IERC20[] memory tokens = new IERC20[](2);
@@ -3760,7 +3641,7 @@ contract DepositAddressManagerTest is Test {
         tokens[1] = IERC20(address(usdc2));
 
         // Execute refund
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
 
         // Verify refund address received both tokens
         assertEq(usdc.balanceOf(REFUND_ADDRESS), amount1);
@@ -3770,39 +3651,39 @@ contract DepositAddressManagerTest is Test {
     }
 
     function test_refundDepositAddress_AtExactExpiration() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         // Warp to exact expiration timestamp
-        vm.warp(route.expiresAt);
+        vm.warp(params.expiresAt);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
         // Execute refund - should succeed at exact expiration
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
     }
 
     function test_refundDepositAddress_ZeroBalance() public {
-        DepositAddressRoute memory route = _createRoute();
-        factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        factory.createDepositAddress(params);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
         // Execute refund - should succeed with zero balance
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
 
         // Verify no funds transferred (no revert)
         assertEq(usdc.balanceOf(REFUND_ADDRESS), 0);
@@ -3813,8 +3694,8 @@ contract DepositAddressManagerTest is Test {
     // ---------------------------------------------------------------------
 
     function test_refundDepositAddress_RevertsNotExpired() public {
-        DepositAddressRoute memory route = _createRoute();
-        DepositAddress vault = factory.createDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
 
         // Fund the vault
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
@@ -3827,15 +3708,15 @@ contract DepositAddressManagerTest is Test {
 
         // Expect revert
         vm.expectRevert("DAM: not expired");
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
     }
 
     function test_refundDepositAddress_RevertsWrongEscrow() public {
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0x1234); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0x1234); // Wrong escrow
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3843,7 +3724,7 @@ contract DepositAddressManagerTest is Test {
 
         // Expect revert
         vm.expectRevert("DAM: wrong escrow");
-        manager.refundDepositAddress({route: route, tokens: tokens});
+        manager.refundDepositAddress({params: params, tokens: tokens});
     }
 
     // ---------------------------------------------------------------------
@@ -3854,8 +3735,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -3863,23 +3744,22 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address (simulating bridged tokens that were never claimed)
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address (simulating bridged tokens that were never claimed)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3888,7 +3768,7 @@ contract DepositAddressManagerTest is Test {
         // Execute refund as relayer
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -3897,15 +3777,15 @@ contract DepositAddressManagerTest is Test {
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
-        assertEq(usdc.balanceOf(receiverAddress), 0);
+        assertEq(usdc.balanceOf(fulfillmentAddress), 0);
     }
 
-    function test_refundFulfillment_EmitsRefundReceiverEvent() public {
+    function test_refundFulfillment_EmitsRefundFulfillmentEvent() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -3913,23 +3793,22 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -3943,8 +3822,8 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, true, false, true, address(manager));
         emit DepositAddressManager.RefundFulfillment({
             depositAddress: depositAddress,
-            receiverAddress: receiverAddress,
-            route: route,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
             fulfillment: fulfillment,
             refundAddress: REFUND_ADDRESS,
             tokens: tokens,
@@ -3954,7 +3833,7 @@ contract DepositAddressManagerTest is Test {
         // Execute refund as relayer
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -3966,8 +3845,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -3975,29 +3854,28 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
         // Deploy a second token
         TestUSDC usdc2 = new TestUSDC();
 
-        // Fund the receiver with both tokens
+        // Fund the fulfillment with both tokens
         uint256 amount1 = BRIDGE_AMOUNT;
         uint256 amount2 = 50e6;
-        usdc.transfer(receiverAddress, amount1);
-        usdc2.transfer(receiverAddress, amount2);
+        usdc.transfer(fulfillmentAddress, amount1);
+        usdc2.transfer(fulfillmentAddress, amount2);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array with both tokens
         IERC20[] memory tokens = new IERC20[](2);
@@ -4007,7 +3885,7 @@ contract DepositAddressManagerTest is Test {
         // Execute refund as relayer
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4017,16 +3895,16 @@ contract DepositAddressManagerTest is Test {
         // Verify refund address received both tokens
         assertEq(usdc.balanceOf(REFUND_ADDRESS), amount1);
         assertEq(usdc2.balanceOf(REFUND_ADDRESS), amount2);
-        assertEq(usdc.balanceOf(receiverAddress), 0);
-        assertEq(usdc2.balanceOf(receiverAddress), 0);
+        assertEq(usdc.balanceOf(fulfillmentAddress), 0);
+        assertEq(usdc2.balanceOf(fulfillmentAddress), 0);
     }
 
     function test_refundFulfillment_AtExactExpiration() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4034,23 +3912,22 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp to exact expiration timestamp
-        vm.warp(route.expiresAt);
+        vm.warp(params.expiresAt);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4059,7 +3936,7 @@ contract DepositAddressManagerTest is Test {
         // Execute refund as relayer - should succeed at exact expiration
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4074,8 +3951,7 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4083,10 +3959,10 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Don't fund the receiver - it has zero balance
+        // Don't fund the fulfillment - it has zero balance
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4095,7 +3971,7 @@ contract DepositAddressManagerTest is Test {
         // Execute refund as relayer - should succeed with zero balance
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4114,8 +3990,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4123,20 +3999,19 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Don't warp past expiration
 
@@ -4148,7 +4023,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert("DAM: not expired");
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4160,8 +4035,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0x1234); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0x1234); // Wrong escrow
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4170,7 +4045,7 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4180,7 +4055,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert("DAM: wrong escrow");
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4192,8 +4067,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         bytes32 relaySalt = keccak256("test-refund-salt");
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4201,23 +4076,22 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute receiver address
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute fulfillment address
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the receiver address
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4227,7 +4101,7 @@ contract DepositAddressManagerTest is Test {
         vm.prank(address(0xBEEF));
         vm.expectRevert("DAM: not relayer");
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4242,8 +4116,8 @@ contract DepositAddressManagerTest is Test {
         // Switch to hop chain
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
         bytes32 relaySalt = keccak256("test-refund-salt");
 
         TokenAmount memory bridgeTokenOut = TokenAmount({
@@ -4251,32 +4125,31 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute hop receiver address (where leg1 bridged tokens would arrive)
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: bridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+        // Compute hop fulfillment address (where leg1 bridged tokens would arrive)
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopFulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the hop receiver (simulating leg1 bridge arrival that was never hopped)
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+        // Fund the hop fulfillment (simulating leg1 bridge arrival that was never hopped)
+        usdc.transfer(hopFulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp past expiration - the hop never happened
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
-        // Execute refund from the hop receiver
+        // Execute refund from the hop fulfillment
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: bridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
@@ -4285,18 +4158,18 @@ contract DepositAddressManagerTest is Test {
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
-        assertEq(usdc.balanceOf(hopReceiverAddress), 0);
+        assertEq(usdc.balanceOf(hopFulfillmentAddress), 0);
     }
 
-    function test_refundFulfillment_Leg2ReceiverRefund() public {
+    function test_refundFulfillment_Leg2FulfillmentRefund() public {
         // Test refunding tokens stuck on the destination chain after a hop
         // Scenario: source -> hop -> dest bridge completed, but never claimed
 
-        // First, execute the hop to create leg2 receiver
+        // First, execute the hop to create leg2 fulfillment
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
         bytes32 relaySalt = keccak256("test-refund-salt");
 
         // Leg 1: source -> hop
@@ -4311,18 +4184,17 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute and fund leg1 receiver
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute and fund leg1 fulfillment
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Execute the hop
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
@@ -4339,7 +4211,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
@@ -4353,32 +4225,31 @@ contract DepositAddressManagerTest is Test {
         // Now switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
 
-        // Compute leg2 receiver address
-        DepositAddressFulfillment
-            memory leg2Fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
-            });
-        (address destReceiverAddress, ) = manager.computeReceiverAddress(
+        // Compute leg2 fulfillment address
+        DAFulfillmentParams memory leg2Fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
+        });
+        (address destFulfillmentAddress, ) = manager.computeFulfillmentAddress(
             leg2Fulfillment
         );
 
         // Simulate leg2 bridge arrival (tokens land on dest chain but never claimed)
-        usdc.transfer(destReceiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(destFulfillmentAddress, BRIDGE_AMOUNT);
 
         // Warp past expiration
-        vm.warp(route.expiresAt + 1);
+        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
-        // Execute refund from the destination receiver
+        // Execute refund from the destination fulfillment
         vm.prank(RELAYER);
         manager.refundFulfillment({
-            route: route,
+            params: params,
             bridgeTokenOut: leg2BridgeTokenOut,
             relaySalt: relaySalt,
             sourceChainId: HOP_CHAIN_ID,
@@ -4387,28 +4258,28 @@ contract DepositAddressManagerTest is Test {
 
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
-        assertEq(usdc.balanceOf(destReceiverAddress), 0);
+        assertEq(usdc.balanceOf(destFulfillmentAddress), 0);
     }
 
     // ---------------------------------------------------------------------
-    // isRouteExpired - View function tests
+    // isDAExpired - View function tests
     // ---------------------------------------------------------------------
 
-    function test_isRouteExpired_ReturnsFalseBeforeExpiration() public view {
-        DepositAddressRoute memory route = _createRoute();
-        assertFalse(manager.isRouteExpired(route));
+    function test_isDAExpired_ReturnsFalseBeforeExpiration() public view {
+        DAParams memory params = _createDAParams();
+        assertFalse(manager.isDAExpired(params));
     }
 
-    function test_isRouteExpired_ReturnsTrueAtExpiration() public {
-        DepositAddressRoute memory route = _createRoute();
-        vm.warp(route.expiresAt);
-        assertTrue(manager.isRouteExpired(route));
+    function test_isDAExpired_ReturnsTrueAtExpiration() public {
+        DAParams memory params = _createDAParams();
+        vm.warp(params.expiresAt);
+        assertTrue(manager.isDAExpired(params));
     }
 
-    function test_isRouteExpired_ReturnsTrueAfterExpiration() public {
-        DepositAddressRoute memory route = _createRoute();
-        vm.warp(route.expiresAt + 1);
-        assertTrue(manager.isRouteExpired(route));
+    function test_isDAExpired_ReturnsTrueAfterExpiration() public {
+        DAParams memory params = _createDAParams();
+        vm.warp(params.expiresAt + 1);
+        assertTrue(manager.isDAExpired(params));
     }
 
     // ---------------------------------------------------------------------
@@ -4421,12 +4292,12 @@ contract DepositAddressManagerTest is Test {
             payable(address(manager))
         );
 
-        // Create route using the reentrant token
-        DepositAddressRoute memory route = _createRoute();
-        route.toToken = evilToken;
+        // Create params using the reentrant token
+        DAParams memory params = _createDAParams();
+        params.toToken = evilToken;
 
         // Create deposit address
-        address vault = address(factory.createDepositAddress(route));
+        address vault = address(factory.createDepositAddress(params));
 
         // Fund vault with malicious tokens (won't trigger reentrancy since
         // we're not transferring to executor)
@@ -4460,7 +4331,7 @@ contract DepositAddressManagerTest is Test {
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
         manager.start({
-            route: route,
+            params: params,
             paymentToken: evilToken,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -4480,9 +4351,9 @@ contract DepositAddressManagerTest is Test {
             payable(address(manager))
         );
 
-        // Create route
-        DepositAddressRoute memory route = _createRoute();
-        route.toToken = evilToken;
+        // Create params
+        DAParams memory params = _createDAParams();
+        params.toToken = evilToken;
 
         // Mint tokens to relayer
         evilToken.transfer(RELAYER, PAYMENT_AMOUNT);
@@ -4516,7 +4387,7 @@ contract DepositAddressManagerTest is Test {
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: finishCalls,
             token: evilToken,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -4537,13 +4408,13 @@ contract DepositAddressManagerTest is Test {
             payable(address(manager))
         );
 
-        // Create route with same source and dest chain
-        DepositAddressRoute memory route = _createRoute();
-        route.toChainId = SOURCE_CHAIN_ID; // Same chain
-        route.toToken = evilToken;
+        // Create params with same source and dest chain
+        DAParams memory params = _createDAParams();
+        params.toChainId = SOURCE_CHAIN_ID; // Same chain
+        params.toToken = evilToken;
 
         // Create deposit address and fund it
-        address vault = address(factory.createDepositAddress(route));
+        address vault = address(factory.createDepositAddress(params));
         evilToken.transfer(vault, PAYMENT_AMOUNT);
 
         // Create price data
@@ -4566,7 +4437,7 @@ contract DepositAddressManagerTest is Test {
             abi.encodeWithSignature("ReentrancyGuardReentrantCall()")
         );
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: evilToken,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -4584,8 +4455,8 @@ contract DepositAddressManagerTest is Test {
         // Set chain to hop chain (Arbitrum)
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
         bytes32 relaySalt = keccak256("test-relay-salt");
 
         // Leg 1: source -> hop (e.g., Scroll -> Arbitrum)
@@ -4601,20 +4472,19 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        // Compute leg 1 receiver (where funds from source->hop arrive)
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        // Compute leg 1 fulfillment (where funds from source->hop arrive)
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
-        // Fund the hop receiver (simulating leg 1 bridge arrival)
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        // Fund the hop fulfillment (simulating leg 1 bridge arrival)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         // Create price data for hop chain
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
@@ -4634,7 +4504,7 @@ contract DepositAddressManagerTest is Test {
         // Execute hopStart
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
@@ -4645,14 +4515,14 @@ contract DepositAddressManagerTest is Test {
             bridgeExtraData: bridgeExtraData
         });
 
-        // Verify hop receiver is marked as claimed
+        // Verify hop fulfillment is marked as claimed
         assertEq(
-            manager.receiverToRecipient(receiverAddress),
+            manager.fulfillmentToRecipient(fulfillmentAddress),
             manager.ADDR_MAX()
         );
 
-        // Verify the receiver is marked as used (hopStart reuses receiver address)
-        assertTrue(manager.receiverUsed(receiverAddress));
+        // Verify the fulfillment is marked as used (hopStart reuses fulfillment address)
+        assertTrue(manager.fulfillmentUsed(fulfillmentAddress));
 
         // Verify bridger received tokens (burned to 0xdead by dummy bridger)
         assertEq(usdc.balanceOf(address(0xdead)), leg2BridgeTokenOut.amount);
@@ -4661,8 +4531,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_EmitsHopEvent() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
         bytes32 relaySalt = keccak256("test-relay-salt");
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
@@ -4675,17 +4545,16 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -4703,8 +4572,8 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, true, true, false);
         emit DepositAddressManager.HopStart({
             depositAddress: depositAddress,
-            receiverAddress: receiverAddress,
-            route: route,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
             fulfillment: fulfillment,
             bridgedAmount: BRIDGE_AMOUNT,
             leg1BridgeTokenOutPriceUsd: USDC_PRICE,
@@ -4713,7 +4582,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
@@ -4733,7 +4602,7 @@ contract DepositAddressManagerTest is Test {
         // Call on source chain (wrong)
         vm.chainId(SOURCE_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4758,7 +4627,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: hop on source chain"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4774,7 +4643,7 @@ contract DepositAddressManagerTest is Test {
         // Call on dest chain (wrong)
         vm.chainId(DEST_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4799,7 +4668,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: hop on dest chain"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4814,8 +4683,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsWrongEscrow() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        route.escrow = address(0xDEAD); // Wrong escrow
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0xDEAD); // Wrong escrow
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4840,7 +4709,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: wrong escrow"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4855,7 +4724,7 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsNotRelayer() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
+        DAParams memory params = _createDAParams();
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4880,7 +4749,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: not relayer"));
         vm.prank(address(0x1111)); // Not the relayer
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4895,8 +4764,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsAlreadyClaimed() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4909,18 +4778,17 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopFulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
         // Fund with exactly the expected amount
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(hopFulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory leg1Price = _createSignedPriceData(
             address(usdc),
@@ -4938,7 +4806,7 @@ contract DepositAddressManagerTest is Test {
         // First hop succeeds
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4953,7 +4821,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: already claimed"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -4968,8 +4836,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsInsufficientBridge() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -4977,19 +4845,18 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopFulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
 
         // Fund with less than expected
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT / 2);
+        usdc.transfer(hopFulfillmentAddress, BRIDGE_AMOUNT / 2);
 
         TokenAmount memory leg2BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -5010,7 +4877,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DPCE: insufficient output"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -5025,8 +4892,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsInvalidLeg1Price() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -5034,17 +4901,16 @@ contract DepositAddressManagerTest is Test {
         });
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: leg1BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address hopFulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(hopFulfillmentAddress, BRIDGE_AMOUNT);
 
         TokenAmount memory leg2BridgeTokenOut = TokenAmount({
             token: usdc,
@@ -5069,7 +4935,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: leg1 price invalid"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -5084,8 +4950,8 @@ contract DepositAddressManagerTest is Test {
     function test_hopStart_RevertsInvalidLeg2Price() public {
         vm.chainId(HOP_CHAIN_ID);
 
-        DepositAddressRoute memory route = _createRoute();
-        address depositAddress = factory.getDepositAddress(route);
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
         bytes32 relaySalt = keccak256("test-relay-salt");
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
@@ -5098,17 +4964,16 @@ contract DepositAddressManagerTest is Test {
             amount: BRIDGE_AMOUNT
         });
 
-        DepositAddressFulfillment
-            memory fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: relaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address receiverAddress, ) = manager.computeReceiverAddress(
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: leg2BridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
             fulfillment
         );
-        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
         PriceData memory leg1Price = _createSignedPriceData(
             address(usdc),
@@ -5128,7 +4993,7 @@ contract DepositAddressManagerTest is Test {
         vm.expectRevert(bytes("DAM: leg2 price invalid"));
         vm.prank(RELAYER);
         manager.hopStart({
-            route: route,
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
             leg1SourceChainId: SOURCE_CHAIN_ID,
             leg1BridgeTokenOutPrice: leg1Price,
@@ -5150,8 +5015,8 @@ contract DepositAddressManagerTest is Test {
         // Deploy mock adapter
         MockDepositAdapter adapter = new MockDepositAdapter(usdc);
 
-        // Create route with finalCallData - toAddress is now the adapter
-        DepositAddressRoute memory route = DepositAddressRoute({
+        // Create params with finalCallData - toAddress is now the adapter
+        DAParams memory params = DAParams({
             toChainId: DEST_CHAIN_ID,
             toToken: usdc,
             toAddress: address(adapter),
@@ -5169,7 +5034,7 @@ contract DepositAddressManagerTest is Test {
             expiresAt: block.timestamp + 1000
         });
 
-        DepositAddress vault = factory.createDepositAddress(route);
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -5183,15 +5048,12 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
         // Execute sameChainFinish with finalCall
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -5216,7 +5078,7 @@ contract DepositAddressManagerTest is Test {
 
         MockDepositAdapter adapter = new MockDepositAdapter(usdc);
 
-        DepositAddressRoute memory route = DepositAddressRoute({
+        DAParams memory params = DAParams({
             toChainId: DEST_CHAIN_ID,
             toToken: usdc,
             toAddress: address(adapter),
@@ -5234,7 +5096,7 @@ contract DepositAddressManagerTest is Test {
             expiresAt: block.timestamp + 1000
         });
 
-        DepositAddress vault = factory.createDepositAddress(route);
+        DepositAddress vault = factory.createDepositAddress(params);
         _fundDepositAddress(vault, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -5248,12 +5110,9 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
-        address depositAddress = factory.getDepositAddress(route);
+        address depositAddress = factory.getDepositAddress(params);
 
         // Expect FinalCallExecuted event
         vm.expectEmit(true, true, false, true);
@@ -5265,7 +5124,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -5284,7 +5143,7 @@ contract DepositAddressManagerTest is Test {
             5000 // 50%
         );
 
-        DepositAddressRoute memory route = DepositAddressRoute({
+        DAParams memory params = DAParams({
             toChainId: DEST_CHAIN_ID,
             toToken: usdc,
             toAddress: address(partialAdapter),
@@ -5302,7 +5161,7 @@ contract DepositAddressManagerTest is Test {
             expiresAt: block.timestamp + 1000
         });
 
-        DepositAddress da = factory.createDepositAddress(route);
+        DepositAddress da = factory.createDepositAddress(params);
         _fundDepositAddress(da, PAYMENT_AMOUNT);
 
         PriceData memory paymentTokenPrice = _createSignedPriceData(
@@ -5316,12 +5175,9 @@ contract DepositAddressManagerTest is Test {
             block.timestamp
         );
 
-        uint256 minOutput = (PAYMENT_AMOUNT *
-            (10_000 - MAX_SAME_CHAIN_FINISH_SLIPPAGE_BPS)) / 10_000;
-
         Call[] memory calls = new Call[](0);
 
-        address depositAddress = factory.getDepositAddress(route);
+        address depositAddress = factory.getDepositAddress(params);
 
         vm.expectEmit(true, true, false, true);
         emit DepositAddressManager.FinalCallExecuted(
@@ -5332,7 +5188,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.sameChainFinish({
-            route: route,
+            params: params,
             paymentToken: usdc,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -5358,7 +5214,7 @@ contract DepositAddressManagerTest is Test {
 
         MockDepositAdapter adapter = new MockDepositAdapter(usdc);
 
-        DepositAddressRoute memory route = DepositAddressRoute({
+        DAParams memory params = DAParams({
             toChainId: DEST_CHAIN_ID,
             toToken: usdc,
             toAddress: address(adapter),
@@ -5399,7 +5255,7 @@ contract DepositAddressManagerTest is Test {
 
         vm.prank(RELAYER);
         manager.fastFinish({
-            route: route,
+            params: params,
             calls: calls,
             token: usdc,
             bridgeTokenOutPrice: bridgeTokenOutPrice,

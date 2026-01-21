@@ -45,14 +45,15 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     /// Authorized relayer addresses.
     mapping(address relayer => bool authorized) public relayerAuthorized;
 
-    /// On the source chain, record receiver addresses that have been used.
-    mapping(address receiver => bool used) public receiverUsed;
+    /// On the source chain, record fulfillment addresses that have been used.
+    mapping(address fulfillment => bool used) public fulfillmentUsed;
 
-    /// On the destination chain, map receiver address to status:
+    /// On the destination chain, map fulfillment address to status:
     /// - address(0) = not finished.
     /// - Relayer address = fast-finished, awaiting claim to repay relayer.
     /// - ADDR_MAX = claimed. any additional funds received are refunded.
-    mapping(address receiver => address recipient) public receiverToRecipient;
+    mapping(address fulfillment => address recipient)
+        public fulfillmentToRecipient;
 
     // ---------------------------------------------------------------------
     // Events
@@ -62,9 +63,9 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
     event Start(
         address indexed depositAddress,
-        address indexed receiverAddress,
-        DepositAddressRoute route,
-        DepositAddressIntent intent,
+        address indexed fulfillmentAddress,
+        DAParams params,
+        DAFulfillmentParams fulfillment,
         address paymentToken,
         uint256 paymentAmount,
         uint256 paymentTokenPriceUsd,
@@ -72,64 +73,62 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     );
     event FastFinish(
         address indexed depositAddress,
-        address indexed receiverAddress,
+        address indexed fulfillmentAddress,
         address indexed newRecipient,
-        DepositAddressRoute route,
-        DepositAddressIntent intent,
+        DAParams params,
+        DAFulfillmentParams fulfillment,
         uint256 outputAmount,
         uint256 bridgeTokenOutPriceUsd,
         uint256 toTokenPriceUsd
     );
     event Claim(
         address indexed depositAddress,
-        address indexed receiverAddress,
+        address indexed fulfillmentAddress,
         address indexed finalRecipient,
-        DepositAddressRoute route,
-        DepositAddressIntent intent,
+        DAParams params,
+        DAFulfillmentParams fulfillment,
         uint256 outputAmount,
         uint256 bridgeTokenOutPriceUsd,
         uint256 toTokenPriceUsd
     );
     event SameChainFinish(
         address indexed depositAddress,
-        DepositAddressRoute route,
+        DAParams params,
         address paymentToken,
         uint256 paymentAmount,
         uint256 outputAmount,
         uint256 paymentTokenPriceUsd,
         uint256 toTokenPriceUsd
     );
-    event Refund(
-        address indexed depositAddress,
-        DepositAddressRoute route,
-        address refundAddress,
-        IERC20[] tokens,
-        uint256[] amounts
-    );
-    event RefundReceiver(
-        address indexed depositAddress,
-        address indexed receiverAddress,
-        DepositAddressRoute route,
-        DepositAddressIntent intent,
-        address refundAddress,
-        IERC20[] tokens,
-        uint256[] amounts
-    );
-    event Hop(
-        address indexed depositAddress,
-        address indexed hopReceiverAddress,
-        address indexed destReceiverAddress,
-        DepositAddressRoute route,
-        DepositAddressIntent leg1Intent,
-        DepositAddressIntent leg2Intent,
-        uint256 hopAmount,
-        uint256 leg1BridgeTokenOutPriceUsd,
-        uint256 leg2BridgeTokenInPriceUsd
-    );
     event FinalCallExecuted(
         address indexed depositAddress,
         address indexed target,
         bool success
+    );
+    event HopStart(
+        address indexed depositAddress,
+        address indexed fulfillmentAddress,
+        DAParams params,
+        DAFulfillmentParams fulfillment,
+        uint256 bridgedAmount,
+        uint256 leg1BridgeTokenOutPriceUsd,
+        uint256 leg2BridgeTokenInPriceUsd
+    );
+    event RefundDepositAddress(
+        address indexed depositAddress,
+        DAParams params,
+        address refundAddress,
+        IERC20[] tokens,
+        uint256[] amounts
+    );
+    event RefundFulfillment(
+        address indexed depositAddress,
+        address indexed fulfillmentAddress,
+        DAParams params,
+        DAFulfillmentParams fulfillment,
+        address refundAddress,
+        IERC20[] tokens,
+        uint256[] amounts
     );
 
     // ---------------------------------------------------------------------
@@ -167,21 +166,21 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     ///         deposit address, executing swaps if needed, and initiating a
     ///         bridge transfer to the destination chain.
     /// @dev Must be called on the source chain. Creates a deterministic
-    ///      receiver address on the destination chain and bridges the
+    ///      fulfillment address on the destination chain and bridges the
     ///      specified token amount to it.
-    /// @param route           The cross-chain route containing destination
+    /// @param params          The cross-chain params containing destination
     ///                        chain, recipient, and token details
-    /// @param paymentToken    The token the user paid the intent.
+    /// @param paymentToken    The token the user paid the deposit address.
     /// @param bridgeTokenOut  The token and amount to be bridged to the
     ///                        destination chain
     /// @param relaySalt       Unique salt provided by the relayer to generate
-    ///                        a unique receiver address
+    ///                        a unique fulfillment address
     /// @param calls           Optional swap calls to convert payment token to
     ///                        required bridge input token
     /// @param bridgeExtraData Additional data required by the specific bridge
     ///                        implementation
-    function startIntent(
-        DepositAddressRoute calldata route,
+    function start(
+        DAParams calldata params,
         IERC20 paymentToken,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata paymentTokenPrice,
@@ -190,14 +189,14 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) external nonReentrant onlyRelayer {
-        require(block.chainid != route.toChainId, "DAM: start on dest chain");
-        require(route.escrow == address(this), "DAM: wrong escrow");
-        require(!isRouteExpired(route), "DAM: expired");
+        require(block.chainid != params.toChainId, "DAM: start on dest chain");
+        require(params.escrow == address(this), "DAM: wrong escrow");
+        require(!isDAExpired(params), "DAM: expired");
 
-        bool paymentTokenPriceValid = route.pricer.validatePrice(
+        bool paymentTokenPriceValid = params.pricer.validatePrice(
             paymentTokenPrice
         );
-        bool bridgeTokenInPriceValid = route.pricer.validatePrice(
+        bool bridgeTokenInPriceValid = params.pricer.validatePrice(
             bridgeTokenInPrice
         );
         require(paymentTokenPriceValid, "DAM: payment price invalid");
@@ -208,27 +207,29 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         );
 
         // Deploy (or fetch) deposit address
-        DepositAddress da = depositAddressFactory.createDepositAddress(route);
+        DepositAddress da = depositAddressFactory.createDepositAddress(params);
 
-        DepositAddressIntent memory intent = DepositAddressIntent({
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
             depositAddress: address(da),
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: block.chainid
         });
-        (address receiverAddress, ) = computeReceiverAddress(intent);
+        (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
 
-        // Generate a unique receiver address for each bridge transfer. Without
-        // this check, a malicious relayer could reuse the same receiver address
-        // to claim multiple bridge transfers, double-paying themselves.
-        require(!receiverUsed[receiverAddress], "DAM: receiver used");
-        receiverUsed[receiverAddress] = true;
+        // Generate a unique fulfillment address for each bridge transfer.
+        // Without this check, a malicious relayer could reuse the same
+        // fulfillment address to claim multiple bridge transfers, double-paying
+        // themselves.
+        require(!fulfillmentUsed[fulfillmentAddress], "DAM: fulfillment used");
+        // Mark the fulfillment address as used to prevent double-processing
+        fulfillmentUsed[fulfillmentAddress] = true;
 
         // Quote bridge input requirements.
-        (address bridgeTokenIn, uint256 inAmount) = route
+        (address bridgeTokenIn, uint256 inAmount) = params
             .bridger
             .getBridgeTokenIn({
-                toChainId: route.toChainId,
+                toChainId: params.toChainId,
                 bridgeTokenOut: bridgeTokenOut
             });
         require(
@@ -238,7 +239,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         // Send payment token to executor
         uint256 paymentAmount = da.sendBalance({
-            route: route,
+            params: params,
             token: paymentToken,
             recipient: payable(address(executor))
         });
@@ -249,7 +250,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             sellTokenPrice: paymentTokenPrice,
             buyTokenPrice: bridgeTokenInPrice,
             sellAmount: paymentAmount,
-            maxSlippage: route.maxStartSlippageBps
+            maxSlippage: params.maxStartSlippageBps
         });
         require(inAmount >= minSwapOutput.amount, "DAM: bridge input low");
 
@@ -271,22 +272,22 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         // Approve bridger and initiate bridging
         IERC20(bridgeTokenIn).forceApprove({
-            spender: address(route.bridger),
+            spender: address(params.bridger),
             value: inAmount
         });
-        route.bridger.sendToChain({
-            toChainId: route.toChainId,
-            toAddress: receiverAddress,
+        params.bridger.sendToChain({
+            toChainId: params.toChainId,
+            toAddress: fulfillmentAddress,
             bridgeTokenOut: bridgeTokenOut,
-            refundAddress: route.refundAddress,
+            refundAddress: params.refundAddress,
             extraData: bridgeExtraData
         });
 
         emit Start({
             depositAddress: address(da),
-            receiverAddress: receiverAddress,
-            route: route,
-            intent: intent,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
+            fulfillment: fulfillment,
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
             paymentTokenPriceUsd: paymentTokenPrice.priceUsd,
@@ -296,25 +297,25 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
     /// @notice Send funds that are already on the destination chain.
     ///
-    /// @param route        The DepositAddressRoute for the intent
-    /// @param paymentToken Token to be used to pay the intent
+    /// @param params       The DAParams for the deposit address
+    /// @param paymentToken Token to be used to pay the deposit address
     /// @param calls        Arbitrary swap calls to be executed by the executor
     ///                     Can be empty when assets are already `toToken`
-    function sameChainFinishIntent(
-        DepositAddressRoute calldata route,
+    function sameChainFinish(
+        DAParams calldata params,
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
         Call[] calldata calls
     ) external nonReentrant onlyRelayer {
-        require(route.toChainId == block.chainid, "DAM: wrong chain");
-        require(route.escrow == address(this), "DAM: wrong escrow");
-        require(!isRouteExpired(route), "DAM: expired");
+        require(params.toChainId == block.chainid, "DAM: wrong chain");
+        require(params.escrow == address(this), "DAM: wrong escrow");
+        require(!isDAExpired(params), "DAM: expired");
 
-        bool paymentTokenPriceValid = route.pricer.validatePrice(
+        bool paymentTokenPriceValid = params.pricer.validatePrice(
             paymentTokenPrice
         );
-        bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
+        bool toTokenPriceValid = params.pricer.validatePrice(toTokenPrice);
         require(paymentTokenPriceValid, "DAM: payment price invalid");
         require(toTokenPriceValid, "DAM: toToken price invalid");
         require(
@@ -322,16 +323,16 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             "DAM: payment token mismatch"
         );
         require(
-            toTokenPrice.token == address(route.toToken),
+            toTokenPrice.token == address(params.toToken),
             "DAM: toToken mismatch"
         );
 
-        // Deploy (or fetch) the Deposit Address for this route.
-        DepositAddress da = depositAddressFactory.createDepositAddress(route);
+        // Deploy (or fetch) the Deposit Address for this params.
+        DepositAddress da = depositAddressFactory.createDepositAddress(params);
 
         // Pull specified token balances from the da into the executor.
         uint256 paymentAmount = da.sendBalance({
-            route: route,
+            params: params,
             token: paymentToken,
             recipient: payable(address(executor))
         });
@@ -341,20 +342,20 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             sellTokenPrice: paymentTokenPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: paymentAmount,
-            maxSlippage: route.maxSameChainFinishSlippageBps
+            maxSlippage: params.maxSameChainFinishSlippageBps
         });
 
-        // Finish the intent and return any leftover tokens to the caller
-        uint256 outputAmount = _finishIntent({
+        // Finish the fulfillment and return any leftover tokens to the caller
+        uint256 outputAmount = _finishFulfillment({
             depositAddress: address(da),
-            route: route,
+            params: params,
             calls: calls,
             minOutputAmount: minSwapOutput.amount
         });
 
         emit SameChainFinish({
             depositAddress: address(da),
-            route: route,
+            params: params,
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
             outputAmount: outputAmount,
@@ -366,16 +367,17 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     /// @notice Allows a relayer to deliver funds early on the destination chain
     ///         before the bridge transfer completes.
     /// @dev Must be called on the destination chain. The relayer sends their
-    ///      own funds to complete the intent atomically before calling fastFinish,
-    ///      and is recorded as the recipient for the eventual bridged tokens.
-    /// @param route           The DepositAddressRoute for the intent
+    ///      own funds to complete the fulfillment atomically before calling
+    ///      fastFinish, and is recorded as the recipient for the eventual
+    ///      bridged tokens.
+    /// @param params          The DAParams for the deposit address
     /// @param calls           Arbitrary swap calls to be executed by the executor
     /// @param token           The token sent by the relayer
     /// @param bridgeTokenOut  The token and amount expected from the bridge
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
-    function fastFinishIntent(
-        DepositAddressRoute calldata route,
+    function fastFinish(
+        DAParams calldata params,
         Call[] calldata calls,
         IERC20 token,
         PriceData calldata bridgeTokenOutPrice,
@@ -385,14 +387,14 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         uint256 sourceChainId
     ) external nonReentrant onlyRelayer {
         require(sourceChainId != block.chainid, "DAM: same chain finish");
-        require(route.toChainId == block.chainid, "DAM: wrong chain");
-        require(route.escrow == address(this), "DAM: wrong escrow");
-        require(!isRouteExpired(route), "DAM: expired");
+        require(params.toChainId == block.chainid, "DAM: wrong chain");
+        require(params.escrow == address(this), "DAM: wrong escrow");
+        require(!isDAExpired(params), "DAM: expired");
 
-        bool bridgeTokenOutPriceValid = route.pricer.validatePrice(
+        bool bridgeTokenOutPriceValid = params.pricer.validatePrice(
             bridgeTokenOutPrice
         );
-        bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
+        bool toTokenPriceValid = params.pricer.validatePrice(toTokenPrice);
         require(bridgeTokenOutPriceValid, "DAM: bridgeTokenOut price invalid");
         require(toTokenPriceValid, "DAM: toToken price invalid");
         require(
@@ -400,29 +402,29 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             "DAM: bridgeTokenOut mismatch"
         );
         require(
-            toTokenPrice.token == address(route.toToken),
+            toTokenPrice.token == address(params.toToken),
             "DAM: toToken mismatch"
         );
 
         // Calculate salt for this bridge transfer.
-        address da = depositAddressFactory.getDepositAddress(route);
-        DepositAddressIntent memory intent = DepositAddressIntent({
+        address da = depositAddressFactory.getDepositAddress(params);
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
             depositAddress: da,
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: sourceChainId
         });
-        (address receiverAddress, ) = computeReceiverAddress(intent);
+        (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
 
         // Check that the salt hasn't already been fast finished or claimed.
         require(
-            receiverToRecipient[receiverAddress] == address(0),
+            fulfillmentToRecipient[fulfillmentAddress] == address(0),
             "DAM: already finished"
         );
         // Record relayer as new recipient when the bridged tokens arrive
-        receiverToRecipient[receiverAddress] = msg.sender;
+        fulfillmentToRecipient[fulfillmentAddress] = msg.sender;
 
-        // Finish the intent and return any leftover tokens to the caller
+        // Finish the fulfillment and return any leftover tokens to the caller
         TokenUtils.transferBalance({
             token: token,
             recipient: payable(address(executor))
@@ -431,36 +433,37 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             sellTokenPrice: bridgeTokenOutPrice,
             buyTokenPrice: toTokenPrice,
             sellAmount: bridgeTokenOut.amount,
-            maxSlippage: route.maxFastFinishSlippageBps
+            maxSlippage: params.maxFastFinishSlippageBps
         });
-        uint256 outputAmount = _finishIntent({
+        uint256 outputAmount = _finishFulfillment({
             depositAddress: da,
-            route: route,
+            params: params,
             calls: calls,
             minOutputAmount: toTokenAmount.amount
         });
 
         emit FastFinish({
             depositAddress: da,
-            receiverAddress: receiverAddress,
+            fulfillmentAddress: fulfillmentAddress,
             newRecipient: msg.sender,
-            route: route,
-            intent: intent,
+            params: params,
+            fulfillment: fulfillment,
             outputAmount: outputAmount,
             bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
             toTokenPriceUsd: toTokenPrice.priceUsd
         });
     }
 
-    /// @notice Completes an intent after bridged tokens arrive on the destination
-    ///         chain, either repaying a relayer or fulfilling the intent directly.
-    /// @param route           The DepositAddressRoute for the intent
+    /// @notice Completes a fulfillment after bridged tokens arrive on the
+    ///         destination chain, either repaying a relayer or finishing the
+    ///         fulfillment directly.
+    /// @param params          The DAParams for the deposit address
     /// @param calls           Arbitrary swap from bridgeTokenOut to toToken
     /// @param bridgeTokenOut  The token and amount that was bridged
     /// @param relaySalt       Unique salt from the original bridge transfer
     /// @param sourceChainId   The chain ID where the bridge transfer originated
-    function claimIntent(
-        DepositAddressRoute calldata route,
+    function claim(
+        DAParams calldata params,
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata bridgeTokenOutPrice,
@@ -468,39 +471,39 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         bytes32 relaySalt,
         uint256 sourceChainId
     ) external nonReentrant onlyRelayer {
-        require(route.toChainId == block.chainid, "DAM: wrong chain");
-        require(route.escrow == address(this), "DAM: wrong escrow");
+        require(params.toChainId == block.chainid, "DAM: wrong chain");
+        require(params.escrow == address(this), "DAM: wrong escrow");
 
         // Calculate salt for this bridge transfer.
-        address da = depositAddressFactory.getDepositAddress(route);
-        DepositAddressIntent memory intent = DepositAddressIntent({
+        address da = depositAddressFactory.getDepositAddress(params);
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
             depositAddress: da,
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
             sourceChainId: sourceChainId
         });
-        (address receiverAddress, ) = computeReceiverAddress(intent);
+        (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
 
-        // Check the recipient for this intent.
-        address recipient = receiverToRecipient[receiverAddress];
+        // Check the recipient for this fulfillment.
+        address recipient = fulfillmentToRecipient[fulfillmentAddress];
         require(recipient != ADDR_MAX, "DAM: already claimed");
-        // Mark intent as claimed
-        receiverToRecipient[receiverAddress] = ADDR_MAX;
+        // Mark fulfillment as claimed
+        fulfillmentToRecipient[fulfillmentAddress] = ADDR_MAX;
 
-        // Deploy receiver and pull bridged tokens
+        // Deploy fulfillment and pull bridged tokens
         uint256 bridgedAmount;
-        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
-            intent,
+        (fulfillmentAddress, bridgedAmount) = _deployAndPullFromFulfillment(
+            fulfillment,
             bridgeTokenOut.token
         );
 
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
             // Validate prices
-            bool bridgeTokenOutPriceValid = route.pricer.validatePrice(
+            bool bridgeTokenOutPriceValid = params.pricer.validatePrice(
                 bridgeTokenOutPrice
             );
-            bool toTokenPriceValid = route.pricer.validatePrice(toTokenPrice);
+            bool toTokenPriceValid = params.pricer.validatePrice(toTokenPrice);
             require(
                 bridgeTokenOutPriceValid,
                 "DAM: bridgeTokenOut price invalid"
@@ -511,16 +514,16 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
                 "DAM: bridgeTokenOut mismatch"
             );
             require(
-                toTokenPrice.token == address(route.toToken),
+                toTokenPrice.token == address(params.toToken),
                 "DAM: toToken mismatch"
             );
 
-            // No relayer showed up, so just complete the intent. Update the
-            // recipient to the route's recipient.
-            recipient = route.toAddress;
+            // No relayer showed up, so complete the fulfillment. Update the
+            // recipient to the params's recipient.
+            recipient = params.toAddress;
 
             // Send tokens to the executor contract to run relayer-provided
-            // calls in _finishIntent.
+            // calls in _finishFulfillment.
             TokenUtils.transfer({
                 token: bridgeTokenOut.token,
                 recipient: payable(address(executor)),
@@ -528,24 +531,24 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             });
 
             // Compute the minimum amount of toToken that is required to
-            // complete the intent. This uses the promised bridgeTokenOut, even
-            // if the actual bridgedAmount is slightly less.
+            // complete the fulfillment. This uses the promised bridgeTokenOut,
+            // even if the actual bridgedAmount is slightly less.
             TokenAmount memory toTokenAmount = SwapMath.computeMinSwapOutput({
                 sellTokenPrice: bridgeTokenOutPrice,
                 buyTokenPrice: toTokenPrice,
                 sellAmount: bridgeTokenOut.amount,
-                maxSlippage: route.maxFastFinishSlippageBps
+                maxSlippage: params.maxFastFinishSlippageBps
             });
 
-            // Finish the intent and return any leftover tokens to the caller
-            outputAmount = _finishIntent({
+            // Finish the fulfillment and return any leftover tokens to the caller
+            outputAmount = _finishFulfillment({
                 depositAddress: da,
-                route: route,
+                params: params,
                 calls: calls,
                 minOutputAmount: toTokenAmount.amount
             });
         } else {
-            // Otherwise, the relayer fastFinished the intent. Repay them.
+            // Otherwise, the relayer fastFinished the fulfillment. Repay them.
             TokenUtils.transfer({
                 token: bridgeTokenOut.token,
                 recipient: payable(recipient),
@@ -556,10 +559,10 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         emit Claim({
             depositAddress: da,
-            receiverAddress: receiverAddress,
+            fulfillmentAddress: fulfillmentAddress,
             finalRecipient: recipient,
-            route: route,
-            intent: intent,
+            params: params,
+            fulfillment: fulfillment,
             outputAmount: outputAmount,
             bridgeTokenOutPriceUsd: bridgeTokenOutPrice.priceUsd,
             toTokenPriceUsd: toTokenPrice.priceUsd
@@ -567,43 +570,43 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     }
 
     /// @notice Continues a multi-hop transfer by pulling funds from a hop chain
-    ///         receiver and bridging to the final destination chain.
-    /// @dev Must be called on the hop chain. Pulls funds from the receiver
+    ///         fulfillment and bridging to the final destination chain.
+    /// @dev Must be called on the hop chain. Pulls funds from the fulfillment
     ///      created by the source→hop leg, then initiates hop→dest bridge.
-    /// @param route               The DepositAddressRoute for the intent
+    /// @param params              The DAParams for the intent
     /// @param leg1BridgeTokenOut  Token and amount that was bridged in leg 1
     ///                            (source → hop)
-    /// @param leg1RelaySalt       Relay salt used in leg 1
     /// @param leg1SourceChainId   Source chain ID for leg 1
-    /// @param leg2BridgeTokenOut  Token and amount to bridge in leg 2 (hop → dest)
-    /// @param leg1BridgeTokenOutPrice  Price data for leg 1 bridge token out
-    /// @param leg2BridgeTokenInPrice   Price data for leg 2 bridge token in
-    /// @param leg2RelaySalt       Relay salt for leg 2
+    /// @param leg1BridgeTokenOutPrice Price data for leg 1 bridge token out
+    /// @param leg2BridgeTokenOut      Token and amount to bridge in leg 2 (hop → dest)
+    /// @param leg2BridgeTokenInPrice  Price data for leg 2 bridge token in
+    /// @param relaySalt           Unique salt provided by the relayer to generate
+    ///                            a unique fulfillment address. Shared between
+    ///                            leg 1 and leg 2.
     /// @param calls               Swap calls to convert leg 1 token to leg 2
     ///                            bridge input token
     /// @param bridgeExtraData     Additional data for the hop → dest bridge
-    function hopIntent(
-        DepositAddressRoute calldata route,
+    function hopStart(
+        DAParams calldata params,
         TokenAmount calldata leg1BridgeTokenOut,
-        bytes32 leg1RelaySalt,
         uint256 leg1SourceChainId,
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
-        bytes32 leg2RelaySalt,
         PriceData calldata leg2BridgeTokenInPrice,
+        bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) external nonReentrant onlyRelayer {
         // Must be on hop chain (not source, not dest)
         require(block.chainid != leg1SourceChainId, "DAM: hop on source chain");
-        require(block.chainid != route.toChainId, "DAM: hop on dest chain");
-        require(route.escrow == address(this), "DAM: wrong escrow");
+        require(block.chainid != params.toChainId, "DAM: hop on dest chain");
+        require(params.escrow == address(this), "DAM: wrong escrow");
 
         // Validate prices
-        bool leg1PriceValid = route.pricer.validatePrice(
+        bool leg1PriceValid = params.pricer.validatePrice(
             leg1BridgeTokenOutPrice
         );
-        bool leg2PriceValid = route.pricer.validatePrice(
+        bool leg2PriceValid = params.pricer.validatePrice(
             leg2BridgeTokenInPrice
         );
         require(leg1PriceValid, "DAM: leg1 price invalid");
@@ -612,52 +615,43 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             leg1BridgeTokenOutPrice.token == address(leg1BridgeTokenOut.token),
             "DAM: leg1 bridge token mismatch"
         );
-        require(
-            leg2BridgeTokenInPrice.token == address(leg2BridgeTokenOut.token),
-            "DAM: leg2 bridge token mismatch"
-        );
 
-        // Compute and deploy/fetch the hop receiver from leg 1
-        address depositAddress = depositAddressFactory.getDepositAddress(route);
-        DepositAddressIntent memory leg1Intent = DepositAddressIntent({
+        // Compute the shared fulfillment address
+        address depositAddress = depositAddressFactory.getDepositAddress(
+            params
+        );
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
             depositAddress: depositAddress,
-            relaySalt: leg1RelaySalt,
-            bridgeTokenOut: leg1BridgeTokenOut,
+            relaySalt: relaySalt,
+            // Use the same params that were originally used to start leg 1
+            // to compute the same fulfillment address
+            bridgeTokenOut: leg2BridgeTokenOut,
             sourceChainId: leg1SourceChainId
         });
-        (address hopReceiverAddress, ) = computeReceiverAddress(leg1Intent);
+        (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
 
-        // Check that leg1 hasn't been claimed already
-        address recipient = receiverToRecipient[hopReceiverAddress];
+        // Check that the fulfillment hasn't been claimed already
+        address recipient = fulfillmentToRecipient[fulfillmentAddress];
         require(recipient != ADDR_MAX, "DAM: already claimed");
         // Mark as claimed to prevent double-processing
-        receiverToRecipient[hopReceiverAddress] = ADDR_MAX;
+        fulfillmentToRecipient[fulfillmentAddress] = ADDR_MAX;
 
-        // Deploy receiver and pull funds
+        // Deploy fulfillment and pull funds
         uint256 bridgedAmount;
-        (hopReceiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
-            leg1Intent,
+        (fulfillmentAddress, bridgedAmount) = _deployAndPullFromFulfillment(
+            fulfillment,
             leg1BridgeTokenOut.token
         );
 
-        // Compute leg 2 receiver address
-        DepositAddressIntent memory leg2Intent = DepositAddressIntent({
-            depositAddress: depositAddress,
-            relaySalt: leg2RelaySalt,
-            bridgeTokenOut: leg2BridgeTokenOut,
-            sourceChainId: block.chainid // hop chain is source for leg 2
-        });
-        (address destReceiverAddress, ) = computeReceiverAddress(leg2Intent);
-
-        // Ensure leg 2 receiver hasn't been used
-        require(!receiverUsed[destReceiverAddress], "DAM: receiver used");
-        receiverUsed[destReceiverAddress] = true;
+        // Ensure the fulfillment hasn't been used
+        require(!fulfillmentUsed[fulfillmentAddress], "DAM: fulfillment used");
+        fulfillmentUsed[fulfillmentAddress] = true;
 
         // Get bridge input requirements for leg 2
-        (address bridgeTokenIn, uint256 inAmount) = route
+        (address bridgeTokenIn, uint256 inAmount) = params
             .bridger
             .getBridgeTokenIn({
-                toChainId: route.toChainId,
+                toChainId: params.toChainId,
                 bridgeTokenOut: leg2BridgeTokenOut
             });
         require(
@@ -670,7 +664,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             sellTokenPrice: leg1BridgeTokenOutPrice,
             buyTokenPrice: leg2BridgeTokenInPrice,
             sellAmount: leg1BridgeTokenOut.amount,
-            maxSlippage: route.maxStartSlippageBps
+            maxSlippage: params.maxStartSlippageBps
         });
         require(inAmount >= minSwapOutput.amount, "DAM: bridge input low");
 
@@ -695,25 +689,23 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         // Approve bridger and initiate leg 2 bridge
         IERC20(bridgeTokenIn).forceApprove({
-            spender: address(route.bridger),
+            spender: address(params.bridger),
             value: inAmount
         });
-        route.bridger.sendToChain({
-            toChainId: route.toChainId,
-            toAddress: destReceiverAddress,
+        params.bridger.sendToChain({
+            toChainId: params.toChainId,
+            toAddress: fulfillmentAddress,
             bridgeTokenOut: leg2BridgeTokenOut,
-            refundAddress: route.refundAddress,
+            refundAddress: params.refundAddress,
             extraData: bridgeExtraData
         });
 
-        emit Hop({
+        emit HopStart({
             depositAddress: depositAddress,
-            hopReceiverAddress: hopReceiverAddress,
-            destReceiverAddress: destReceiverAddress,
-            route: route,
-            leg1Intent: leg1Intent,
-            leg2Intent: leg2Intent,
-            hopAmount: bridgedAmount,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
+            fulfillment: fulfillment,
+            bridgedAmount: bridgedAmount,
             leg1BridgeTokenOutPriceUsd: leg1BridgeTokenOutPrice.priceUsd,
             leg2BridgeTokenInPriceUsd: leg2BridgeTokenInPrice.priceUsd
         });
@@ -721,61 +713,61 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
     /// @notice Refunds tokens from a deposit address to its designated
     ///         refund address after the deposit address has expired.
-    /// @param route The Deposit Address route containing the refund address
+    /// @param params The Deposit Address params containing the refund address
     /// @param tokens The tokens to refund from the deposit address
     /// @dev Refunds are only allowed after the deposit address expires
-    function refundIntent(
-        DepositAddressRoute calldata route,
+    function refundDepositAddress(
+        DAParams calldata params,
         IERC20[] calldata tokens
     ) external nonReentrant {
-        require(route.escrow == address(this), "DAM: wrong escrow");
-        require(isRouteExpired(route), "DAM: not expired");
+        require(params.escrow == address(this), "DAM: wrong escrow");
+        require(isDAExpired(params), "DAM: not expired");
 
-        // Deploy (or fetch) the Deposit Address for this route
-        DepositAddress da = depositAddressFactory.createDepositAddress(route);
+        // Deploy (or fetch) the Deposit Address for this params
+        DepositAddress da = depositAddressFactory.createDepositAddress(params);
 
         // Send refund to the designated refund address
         uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
             amounts[i] = da.sendBalance({
-                route: route,
+                params: params,
                 token: tokens[i],
-                recipient: payable(route.refundAddress)
+                recipient: payable(params.refundAddress)
             });
         }
 
-        emit Refund({
+        emit RefundDepositAddress({
             depositAddress: address(da),
-            route: route,
-            refundAddress: route.refundAddress,
+            params: params,
+            refundAddress: params.refundAddress,
             tokens: tokens,
             amounts: amounts
         });
     }
 
-    /// @notice Refunds tokens from a receiver address to the designated refund
-    ///         address after the route has expired.
-    /// @param route The Deposit Address route containing the refund address
+    /// @notice Refunds tokens from a fulfillment address to the designated
+    ///         refund address after the params has expired.
+    /// @param params The Deposit Address params containing the refund address
     /// @param bridgeTokenOut The token and amount that was bridged (used to
-    ///        compute receiver address)
+    ///        compute fulfillment address)
     /// @param relaySalt Unique salt from the original bridge transfer
     /// @param sourceChainId The chain ID where the bridge transfer originated
-    /// @param tokens The tokens to refund from the receiver
-    /// @dev Refunds are only allowed after the route expires. This allows
+    /// @param tokens The tokens to refund from the fulfillment
+    /// @dev Refunds are only allowed after the params expires. This allows
     ///      recovery of bridged funds that were never claimed or fast-finished.
-    function refundReceiverIntent(
-        DepositAddressRoute calldata route,
+    function refundFulfillment(
+        DAParams calldata params,
         TokenAmount calldata bridgeTokenOut,
         bytes32 relaySalt,
         uint256 sourceChainId,
         IERC20[] calldata tokens
     ) external nonReentrant onlyRelayer {
-        require(route.escrow == address(this), "DAM: wrong escrow");
-        require(isRouteExpired(route), "DAM: not expired");
+        require(params.escrow == address(this), "DAM: wrong escrow");
+        require(isDAExpired(params), "DAM: not expired");
 
-        // Compute the receiver address for this intent
-        address da = depositAddressFactory.getDepositAddress(route);
-        DepositAddressIntent memory intent = DepositAddressIntent({
+        // Compute the fulfillment address for this fulfillment
+        address da = depositAddressFactory.getDepositAddress(params);
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
             depositAddress: da,
             relaySalt: relaySalt,
             bridgeTokenOut: bridgeTokenOut,
@@ -783,104 +775,108 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         });
 
         // Pull and transfer each token to the refund address
-        address receiverAddress;
+        address fulfillmentAddress;
         uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
-            (receiverAddress, amounts[i]) = _deployAndPullFromReceiver(
-                intent,
+            (fulfillmentAddress, amounts[i]) = _deployAndPullFromFulfillment(
+                fulfillment,
                 tokens[i]
             );
             TokenUtils.transfer({
                 token: tokens[i],
-                recipient: payable(route.refundAddress),
+                recipient: payable(params.refundAddress),
                 amount: amounts[i]
             });
         }
 
-        emit RefundReceiver({
+        emit RefundFulfillment({
             depositAddress: da,
-            receiverAddress: receiverAddress,
-            route: route,
-            intent: intent,
-            refundAddress: route.refundAddress,
+            fulfillmentAddress: fulfillmentAddress,
+            params: params,
+            fulfillment: fulfillment,
+            refundAddress: params.refundAddress,
             tokens: tokens,
             amounts: amounts
         });
     }
 
-    /// @notice Computes a deterministic DepositAddressReceiver address.
-    /// @param intent The bridge intent
-    /// @return addr The computed address for the DepositAddressReceiver contract
-    /// @return recvSalt The CREATE2 salt used to deploy the DepositAddressReceiver
-    function computeReceiverAddress(
-        DepositAddressIntent memory intent
-    ) public view returns (address payable addr, bytes32 recvSalt) {
-        recvSalt = keccak256(abi.encode(intent));
-        bytes memory initCode = type(DepositAddressReceiver).creationCode;
-        addr = payable(Create2.computeAddress(recvSalt, keccak256(initCode)));
+    /// @notice Computes a deterministic DAFulfillment address.
+    /// @param fulfillment The bridge fulfillment
+    /// @return addr The computed address for the DAFulfillment contract
+    /// @return relaySalt The CREATE2 salt used to deploy the DAFulfillment
+    function computeFulfillmentAddress(
+        DAFulfillmentParams memory fulfillment
+    ) public view returns (address payable addr, bytes32 relaySalt) {
+        relaySalt = keccak256(abi.encode(fulfillment));
+        bytes memory initCode = type(DAFulfillment).creationCode;
+        addr = payable(Create2.computeAddress(relaySalt, keccak256(initCode)));
     }
 
-    /// @notice Checks if a Deposit Address route has expired.
-    /// @param route The Deposit Address route to check
-    /// @return true if the route has expired, false otherwise
-    function isRouteExpired(
-        DepositAddressRoute calldata route
-    ) public view returns (bool) {
-        return block.timestamp >= route.expiresAt;
+    /// @notice Checks if a Deposit Address params has expired.
+    /// @param params The Deposit Address params to check
+    /// @return true if the params has expired, false otherwise
+    function isDAExpired(DAParams calldata params) public view returns (bool) {
+        return block.timestamp >= params.expiresAt;
     }
 
     // ---------------------------------------------------------------------
     // Internal helpers
     // ---------------------------------------------------------------------
 
-    /// @dev Deploy a DepositAddressReceiver if necessary and pull funds.
-    /// @param intent The bridge intent used to compute receiver address
-    /// @param token The token to pull from the receiver
-    /// @return receiverAddress The receiver contract address
-    /// @return pulledAmount The amount pulled from the receiver
-    function _deployAndPullFromReceiver(
-        DepositAddressIntent memory intent,
+    /// @dev Deploy a DAFulfillment if necessary and pull funds.
+    /// @param fulfillment The fulfillment params used to compute fulfillment
+    ///                    address
+    /// @param token The token to pull from the fulfillment
+    /// @return fulfillmentAddress The fulfillment contract address
+    /// @return pulledAmount The amount pulled from the fulfillment
+    function _deployAndPullFromFulfillment(
+        DAFulfillmentParams memory fulfillment,
         IERC20 token
-    ) internal returns (address receiverAddress, uint256 pulledAmount) {
-        bytes32 recvSalt;
-        (receiverAddress, recvSalt) = computeReceiverAddress(intent);
+    ) internal returns (address fulfillmentAddress, uint256 pulledAmount) {
+        bytes32 relaySalt;
+        (fulfillmentAddress, relaySalt) = computeFulfillmentAddress(
+            fulfillment
+        );
 
-        // Deploy receiver if necessary
-        DepositAddressReceiver receiver;
-        if (receiverAddress.code.length == 0) {
-            receiver = new DepositAddressReceiver{salt: recvSalt}();
-            require(receiverAddress == address(receiver), "DAM: receiver");
+        // Deploy fulfillment contract if necessary
+        DAFulfillment fulfillmentContract;
+        if (fulfillmentAddress.code.length == 0) {
+            fulfillmentContract = new DAFulfillment{salt: relaySalt}();
+            require(
+                fulfillmentAddress == address(fulfillmentContract),
+                "DAM: fulfillment"
+            );
         } else {
-            receiver = DepositAddressReceiver(payable(receiverAddress));
+            fulfillmentContract = DAFulfillment(payable(fulfillmentAddress));
         }
 
-        // Pull funds from the receiver
-        pulledAmount = receiver.pull(token);
+        // Pull funds from the fulfillment contract
+        pulledAmount = fulfillmentContract.pull(token);
     }
 
-    /// @dev Internal helper that completes an intent by executing swaps,
+    /// @dev Internal helper that completes a fulfillment by executing swaps,
     ///      delivering toToken to the recipient, and handling any surplus.
-    ///      If the route has a finalCall, executes the call after swapping.
+    ///      If the params has a finalCall, executes the call after swapping.
     ///      Precondition: input tokens must already be in PayExecutor.
-    /// @param depositAddress   The deposit address for this intent (for events)
-    /// @param route            The DepositAddressRoute containing
+    /// @param depositAddress   The deposit address for this fulfillment (for events)
+    /// @param params           The DAParams containing
     ///                         recipient details and optional finalCall
     /// @param calls            Arbitrary swap calls to be executed by the
     ///                         executor
     /// @param minOutputAmount  The minimum amount of target token to deliver to
     ///                         the recipient
-    function _finishIntent(
+    function _finishFulfillment(
         address depositAddress,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         Call[] calldata calls,
         uint256 minOutputAmount
     ) internal returns (uint256 outputAmount) {
-        if (route.finalCallData.length > 0) {
+        if (params.finalCallData.length > 0) {
             // Swap and keep tokens in executor for final call
             outputAmount = executor.executeAndSendBalance({
                 calls: calls,
                 minOutputAmount: TokenAmount({
-                    token: route.toToken,
+                    token: params.toToken,
                     amount: minOutputAmount
                 }),
                 recipient: payable(address(executor))
@@ -889,27 +885,27 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             // Execute final call - approves token to toAddress and calls it
             bool success = executor.executeFinalCall({
                 finalCall: Call({
-                    to: route.toAddress,
+                    to: params.toAddress,
                     value: 0,
-                    data: route.finalCallData
+                    data: params.finalCallData
                 }),
                 finalCallToken: TokenAmount({
-                    token: route.toToken,
+                    token: params.toToken,
                     amount: outputAmount
                 }),
-                refundAddr: payable(route.refundAddress)
+                refundAddr: payable(params.refundAddress)
             });
 
-            emit FinalCallExecuted(depositAddress, route.toAddress, success);
+            emit FinalCallExecuted(depositAddress, params.toAddress, success);
         } else {
             // No final call - send directly to recipient
             outputAmount = executor.executeAndSendBalance({
                 calls: calls,
                 minOutputAmount: TokenAmount({
-                    token: route.toToken,
+                    token: params.toToken,
                     amount: minOutputAmount
                 }),
-                recipient: payable(route.toAddress)
+                recipient: payable(params.toAddress)
             });
         }
     }
@@ -928,7 +924,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 }
 
 // ---------------------------------------------------------------------
-// Minimal deterministic receiver
+// Minimal deterministic fulfillment
 // ---------------------------------------------------------------------
 
 /// @notice Minimal deterministic contract that receives bridged tokens and
@@ -937,7 +933,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 ///      parameters into the deployment address, creating predictable addresses
 ///      that are unique to each bridge transfer. Only the deploying manager
 ///      can pull funds from this contract.
-contract DepositAddressReceiver {
+contract DAFulfillment {
     using SafeERC20 for IERC20;
 
     /// @notice Address allowed to pull funds from this contract

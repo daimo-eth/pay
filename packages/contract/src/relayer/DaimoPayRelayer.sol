@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../DaimoPay.sol";
 import "../TokenUtils.sol";
 import {DepositAddressManager} from "../DepositAddressManager.sol";
-import {DepositAddressRoute} from "../DepositAddress.sol";
+import {DAParams} from "../DepositAddress.sol";
 import {PriceData} from "../interfaces/IDaimoPayPricer.sol";
 
 /// @author Daimo, Inc
@@ -454,11 +454,11 @@ contract DaimoPayRelayer is AccessControl {
     // Deposit Address Execution
     // ------------------------------------------------------------
 
-    /// Starts a new Deposit Address intent.
-    function daStartIntent(
+    /// Starts a new Deposit Address fulfillment.
+    function daStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         IERC20 paymentToken,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata paymentTokenPrice,
@@ -478,9 +478,9 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the start intent
-        manager.startIntent({
-            route: route,
+        // Execute the start
+        manager.start({
+            params: params,
             paymentToken: paymentToken,
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
@@ -500,11 +500,11 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Same-chain finish for a Deposit Address intent.
+    /// Same-chain finish for a Deposit Address fulfillment.
     function daSameChainFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         IERC20 paymentToken,
         PriceData calldata paymentTokenPrice,
         PriceData calldata toTokenPrice,
@@ -521,9 +521,9 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the same-chain finish intent
-        manager.sameChainFinishIntent({
-            route: route,
+        // Execute the same-chain finish
+        manager.sameChainFinish({
+            params: params,
             paymentToken: paymentToken,
             paymentTokenPrice: paymentTokenPrice,
             toTokenPrice: toTokenPrice,
@@ -540,11 +540,11 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Fast finish for a Deposit Address intent.
+    /// Fast finish for a Deposit Address fulfillment.
     function daFastFinish(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         TokenAmount calldata tokenIn,
         PriceData calldata bridgeTokenOutPrice,
         PriceData calldata toTokenPrice,
@@ -565,16 +565,16 @@ contract DaimoPayRelayer is AccessControl {
         }
 
         // Transfer the input tokens to the manager so that it can immediately
-        // forward them to the executor inside fastFinishIntent.
+        // forward them to the executor inside fastFinish.
         TokenUtils.transfer({
             token: tokenIn.token,
             recipient: payable(address(manager)),
             amount: tokenIn.amount
         });
 
-        // Call fastFinishIntent on the DepositAddressManager.
-        manager.fastFinishIntent({
-            route: route,
+        // Call fastFinish on the DepositAddressManager.
+        manager.fastFinish({
+            params: params,
             calls: calls,
             token: tokenIn.token,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -601,11 +601,11 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Claim a Deposit Address intent after bridge arrival.
-    function daClaimIntent(
+    /// Claim a Deposit Address fulfillment after bridge arrival.
+    function daClaim(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         Call[] calldata calls,
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata bridgeTokenOutPrice,
@@ -624,9 +624,9 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the claim intent
-        manager.claimIntent({
-            route: route,
+        // Execute the claim
+        manager.claim({
+            params: params,
             calls: calls,
             bridgeTokenOut: bridgeTokenOut,
             bridgeTokenOutPrice: bridgeTokenOutPrice,
@@ -645,18 +645,18 @@ contract DaimoPayRelayer is AccessControl {
         approvedSwapAndTipHash = NO_APPROVED_HASH;
     }
 
-    /// Hop a Deposit Address intent: pull from hop receiver, bridge to dest.
-    function daHopIntent(
+    /// Hop a Deposit Address fulfillment: pull from fulfillment address,
+    /// initiate bridge to dest.
+    function daHopStart(
         Call[] calldata preCalls,
         DepositAddressManager manager,
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         TokenAmount calldata leg1BridgeTokenOut,
-        bytes32 leg1RelaySalt,
         uint256 leg1SourceChainId,
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
-        bytes32 leg2RelaySalt,
         PriceData calldata leg2BridgeTokenInPrice,
+        bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls,
@@ -671,16 +671,15 @@ contract DaimoPayRelayer is AccessControl {
             require(success, "DPR: preCall failed");
         }
 
-        // Execute the hop intent
-        manager.hopIntent({
-            route: route,
+        // Execute the hop start
+        manager.hopStart({
+            params: params,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: leg1SourceChainId,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
-            leg2RelaySalt: leg2RelaySalt,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
         });

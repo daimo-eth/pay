@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import {DepositAddressManager} from "../../src/DepositAddressManager.sol";
-import {DepositAddressRoute} from "../../src/DepositAddress.sol";
+import {DAParams} from "../../src/DepositAddress.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /// @notice ERC-20 that attempts to re-enter a DepositAddressManager call
@@ -25,7 +25,10 @@ contract ReentrantToken is ERC20 {
         return 6;
     }
 
-    function transfer(address to, uint256 amount) public override returns (bool) {
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
         bool ok = super.transfer(to, amount);
 
         // Only attempt reentrancy when transferring to the executor.
@@ -34,14 +37,14 @@ contract ReentrantToken is ERC20 {
             inAttack = true;
             // Craft dummy intent (all zeros) – will immediately fail due to
             // ReentrancyGuard before any deeper logic executes.
-            DepositAddressRoute memory dummy;
+            DAParams memory dummyParams;
             // We expect this to revert; propagate the revert to the caller so
             // the test can detect the ReentrancyGuard message.
             IERC20[] memory tokens = new IERC20[](1);
             tokens[0] = IERC20(address(0));
-            mgr.refundIntent(dummy, tokens);
+            mgr.refundDepositAddress(dummyParams, tokens);
         }
 
         return ok;
     }
-} 
+}

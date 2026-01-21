@@ -25,8 +25,8 @@ SCRIPTS=(
 
     # Deposit Address
     # "script/DeployDaimoPayPricer.s.sol"
-    # "script/DeployDAExecutor.s.sol"
     # "script/DeployDepositAddressFactory.s.sol"
+    # "script/DeployDAExecutor.s.sol"
     # "script/DeployDepositAddressManager.s.sol"
 
     # Relayer

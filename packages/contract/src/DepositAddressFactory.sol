@@ -8,30 +8,29 @@ import "./DepositAddress.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Factory contract that creates deterministic Deposit Address vault
+/// @notice Factory contract that creates deterministic Deposit Address
 ///         contracts using CREATE2 deployment for predictable addresses.
 /// @dev Deploys Deposit Address contracts at addresses determined by the
-///      route parameters, enabling desterministic vault addresses across
-///      chains.
+///      DAParams, enabling desterministic deposit addresses across chains.
 contract DepositAddressFactory {
     /// Singleton implementation that all minimal proxies delegate to.
     DepositAddress public immutable depositAddressImpl;
 
     event DepositAddressDeployed(
         address indexed depositAddress,
-        DepositAddressRoute route
+        DAParams params
     );
 
     constructor() {
         depositAddressImpl = new DepositAddress();
     }
 
-    /// @dev Deploy the Deposit Address for the given DepositAddressRoute
+    /// @dev Deploy the Deposit Address for the given DAParams
     ///      (or return existing one).
     function createDepositAddress(
-        DepositAddressRoute calldata route
+        DAParams calldata params
     ) public returns (DepositAddress ret) {
-        address depositAddress = getDepositAddress(route);
+        address depositAddress = getDepositAddress(params);
         if (depositAddress.code.length > 0) {
             // Already deployed, another CREATE2 would revert,
             // so not deploying and just returning the existing one.
@@ -44,19 +43,19 @@ contract DepositAddressFactory {
                         address(depositAddressImpl),
                         abi.encodeCall(
                             DepositAddress.initialize,
-                            calcRouteHash(route)
+                            calcDAParamsHash(params)
                         )
                     )
                 )
             )
         );
-        emit DepositAddressDeployed(depositAddress, route);
+        emit DepositAddressDeployed(depositAddress, params);
     }
 
     /// @notice Pure view helper: compute CREATE2 address for a
-    ///         DepositAddressRoute.
+    ///         DAParams.
     function getDepositAddress(
-        DepositAddressRoute calldata route
+        DAParams calldata params
     ) public view returns (address) {
         return
             Create2.computeAddress(
@@ -68,7 +67,7 @@ contract DepositAddressFactory {
                             address(depositAddressImpl),
                             abi.encodeCall(
                                 DepositAddress.initialize,
-                                calcRouteHash(route)
+                                calcDAParamsHash(params)
                             )
                         )
                     )

@@ -11,7 +11,7 @@ import "./interfaces/IDepositAddressBridger.sol";
 import "./interfaces/IDaimoPayPricer.sol";
 
 /// @notice Parameters that uniquely identify a Deposit Address.
-struct DepositAddressRoute {
+struct DAParams {
     /// Destination chain
     uint256 toChainId;
     /// Final token received on destination chain
@@ -46,7 +46,7 @@ struct DepositAddressRoute {
 
 /// @notice Parameters that uniquely identify a single intent (cross-chain
 ///         transfer) for a Deposit Address.
-struct DepositAddressIntent {
+struct DAFulfillmentParams {
     /// The Deposit Address contract for this intent
     address depositAddress;
     /// Unique salt/nonce provided by the relayer
@@ -58,20 +58,19 @@ struct DepositAddressIntent {
 }
 
 /// @notice Calculate the deterministic hash committed to by the Deposit Address
-function calcRouteHash(
-    DepositAddressRoute calldata route
-) pure returns (bytes32) {
-    return keccak256(abi.encode(route));
+function calcDAParamsHash(DAParams calldata params) pure returns (bytes32) {
+    return keccak256(abi.encode(params));
 }
 
 /// @author Daimo, Inc
-/// @notice Minimal vault contract that holds funds for a cross-chain deposit
-///         route, enabling deterministic address across chains.
-/// @dev Stateless design with only a fixed route hash allows cheap deployment
+/// @notice Minimal contract that holds funds for a cross-chain deposit address,
+///         enabling deterministic address across chains.
+/// @dev Stateless design with only a fixed param hash allows cheap deployment
 ///      via proxy clones and reuse across multiple chains. Funds are held
 ///      securely until the Universal Address Manager orchestrates their release
-///      for swaps, bridging, or refunds. Each vault is uniquely tied to a
-///      specific route and can only be controlled by its designated escrow.
+///      for swaps, bridging, or refunds. Each deposit address is uniquely tied
+///      to a specific set of DAParams and can only be controlled by its
+///      designated escrow.
 contract DepositAddress is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -79,8 +78,8 @@ contract DepositAddress is Initializable, ReentrancyGuard {
     // Storage
     // ---------------------------------------------------------------------
 
-    /// @dev Cheap single-slot storage – keccak256(DepositAddressRoute).
-    bytes32 public routeHash;
+    /// @dev Cheap single-slot storage – keccak256(DAParams).
+    bytes32 public paramHash;
 
     // ---------------------------------------------------------------------
     // Constructor / Initializer
@@ -95,9 +94,9 @@ contract DepositAddress is Initializable, ReentrancyGuard {
         emit NativeTransfer(msg.sender, address(this), msg.value);
     }
 
-    /// @param _routeHash keccak256(DepositAddressRoute) committed by the factory.
-    function initialize(bytes32 _routeHash) public initializer {
-        routeHash = _routeHash;
+    /// @param _paramHash keccak256(DAParams) committed by the factory.
+    function initialize(bytes32 _paramHash) public initializer {
+        paramHash = _paramHash;
 
         // Emit event for any ETH that arrived before deployment
         if (address(this).balance > 0) {
@@ -115,16 +114,16 @@ contract DepositAddress is Initializable, ReentrancyGuard {
 
     /// @notice Transfers the balance of a token from the vault to a
     ///         designated recipient. Callable only by the authorized escrow.
-    /// @param route       The DepositAddressRoute that this vault was created for
+    /// @param params      The DAParams that this vault was created for
     /// @param token       The token to transfer from the vault
     /// @param recipient   The address to receive the transferred tokens
     function sendBalance(
-        DepositAddressRoute calldata route,
+        DAParams calldata params,
         IERC20 token,
         address payable recipient
     ) public nonReentrant returns (uint256) {
-        require(calcRouteHash(route) == routeHash, "DA: route mismatch");
-        require(msg.sender == route.escrow, "DA: only escrow");
+        require(calcDAParamsHash(params) == paramHash, "DA: params mismatch");
+        require(msg.sender == params.escrow, "DA: only escrow");
 
         return TokenUtils.transferBalance({token: token, recipient: recipient});
     }

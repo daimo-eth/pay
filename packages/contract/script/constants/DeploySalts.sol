@@ -60,7 +60,7 @@ bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
 
 // Relayer contract
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-prod3"
+    "DaimoPayRelayer-prod4"
 );
 // bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
 //     "DaimoPayRelayer-dev4"

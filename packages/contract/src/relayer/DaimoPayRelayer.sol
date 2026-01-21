@@ -651,12 +651,11 @@ contract DaimoPayRelayer is AccessControl {
         DepositAddressManager manager,
         DepositAddressRoute calldata route,
         TokenAmount calldata leg1BridgeTokenOut,
-        bytes32 leg1RelaySalt,
         uint256 leg1SourceChainId,
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
-        bytes32 leg2RelaySalt,
         PriceData calldata leg2BridgeTokenInPrice,
+        bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData,
         Call[] calldata postCalls,
@@ -675,12 +674,11 @@ contract DaimoPayRelayer is AccessControl {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: leg1SourceChainId,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
-            leg2RelaySalt: leg2RelaySalt,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
         });

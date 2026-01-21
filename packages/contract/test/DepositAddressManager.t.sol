@@ -4244,24 +4244,23 @@ contract DepositAddressManagerTest is Test {
 
         DepositAddressRoute memory route = _createRoute();
         address depositAddress = factory.getDepositAddress(route);
+        bytes32 relaySalt = keccak256("test-refund-salt");
 
-        // Leg 1: source -> hop (simulating Scroll -> Arbitrum)
-        TokenAmount memory leg1BridgeTokenOut = TokenAmount({
+        TokenAmount memory bridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg1RelaySalt = keccak256("leg1-salt-refund");
 
         // Compute hop receiver address (where leg1 bridged tokens would arrive)
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
+                relaySalt: relaySalt,
+                bridgeTokenOut: bridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+            fulfillment
         );
 
         // Fund the hop receiver (simulating leg1 bridge arrival that was never hopped)
@@ -4278,8 +4277,8 @@ contract DepositAddressManagerTest is Test {
         vm.prank(RELAYER);
         manager.refundFulfillment({
             route: route,
-            bridgeTokenOut: leg1BridgeTokenOut,
-            relaySalt: leg1RelaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID,
             tokens: tokens
         });
@@ -4298,33 +4297,32 @@ contract DepositAddressManagerTest is Test {
 
         DepositAddressRoute memory route = _createRoute();
         address depositAddress = factory.getDepositAddress(route);
+        bytes32 relaySalt = keccak256("test-refund-salt");
 
         // Leg 1: source -> hop
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg1RelaySalt = keccak256("leg1-salt-leg2refund");
 
         // Leg 2: hop -> dest
         TokenAmount memory leg2BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg2RelaySalt = keccak256("leg2-salt-leg2refund");
 
         // Compute and fund leg1 receiver
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
+                relaySalt: relaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
         );
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
         // Execute the hop
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
@@ -4343,12 +4341,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
-            leg2RelaySalt: leg2RelaySalt,
+            relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: ""
         });
@@ -4360,7 +4357,7 @@ contract DepositAddressManagerTest is Test {
         DepositAddressFulfillment
             memory leg2Fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg2RelaySalt,
+                relaySalt: relaySalt,
                 bridgeTokenOut: leg2BridgeTokenOut,
                 sourceChainId: HOP_CHAIN_ID // hop chain is source for leg2
             });
@@ -4383,7 +4380,7 @@ contract DepositAddressManagerTest is Test {
         manager.refundFulfillment({
             route: route,
             bridgeTokenOut: leg2BridgeTokenOut,
-            relaySalt: leg2RelaySalt,
+            relaySalt: relaySalt,
             sourceChainId: HOP_CHAIN_ID,
             tokens: tokens
         });
@@ -4589,13 +4586,13 @@ contract DepositAddressManagerTest is Test {
 
         DepositAddressRoute memory route = _createRoute();
         address depositAddress = factory.getDepositAddress(route);
+        bytes32 relaySalt = keccak256("test-relay-salt");
 
         // Leg 1: source -> hop (e.g., Scroll -> Arbitrum)
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
         // Leg 2: hop -> dest (e.g., Arbitrum -> Base)
         // Use same amount since dummy bridger doesn't charge fees
@@ -4603,22 +4600,21 @@ contract DepositAddressManagerTest is Test {
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
         // Compute leg 1 receiver (where funds from source->hop arrive)
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
+                relaySalt: relaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
         );
 
         // Fund the hop receiver (simulating leg 1 bridge arrival)
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
         // Create price data for hop chain
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
@@ -4640,34 +4636,23 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
-            leg2RelaySalt: leg2RelaySalt,
+            relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
         });
 
         // Verify hop receiver is marked as claimed
         assertEq(
-            manager.receiverToRecipient(hopReceiverAddress),
+            manager.receiverToRecipient(receiverAddress),
             manager.ADDR_MAX()
         );
 
-        // Verify leg 2 receiver is marked as used
-        DepositAddressFulfillment
-            memory leg2Fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg2RelaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: HOP_CHAIN_ID
-            });
-        (address destReceiverAddress, ) = manager.computeReceiverAddress(
-            leg2Fulfillment
-        );
-        assertTrue(manager.receiverUsed(destReceiverAddress));
+        // Verify the receiver is marked as used (hopStart reuses receiver address)
+        assertTrue(manager.receiverUsed(receiverAddress));
 
         // Verify bridger received tokens (burned to 0xdead by dummy bridger)
         assertEq(usdc.balanceOf(address(0xdead)), leg2BridgeTokenOut.amount);
@@ -4678,41 +4663,29 @@ contract DepositAddressManagerTest is Test {
 
         DepositAddressRoute memory route = _createRoute();
         address depositAddress = factory.getDepositAddress(route);
+        bytes32 relaySalt = keccak256("test-relay-salt");
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
         TokenAmount memory leg2BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
+                relaySalt: relaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
         );
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
-
-        DepositAddressFulfillment
-            memory leg2Fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg2RelaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: HOP_CHAIN_ID
-            });
-        (address destReceiverAddress, ) = manager.computeReceiverAddress(
-            leg2Fulfillment
-        );
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
         PriceData memory leg1BridgeTokenOutPrice = _createSignedPriceData(
             address(usdc),
@@ -4730,12 +4703,10 @@ contract DepositAddressManagerTest is Test {
         vm.expectEmit(true, true, true, false);
         emit DepositAddressManager.HopStart({
             depositAddress: depositAddress,
-            hopReceiverAddress: hopReceiverAddress,
-            destReceiverAddress: destReceiverAddress,
+            receiverAddress: receiverAddress,
             route: route,
-            leg1Fulfillment: leg1Fulfillment,
-            leg2Fulfillment: leg2Fulfillment,
-            hopAmount: BRIDGE_AMOUNT,
+            fulfillment: fulfillment,
+            bridgedAmount: BRIDGE_AMOUNT,
             leg1BridgeTokenOutPriceUsd: USDC_PRICE,
             leg2BridgeTokenInPriceUsd: USDC_PRICE
         });
@@ -4744,12 +4715,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
-            leg2RelaySalt: leg2RelaySalt,
+            relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: ""
         });
@@ -4790,12 +4760,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: keccak256("leg1"),
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -4832,12 +4801,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: keccak256("leg1"),
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -4874,12 +4842,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: keccak256("leg1"),
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -4915,12 +4882,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: keccak256("leg1"),
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -4942,17 +4908,16 @@ contract DepositAddressManagerTest is Test {
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg2RelaySalt = keccak256("leg2-salt");
 
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
                 relaySalt: leg1RelaySalt,
                 bridgeTokenOut: leg1BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+            fulfillment
         );
         // Fund with exactly the expected amount
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
@@ -4975,12 +4940,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: leg2RelaySalt,
+            relaySalt: leg1RelaySalt,
             calls: calls,
             bridgeExtraData: ""
         });
@@ -4991,12 +4955,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2-salt-2"), // Different leg2 salt
+            relaySalt: leg1RelaySalt,
             calls: calls,
             bridgeExtraData: ""
         });
@@ -5015,14 +4978,14 @@ contract DepositAddressManagerTest is Test {
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
                 relaySalt: leg1RelaySalt,
                 bridgeTokenOut: leg1BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+            fulfillment
         );
 
         // Fund with less than expected
@@ -5049,12 +5012,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: leg1RelaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -5073,14 +5035,14 @@ contract DepositAddressManagerTest is Test {
         bytes32 leg1RelaySalt = keccak256("leg1-salt");
 
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
                 relaySalt: leg1RelaySalt,
                 bridgeTokenOut: leg1BridgeTokenOut,
                 sourceChainId: SOURCE_CHAIN_ID
             });
         (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
+            fulfillment
         );
         usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
@@ -5109,12 +5071,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: leg1RelaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""
         });
@@ -5125,29 +5086,29 @@ contract DepositAddressManagerTest is Test {
 
         DepositAddressRoute memory route = _createRoute();
         address depositAddress = factory.getDepositAddress(route);
+        bytes32 relaySalt = keccak256("test-relay-salt");
 
         TokenAmount memory leg1BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-        bytes32 leg1RelaySalt = keccak256("leg1-salt");
-
-        DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
-                sourceChainId: SOURCE_CHAIN_ID
-            });
-        (address hopReceiverAddress, ) = manager.computeReceiverAddress(
-            leg1Fulfillment
-        );
-        usdc.transfer(hopReceiverAddress, BRIDGE_AMOUNT);
 
         TokenAmount memory leg2BridgeTokenOut = TokenAmount({
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
+
+        DepositAddressFulfillment
+            memory fulfillment = DepositAddressFulfillment({
+                depositAddress: depositAddress,
+                relaySalt: relaySalt,
+                bridgeTokenOut: leg2BridgeTokenOut,
+                sourceChainId: SOURCE_CHAIN_ID
+            });
+        (address receiverAddress, ) = manager.computeReceiverAddress(
+            fulfillment
+        );
+        usdc.transfer(receiverAddress, BRIDGE_AMOUNT);
 
         PriceData memory leg1Price = _createSignedPriceData(
             address(usdc),
@@ -5169,12 +5130,11 @@ contract DepositAddressManagerTest is Test {
         manager.hopStart({
             route: route,
             leg1BridgeTokenOut: leg1BridgeTokenOut,
-            leg1RelaySalt: leg1RelaySalt,
             leg1SourceChainId: SOURCE_CHAIN_ID,
-            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg1BridgeTokenOutPrice: leg1Price,
+            leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
-            leg2RelaySalt: keccak256("leg2"),
+            relaySalt: relaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""
         });

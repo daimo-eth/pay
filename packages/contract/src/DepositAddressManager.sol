@@ -106,12 +106,10 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     );
     event HopStart(
         address indexed depositAddress,
-        address indexed hopReceiverAddress,
-        address indexed destReceiverAddress,
+        address indexed receiverAddress,
         DepositAddressRoute route,
-        DepositAddressFulfillment leg1Fulfillment,
-        DepositAddressFulfillment leg2Fulfillment,
-        uint256 hopAmount,
+        DepositAddressFulfillment fulfillment,
+        uint256 bridgedAmount,
         uint256 leg1BridgeTokenOutPriceUsd,
         uint256 leg2BridgeTokenInPriceUsd
     );
@@ -579,22 +577,23 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     /// @param leg1BridgeTokenOut  Token and amount that was bridged in leg 1
     ///                            (source → hop)
     /// @param leg1SourceChainId   Source chain ID for leg 1
-    /// @param leg2BridgeTokenOut  Token and amount to bridge in leg 2 (hop → dest)
-    /// @param leg1BridgeTokenOutPrice  Price data for leg 1 bridge token out
-    /// @param leg2BridgeTokenInPrice   Price data for leg 2 bridge token in
-    /// @param leg2RelaySalt       Relay salt for leg 2
+    /// @param leg1BridgeTokenOutPrice Price data for leg 1 bridge token out
+    /// @param leg2BridgeTokenOut      Token and amount to bridge in leg 2 (hop → dest)
+    /// @param leg2BridgeTokenInPrice  Price data for leg 2 bridge token in
+    /// @param relaySalt           Unique salt provided by the relayer to generate
+    ///                            a unique receiver address. Shared between
+    ///                            leg 1 and leg 2.
     /// @param calls               Swap calls to convert leg 1 token to leg 2
     ///                            bridge input token
     /// @param bridgeExtraData     Additional data for the hop → dest bridge
     function hopStart(
         DepositAddressRoute calldata route,
         TokenAmount calldata leg1BridgeTokenOut,
-        bytes32 leg1RelaySalt,
         uint256 leg1SourceChainId,
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
-        bytes32 leg2RelaySalt,
         PriceData calldata leg2BridgeTokenInPrice,
+        bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
     ) external nonReentrant onlyRelayer {
@@ -617,47 +616,35 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             "DAM: leg1 bridge token mismatch"
         );
 
-        // Compute and deploy/fetch the hop receiver from leg 1
+        // Compute the shared receiver address
         address depositAddress = depositAddressFactory.getDepositAddress(route);
         DepositAddressFulfillment
-            memory leg1Fulfillment = DepositAddressFulfillment({
+            memory fulfillment = DepositAddressFulfillment({
                 depositAddress: depositAddress,
-                relaySalt: leg1RelaySalt,
-                bridgeTokenOut: leg1BridgeTokenOut,
+                relaySalt: relaySalt,
+                // Use the same params that were originally used to start leg 1
+                // to compute the same receiver address
+                bridgeTokenOut: leg2BridgeTokenOut,
                 sourceChainId: leg1SourceChainId
             });
-        (address hopReceiverAddress, ) = computeReceiverAddress(
-            leg1Fulfillment
-        );
+        (address receiverAddress, ) = computeReceiverAddress(fulfillment);
 
-        // Check that leg1 hasn't been claimed already
-        address recipient = receiverToRecipient[hopReceiverAddress];
+        // Check that the receiver hasn't been claimed already
+        address recipient = receiverToRecipient[receiverAddress];
         require(recipient != ADDR_MAX, "DAM: already claimed");
         // Mark as claimed to prevent double-processing
-        receiverToRecipient[hopReceiverAddress] = ADDR_MAX;
+        receiverToRecipient[receiverAddress] = ADDR_MAX;
 
         // Deploy receiver and pull funds
         uint256 bridgedAmount;
-        (hopReceiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
-            leg1Fulfillment,
+        (receiverAddress, bridgedAmount) = _deployAndPullFromReceiver(
+            fulfillment,
             leg1BridgeTokenOut.token
         );
 
-        // Compute leg 2 receiver address
-        DepositAddressFulfillment
-            memory leg2Fulfillment = DepositAddressFulfillment({
-                depositAddress: depositAddress,
-                relaySalt: leg2RelaySalt,
-                bridgeTokenOut: leg2BridgeTokenOut,
-                sourceChainId: block.chainid
-            });
-        (address destReceiverAddress, ) = computeReceiverAddress(
-            leg2Fulfillment
-        );
-
-        // Ensure leg 2 receiver hasn't been used
-        require(!receiverUsed[destReceiverAddress], "DAM: receiver used");
-        receiverUsed[destReceiverAddress] = true;
+        // Ensure the receiver hasn't been used
+        require(!receiverUsed[receiverAddress], "DAM: receiver used");
+        receiverUsed[receiverAddress] = true;
 
         // Get bridge input requirements for leg 2
         (address bridgeTokenIn, uint256 inAmount) = route
@@ -706,7 +693,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         });
         route.bridger.sendToChain({
             toChainId: route.toChainId,
-            toAddress: destReceiverAddress,
+            toAddress: receiverAddress,
             bridgeTokenOut: leg2BridgeTokenOut,
             refundAddress: route.refundAddress,
             extraData: bridgeExtraData
@@ -714,12 +701,10 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         emit HopStart({
             depositAddress: depositAddress,
-            hopReceiverAddress: hopReceiverAddress,
-            destReceiverAddress: destReceiverAddress,
+            receiverAddress: receiverAddress,
             route: route,
-            leg1Fulfillment: leg1Fulfillment,
-            leg2Fulfillment: leg2Fulfillment,
-            hopAmount: bridgedAmount,
+            fulfillment: fulfillment,
+            bridgedAmount: bridgedAmount,
             leg1BridgeTokenOutPriceUsd: leg1BridgeTokenOutPrice.priceUsd,
             leg2BridgeTokenInPriceUsd: leg2BridgeTokenInPrice.priceUsd
         });

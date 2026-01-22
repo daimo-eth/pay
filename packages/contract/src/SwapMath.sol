@@ -39,8 +39,8 @@ library SwapMath {
         require(sellTokenPrice.priceUsd > 0, "SwapMath: sell price zero");
         require(buyTokenPrice.priceUsd > 0, "SwapMath: buy price zero");
 
-        uint256 sellDecimals = IERC20Metadata(sellTokenPrice.token).decimals();
-        uint256 buyDecimals = IERC20Metadata(buyTokenPrice.token).decimals();
+        uint256 sellDecimals = _getDecimals(sellTokenPrice.token);
+        uint256 buyDecimals = _getDecimals(buyTokenPrice.token);
 
         // Calculate: numerator = sellAmount * sellPriceUsd * (10_000 - maxSlippage) * 10^buyDecimals
         // Calculate: denominator = buyPriceUsd * 10_000 * 10^sellDecimals
@@ -78,5 +78,15 @@ library SwapMath {
                 token: IERC20(buyTokenPrice.token),
                 amount: buyAmount
             });
+    }
+
+    /// @notice Get decimals for a token, handling native token (address 0)
+    /// @param token The token address
+    /// @return decimals 18 for native tokens, otherwise from IERC20Metadata
+    function _getDecimals(address token) private view returns (uint256) {
+        if (token == address(0)) {
+            return 18; // native tokens (ETH, POL, etc.) use 18 decimals
+        }
+        return IERC20Metadata(token).decimals();
     }
 }

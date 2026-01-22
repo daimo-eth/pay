@@ -2,7 +2,6 @@
 pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayPricer.sol";
@@ -39,8 +38,8 @@ library SwapMath {
         require(sellTokenPrice.priceUsd > 0, "SwapMath: sell price zero");
         require(buyTokenPrice.priceUsd > 0, "SwapMath: buy price zero");
 
-        uint256 sellDecimals = _getDecimals(sellTokenPrice.token);
-        uint256 buyDecimals = _getDecimals(buyTokenPrice.token);
+        uint256 sellDecimals = TokenUtils.getDecimals(sellTokenPrice.token);
+        uint256 buyDecimals = TokenUtils.getDecimals(buyTokenPrice.token);
 
         // Calculate: numerator = sellAmount * sellPriceUsd * (10_000 - maxSlippage) * 10^buyDecimals
         // Calculate: denominator = buyPriceUsd * 10_000 * 10^sellDecimals
@@ -78,15 +77,5 @@ library SwapMath {
                 token: IERC20(buyTokenPrice.token),
                 amount: buyAmount
             });
-    }
-
-    /// @notice Get decimals for a token, handling native token (address 0)
-    /// @param token The token address
-    /// @return decimals 18 for native tokens, otherwise from IERC20Metadata
-    function _getDecimals(address token) private view returns (uint256) {
-        if (token == address(0)) {
-            return 18; // native tokens (ETH, POL, etc.) use 18 decimals
-        }
-        return IERC20Metadata(token).decimals();
     }
 }

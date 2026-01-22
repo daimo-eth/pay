@@ -2,6 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// Asset amount, e.g. $100 USDC or 0.1 ETH
@@ -17,6 +18,16 @@ event NativeTransfer(address indexed from, address indexed to, uint256 value);
 /// Utility functions that work for both ERC20 and native tokens.
 library TokenUtils {
     using SafeERC20 for IERC20;
+
+    /// @notice Get decimals for a token, handling native token (address 0)
+    /// @param token The token address or zero address for native token
+    /// @return decimals 18 for native tokens, otherwise from IERC20Metadata
+    function getDecimals(address token) internal view returns (uint256) {
+        if (token == address(0)) {
+            return 18;
+        }
+        return IERC20Metadata(token).decimals();
+    }
 
     /// Returns ERC20 or ETH balance.
     function getBalanceOf(

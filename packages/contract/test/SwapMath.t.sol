@@ -740,4 +740,196 @@ contract SwapMathTest is Test {
         // After round-trip with slippage, should have less than or equal to original
         assertLe(usdcResult.amount, amount);
     }
+
+    // ---------------------------------------------------------------------
+    // Native token (address 0) tests
+    // ---------------------------------------------------------------------
+    function testComputeSwapOutput_NativeTokenSell() public view {
+        // Sell native token (ETH) at $2500, buy USDC at $1
+        // Native tokens use 18 decimals
+        PriceData memory sellPrice = _createPriceData(
+            address(0), // native token
+            2500e18 // $2500
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(usdc),
+            1e18 // $1.00
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 1e18, // 1 ETH
+            maxSlippage: 0
+        });
+
+        assertEq(address(result.token), address(usdc));
+        assertEq(result.amount, 2500e6); // 2500 USDC
+    }
+
+    function testComputeSwapOutput_NativeTokenBuy() public view {
+        // Sell USDC at $1, buy native token (ETH) at $2500
+        PriceData memory sellPrice = _createPriceData(
+            address(usdc),
+            1e18 // $1.00
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(0), // native token
+            2500e18 // $2500
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 2500e6, // 2500 USDC
+            maxSlippage: 0
+        });
+
+        assertEq(address(result.token), address(0));
+        assertEq(result.amount, 1e18); // 1 ETH
+    }
+
+    function testComputeSwapOutput_NativeTokenSellWithSlippage() public view {
+        // Sell native token at $2000, buy USDC at $1, with 1% slippage
+        PriceData memory sellPrice = _createPriceData(
+            address(0), // native token
+            2000e18 // $2000
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(usdc),
+            1e18 // $1.00
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 1e18, // 1 ETH
+            maxSlippage: 100 // 1%
+        });
+
+        assertEq(address(result.token), address(usdc));
+        // 2000 * 0.99 = 1980 USDC
+        assertEq(result.amount, 1980e6);
+    }
+
+    function testComputeSwapOutput_NativeTokenBuyWithSlippage() public view {
+        // Sell USDC at $1, buy native token at $2000, with 0.5% slippage
+        PriceData memory sellPrice = _createPriceData(
+            address(usdc),
+            1e18 // $1.00
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(0), // native token
+            2000e18 // $2000
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 2000e6, // 2000 USDC
+            maxSlippage: 50 // 0.5%
+        });
+
+        assertEq(address(result.token), address(0));
+        // 1 ETH * 0.995 = 0.995 ETH
+        assertEq(result.amount, 0.995e18);
+    }
+
+    function testComputeSwapOutput_NativeTokenToNativeToken() public view {
+        // Edge case: both tokens are native (address 0)
+        // This tests that _getDecimals works on both sides
+        PriceData memory sellPrice = _createPriceData(
+            address(0), // native token
+            1e18 // $1.00
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(0), // native token
+            2e18 // $2.00
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 100e18, // 100 native tokens
+            maxSlippage: 0
+        });
+
+        assertEq(address(result.token), address(0));
+        // 100 * $1 / $2 = 50 native tokens
+        assertEq(result.amount, 50e18);
+    }
+
+    function testComputeSwapOutput_NativeTokenToDAI() public view {
+        // Native token (18 decimals) to DAI (18 decimals)
+        // Same decimals, different prices
+        PriceData memory sellPrice = _createPriceData(
+            address(0), // native token
+            3000e18 // $3000
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(dai),
+            1e18 // $1.00
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 2e18, // 2 ETH
+            maxSlippage: 30 // 0.3%
+        });
+
+        assertEq(address(result.token), address(dai));
+        // 2 * $3000 / $1 * 0.997 = 5982 DAI
+        assertEq(result.amount, 5982e18);
+    }
+
+    function testComputeSwapOutput_SmallNativeTokenAmount() public view {
+        // Test with small native token amounts (wei level)
+        PriceData memory sellPrice = _createPriceData(
+            address(0), // native token
+            2000e18 // $2000
+        );
+        PriceData memory buyPrice = _createPriceData(
+            address(usdc),
+            1e18 // $1.00
+        );
+
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: 1e12, // 0.000001 ETH (1 million wei)
+            maxSlippage: 0
+        });
+
+        assertEq(address(result.token), address(usdc));
+        // 0.000001 ETH * $2000 = $0.002 = 2000 micro-USDC
+        assertEq(result.amount, 2000); // 0.002 USDC in 6 decimals
+    }
+
+    function testFuzz_ComputeSwapOutput_NativeToken(
+        uint256 sellAmount,
+        uint256 nativePrice,
+        uint256 slippage
+    ) public view {
+        // Fuzz test for native token swaps
+        sellAmount = bound(sellAmount, 1e12, 1e24); // 0.000001 to 1M ETH
+        nativePrice = bound(nativePrice, 100e18, 10000e18); // $100 to $10,000
+        slippage = bound(slippage, 0, 1000); // 0% to 10%
+
+        PriceData memory sellPrice = _createPriceData(address(0), nativePrice);
+        PriceData memory buyPrice = _createPriceData(address(usdc), 1e18);
+
+        // This should not revert - native token should use 18 decimals
+        TokenAmount memory result = SwapMath.computeMinSwapOutput({
+            sellTokenPrice: sellPrice,
+            buyTokenPrice: buyPrice,
+            sellAmount: sellAmount,
+            maxSlippage: slippage
+        });
+
+        // Verify the output is reasonable
+        // Max possible = sellAmount * nativePrice / 1e18 / 1e12 (converting to USDC decimals)
+        uint256 maxPossibleUsdc = (sellAmount * nativePrice) / 1e18 / 1e12;
+        assertLe(result.amount, maxPossibleUsdc);
+    }
 }

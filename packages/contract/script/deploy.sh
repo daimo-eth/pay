@@ -40,6 +40,7 @@ SCRIPTS=(
 
     # Final call adapters
     # "script/DeployHypercoreDepositAdapter.s.sol"
+    # "script/DeployDummyDepositAdapter.s.sol"
 )
 
 CHAINS=(

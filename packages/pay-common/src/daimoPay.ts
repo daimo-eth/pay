@@ -622,6 +622,7 @@ export type DaimoPayEvent =
 export enum DAFulfillmentStatus {
   STARTED = "deposit_started",
   COMPLETED = "deposit_completed",
+  BOUNCED = "deposit_bounced",
 }
 
 export type DAFulfillment = {

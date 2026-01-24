@@ -180,6 +180,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://scrollscan.com";
     case solana.chainId:
       return "https://solscan.io";
+    case tron.chainId:
+      return "https://tronscan.org";
     case worldchain.chainId:
       return "https://worldscan.org";
     default:
@@ -198,6 +200,10 @@ export function getChainExplorerAddressUrl(
   if (!explorer) {
     return undefined;
   }
+  // Tron uses hash-based routing
+  if (chainId === tron.chainId) {
+    return `${explorer}/#/address/${address}`;
+  }
   return `${explorer}/address/${address}`;
 }
 
@@ -211,6 +217,10 @@ export function getChainExplorerTxUrl(
   const explorer = getChainExplorerByChainId(chainId);
   if (!explorer) {
     return undefined;
+  }
+  // Tron uses hash-based routing with "transaction" instead of "tx"
+  if (chainId === tron.chainId) {
+    return `${explorer}/#/transaction/${txHash.replace("0x", "")}`;
   }
   return `${explorer}/tx/${txHash}`;
 }

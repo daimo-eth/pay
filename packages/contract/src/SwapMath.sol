@@ -2,7 +2,6 @@
 pragma solidity ^0.8.12;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./TokenUtils.sol";
 import "./interfaces/IDaimoPayPricer.sol";
@@ -39,8 +38,8 @@ library SwapMath {
         require(sellTokenPrice.priceUsd > 0, "SwapMath: sell price zero");
         require(buyTokenPrice.priceUsd > 0, "SwapMath: buy price zero");
 
-        uint256 sellDecimals = IERC20Metadata(sellTokenPrice.token).decimals();
-        uint256 buyDecimals = IERC20Metadata(buyTokenPrice.token).decimals();
+        uint256 sellDecimals = TokenUtils.getDecimals(sellTokenPrice.token);
+        uint256 buyDecimals = TokenUtils.getDecimals(buyTokenPrice.token);
 
         // Calculate: numerator = sellAmount * sellPriceUsd * (10_000 - maxSlippage) * 10^buyDecimals
         // Calculate: denominator = buyPriceUsd * 10_000 * 10^sellDecimals

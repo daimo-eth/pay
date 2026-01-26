@@ -664,7 +664,12 @@ export type DA = {
 
 // Session types for the new modal flow
 
-export type SessionState = "pending" | "paid" | "expired";
+export type SessionState =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "bounced"
+  | "expired";
 
 /** Common fields for all navigation nodes */
 type NavNodeCommon = {

@@ -3,6 +3,7 @@ export type Chain = {
   chainId: number;
   name: string;
   cctpDomain: number | null;
+  lzEid: number | null;
 };
 
 export const arbitrum: Chain = {
@@ -10,6 +11,7 @@ export const arbitrum: Chain = {
   chainId: 42161,
   name: "Arbitrum",
   cctpDomain: 3,
+  lzEid: 30110,
 };
 
 export const base: Chain = {
@@ -17,6 +19,7 @@ export const base: Chain = {
   chainId: 8453,
   name: "Base",
   cctpDomain: 6,
+  lzEid: 30184,
 };
 
 export const bsc: Chain = {
@@ -24,6 +27,7 @@ export const bsc: Chain = {
   chainId: 56,
   name: "BNB Smart Chain",
   cctpDomain: null,
+  lzEid: 30102,
 };
 
 export const celo: Chain = {
@@ -31,6 +35,7 @@ export const celo: Chain = {
   chainId: 42220,
   name: "Celo",
   cctpDomain: null,
+  lzEid: 30125,
 };
 
 export const ethereum: Chain = {
@@ -38,6 +43,7 @@ export const ethereum: Chain = {
   chainId: 1,
   name: "Ethereum",
   cctpDomain: 0,
+  lzEid: 30101,
 };
 
 export const gnosis: Chain = {
@@ -45,6 +51,7 @@ export const gnosis: Chain = {
   chainId: 100,
   name: "Gnosis",
   cctpDomain: null,
+  lzEid: 30145,
 };
 
 export const hyperEvm: Chain = {
@@ -52,6 +59,7 @@ export const hyperEvm: Chain = {
   chainId: 999,
   name: "HyperEVM",
   cctpDomain: 19,
+  lzEid: 30367,
 };
 
 export const linea: Chain = {
@@ -59,6 +67,7 @@ export const linea: Chain = {
   chainId: 59144,
   name: "Linea",
   cctpDomain: 11,
+  lzEid: 30183,
 };
 
 export const monad: Chain = {
@@ -66,6 +75,7 @@ export const monad: Chain = {
   chainId: 143,
   name: "Monad",
   cctpDomain: 15,
+  lzEid: 30390,
 };
 
 export const optimism: Chain = {
@@ -73,6 +83,7 @@ export const optimism: Chain = {
   chainId: 10,
   name: "Optimism",
   cctpDomain: 2,
+  lzEid: 30111,
 };
 
 export const polygon: Chain = {
@@ -80,6 +91,7 @@ export const polygon: Chain = {
   chainId: 137,
   name: "Polygon",
   cctpDomain: 7,
+  lzEid: 30109,
 };
 
 export const scroll: Chain = {
@@ -87,6 +99,7 @@ export const scroll: Chain = {
   chainId: 534352,
   name: "Scroll",
   cctpDomain: null,
+  lzEid: 30214,
 };
 
 export const worldchain: Chain = {
@@ -94,6 +107,7 @@ export const worldchain: Chain = {
   chainId: 480,
   name: "Worldchain",
   cctpDomain: 14,
+  lzEid: 30319,
 };
 
 //
@@ -105,6 +119,7 @@ export const tron: Chain = {
   chainId: 728126428,
   name: "Tron",
   cctpDomain: null,
+  lzEid: 30420,
 };
 
 export const solana: Chain = {
@@ -112,6 +127,7 @@ export const solana: Chain = {
   chainId: 501,
   name: "Solana",
   cctpDomain: 5,
+  lzEid: 30168,
 };
 
 export const supportedChains: Chain[] = [
@@ -147,6 +163,11 @@ export function getChainName(chainId: number): string {
 /** Returns the CCTP domain for the given chainId. */
 export function getCCTPDomain(chainId: number): number | null {
   return getChainById(chainId).cctpDomain;
+}
+
+/** Returns the LayerZero endpoint ID for the given chainId. */
+export function getLZEid(chainId: number): number | null {
+  return getChainById(chainId).lzEid;
 }
 
 /**

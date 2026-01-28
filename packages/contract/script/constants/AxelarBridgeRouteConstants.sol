@@ -19,24 +19,7 @@ function getAxelarBridgeRoutes(
         DaimoPayAxelarBridger.AxelarBridgeRoute[] memory bridgeRoutes
     )
 {
-    // Source chain 8453
-    if (sourceChainId == 8453) {
-        chainIds = new uint256[](1);
-        bridgeRoutes = new DaimoPayAxelarBridger.AxelarBridgeRoute[](1);
 
-        // 8453 -> 42220
-        chainIds[0] = 42220;
-        bridgeRoutes[0] = DaimoPayAxelarBridger.AxelarBridgeRoute({
-            destChainName: "celo",
-            bridgeTokenIn: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            bridgeTokenOut: 0xEB466342C4d449BC9f53A865D5Cb90586f405215,
-            tokenSymbol: "axlUSDC",
-            receiverContract: axelarReceiver,
-            nativeFee: 500000000000000
-        });
-
-        return (chainIds, bridgeRoutes);
-    }
 
     // If source chain not found, return empty arrays
     return (new uint256[](0), new DaimoPayAxelarBridger.AxelarBridgeRoute[](0));

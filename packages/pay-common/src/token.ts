@@ -711,7 +711,17 @@ export const solanaUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-const solanaTokens: Token[] = [solanaUSDC, solanaWSOL, solanaSOL];
+export const solanaUSDT: Token = token({
+  chainId: solana.chainId,
+  token: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Tether USD",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const solanaTokens: Token[] = [solanaUSDC, solanaUSDT, solanaWSOL, solanaSOL];
 
 //
 // Tron

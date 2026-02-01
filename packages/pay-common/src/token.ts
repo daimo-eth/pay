@@ -1010,6 +1010,39 @@ export function tokensEqual(a: Token, b: Token): boolean {
   return a.chainId === b.chainId && a.token === b.token;
 }
 
+/**
+ * Returns true if the token is the native token or wrapped native token.
+ * Useful for checking if a token needs special native/wrapped handling.
+ */
+export function isNativeOrWrappedNative(
+  chainId: number,
+  tokenAddr: string,
+): boolean {
+  const tokens = tokensByChainAndType.get(chainId);
+  if (!tokens) return false;
+  return (
+    tokens[TokenType.NATIVE]?.token === tokenAddr ||
+    tokens[TokenType.WRAPPED_NATIVE]?.token === tokenAddr
+  );
+}
+
+/**
+ * For pricing/API lookups, native tokens should use their wrapped equivalent.
+ * Returns the wrapped native address if given native or wrapped native,
+ * otherwise returns the original address unchanged.
+ */
+export function getWrappedAddressForLookup(
+  chainId: number,
+  tokenAddr: string,
+): string {
+  if (isNativeOrWrappedNative(chainId, tokenAddr)) {
+    const wrapped =
+      tokensByChainAndType.get(chainId)?.[TokenType.WRAPPED_NATIVE];
+    if (wrapped) return wrapped.token;
+  }
+  return tokenAddr;
+}
+
 /* --------------------- Native Token Utils --------------------- */
 
 function nativeETH(chainId: number): Token {

@@ -111,8 +111,9 @@ export function attachPaymentEffectHandlers(
       case "pay_solana_source": {
         if (prev.type === "payment_unpaid") {
           runPaySolanaSourceEffects(store, trpc, prev, event);
+        } else {
+          log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         }
-        log(`[EFFECT] invalid event ${event.type} on state ${prev.type}`);
         break;
       }
       default:

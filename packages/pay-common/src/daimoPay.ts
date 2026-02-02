@@ -252,8 +252,8 @@ export type DaimoPayHydratedOrder = {
   hopStartTxHash: Hex | null;
   /** If set, indicates slow finish with estimated completion time. Unix timestamp. */
   finishSlowEta: number | null;
-  /** Next time this fulfillment can be retried for processing. */
-  retryProcessingAt: Date | null;
+  /** Next time this fulfillment can be retried for processing. Unix timestamp. */
+  retryProcessingAt: number | null;
   /** Number of retry attempts for this fulfillment. */
   retryCount: number;
 };

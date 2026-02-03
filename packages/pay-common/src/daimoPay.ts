@@ -61,6 +61,7 @@ export enum DaimoPayIntentStatus {
   STARTED = "payment_started",
   COMPLETED = "payment_completed",
   BOUNCED = "payment_bounced",
+  REFUNDED = "payment_refunded",
 }
 
 /**
@@ -581,7 +582,10 @@ export enum DaimoPayEventType {
 export type PaymentStartedEvent = {
   type: DaimoPayEventType.PaymentStarted;
   isTestEvent?: boolean;
+  /** Order ID (base58) for order flows, session ID for DA flows */
   paymentId: DaimoPayOrderID;
+  /** Session ID (always present) */
+  sessionId: string;
   chainId: number;
   txHash: Hex | string | null;
   payment: DaimoPayOrderView;
@@ -590,7 +594,10 @@ export type PaymentStartedEvent = {
 export type PaymentCompletedEvent = {
   type: DaimoPayEventType.PaymentCompleted;
   isTestEvent?: boolean;
+  /** Order ID (base58) for order flows, session ID for DA flows */
   paymentId: DaimoPayOrderID;
+  /** Session ID (always present) */
+  sessionId: string;
   chainId: number;
   txHash: Hex;
   payment: DaimoPayOrderView;
@@ -599,7 +606,10 @@ export type PaymentCompletedEvent = {
 export type PaymentBouncedEvent = {
   type: DaimoPayEventType.PaymentBounced;
   isTestEvent?: boolean;
+  /** Order ID (base58) for order flows, session ID for DA flows */
   paymentId: DaimoPayOrderID;
+  /** Session ID (always present) */
+  sessionId: string;
   chainId: number;
   txHash: Hex;
   payment: DaimoPayOrderView;
@@ -608,7 +618,10 @@ export type PaymentBouncedEvent = {
 export type PaymentRefundedEvent = {
   type: DaimoPayEventType.PaymentRefunded;
   isTestEvent?: boolean;
+  /** Order ID (base58) for order flows, session ID for DA flows */
   paymentId: DaimoPayOrderID;
+  /** Session ID (always present) */
+  sessionId: string;
   refundAddress: Address;
   chainId: number;
   tokenAddress: Address;

@@ -61,6 +61,7 @@ export enum DaimoPayIntentStatus {
   STARTED = "payment_started",
   COMPLETED = "payment_completed",
   BOUNCED = "payment_bounced",
+  REFUNDED = "payment_refunded",
 }
 
 /**

@@ -647,6 +647,8 @@ export type DAFulfillment = {
   daAddr: Address;
   status: DAFulfillmentStatus;
   createdAt: string; // Seconds since epoch
+  /** If set, estimated completion time (slow finish path). Seconds since epoch. */
+  finishSlowEta: string | null;
   source: {
     payerAddress: Address | SolanaPublicKey | null;
     txHash: Hex | string | null;

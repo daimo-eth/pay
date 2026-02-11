@@ -243,7 +243,7 @@ export type DaimoPayHydratedOrder = {
   userMetadata: DaimoPayUserMetadata | null;
   /** Nullable because old intents don't have expiration time. */
   expirationTs: bigint | null;
-  /** External source type, or null. EG "untron", "zkp2p". */
+  /** External source type, or null. EG "untron". */
   extSourceType: string | null;
   /** External source ID. Set when extSourceType is set. */
   extSourceId: string | null;
@@ -411,7 +411,7 @@ export type WalletPaymentOption = {
 
 export type ExternalPaymentOptionMetadata = {
   id: ExternalPaymentOptions;
-  optionType: "external" | "zkp2p" | "exchange";
+  optionType: "external" | "exchange";
   cta: string;
   logoURI: string;
   logoShape: "circle" | "squircle";
@@ -451,13 +451,19 @@ export enum ExternalPaymentOptions {
   Optimism = "Optimism",
   Polygon = "Polygon",
   Ethereum = "Ethereum",
-  //Payment apps options (only available on desktop)
+  /** @deprecated - ZKP2P payment apps no longer supported */
   AllPaymentApps = "AllPaymentApps",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   Venmo = "Venmo",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   CashApp = "CashApp",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   MercadoPago = "MercadoPago",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   Revolut = "Revolut",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   Wise = "Wise",
+  /** @deprecated - ZKP2P payment apps no longer supported */
   Zelle = "Zelle",
   /** @deprecated - kept for backwards compatibility with old SDK versions */
   Daimo = "Daimo",

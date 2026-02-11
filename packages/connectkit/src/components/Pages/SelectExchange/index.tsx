@@ -64,7 +64,7 @@ const SelectExchange: React.FC = () => {
 
   return (
     <PageContent>
-      <OrderHeader minified show="zkp2p" />
+      <OrderHeader minified />
       <OptionsList
         requiredSkeletons={2}
         options={options}

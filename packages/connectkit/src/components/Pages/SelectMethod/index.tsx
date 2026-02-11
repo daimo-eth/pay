@@ -290,24 +290,6 @@ export default function SelectMethod() {
     });
   }
 
-  // ZKP2P options - only if AllPaymentApps is in topOptionsOrder
-  const zkp2pOptions = externalPaymentOptions.options.get("zkp2p") ?? [];
-  const showZkp2pPaymentMethod =
-    !isMobile &&
-    zkp2pOptions.length > 0 &&
-    topOptionsOrder.includes("AllPaymentApps");
-  if (showZkp2pPaymentMethod) {
-    categorizedOptions.push({
-      id: "ZKP2P",
-      title: locales.payViaPaymentApp,
-      icons: zkp2pOptions.slice(0, 2).map((option) => option.logoURI),
-      onClick: () => {
-        setRoute(ROUTES.SELECT_ZKP2P);
-      },
-      category: "AllPaymentApps",
-    });
-  }
-
   // Sort based on topOptionsOrder, keeping connected wallets first
   const sortedOptions = categorizedOptions.sort((a, b) => {
     // Connected wallets always first

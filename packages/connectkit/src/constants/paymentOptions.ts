@@ -8,7 +8,6 @@ export const TOP_LEVEL_PAYMENT_OPTIONS: ExternalPaymentOptionsString[] = [
   ExternalPaymentOptions.AllWallets,
   ExternalPaymentOptions.AllExchanges,
   ExternalPaymentOptions.AllAddresses,
-  ExternalPaymentOptions.AllPaymentApps,
   ExternalPaymentOptions.Tron,
 ];
 

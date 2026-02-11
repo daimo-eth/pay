@@ -18,7 +18,7 @@ export const OrderHeader = ({
   show = "all",
 }: {
   minified?: boolean;
-  show?: "evm" | "solana" | "zkp2p" | "all";
+  show?: "evm" | "solana" | "all";
 }) => {
   const { paymentState, route } = usePayContext();
   const { isConnected: isEthConnected, address, connector } = useAccount();

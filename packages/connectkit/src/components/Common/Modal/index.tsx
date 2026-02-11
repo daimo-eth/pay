@@ -55,8 +55,6 @@ const routeDepthMap: Partial<Record<ROUTES, number>> = {
   [ROUTES.SELECT_EXCHANGE]: 1,
   [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: 1,
 
-  [ROUTES.SELECT_ZKP2P]: 1,
-
   [ROUTES.CONNECT]: 2,
   [ROUTES.SOLANA_CONNECTOR]: 2,
   [ROUTES.MOBILECONNECTORS]: 2,
@@ -420,8 +418,6 @@ const Modal: React.FC<ModalProps> = ({
         if (paymentState === "warning") return locales.leaveSession;
         if (!selectedDepositAddressOption) return undefined;
         return `${payWithString} ${selectedDepositAddressOption.id}`;
-      case ROUTES.SELECT_ZKP2P:
-        return locales.selectApp;
       case ROUTES.SELECT_AMOUNT:
       case ROUTES.SELECT_EXTERNAL_AMOUNT:
       case ROUTES.SELECT_DEPOSIT_ADDRESS_AMOUNT:

@@ -13,18 +13,11 @@ import { TrpcClient } from "../utils/trpc";
 
 const DEFAULT_EXTERNAL_PAYMENT_OPTIONS = Object.values(
   ExternalPaymentOptions,
-).filter(
-  (opt) =>
-    opt !== ExternalPaymentOptions.AllAddresses &&
-    opt !== ExternalPaymentOptions.AllPaymentApps,
-);
+).filter((opt) => opt !== ExternalPaymentOptions.AllAddresses);
 
 export type PaymentOptionsResult = {
   externalPaymentOptions: {
-    options: Map<
-      "external" | "zkp2p" | "exchange",
-      ExternalPaymentOptionMetadata[]
-    >;
+    options: Map<"external" | "exchange", ExternalPaymentOptionMetadata[]>;
     loading: boolean;
     parsedConfig: { walletOrder: string[] };
   };
@@ -80,7 +73,7 @@ export function usePaymentOptions({
 }): PaymentOptionsResult {
   // State for each option type
   const [externalOptions, setExternalOptions] = useState<
-    Map<"external" | "zkp2p" | "exchange", ExternalPaymentOptionMetadata[]>
+    Map<"external" | "exchange", ExternalPaymentOptionMetadata[]>
   >(new Map());
   const [walletOptions, setWalletOptions] = useState<
     WalletPaymentOption[] | null
@@ -163,9 +156,6 @@ export function usePaymentOptions({
           : null;
         const enabledExtPaymentOptions =
           flatFilterIds || DEFAULT_EXTERNAL_PAYMENT_OPTIONS;
-        const hasAllPaymentApps = enabledExtPaymentOptions.includes(
-          ExternalPaymentOptions.AllPaymentApps,
-        );
         const hasAllExchanges = enabledExtPaymentOptions.includes(
           ExternalPaymentOptions.AllExchanges,
         );
@@ -173,11 +163,10 @@ export function usePaymentOptions({
         const filteredExternal = result.externalOptions.filter(
           (option: ExternalPaymentOptionMetadata) =>
             enabledExtPaymentOptions.includes(option.id) ||
-            (hasAllPaymentApps && option.optionType === "zkp2p") ||
             (hasAllExchanges && option.optionType === "exchange"),
         );
         const optionsByType = new Map<
-          "external" | "zkp2p" | "exchange",
+          "external" | "exchange",
           ExternalPaymentOptionMetadata[]
         >();
         filteredExternal.forEach((option: ExternalPaymentOptionMetadata) => {

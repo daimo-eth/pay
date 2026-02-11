@@ -37,7 +37,6 @@ import SelectMethod from "../Pages/SelectMethod";
 import SelectToken from "../Pages/SelectToken";
 import SelectWalletAmount from "../Pages/SelectWalletAmount";
 import SelectWalletChain from "../Pages/SelectWalletChain";
-import SelectZKP from "../Pages/SelectZKP";
 import ConnectorSolana from "../Pages/Solana/ConnectorSolana";
 import PayWithSolanaToken from "../Pages/Solana/PayWithSolanaToken";
 import SelectSolanaAmount from "../Pages/Solana/SelectSolanaAmount";
@@ -245,7 +244,6 @@ export const DaimoPayModal: React.FC<{
     [ROUTES.WAITING_EXTERNAL]: <WaitingExternal />,
     [ROUTES.SELECT_DEPOSIT_ADDRESS_CHAIN]: <SelectDepositAddressChain />,
     [ROUTES.WAITING_DEPOSIT_ADDRESS]: <WaitingDepositAddress />,
-    [ROUTES.SELECT_ZKP2P]: <SelectZKP />,
     [ROUTES.WAITING_WALLET]: <WaitingWallet />,
     [ROUTES.CONFIRMATION]: <Confirmation />,
     [ROUTES.ERROR]: <ErrorPage />,

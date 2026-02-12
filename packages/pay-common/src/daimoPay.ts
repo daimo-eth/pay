@@ -648,6 +648,14 @@ export enum DAFulfillmentStatus {
   BOUNCED = "deposit_bounced",
 }
 
+export type Destination = {
+  address: Address;
+  chainId: string;
+  tokenAddress: Address;
+  tokenSymbol: string;
+  amountUnits?: string | null;
+};
+
 export type DAFulfillment = {
   id: UUID;
   daAddr: Address;
@@ -662,12 +670,7 @@ export type DAFulfillment = {
     amountUnits: string;
     usdValue: string;
   };
-  destination: {
-    destinationAddress: Address;
-    chainId: string;
-    tokenAddress: Address;
-    tokenSymbol: string;
-    amountUnits: string | null;
+  destination: Destination & {
     txHash: Hex | null;
   };
 };
@@ -675,10 +678,7 @@ export type DAFulfillment = {
 export type DA = {
   daAddr: Address;
   org: DaimoPayOrgPublicInfo;
-  destinationChainId: string;
-  destinationAddress: Address;
-  destinationTokenAddress: Address;
-  destinationTokenSymbol: string;
+  destination: Destination;
   refundAddress: Address;
   expiresAt: string; // Seconds since epoch
   createdAt: string; // Seconds since epoch
@@ -754,7 +754,8 @@ export type NavNode =
 export type Session = {
   sessionId: UUID;
   state: SessionState;
-  da: DA;
+  depositAddress: Address;
+  destination: Destination;
   navTree: NavNode[];
   /** Custom theme CSS URL, overrides default theme */
   themeCssUrl?: string;

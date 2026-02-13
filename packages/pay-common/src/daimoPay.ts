@@ -694,6 +694,15 @@ export type SessionState =
   | "bounced"
   | "expired";
 
+/**
+ * Returns true if the session is still active (pending or processing), meaning
+ * polling should continue. Returns false for terminal states (completed,
+ * bounced, expired) where the session outcome is final.
+ */
+export function isSessionActive(state: SessionState): boolean {
+  return state === "pending" || state === "processing";
+}
+
 /** Common fields for all navigation nodes */
 type NavNodeCommon = {
   id: string;

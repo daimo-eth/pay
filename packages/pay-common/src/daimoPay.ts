@@ -768,4 +768,7 @@ export type Session = {
   navTree: NavNode[];
   /** Custom theme CSS URL, overrides default theme */
   themeCssUrl?: string;
+  orgId: string;
+  /** Seconds since epoch */
+  expiresAt: number;
 };

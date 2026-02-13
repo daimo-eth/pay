@@ -687,12 +687,15 @@ export type DA = {
 
 // Session types for the new modal flow
 
-export type SessionState =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "bounced"
-  | "expired";
+export const zSessionState = z.enum([
+  "pending",
+  "processing",
+  "completed",
+  "bounced",
+  "expired",
+]);
+
+export type SessionState = z.infer<typeof zSessionState>;
 
 /**
  * Returns true if the session is still active (pending or processing), meaning

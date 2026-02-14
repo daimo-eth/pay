@@ -424,6 +424,7 @@ export type ExternalPaymentOptionMetadata = {
 export enum ExternalPaymentOptions {
   // Wallets options
   AllWallets = "AllWallets",
+  ConnectedWallet = "ConnectedWallet",
   Metamask = "MetaMask",
   Trust = "Trust",
   Rainbow = "Rainbow",
@@ -756,12 +757,18 @@ export type NavNodeTronDeposit = NavNodeCommon & {
   maximumUsd: number;
 };
 
+export type NavNodeConnectedWallet = NavNodeCommon & {
+  type: "ConnectedWallet";
+  icon?: string;
+};
+
 export type NavNode =
   | NavNodeChooseOption
   | NavNodeDepositAddress
   | NavNodeDeeplink
   | NavNodeExchange
-  | NavNodeTronDeposit;
+  | NavNodeTronDeposit
+  | NavNodeConnectedWallet;
 
 export type Session = {
   sessionId: UUID;

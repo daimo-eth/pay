@@ -2,7 +2,7 @@ import type { Connector } from "wagmi";
 import Logos from "../assets/logos";
 
 // Infer in-wallet payment URL from environment.
-let daimoPayHost = "https://pay.daimo.com";
+let daimoPayHost = "https://daimo.com";
 
 export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   if (apiUrl.startsWith("http://localhost")) {
@@ -10,7 +10,7 @@ export function setInWalletPaymentUrlFromApiUrl(apiUrl: string) {
   } else if (apiUrl.startsWith("https://pay-api-stage.daimo.xyz")) {
     daimoPayHost = "https://pay.stage.daimo.xyz";
   } else {
-    daimoPayHost = "https://pay.daimo.com";
+    daimoPayHost = "https://daimo.com";
   }
 }
 

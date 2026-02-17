@@ -58,7 +58,7 @@ export default function SelectAnotherMethodButton() {
     icons.push(
       createIconDiv(
         <img
-          src="https://pay.daimo.com/chain-logos/tronusdt.svg"
+          src="https://daimo.com/chain-logos/tronusdt.svg"
           alt="TRON USDT"
         />,
         "tron-usdt",

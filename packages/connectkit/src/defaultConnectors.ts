@@ -33,7 +33,7 @@ const defaultConnectors = ({
     baseAccount({
       appName: app.name,
       // Use the default Daimo Pay logo if the app does not provide an icon
-      appLogoUrl: app.icon ?? "https://pay.daimo.com/daimo-pay-logo.svg",
+      appLogoUrl: app.icon ?? "https://daimo.com/daimo-pay-logo.svg",
     }),
   );
   connectors.push(
@@ -42,7 +42,7 @@ const defaultConnectors = ({
         name: app.name,
         url: app.url,
         // Use the default Daimo Pay logo if the app does not provide an icon
-        appLogoUrl: app.icon ?? "https://pay.daimo.com/daimo-pay-logo.svg",
+        appLogoUrl: app.icon ?? "https://daimo.com/daimo-pay-logo.svg",
       },
     }),
   );

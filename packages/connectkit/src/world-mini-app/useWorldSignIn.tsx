@@ -24,7 +24,7 @@ export function useWorldSignIn(): {
         return null;
       }
 
-      const res = await fetch("https://pay.daimo.com/api/worldcoin/siwe-nonce");
+      const res = await fetch("https://daimo.com/api/worldcoin/siwe-nonce");
       const { nonce } = await res.json();
 
       console.log("[WORLD_SIGNIN] nonce", nonce);
@@ -51,7 +51,7 @@ export function useWorldSignIn(): {
         return null;
       } else {
         const response = await fetch(
-          "https://pay.daimo.com/api/worldcoin/complete-siwe",
+          "https://daimo.com/api/worldcoin/complete-siwe",
           {
             method: "POST",
             headers: {

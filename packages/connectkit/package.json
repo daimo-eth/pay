@@ -3,7 +3,7 @@
   "private": false,
   "version": "1.19.12-dev",
   "author": "Daimo",
-  "homepage": "https://pay.daimo.com",
+  "homepage": "https://daimo.com",
   "license": "BSD-2-Clause license",
   "description": "Seamless crypto payments. Onboard users from any chain, any coin into your app with one click.",
   "main": "./src/index.ts",

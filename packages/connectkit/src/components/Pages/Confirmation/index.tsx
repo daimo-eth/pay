@@ -67,7 +67,7 @@ const Confirmation: React.FC = () => {
   if (order?.id != null) {
     const screen = done ? "Confirmed" : "Confirming";
     supportUrl = getSupportUrl(order.id.toString(), screen);
-    receiptUrl = `https://pay.daimo.com/receipt?id=${writeDaimoPayOrderID(BigInt(order.id))}`;
+    receiptUrl = `https://daimo.com/receipt?id=${writeDaimoPayOrderID(BigInt(order.id))}`;
   }
 
   return (

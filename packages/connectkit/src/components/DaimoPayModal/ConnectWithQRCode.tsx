@@ -58,7 +58,7 @@ const ConnectWithQRCode: React.FC<{ externalUrl?: string | null }> = ({
   const url =
     externalUrl ?? // QR code opens eg. Binance
     walletDeeplink ?? // open in wallet
-    `https://pay.daimo.com/pay?id=${payId}&mode=browser`; // browser
+    `https://daimo.com/pay?id=${payId}&mode=browser`; // browser
 
   if (context.debugMode) {
     console.log("[DEBUG] QR Code URL:", url);

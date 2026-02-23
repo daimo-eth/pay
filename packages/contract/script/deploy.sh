@@ -15,13 +15,14 @@ SCRIPTS=(
     # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
     # "script/DeployDaimoPayStargateBridger.s.sol"
     # "script/DeployDaimoPayHopBridger.s.sol"
+    # "script/DeployDaimoPayUSDT0Bridger.s.sol"
 
-    # "script/DeployDaimoPayBridger.s.sol"
+    "script/DeployDaimoPayBridger.s.sol"
     # "script/DeployDepositAddressBridger.s.sol"
 
     # Daimo Pay
     # "script/DeployPayIntentFactory.s.sol"
-    # "script/DeployDaimoPay.s.sol"
+    # "script/DeployDaimoPay.s.sol" 
 
     # Deposit Address
     # "script/DeployDaimoPayPricer.s.sol"
@@ -48,7 +49,7 @@ CHAINS=(
     # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "wss://gnosis-rpc.publicnode.com"
+    "wss://gnosis-rpc.publicnode.com"
 
     # HyperEVM has big blocks (30M gas limit) and small blocks (3M gas limit)
     # We need to deploy the contracts in big blocks. Ensure the deployer has
@@ -62,6 +63,9 @@ CHAINS=(
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+
+    # MegaETH (no Alchemy; uses mega.etherscan.io for verification)
+    # "https://mainnet.megaeth.com/rpc"
 
     # Expensive, deploy last
     # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -77,13 +81,25 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         # Monad uses Sourcify for verification instead of Etherscan
         if [[ "$RPC_URL" == *"monad"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/ --broadcast"
+        # MegaETH uses mega.etherscan.io
+        # elif [[ "$RPC_URL" == *"megaeth"* ]]; then
+        #     FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.mega.etherscan.io/api --etherscan-api-key $MEGAETH_ETHERSCAN_API_KEY --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
 
         # Override gas price for Gnosis chain to reliably get txs through
         if [[ "$RPC_URL" == *"gnosis"* ]]; then
-            FORGE_CMD="$FORGE_CMD --with-gas-price 3000000000 --priority-gas-price 1000000000"
+            FORGE_CMD="$FORGE_CMD --with-gas-price 6000000000 --priority-gas-price 2000000000"
+        fi
+
+        # MegaETH uses a multidimensional gas model (compute + storage gas).
+        # Forge's built-in simulation only estimates compute gas, missing
+        # storage gas entirely (e.g. 10,000/byte code deposit vs 200 on ETH).
+        # Use --skip-simulation so forge uses the RPC's eth_estimateGas which
+        # accounts for storage gas correctly.
+        if [[ "$RPC_URL" == *"megaeth"* ]]; then
+            FORGE_CMD="$FORGE_CMD --skip-simulation --gas-estimate-multiplier 200"
         fi
 
         echo $FORGE_CMD

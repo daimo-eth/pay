@@ -16,6 +16,7 @@ import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/HopBridgeRouteConstants.sol";
 import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/StargateBridgeRouteConstants.sol";
+import "./constants/USDT0BridgeRouteConstants.sol";
 import {
     DEPLOY_SALT_ACROSS_BRIDGER,
     DEPLOY_SALT_AXELAR_BRIDGER,
@@ -24,6 +25,7 @@ import {
     DEPLOY_SALT_HOP_BRIDGER,
     DEPLOY_SALT_LEGACY_MESH_BRIDGER,
     DEPLOY_SALT_STARGATE_BRIDGER,
+    DEPLOY_SALT_USDT0_BRIDGER,
     DEPLOY_SALT_DA_BRIDGER
 } from "./constants/DeploySalts.sol";
 
@@ -96,6 +98,10 @@ contract DeployDepositAddressBridger is Script {
             msg.sender,
             DEPLOY_SALT_STARGATE_BRIDGER
         );
+        address usdt0Bridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_USDT0_BRIDGER
+        );
 
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
@@ -104,6 +110,7 @@ contract DeployDepositAddressBridger is Script {
         console.log("hopBridger address:", hopBridger);
         console.log("legacyMeshBridger address:", legacyMeshBridger);
         console.log("stargateBridger address:", stargateBridger);
+        console.log("usdt0Bridger address:", usdt0Bridger);
 
         // Get all supported destination chains from the generated constants
         // CCTP
@@ -148,6 +155,12 @@ contract DeployDepositAddressBridger is Script {
             DaimoPayLayerZeroBridger.LZBridgeRoute[] memory stargateBridgeRoutes
         ) = getStargateBridgeRoutes(block.chainid);
 
+        // USDT0
+        (
+            uint256[] memory usdt0ChainIds,
+            DaimoPayLayerZeroBridger.LZBridgeRoute[] memory usdt0BridgeRoutes
+        ) = getUsdt0BridgeRoutes(block.chainid);
+
         // Count total number of supported chains
         uint256 totalChains = cctpChainIds.length +
             cctpV2ChainIds.length +
@@ -155,7 +168,8 @@ contract DeployDepositAddressBridger is Script {
             axelarChainIds.length +
             hopDestChainIds.length +
             legacyMeshChainIds.length +
-            stargateChainIds.length;
+            stargateChainIds.length +
+            usdt0ChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -217,6 +231,14 @@ contract DeployDepositAddressBridger is Script {
             chainIds[index] = stargateChainIds[i];
             bridgers[index] = stargateBridger;
             stableOuts[index] = stargateBridgeRoutes[i].bridgeTokenOut;
+            index++;
+        }
+
+        // Add USDT0 routes
+        for (uint256 i = 0; i < usdt0ChainIds.length; i++) {
+            chainIds[index] = usdt0ChainIds[i];
+            bridgers[index] = usdt0Bridger;
+            stableOuts[index] = usdt0BridgeRoutes[i].bridgeTokenOut;
             index++;
         }
 

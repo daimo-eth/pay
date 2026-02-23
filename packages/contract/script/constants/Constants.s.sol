@@ -77,6 +77,9 @@ address constant MONAD_MAINNET_USDT = 0xe7cd86e13AC4309349F30B3435a9d337750fC82D
 address constant OP_MAINNET_USDT = 0x94b008aA00579c1307B0EF2c499aD98a8ce58e58;
 address constant POLYGON_MAINNET_USDT = 0xc2132D05D31c914a87C6611C10748AEb04B58e8F;
 
+// USDT0 addresses
+address constant MEGAETH_MAINNET_USDT0 = 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb;
+
 // Legacy Mesh UsdtOFT addresses (LayerZero USDT)
 address constant ARBITRUM_MAINNET_LEGACY_MESH_USDT_OFT = 0x77652D5aba086137b595875263FC200182919B92;
 address constant CELO_MAINNET_LEGACY_MESH_USDT_OFT = 0xf10E161027410128E63E75D0200Fb6d34b2db243;
@@ -121,6 +124,9 @@ function getHopCoinDecimals(address token) pure returns (uint256) {
     // USDT addresses
     if (token == ARBITRUM_MAINNET_USDT) return 6;
     if (token == CELO_MAINNET_USDT) return 6;
+
+    // USDT0 addresses
+    if (token == MEGAETH_MAINNET_USDT0) return 6;
 
     // USDC.e or USDbC (bridged USDC) addresses
     if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;

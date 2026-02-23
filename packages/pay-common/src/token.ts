@@ -9,6 +9,7 @@ import {
   gnosis,
   hyperEvm,
   linea,
+  megaEth,
   monad,
   optimism,
   polygon,
@@ -458,6 +459,33 @@ export const lineaDAI: Token = token({
 const lineaTokens: Token[] = [lineaETH, lineaWETH, lineaUSDC, lineaDAI];
 
 //
+// MegaETH
+//
+
+export const megaEthETH = nativeETH(megaEth.chainId);
+
+export const megaEthWETH: Token = token({
+  chainId: megaEth.chainId,
+  token: getAddress("0x4200000000000000000000000000000000000006"),
+  decimals: 18,
+  name: "Wrapped Ether",
+  symbol: "WETH",
+  logoURI: TokenLogo.WETH,
+});
+
+export const megaEthUSDT: Token = token({
+  chainId: megaEth.chainId,
+  token: getAddress("0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT",
+  logoURI: TokenLogo.USDT,
+});
+
+const megaEthTokens: Token[] = [megaEthETH, megaEthWETH, megaEthUSDT];
+
+//
 // Monad
 //
 
@@ -799,6 +827,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [gnosis.chainId, gnosisTokens],
   [hyperEvm.chainId, hyperEvmTokens],
   [linea.chainId, lineaTokens],
+  [megaEth.chainId, megaEthTokens],
   [monad.chainId, monadTokens],
   [optimism.chainId, optimismTokens],
   [polygon.chainId, polygonTokens],
@@ -913,6 +942,13 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: lineaWETH,
       [TokenType.NATIVE_USDC]: lineaUSDC,
       [TokenType.DAI]: lineaDAI,
+    },
+  ],
+  [
+    megaEth.chainId,
+    {
+      [TokenType.NATIVE]: megaEthETH,
+      [TokenType.WRAPPED_NATIVE]: megaEthWETH,
     },
   ],
   [

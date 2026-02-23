@@ -30,10 +30,10 @@ bytes32 constant DEPLOY_SALT_DAIMO_PAY_PRICER = keccak256(
 
 // Bridger contracts
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_BRIDGER = keccak256(
-    "DaimoPayBridger-deploy32"
+    "DaimoPayBridger-deploy34"
 );
 bytes32 constant DEPLOY_SALT_DA_BRIDGER = keccak256(
-    "DepositAddressBridger-deploy2"
+    "DepositAddressBridger-deploy4"
 );
 
 bytes32 constant DEPLOY_SALT_ACROSS_BRIDGER = keccak256(
@@ -49,7 +49,7 @@ bytes32 constant DEPLOY_SALT_CCTP_V2_BRIDGER = keccak256(
     "DaimoPayCCTPV2Bridger-deploy7"
 );
 bytes32 constant DEPLOY_SALT_HOP_BRIDGER = keccak256(
-    "DaimoPayHopBridger-deploy13"
+    "DaimoPayHopBridger-deploy14"
 );
 bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
     "DaimoPayLegacyMeshBridger-deploy7"
@@ -57,14 +57,17 @@ bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
 bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
     "DaimoPayStargateBridger-deploy5"
 );
+bytes32 constant DEPLOY_SALT_USDT0_BRIDGER = keccak256(
+    "DaimoPayUSDT0Bridger-deploy2"
+);
 
 // Relayer contract
-bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-prod4"
-);
 // bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-//     "DaimoPayRelayer-dev4"
+//     "DaimoPayRelayer-prod4"
 // );
+bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
+    "DaimoPayRelayer-dev4"
+);
 
 // Final call adapters
 bytes32 constant DEPLOY_SALT_HYPERCORE_DEPOSIT_ADAPTER = keccak256(

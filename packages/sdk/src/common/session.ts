@@ -4,6 +4,118 @@ import { zAddress, zBigIntStr } from "./primitiveTypes.js";
 import type { BigIntStr, SolanaPublicKey, UUID } from "./primitiveTypes.js";
 import type { Token } from "./token.js";
 
+
+// ─── Session ────────────────────────────────────────────────────────────────
+
+/** Represents a transfer. On success, a session results in a single transfer from (fiat or crypto) to (fiat or crypto). */
+export type Session = {
+  /** Unique ID for this session. */
+  sessionId: UUID;
+  /** Overall state. Happy path: pending > processing > completed. */
+  status: SessionState;
+  /** Display metadata */
+  display: SessionDisplay;
+  /** Free-form metadata supplied at creation, available in webhooks and status polling. */
+  metadata: UserMetadata;
+  /** The source of funds for this session. Filled in once the session is paid. */
+  source?: SessionSource;
+  /** The receiver, which is where the source sends funds to. */
+  receivers: SessionReceivers;
+  /** The destination for this session. */
+  destination: SessionDestination;
+  // navTree: NavNode[];
+  // orgId: string;
+  /** Expiration, in Unix seconds. */
+  expiresAt: number;
+};
+
+/** Session display metadata. */
+export type SessionDisplay = {
+  /** Title, eg "Deposit to Acme" */
+  title: string;
+  /** One-word verb, eg "Deposit" */
+  verb: string;
+  /** Custom theme CSS URL, overrides default theme */
+  themeCssUrl?: string;
+}
+
+/** Source for a funds transfer. */
+export type SessionSource = {
+  type: "evm";
+  /** Source address, checksum encoded. */
+  address?: Address;
+  /** Chain ID, eg 8453 */
+  chainId: number;
+  /** Chain name, eg "base" */
+  chainName: string;
+  /** Token address, checksum encoded. */
+  tokenAddress: Address;
+  /** Token symbol, eg "USDC" */
+  tokenSymbol: string;
+  /** Transaction hash of the initial deposit. */
+  initTxHash: Hex;
+  /** Units of tokenAddress, eg "1.23" for $1.23 USDT. */
+  initUnits: string;
+} | {
+  type: "tron";
+  /** Tron address that sent funds. */
+  address: string;
+  /** Token contract Tron address. */
+  tokenAddress: string;
+  /** Token symbol, eg "USDT" */
+  tokenSymbol: string;
+  /** Transaction hash of the initial deposit. */
+  initTxHash: Hex;
+  /** Units of tokenAddress, eg "1.23" for $1.23 USDT. */
+  initUnits: string;
+} | {
+  type: "solana";
+  /** Solana address that sent funds. */
+  address: string;
+  /** Token contract Solana address. */
+  tokenAddress: string;
+  /** Token symbol, eg "USDC" */
+  tokenSymbol: string;
+  /** Solana transaction signature for the initial deposit. */
+  initTxHash: Hex;
+  /** Units of tokenAddress, eg "1.23" for $1.23 USDC. */
+  initUnits: string;
+};
+
+/** Receiver. Funds sent to ANY receiver for a given session will complete that session */
+export type SessionReceivers = {
+  evm: {address: Address},
+  tron?: {address: string}
+  // fiatAch?: { ... }
+};
+
+/** Destination for a funds transfer. */
+export type SessionDestinationDefinition = SessionDestinationDefinitionEvm;
+
+export type SessionDestinationDefinitionEvm = {
+  type: "evm";
+  /** Destination address, checksum encoded. */
+  address: Address;
+  /** Chain ID, eg 8453 */
+  chainId: number;
+  /** Chain name, eg "base" */
+  chainName: string;
+  /** Token address, checksum encoded. */
+  tokenAddress: Address;
+  /** Token symbol, eg "USDC" */
+  tokenSymbol: string;
+  /** Amount, eg "1.23" for $1.23 USDC. Omitted for sessions with no amount specified. */
+  presetUnits?: string;
+};
+
+/** Destination, including the final transfer info for finished sessions. */
+export type SessionDestination = SessionDestinationEvm;
+
+export type SessionDestinationEvm = SessionDestinationDefinitionEvm & {
+  finishTxHash?: Hex;
+  finishUnits?: string;
+} ;
+
 // ─── Session state ──────────────────────────────────────────────────────────
 
 export const zSessionState = z.enum([
@@ -25,28 +137,24 @@ export function isSessionActive(state: SessionState): boolean {
   return state === "pending" || state === "processing";
 }
 
-// ─── Session ────────────────────────────────────────────────────────────────
+// ─── CreateSession params ───────────────────────────────────────────────────
 
-export type Destination = {
-  address: Address;
-  chainId: string;
-  tokenAddress: Address;
-  tokenSymbol: string;
-  amountUnits?: string | null;
-};
-
-export type Session = {
-  sessionId: UUID;
-  state: SessionState;
-  /** Address that receives funds for this session */
-  depositAddress: Address;
-  destination: Destination;
-  navTree: NavNode[];
-  /** Custom theme CSS URL, overrides default theme */
-  themeCssUrl?: string;
-  orgId: string;
-  /** Seconds since epoch */
-  expiresAt: number;
+export type CreateSessionParams = {
+  appId: string;
+  display: {
+    intent?: string;
+    intentVerb?: string;
+    paymentOptions?: (string | string[])[];
+  };
+  destination: {
+    chain: number;
+    token: Address;
+    address: Address;
+    units?: string;
+    calldata?: Hex;
+  };
+  refundAddress?: Address;
+  userMetadata?: UserMetadata;
 };
 
 // ─── Navigation tree ────────────────────────────────────────────────────────
@@ -248,7 +356,7 @@ export type DepositAddressPaymentOptionMetadata = {
 
 // ─── Metadata schemas ───────────────────────────────────────────────────────
 
-export const zDaimoPayUserMetadata = z
+export const zUserMetadata = z
   .record(
     z.string().max(40, "metadata keys cannot be longer than 40 characters"),
     z.string().max(500, "metadata values cannot be longer than 500 characters"),
@@ -259,7 +367,9 @@ export const zDaimoPayUserMetadata = z
     "metadata cannot have more than 50 key-value pairs",
   );
 
-export type DaimoPayUserMetadata = z.infer<typeof zDaimoPayUserMetadata>;
+export type UserMetadata = z.infer<typeof zUserMetadata>;
+
+// --- Legacy PayOrder metadata; deprecated -----------------------------------
 
 export const zDaimoPayOrderMetadata = z.object({
   style: z
@@ -312,23 +422,3 @@ export const zDaimoPayOrderMetadata = z.object({
 });
 
 export type DaimoPayOrderMetadata = z.infer<typeof zDaimoPayOrderMetadata>;
-
-// ─── CreateSession params ───────────────────────────────────────────────────
-
-export type CreateSessionParams = {
-  appId: string;
-  display: {
-    intent?: string;
-    intentVerb?: string;
-    paymentOptions?: (string | string[])[];
-  };
-  destination: {
-    chain: number;
-    token: Address;
-    address: Address;
-    units?: string;
-    calldata?: Hex;
-  };
-  refundAddress?: Address;
-  userMetadata?: DaimoPayUserMetadata;
-};

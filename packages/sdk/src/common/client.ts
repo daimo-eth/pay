@@ -60,7 +60,7 @@ export function createDaimoClient(apiUrl?: string): DaimoClient {
   const base = (apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "");
 
   async function query<T>(procedure: string, input: unknown): Promise<T> {
-    const encoded = encodeURIComponent(JSON.stringify({ json: input }));
+    const encoded = encodeURIComponent(JSON.stringify(input));
     const res = await fetch(`${base}/${procedure}?input=${encoded}`);
     if (!res.ok) {
       throw new Error(`${procedure} failed: ${res.status}`);
@@ -73,7 +73,7 @@ export function createDaimoClient(apiUrl?: string): DaimoClient {
     const res = await fetch(`${base}/${procedure}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: input }),
+      body: JSON.stringify(input),
     });
     if (!res.ok) {
       throw new Error(`${procedure} failed: ${res.status}`);
@@ -96,10 +96,8 @@ export function createDaimoClient(apiUrl?: string): DaimoClient {
   };
 }
 
-/** Extract the result from a TRPC JSON response envelope. */
+/** Extract the result from a TRPC response envelope. */
 function extractResult(body: any): any {
-  // Standard TRPC response: { result: { data: { json: T } } }
-  // Batched responses wrap in an array: [{ result: ... }]
   const entry = Array.isArray(body) ? body[0] : body;
-  return entry?.result?.data?.json ?? entry?.result?.data ?? entry;
+  return entry?.result?.data ?? entry;
 }

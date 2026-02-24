@@ -1,0 +1,58 @@
+{
+  "name": "@daimo/sdk",
+  "version": "0.1.0",
+  "description": "Daimo SDK — session-based crypto payments",
+  "author": "Daimo",
+  "license": "BSD-2-Clause",
+  "type": "module",
+  "exports": {
+    "./common": {
+      "import": "./dist/common/index.js",
+      "types": "./dist/common/index.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks/index.js",
+      "types": "./dist/hooks/index.d.ts"
+    },
+    "./web": {
+      "import": "./dist/web/index.js",
+      "types": "./dist/web/index.d.ts"
+    },
+    "./web/theme.css": "./dist/web/theme.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && cp src/web/theme.css dist/web/theme.css",
+    "lint": "eslint --max-warnings=0"
+  },
+  "dependencies": {
+    "viem": "^2.43.4",
+    "zod": "^3.24.2"
+  },
+  "peerDependencies": {
+    "react": "18.x || 19.x",
+    "react-dom": "18.x || 19.x",
+    "qrcode": "^1.5.0",
+    "@solana/web3.js": "^1.95.4"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "qrcode": {
+      "optional": true
+    },
+    "@solana/web3.js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.4.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "5.9.2"
+  }
+}

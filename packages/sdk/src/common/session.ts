@@ -11,8 +11,8 @@ import type { Token } from "./token.js";
 export type Session = {
   /** Unique ID for this session. */
   sessionId: UUID;
-  /** Overall state. Happy path: pending > processing > completed. */
-  status: SessionState;
+  /** Overall status. Happy path: pending > processing > completed. */
+  status: SessionStatus;
   /** Display metadata */
   display: SessionDisplay;
   /** Free-form metadata supplied at creation, available in webhooks and status polling. */
@@ -23,11 +23,12 @@ export type Session = {
   receivers: SessionReceivers;
   /** The destination for this session. */
   destination: SessionDestination;
-  // navTree: NavNode[];
-  // orgId: string;
   /** Expiration, in Unix seconds. */
   expiresAt: number;
 };
+
+/** Session plus internal fields used by the modal UI. */
+export type ModalSession = Session & { navTree: NavNode[] };
 
 /** Session display metadata. */
 export type SessionDisplay = {
@@ -104,8 +105,8 @@ export type SessionDestinationDefinitionEvm = {
   tokenAddress: Address;
   /** Token symbol, eg "USDC" */
   tokenSymbol: string;
-  /** Amount, eg "1.23" for $1.23 USDC. Omitted for sessions with no amount specified. */
-  presetUnits?: string;
+  /** Amount in token units, eg "1.23" for $1.23 USDC. Omitted for open-amount sessions. */
+  amountUnits?: string;
 };
 
 /** Destination, including the final transfer info for finished sessions. */
@@ -116,9 +117,9 @@ export type SessionDestinationEvm = SessionDestinationDefinitionEvm & {
   finishUnits?: string;
 } ;
 
-// ─── Session state ──────────────────────────────────────────────────────────
+// ─── Session status ─────────────────────────────────────────────────────────
 
-export const zSessionState = z.enum([
+export const zSessionStatus = z.enum([
   "pending",
   "processing",
   "completed",
@@ -126,15 +127,15 @@ export const zSessionState = z.enum([
   "expired",
 ]);
 
-export type SessionState = z.infer<typeof zSessionState>;
+export type SessionStatus = z.infer<typeof zSessionStatus>;
 
 /**
  * Returns true if the session is still active (pending or processing), meaning
  * polling should continue. Returns false for terminal states (completed,
  * bounced, expired) where the session outcome is final.
  */
-export function isSessionActive(state: SessionState): boolean {
-  return state === "pending" || state === "processing";
+export function isSessionActive(status: SessionStatus): boolean {
+  return status === "pending" || status === "processing";
 }
 
 // ─── CreateSession params ───────────────────────────────────────────────────

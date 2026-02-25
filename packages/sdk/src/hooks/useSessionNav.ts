@@ -8,7 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
-import { findNode, type NavEntry, type SessionState } from "./types.js";
+import { findNode, type NavEntry, type ModalSession } from "./types.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
@@ -35,8 +35,8 @@ type SessionNavResult = {
  * Back = pop (collapsing auto-nav entries). Flow screens are stack entries.
  */
 export function useSessionNav(
-  session: SessionState,
-  setSession: React.Dispatch<React.SetStateAction<SessionState>>,
+  session: ModalSession,
+  setSession: React.Dispatch<React.SetStateAction<ModalSession>>,
   platform?: "ios" | "android" | "other",
 ): SessionNavResult {
   const client = useDaimoClient();
@@ -128,7 +128,7 @@ export function useSessionNav(
       try {
         const result = await client.getExchangeUrl({
           sessionId: session.sessionId,
-          daAddr: session.depositAddress,
+          daAddr: session.receivers.evm.address,
           exchangeId,
           amountUsd,
           platform,
@@ -176,7 +176,7 @@ export function useSessionNav(
         });
       }
     },
-    [session.sessionId, session.depositAddress, platform, client],
+    [session.sessionId, session.receivers, platform, client],
   );
 
   // ─── Navigation handlers ────────────────────────────────────────────────

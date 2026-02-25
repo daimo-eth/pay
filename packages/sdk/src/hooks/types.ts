@@ -1,11 +1,10 @@
 import type {
+  ModalSession,
   NavNode,
-  Session,
   WalletPaymentOption,
 } from "../common/session.js";
 
-/** Session state for the modal */
-export type SessionState = Session;
+export type { ModalSession };
 
 /**
  * A single entry in the navigation stack. Back = pop.

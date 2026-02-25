@@ -1,20 +1,20 @@
 import type {
   CreateSessionParams,
-  Session,
+  ModalSession,
   WalletPaymentOption,
 } from "./session.js";
 
 export interface DaimoClient {
-  createSession(params: CreateSessionParams): Promise<Session>;
+  createSession(params: CreateSessionParams): Promise<ModalSession>;
   getSession(params: {
     sessionId?: string;
     locale?: string;
-  }): Promise<Session>;
+  }): Promise<ModalSession>;
   pollSession(params: {
     sessionId: string;
     daAddr: string;
-  }): Promise<Session>;
-  recreateSession(params: { sessionId: string }): Promise<Session>;
+  }): Promise<ModalSession>;
+  recreateSession(params: { sessionId: string }): Promise<ModalSession>;
   getWalletPaymentOptions(params: {
     sessionId: string;
     evmAddress?: string;
@@ -83,10 +83,10 @@ export function createDaimoClient(apiUrl?: string): DaimoClient {
   }
 
   return {
-    createSession: (p) => mutate("createSession", p),
-    getSession: (p) => query("getSession", p),
-    pollSession: (p) => query("pollSession", p),
-    recreateSession: (p) => mutate("recreateSession", p),
+    createSession: (p) => mutate("createSession", p).then(toModalSession),
+    getSession: (p) => query("getSession", p).then(toModalSession),
+    pollSession: (p) => query("pollSession", p).then(toModalSession),
+    recreateSession: (p) => mutate("recreateSession", p).then(toModalSession),
     getWalletPaymentOptions: (p) => query("getSessionWalletPaymentOptions", p),
     prepareSolanaBurnTx: (p) => mutate("prepareSessionSolanaBurnTx", p),
     processSolanaPayment: (p) => mutate("processSessionSolanaPayment", p),
@@ -100,4 +100,13 @@ export function createDaimoClient(apiUrl?: string): DaimoClient {
 function extractResult(body: any): any {
   const entry = Array.isArray(body) ? body[0] : body;
   return entry?.result?.data ?? entry;
+}
+
+/** Map raw API response to ModalSession (state→status, depositAddress→receivers). */
+export function toModalSession(raw: any): ModalSession {
+  return {
+    ...raw,
+    status: raw.status ?? raw.state,
+    receivers: raw.receivers ?? { evm: { address: raw.depositAddress } },
+  };
 }

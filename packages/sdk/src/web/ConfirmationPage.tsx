@@ -1,5 +1,5 @@
 import { getChainName } from "../common/chain.js";
-import { SessionState } from "../common/session.js";
+import { SessionStatus } from "../common/session.js";
 import { useEffect, useState } from "react";
 
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
@@ -20,7 +20,7 @@ type ConfirmationStatus =
 type ConfirmationPageProps = {
   sessionId: string;
   /** Session state - drives confirmation status */
-  sessionState?: SessionState;
+  sessionState?: SessionStatus;
   /** Source token chain ID (what user is paying with) */
   sourceChainId?: number;
   /** Source token symbol (what user is paying with) */
@@ -151,7 +151,7 @@ export function ConfirmationPage({
 /** Derive UI status from session state and pending tx hash */
 function getConfirmationStatus(
   pendingTxHash: string | undefined,
-  sessionState: SessionState | undefined,
+  sessionState: SessionStatus | undefined,
 ): ConfirmationStatus {
   if (sessionState === "processing") return "processing";
   if (sessionState === "completed") return "done";

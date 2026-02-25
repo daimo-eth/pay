@@ -9,7 +9,7 @@ export { useSessionNav } from "./useSessionNav.js";
 export { useSessionPolling } from "./useSessionPolling.js";
 export type {
   DaimoModalEventHandlers,
+  ModalSession,
   NavEntry,
-  SessionState,
 } from "./types.js";
 export { findNode } from "./types.js";

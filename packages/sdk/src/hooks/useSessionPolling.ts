@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { createNavLogger } from "./navEvent.js";
-import type { SessionState } from "./types.js";
+import type { ModalSession } from "./types.js";
 
 const POLL_INTERVAL_MS = 3000;
 
 /**
- * Polls session state from the server while modal is open until terminal state.
+ * Polls session status from the server while modal is open until terminal.
  * Terminal = expired or completed.
  */
 export function useSessionPolling(
-  initialSession: SessionState,
+  initialSession: ModalSession,
   isOpen: boolean,
 ) {
   const client = useDaimoClient();
@@ -21,32 +21,30 @@ export function useSessionPolling(
   const [session, setSession] = useState(initialSession);
 
   useEffect(() => {
-    if (session.state === "expired") {
+    if (session.status === "expired") {
       logNavEvent(session.sessionId, {
         nodeId: null,
         nodeType: null,
         action: "session_expired",
       });
-    } else if (session.state === "completed") {
+    } else if (session.status === "completed") {
       logNavEvent(session.sessionId, {
         nodeId: null,
         nodeType: null,
         action: "session_completed",
       });
-    } else if (session.state === "bounced") {
+    } else if (session.status === "bounced") {
       logNavEvent(session.sessionId, {
         nodeId: null,
         nodeType: null,
         action: "session_bounced",
       });
     }
-  }, [session.state, session.sessionId]);
+  }, [session.status, session.sessionId]);
 
   useEffect(() => {
-    const daAddr =
-      session.depositAddress ??
-      (session as { da?: { daAddr?: string } }).da?.daAddr;
-    if (!isOpen || !isSessionActive(session.state) || !daAddr) return;
+    const daAddr = session.receivers.evm.address;
+    if (!isOpen || !isSessionActive(session.status) || !daAddr) return;
 
     const poll = async () => {
       try {
@@ -56,7 +54,7 @@ export function useSessionPolling(
         });
         setSession((prev) => ({
           ...prev,
-          state: updated.state,
+          status: updated.status,
         }));
       } catch (error) {
         console.error("failed to poll session:", error);

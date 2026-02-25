@@ -1,11 +1,11 @@
 import type {
+  ModalSession,
   NavNode,
   NavNodeChooseOption,
   NavNodeDeeplink,
   NavNodeDepositAddress,
   NavNodeExchange,
   NavNodeTronDeposit,
-  Session,
   WalletPaymentOption,
 } from "../common/session.js";
 import { tron } from "../common/chain.js";
@@ -42,8 +42,9 @@ import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
 
 export type DaimoModalProps = DaimoModalEventHandlers & {
-  session: Session | null;
+  session: ModalSession | null;
   defaultOpen?: boolean;
+  connectedWalletOnly?: boolean;
   embedded?: boolean;
   animate?: boolean;
   maxHeight?: number;
@@ -109,10 +110,15 @@ export function DaimoModal(props: DaimoModalProps) {
   );
 }
 
+const CONNECTED_WALLET_NAV: NavNode[] = [
+  { type: "ConnectedWallet", id: "ConnectedWallet", title: "Connected Wallet" },
+];
+
 function DaimoModalInner({
   session: initialSession,
   isOpen,
   setIsOpen,
+  connectedWalletOnly = false,
   embedded = false,
   animate = true,
   maxHeight,
@@ -124,11 +130,15 @@ function DaimoModalInner({
   onOpen,
   onClose,
 }: DaimoModalProps & {
-  session: Session;
+  session: ModalSession;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }) {
-  const { session, setSession } = useSessionPolling(initialSession, isOpen);
+  const effectiveInitial = connectedWalletOnly
+    ? { ...initialSession, navTree: CONNECTED_WALLET_NAV }
+    : initialSession;
+
+  const { session, setSession } = useSessionPolling(effectiveInitial, isOpen);
 
   const nav = useSessionNav(session, setSession, platform);
 
@@ -137,7 +147,7 @@ function DaimoModalInner({
   );
   const walletFlow = useWalletFlow(
     session.sessionId,
-    session.depositAddress,
+    session.receivers.evm.address,
     hasConnectedWallet,
   );
 
@@ -228,11 +238,11 @@ function DaimoModalInner({
   if (!isOpen) return null;
 
   const isTerminal =
-    session.state === "expired" ||
-    session.state === "completed" ||
-    session.state === "bounced";
+    session.status === "expired" ||
+    session.status === "completed" ||
+    session.status === "bounced";
   const pageKey = isTerminal
-    ? session.state
+    ? session.status
     : `${nav.topEntry?.type ?? "root"}-${nav.topEntry?.nodeId ?? ""}`;
 
   const renderInContainer = (
@@ -267,18 +277,18 @@ function DaimoModalInner({
     );
   };
 
-  if (session.state === "expired") {
+  if (session.status === "expired") {
     return renderInContainer(<ExpiredPage onClose={handleClose} />);
   }
   if (
-    session.state === "processing" ||
-    session.state === "completed" ||
-    session.state === "bounced"
+    session.status === "processing" ||
+    session.status === "completed" ||
+    session.status === "bounced"
   ) {
     return renderInContainer(
       <ConfirmationPage
         sessionId={session.sessionId}
-        sessionState={session.state}
+        sessionState={session.status}
         returnUrl={returnUrl}
         returnLabel={returnLabel}
       />,

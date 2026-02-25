@@ -1,7 +1,6 @@
-// TODO: rename to useSessionCallbacks with onSessionStarted/onSessionCompleted
 import { useEffect } from "react";
 
-import type { SessionState } from "./types.js";
+import type { ModalSession } from "./types.js";
 
 type PaymentCallbacks = {
   onOpen?: () => void;
@@ -16,15 +15,15 @@ type PaymentCallbacks = {
  * - onPaymentCompleted: when session completes
  */
 export function usePaymentCallbacks(
-  session: SessionState,
+  session: ModalSession,
   isOpen: boolean,
   callbacks: PaymentCallbacks,
 ) {
   const isStarted =
-    session.state === "processing" ||
-    session.state === "completed" ||
-    session.state === "bounced";
-  const isCompleted = session.state === "completed";
+    session.status === "processing" ||
+    session.status === "completed" ||
+    session.status === "bounced";
+  const isCompleted = session.status === "completed";
 
   const { onOpen, onPaymentStarted, onPaymentCompleted } = callbacks;
 

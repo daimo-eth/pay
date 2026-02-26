@@ -1,4 +1,4 @@
-import { NavNodeDepositAddress } from "../common/session.js";
+import { NavNodeDepositAddress } from "../common/legacy/session.js";
 import { TokenLogo } from "../common/token.js";
 import { tron } from "../common/chain.js";
 import { useEffect, useMemo, useState } from "react";

@@ -1,5 +1,5 @@
 import { Address, getAddress, zeroAddress } from "viem";
-import { assertNotNull } from "./assert.js";
+import { assertNotNull } from "./legacy/assert.js";
 import {
   arbitrum,
   base,

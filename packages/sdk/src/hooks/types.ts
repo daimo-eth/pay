@@ -2,7 +2,7 @@ import type {
   ModalSession,
   NavNode,
   WalletPaymentOption,
-} from "../common/session.js";
+} from "../common/legacy/session.js";
 
 export type { ModalSession };
 

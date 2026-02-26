@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { createDaimoClient, type DaimoClient } from "../common/client.js";
+import { createDaimoClient, type DaimoClient } from "../common/legacy/client.js";
 
 const DaimoClientContext = createContext<DaimoClient | null>(null);
 

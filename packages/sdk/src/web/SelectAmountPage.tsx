@@ -1,7 +1,7 @@
 import {
   DaimoPayToken,
   NavNodeDepositAddress,
-} from "../common/session.js";
+} from "../common/legacy/session.js";
 import { TokenLogo } from "../common/token.js";
 
 import { PrimaryButton } from "./buttons.js";

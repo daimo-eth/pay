@@ -1,5 +1,5 @@
 import { formatUnits } from "viem";
-import { getChainName } from "./chain.js";
+import { getChainName } from "../chain.js";
 import type { DaimoPayTokenAmount } from "./session.js";
 
 /** Return compact JSON, 10000 chars max. Never throws. */

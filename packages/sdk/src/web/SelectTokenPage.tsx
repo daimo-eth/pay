@@ -1,4 +1,4 @@
-import { DaimoPayToken, WalletPaymentOption } from "../common/session.js";
+import { DaimoPayToken, WalletPaymentOption } from "../common/legacy/session.js";
 import { getChainName } from "../common/chain.js";
 
 import { t } from "../hooks/locale.js";

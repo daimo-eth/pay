@@ -1,5 +1,5 @@
-import type { NavNode } from "../common/session.js";
-import type { DaimoClient } from "../common/client.js";
+import type { NavNode } from "../common/legacy/session.js";
+import type { DaimoClient } from "../common/legacy/client.js";
 
 /** Node types from NavNode union */
 export type NavNodeType = NavNode["type"];

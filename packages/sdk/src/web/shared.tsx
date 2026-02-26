@@ -17,7 +17,7 @@ import {
   tron,
   worldchain,
 } from "../common/chain.js";
-import { DaimoPayToken } from "../common/session.js";
+import { DaimoPayToken } from "../common/legacy/session.js";
 import { ReactNode, useCallback, useState } from "react";
 
 import { BackArrowIcon, CopyIcon } from "./icons.js";

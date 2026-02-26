@@ -1,4 +1,4 @@
-import { isSessionActive } from "../common/session.js";
+import { isSessionActive } from "../common/legacy/session.js";
 import { useEffect, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";

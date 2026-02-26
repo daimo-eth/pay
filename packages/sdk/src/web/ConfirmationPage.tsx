@@ -1,5 +1,5 @@
 import { getChainName } from "../common/chain.js";
-import { SessionStatus } from "../common/session.js";
+import { SessionStatus } from "../common/legacy/session.js";
 import { useEffect, useState } from "react";
 
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";

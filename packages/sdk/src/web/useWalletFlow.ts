@@ -1,10 +1,8 @@
-import {
-  assert,
-  getChainName,
-  isNativeToken,
-  solana,
-} from "../common/index.js";
-import type { SolanaPublicKey, WalletPaymentOption } from "../common/index.js";
+import { getChainName, solana } from "../common/chain.js";
+import { assert } from "../common/legacy/assert.js";
+import type { SolanaPublicKey } from "../common/legacy/primitiveTypes.js";
+import type { WalletPaymentOption } from "../common/legacy/session.js";
+import { isNativeToken } from "../common/token.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Address, encodeFunctionData, getAddress, hexToBytes } from "viem";
@@ -388,7 +386,7 @@ async function sendEvmTransaction(
 }
 
 async function sendSolanaTransaction(
-  client: import("../common/client.js").DaimoClient,
+  client: import("../common/legacy/client.js").DaimoClient,
   wallet: WalletData,
   sessionId: string,
   inputTokenMint: string,

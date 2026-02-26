@@ -1,4 +1,4 @@
-import { NavNodeDeeplink } from "../common/session.js";
+import { NavNodeDeeplink } from "../common/legacy/session.js";
 
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";

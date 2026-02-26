@@ -10,6 +10,14 @@
       "import": "./dist/common/index.js",
       "types": "./dist/common/index.d.ts"
     },
+    "./common/legacy": {
+      "import": "./dist/common/legacy/index.js",
+      "types": "./dist/common/legacy/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    },
     "./hooks": {
       "import": "./dist/hooks/index.js",
       "types": "./dist/hooks/index.d.ts"

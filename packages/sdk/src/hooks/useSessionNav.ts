@@ -2,7 +2,7 @@ import type {
   NavNodeChooseOption,
   NavNodeExchange,
   WalletPaymentOption,
-} from "../common/session.js";
+} from "../common/legacy/session.js";
 import { useCallback, useMemo, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";

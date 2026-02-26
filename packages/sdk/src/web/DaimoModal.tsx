@@ -7,7 +7,7 @@ import type {
   NavNodeExchange,
   NavNodeTronDeposit,
   WalletPaymentOption,
-} from "../common/session.js";
+} from "../common/legacy/session.js";
 import { tron } from "../common/chain.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 

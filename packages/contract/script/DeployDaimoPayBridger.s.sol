@@ -12,6 +12,7 @@ import "./constants/CCTPV2BridgeRouteConstants.sol";
 import "./constants/HopBridgeRouteConstants.sol";
 import "./constants/LegacyMeshBridgeRouteConstants.sol";
 import "./constants/StargateBridgeRouteConstants.sol";
+import "./constants/USDT0BridgeRouteConstants.sol";
 import "./constants/Constants.s.sol";
 import {
     DEPLOY_SALT_DAIMO_PAY_BRIDGER,
@@ -21,7 +22,8 @@ import {
     DEPLOY_SALT_CCTP_V2_BRIDGER,
     DEPLOY_SALT_HOP_BRIDGER,
     DEPLOY_SALT_LEGACY_MESH_BRIDGER,
-    DEPLOY_SALT_STARGATE_BRIDGER
+    DEPLOY_SALT_STARGATE_BRIDGER,
+    DEPLOY_SALT_USDT0_BRIDGER
 } from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayBridger is Script {
@@ -86,6 +88,10 @@ contract DeployDaimoPayBridger is Script {
             msg.sender,
             DEPLOY_SALT_STARGATE_BRIDGER
         );
+        address usdt0Bridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_USDT0_BRIDGER
+        );
 
         console.log("cctpBridger address:", cctpBridger);
         console.log("cctpV2Bridger address:", cctpV2Bridger);
@@ -94,6 +100,7 @@ contract DeployDaimoPayBridger is Script {
         console.log("hopBridger address:", hopBridger);
         console.log("legacyMeshBridger address:", legacyMeshBridger);
         console.log("stargateBridger address:", stargateBridger);
+        console.log("usdt0Bridger address:", usdt0Bridger);
 
         // Get all supported destination chains from the generated constants
         // CCTP
@@ -130,6 +137,11 @@ contract DeployDaimoPayBridger is Script {
             block.chainid
         );
 
+        // USDT0
+        (uint256[] memory usdt0ChainIds, ) = getUsdt0BridgeRoutes(
+            block.chainid
+        );
+
         // Count total number of supported chains
         uint256 totalChains = cctpChainIds.length +
             cctpV2ChainIds.length +
@@ -137,7 +149,8 @@ contract DeployDaimoPayBridger is Script {
             axelarChainIds.length +
             hopDestChainIds.length +
             legacyMeshChainIds.length +
-            stargateChainIds.length;
+            stargateChainIds.length +
+            usdt0ChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -192,6 +205,13 @@ contract DeployDaimoPayBridger is Script {
         for (uint256 i = 0; i < stargateChainIds.length; i++) {
             chainIds[index] = stargateChainIds[i];
             bridgers[index] = stargateBridger;
+            index++;
+        }
+
+        // Add USDT0 routes
+        for (uint256 i = 0; i < usdt0ChainIds.length; i++) {
+            chainIds[index] = usdt0ChainIds[i];
+            bridgers[index] = usdt0Bridger;
             index++;
         }
 

@@ -70,6 +70,14 @@ export const linea: Chain = {
   lzEid: 30183,
 };
 
+export const megaEth: Chain = {
+  type: "evm",
+  chainId: 4326,
+  name: "MegaETH",
+  cctpDomain: null,
+  lzEid: 30398,
+};
+
 export const monad: Chain = {
   type: "evm",
   chainId: 143,
@@ -139,6 +147,7 @@ export const supportedChains: Chain[] = [
   gnosis,
   hyperEvm,
   linea,
+  megaEth,
   monad,
   optimism,
   polygon,
@@ -191,6 +200,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://hyperevmscan.io";
     case linea.chainId:
       return "https://lineascan.build";
+    case megaEth.chainId:
+      return "https://megaeth.blockscout.com";
     case monad.chainId:
       return "https://monadvision.com";
     case optimism.chainId:

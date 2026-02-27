@@ -22,4 +22,6 @@ codegen:
 	cd ../.. && npm ci && npm run codegen
 
 deploy:
-	./script/deploy.sh
+	@echo "Use ../../scripts/deploy-contracts.sh <group> <chain1> [chain2] ..."
+	@echo "Run ../../scripts/deploy-contracts.sh --help for details."
+	@exit 1

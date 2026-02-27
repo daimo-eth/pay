@@ -46,6 +46,8 @@ export type SessionDestinationEvm = {
   tokenSymbol: string;
   /** Requested amount in destination token units. */
   amountUnits?: string;
+  /** Optional calldata for the destination transaction. */
+  calldata?: Hex;
   /** Set once funds are delivered. */
   delivery?: {
     txHash: Hex;
@@ -132,9 +134,5 @@ export type Session = SessionPublicInfo & {
 };
 
 export function isSessionTerminal(status: SessionStatus): boolean {
-  return (
-    status === "succeeded" ||
-    status === "bounced" ||
-    status === "expired"
-  );
+  return status === "succeeded" || status === "bounced" || status === "expired";
 }

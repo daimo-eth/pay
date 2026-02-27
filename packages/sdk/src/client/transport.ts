@@ -1,21 +1,14 @@
-import {
-  DaimoRequestError,
-  getApiErrorEnvelope,
-} from "../common/errors.js";
+import { DaimoRequestError, getApiErrorEnvelope } from "../common/errors.js";
 
 export type TransportConfig = {
   baseUrl: string;
   fetchImpl?: typeof fetch;
-  secretKey?: string;
   timeoutMs?: number;
 };
-
-export type RequestAuth = "none" | "secret";
 
 export type TransportRequest = {
   method: "GET" | "POST" | "PUT";
   path: string;
-  auth?: RequestAuth;
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
 };
@@ -53,21 +46,9 @@ export function createTransport(config: TransportConfig) {
 
   return {
     async request<T>(options: TransportRequest): Promise<T> {
-      const auth = options.auth ?? "none";
       const url = buildUrl(baseUrl, options.path, options.query);
 
       const headers = new Headers();
-      if (auth === "secret") {
-        if (!config.secretKey) {
-          throw new DaimoRequestError({
-            status: 401,
-            message: "missing secret key",
-            type: "authentication_error",
-            code: "missing_secret_key",
-          });
-        }
-        headers.set("Authorization", `Bearer ${config.secretKey}`);
-      }
 
       let body: string | undefined;
       if (options.body !== undefined) {

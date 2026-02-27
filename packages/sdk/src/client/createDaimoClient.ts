@@ -3,11 +3,8 @@ import type {
   CheckSessionResponse,
   CreatePaymentMethodRequest,
   CreatePaymentMethodResponse,
-  CreateSessionRequest,
-  CreateSessionResponse,
   LogNavEventRequest,
   RetrieveSessionResponse,
-  RetrySessionResponse,
   TokenOptionsRequest,
   TokenOptionsResponse,
 } from "../common/api.js";
@@ -16,12 +13,7 @@ import { createTransport, type TransportConfig } from "./transport.js";
 
 export type DaimoClient = {
   sessions: {
-    create(input: CreateSessionRequest): Promise<CreateSessionResponse>;
-    retry(sessionId: string): Promise<RetrySessionResponse>;
-    retrieve(
-      sessionId: string,
-      useSecretKey?: boolean,
-    ): Promise<RetrieveSessionResponse>;
+    retrieve(sessionId: string): Promise<RetrieveSessionResponse>;
     paymentMethods: {
       create(
         sessionId: string,
@@ -53,28 +45,10 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
 
   return {
     sessions: {
-      create(input) {
-        return transport.request<CreateSessionResponse>({
-          method: "POST",
-          path: "/v1/sessions",
-          auth: "secret",
-          body: input,
-        });
-      },
-
-      retry(sessionId) {
-        return transport.request<RetrySessionResponse>({
-          method: "POST",
-          path: `/v1/sessions/${sessionId}/retry`,
-          auth: "secret",
-        });
-      },
-
-      retrieve(sessionId, useSecretKey) {
+      retrieve(sessionId) {
         return transport.request<RetrieveSessionResponse>({
           method: "GET",
           path: `/v1/sessions/${sessionId}`,
-          auth: useSecretKey === false ? "none" : "secret",
         });
       },
 

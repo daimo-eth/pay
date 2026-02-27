@@ -6,16 +6,19 @@ import "forge-std/console2.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
 import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_DAIMO_PAY_RELAYER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayRelayer is Script {
     function run() public {
         address owner = msg.sender;
 
+        bytes32 salt = keccak256(bytes(
+            vm.envOr("RELAYER_DEPLOY_SALT", string("DaimoPayRelayer-prod4"))
+        ));
+
         vm.startBroadcast();
 
         address daimoPayRelayer = CREATE3.deploy(
-            DEPLOY_SALT_DAIMO_PAY_RELAYER,
+            salt,
             abi.encodePacked(
                 type(DaimoPayRelayer).creationCode,
                 abi.encode(owner)

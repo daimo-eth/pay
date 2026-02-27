@@ -6,7 +6,6 @@ import "forge-std/console2.sol";
 
 import "../src/DaimoPayPricer.sol";
 import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_DAIMO_PAY_PRICER} from "./constants/DeploySalts.sol";
 
 contract DeployDaimoPayPricer is Script {
     function run() public {
@@ -19,10 +18,14 @@ contract DeployDaimoPayPricer is Script {
         );
         uint256 maxPriceAge = vm.envOr("MAX_PRICE_AGE", DEFAULT_MAX_PRICE_AGE);
 
+        bytes32 salt = keccak256(bytes(
+            vm.envOr("PRICER_DEPLOY_SALT", string("DaimoPayPricer-prod1"))
+        ));
+
         vm.startBroadcast();
 
         address daimoPayPricer = CREATE3.deploy(
-            DEPLOY_SALT_DAIMO_PAY_PRICER,
+            salt,
             abi.encodePacked(
                 type(DaimoPayPricer).creationCode,
                 abi.encode(trustedSigner, maxPriceAge)

@@ -21,12 +21,7 @@ bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
     "DepositAddressManager-deploy12"
 );
 
-bytes32 constant DEPLOY_SALT_DAIMO_PAY_PRICER = keccak256(
-    "DaimoPayPricer-prod1"
-);
-// bytes32 constant DEPLOY_SALT_DAIMO_PAY_PRICER = keccak256(
-//     "DaimoPayPricer-dev1"
-// );
+// Pricer salt is env-configurable. See DeployDaimoPayPricer.s.sol.
 
 // Bridger contracts
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_BRIDGER = keccak256(
@@ -61,13 +56,7 @@ bytes32 constant DEPLOY_SALT_USDT0_BRIDGER = keccak256(
     "DaimoPayUSDT0Bridger-deploy2"
 );
 
-// Relayer contract
-// bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-//     "DaimoPayRelayer-prod4"
-// );
-bytes32 constant DEPLOY_SALT_DAIMO_PAY_RELAYER = keccak256(
-    "DaimoPayRelayer-dev4"
-);
+// Relayer salt is env-configurable. See DeployDaimoPayRelayer.s.sol.
 
 // Final call adapters
 bytes32 constant DEPLOY_SALT_HYPERCORE_DEPOSIT_ADAPTER = keccak256(

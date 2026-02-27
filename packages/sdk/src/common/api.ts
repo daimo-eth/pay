@@ -54,7 +54,7 @@ export type RetrieveSessionResponse = { session: SessionPublicInfo };
 export type CreatePaymentMethodResponse = {
   session: SessionPublicInfo;
   tron?: { receiverAddress: TronAddress; expiresAt: number };
-  solana?: { tx: string };
+  solana?: { serializedTx: string };
 };
 
 export type CheckSessionResponse = { session: SessionPublicInfo };

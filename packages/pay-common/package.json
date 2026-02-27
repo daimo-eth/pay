@@ -4,6 +4,5 @@
   "description": "DEPRECATED — use @daimo/sdk/common instead",
   "license": "BSD-2-Clause",
   "main": "index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist", "index.js", "README.md"]
+  "files": ["index.js", "README.md"]
 }

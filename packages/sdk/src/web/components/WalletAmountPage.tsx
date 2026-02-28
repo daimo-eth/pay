@@ -204,7 +204,7 @@ export function WalletAmountPage({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="0.00"
-              className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none caret-[var(--daimo-text-muted)] tabular-nums"
+              className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] tabular-nums ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
               style={{
                 width: inputWidth,
                 minWidth: "1ch",

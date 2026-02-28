@@ -148,7 +148,7 @@ export function AmountInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
-          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none ring-0 shadow-none caret-[var(--daimo-text-muted)] focus:outline-none"
+          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
           style={{
             width: inputWidth,
             minWidth: "1ch",

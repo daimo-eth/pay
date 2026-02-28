@@ -40,7 +40,7 @@ export type NavEntry =
       error?: string;
       autoNav?: boolean;
     }
-  | { type: "wallet-connect"; nodeId: string; autoNav?: boolean }
+  | { type: "wallet-connect"; nodeId: string; walletName?: string; walletIcon?: string; autoNav?: boolean }
   | { type: "wallet-select-token"; nodeId: string; autoNav?: boolean }
   | {
       type: "wallet-select-amount";

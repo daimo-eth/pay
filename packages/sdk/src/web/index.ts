@@ -21,6 +21,8 @@ export type {
   NavEntry,
 } from "./hooks/types.js";
 export { findNode } from "./hooks/types.js";
+export { useInjectedWallets } from "./hooks/useInjectedWallets.js";
+export type { InjectedWallet, InjectedWalletInfo } from "./hooks/useInjectedWallets.js";
 export { useWalletFlow, isUserRejection } from "./hooks/useWalletFlow.js";
 export type { WalletFlowResult, WalletData } from "./hooks/useWalletFlow.js";
 export { useCopyToClipboard } from "./hooks/useCopyToClipboard.js";
@@ -37,6 +39,7 @@ export type {
 export { DaimoModal } from "./components/DaimoModal.js";
 export type { DaimoModalProps } from "./components/DaimoModal.js";
 export { ChooseOptionPage } from "./components/ChooseOptionPage.js";
+export { ChooseWalletPage } from "./components/ChooseWalletPage.js";
 export { ConfirmationPage } from "./components/ConfirmationPage.js";
 export { DeeplinkPage } from "./components/DeeplinkPage.js";
 export { ErrorPage } from "./components/ErrorPage.js";

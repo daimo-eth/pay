@@ -28,6 +28,7 @@ export type NavNodeDepositAddress = NavNodeCommon & {
   tokenSuffix: string;
 };
 
+/** Mobile wallet deeplink. Opens directly on mobile; shows as QR code on desktop. */
 export type NavNodeDeeplink = NavNodeCommon & {
   type: "Deeplink";
   url: string;

@@ -177,7 +177,7 @@ export function WalletAmountPage({
     : `$${usdStr || roundUsd(0)}`;
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={t.enterAmount} onBack={onBack} />
       <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
         {/* Token logo with chain badge */}

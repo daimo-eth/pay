@@ -18,6 +18,7 @@ export const en = {
   continueIn: "Continue in",
   toCompleteYourPayment: "to complete your payment",
   openIn: "Open in",
+  scanWithPhone: "Scan with your phone to open wallet",
 
   // ExchangePage
   continueTo: "Continue to",
@@ -81,6 +82,7 @@ export const en = {
   failedToLoadSession: "failed to load session",
 
   // session page
+  connect: "Connect",
   connectWallet: "Connect Wallet",
   walletUnavailable: "Wallet unavailable",
   walletDisconnected: "Wallet disconnected",

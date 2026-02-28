@@ -26,6 +26,7 @@ import {
 
 import { PrimaryButton } from "./buttons.js";
 import { ChooseOptionPage } from "./ChooseOptionPage.js";
+import { ChooseWalletPage } from "./ChooseWalletPage.js";
 import { ConfirmationPage } from "./ConfirmationPage.js";
 import { EmbeddedContainer, ModalContainer } from "./containers.js";
 import { DeeplinkPage } from "./DeeplinkPage.js";
@@ -36,8 +37,14 @@ import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
   ContactSupportButton,
   ErrorMessage as SharedErrorMessage,
+  PageHeader,
 } from "./shared.js";
+import {
+  useInjectedWallets,
+  type InjectedWallet,
+} from "../hooks/useInjectedWallets.js";
 import { useWalletFlow, isUserRejection } from "../hooks/useWalletFlow.js";
+import type { EthereumProvider } from "../hooks/walletProvider.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
 
@@ -180,8 +187,6 @@ function DaimoModalInner({
       .catch((err) => console.error("failed to init evm payment method:", err));
   }, [session.sessionId, session.clientSecret, depositAddress, client]);
 
-  const nav = useSessionNav(session, setSession, platform);
-
   const hasConnectedWallet = session.navTree.some(
     (n) => n.type === "ConnectedWallet",
   );
@@ -191,6 +196,10 @@ function DaimoModalInner({
     hasConnectedWallet,
     session.clientSecret,
   );
+
+  const nav = useSessionNav(session, setSession, platform, walletFlow);
+
+  const injectedWallets = useInjectedWallets();
 
   const autoNavRef = useRef<string | null>(null);
   useEffect(() => {
@@ -345,6 +354,8 @@ function DaimoModalInner({
     onAmountContinue: nav.handleAmountContinue,
     onRetry: nav.handleRetry,
     onRefresh: nav.handleRefresh,
+    injectedWallets,
+    onInjectedWalletSelect: nav.handleInjectedWalletSelect,
     walletFlow,
     onWalletSelectToken: nav.handleWalletSelectToken,
     onWalletSending: nav.handleWalletSending,
@@ -368,6 +379,8 @@ type RenderContext = {
   onAmountContinue: (amountUsd: number) => void;
   onRetry: () => void;
   onRefresh: () => Promise<void>;
+  injectedWallets: InjectedWallet[];
+  onInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
   walletFlow: {
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
     balances: WalletPaymentOption[] | null;
@@ -375,6 +388,7 @@ type RenderContext = {
     isLoadingBalances: boolean;
     connectError: string | null;
     connect: () => Promise<void>;
+    retryConnect: () => Promise<void>;
   };
   onWalletSelectToken: (token: WalletPaymentOption) => void;
   onWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
@@ -403,6 +417,17 @@ function renderEntry(
     case "choose-option": {
       const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeChooseOption | null;
       if (!node) return null;
+      if (node.id === "SelectWallet") {
+        return (
+          <ChooseWalletPage
+            node={node}
+            injectedWallets={ctx.injectedWallets}
+            onInjectedWalletSelect={ctx.onInjectedWalletSelect}
+            onNavigate={ctx.onNavigate}
+            onBack={ctx.canGoBack ? ctx.onBack : null}
+          />
+        );
+      }
       return (
         <ChooseOptionPage
           node={node}
@@ -425,7 +450,7 @@ function renderEntry(
     case "exchange-page":
       return renderExchangePage(entry, ctx);
     case "wallet-connect":
-      return renderWalletConnect(ctx);
+      return renderWalletConnect(entry, ctx);
     case "wallet-select-token":
       return renderWalletSelectToken(ctx);
     case "wallet-select-amount":
@@ -491,14 +516,37 @@ function renderExchangePage(entry: NavEntry & { type: "exchange-page" }, ctx: Re
   return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} />;
 }
 
-function renderWalletConnect(ctx: RenderContext): React.ReactNode {
+function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: RenderContext): React.ReactNode {
   const { walletFlow } = ctx;
-  if (walletFlow.isConnecting) return <LoadingMessage />;
+  const title = entry.walletName ? `${t.connect} ${entry.walletName}` : t.connectWallet;
+
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-6 p-6">
-      <PrimaryButton onClick={walletFlow.connect}>{t.connectWallet}</PrimaryButton>
-      {walletFlow.connectError && <SharedErrorMessage message={walletFlow.connectError} />}
-      <ContactSupportButton subject="Wallet connection" info={{ sessionId: ctx.session.sessionId, error: walletFlow.connectError ?? t.walletUnavailable }} />
+    <div className="flex flex-col flex-1 min-h-0">
+      <PageHeader title={title} onBack={ctx.canGoBack ? ctx.onBack : undefined} />
+
+      {/* Center area: wallet icon + status */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+        {entry.walletIcon && (
+          <img src={entry.walletIcon} alt={entry.walletName ?? ""} className="w-20 h-20 object-contain rounded-[25%]" />
+        )}
+        {walletFlow.isConnecting && (
+          <span className="text-[var(--daimo-text-muted)]">{t.loading}</span>
+        )}
+      </div>
+
+      {/* Fixed bottom: error + retry, contact support */}
+      <div className="px-6 pb-6 flex flex-col items-center gap-3 min-h-[100px]">
+        {walletFlow.connectError && (
+          <>
+            <SharedErrorMessage message={walletFlow.connectError} />
+            <PrimaryButton onClick={walletFlow.retryConnect}>{t.tryAgain}</PrimaryButton>
+          </>
+        )}
+        {!entry.walletName && !walletFlow.isConnecting && !walletFlow.connectError && (
+          <PrimaryButton onClick={walletFlow.connect}>{t.connectWallet}</PrimaryButton>
+        )}
+        <ContactSupportButton subject="Wallet connection" info={{ sessionId: ctx.session.sessionId, error: walletFlow.connectError ?? t.walletUnavailable }} />
+      </div>
     </div>
   );
 }

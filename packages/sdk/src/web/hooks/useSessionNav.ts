@@ -7,6 +7,8 @@ import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
+import type { EthereumProvider } from "./walletProvider.js";
+import type { WalletFlowResult } from "./useWalletFlow.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
@@ -22,6 +24,7 @@ type SessionNavResult = {
   handleRetry: () => void;
   handleRefresh: () => Promise<void>;
 
+  handleInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
   handleWalletConnected: () => void;
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
@@ -32,6 +35,7 @@ export function useSessionNav(
   session: SessionWithNav,
   setSession: React.Dispatch<React.SetStateAction<SessionWithNav>>,
   platform?: "ios" | "android" | "other",
+  walletFlow?: WalletFlowResult,
 ): SessionNavResult {
   const client = useDaimoClient();
   const logNavEvent = createNavLogger(client);
@@ -424,6 +428,17 @@ export function useSessionNav(
 
   // ─── Wallet flow handlers ───────────────────────────────────────────────
 
+  const handleInjectedWalletSelect = useCallback(
+    (provider: EthereumProvider, walletName: string, walletIcon: string) => {
+      setStack((prev) => [
+        ...prev,
+        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon },
+      ]);
+      walletFlow?.connectWithProvider(provider);
+    },
+    [walletFlow],
+  );
+
   const handleWalletConnected = useCallback(() => {
     if (topEntry?.type !== "wallet-connect") return;
     setStack((prev) => [
@@ -494,6 +509,7 @@ export function useSessionNav(
       handleAmountContinue,
       handleRetry,
       handleRefresh,
+      handleInjectedWalletSelect,
       handleWalletConnected,
       handleWalletSelectToken,
       handleWalletSending,
@@ -509,6 +525,7 @@ export function useSessionNav(
       handleAmountContinue,
       handleRetry,
       handleRefresh,
+      handleInjectedWalletSelect,
       handleWalletConnected,
       handleWalletSelectToken,
       handleWalletSending,

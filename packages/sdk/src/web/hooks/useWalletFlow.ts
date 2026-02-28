@@ -54,6 +54,8 @@ export type WalletFlowResult = {
   isLoadingBalances: boolean;
   connectError: string | null;
   connect: () => Promise<void>;
+  connectWithProvider: (provider: EthereumProvider) => Promise<void>;
+  retryConnect: () => Promise<void>;
   sendTransaction: (
     token: WalletPaymentOption,
     amountUsd: number,
@@ -74,6 +76,7 @@ export function useWalletFlow(
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const currentFetchRef = useRef<string | null>(null);
+  const evmProviderRef = useRef<EthereumProvider | null>(null);
 
   const hasInjectedWallet =
     typeof window !== "undefined" &&
@@ -163,6 +166,49 @@ export function useWalletFlow(
     }
   }, [fetchBalances]);
 
+  const connectWithProvider = useCallback(
+    async (provider: EthereumProvider) => {
+      setConnectError(null);
+      setIsConnecting(true);
+      evmProviderRef.current = provider;
+
+      try {
+        const accounts = (await provider.request({
+          method: "eth_requestAccounts",
+        })) as string[];
+        const evmAddress =
+          accounts?.length ? getAddress(accounts[0]) : null;
+
+        if (!evmAddress) {
+          setConnectError(t.walletUnavailable);
+          setIsConnecting(false);
+          return;
+        }
+
+        const walletData = { evmAddress, solAddress: null };
+        setWallet(walletData);
+        setIsConnecting(false);
+        fetchBalances(walletData, true);
+      } catch (err) {
+        console.error("failed to connect wallet:", err);
+        setConnectError(
+          err instanceof Error ? err.message : t.walletUnavailable,
+        );
+        setIsConnecting(false);
+      }
+    },
+    [fetchBalances],
+  );
+
+  const retryConnect = useCallback(async () => {
+    const provider = evmProviderRef.current;
+    if (provider) {
+      await connectWithProvider(provider);
+    } else {
+      await connect();
+    }
+  }, [connectWithProvider, connect]);
+
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -187,7 +233,7 @@ export function useWalletFlow(
   }, [autoConnect, connect, fetchBalances, hasInjectedWallet]);
 
   useEffect(() => {
-    const ethereum = getEthereumProvider();
+    const ethereum = evmProviderRef.current ?? getEthereumProvider();
     if (!ethereum?.on) return;
 
     const handleAccountsChanged = (accounts: unknown) => {
@@ -280,6 +326,7 @@ export function useWalletFlow(
         destAddr,
         token,
         amountUsd,
+        evmProviderRef.current,
       );
       return { txHash };
     },
@@ -294,6 +341,8 @@ export function useWalletFlow(
     isLoadingBalances,
     connectError,
     connect,
+    connectWithProvider,
+    retryConnect,
     sendTransaction,
   };
 }
@@ -335,8 +384,9 @@ async function sendEvmTransaction(
   destAddr: string,
   token: WalletPaymentOption,
   amountUsd: number,
+  providerOverride?: EthereumProvider | null,
 ): Promise<string> {
-  const ethereum = getEthereumProvider() as EthereumProvider;
+  const ethereum = providerOverride ?? getEthereumProvider();
   if (!ethereum) throw new Error(t.walletUnavailable);
   if (!wallet.evmAddress) throw new Error(t.walletDisconnected);
 

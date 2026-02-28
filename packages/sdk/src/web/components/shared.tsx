@@ -230,14 +230,19 @@ export function PageLogo({ icon, alt, size = "lg" }: PageLogoProps) {
   );
 }
 
-/** Centered content container for detail pages */
-type PageContentProps = {
-  children: ReactNode;
-};
-
-export function PageContent({ children }: PageContentProps) {
+/** Scrollable content area for list pages. Fills remaining space after header. */
+export function ScrollContent({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+    <div className="flex-1 min-h-0 overflow-y-auto scroll-fade px-6 pb-4">
+      {children}
+    </div>
+  );
+}
+
+/** Centered content container for detail pages (icon + message + action). */
+export function CenteredContent({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6 min-h-[320px]">
       {children}
     </div>
   );

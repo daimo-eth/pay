@@ -2,7 +2,7 @@ import type { NavNodeExchange } from "../api/navTree.js";
 
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
-import { PageContent, PageHeader, PageLogo } from "./shared.js";
+import { CenteredContent, PageHeader, PageLogo } from "./shared.js";
 
 type ExchangePageProps = {
   node: NavNodeExchange;
@@ -26,7 +26,7 @@ export function ExchangePage({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} />
-      <PageContent>
+      <CenteredContent>
         {node.icon && <PageLogo icon={node.icon} alt={node.title} />}
         {isLoading ? (
           <div className="flex flex-col items-center gap-2 max-w-xs w-full">
@@ -46,7 +46,7 @@ export function ExchangePage({
         >
           {t.open} {node.title}
         </PrimaryButton>
-      </PageContent>
+      </CenteredContent>
     </div>
   );
 }

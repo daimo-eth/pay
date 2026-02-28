@@ -35,6 +35,7 @@ import { ExpiredPage } from "./ExpiredPage.js";
 import { SelectAmountPage } from "./SelectAmountPage.js";
 import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
+  CenteredContent,
   ContactSupportButton,
   ErrorMessage as SharedErrorMessage,
   PageHeader,
@@ -524,15 +525,14 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={title} onBack={ctx.canGoBack ? ctx.onBack : undefined} />
 
-      {/* Center area: wallet icon + status */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+      <CenteredContent>
         {entry.walletIcon && (
           <img src={entry.walletIcon} alt={entry.walletName ?? ""} className="w-20 h-20 object-contain rounded-[25%]" />
         )}
         {walletFlow.isConnecting && (
           <span className="text-[var(--daimo-text-muted)]">{t.loading}</span>
         )}
-      </div>
+      </CenteredContent>
 
       {/* Fixed bottom: error + retry, contact support */}
       <div className="px-6 pb-6 flex flex-col items-center gap-3 min-h-[100px]">

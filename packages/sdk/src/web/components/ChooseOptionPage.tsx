@@ -1,19 +1,13 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, resolveIconUrl } from "./shared.js";
+import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
 
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
 };
-
-/** Max visible rows before scrolling */
-const MAX_VISIBLE_ROWS = 4;
-/** Row height (h-16 = 64px) + gap (gap-3 = 12px) */
-const ROW_HEIGHT = 64;
-const ROW_GAP = 12;
 
 export function ChooseOptionPage({
   node,
@@ -23,18 +17,12 @@ export function ChooseOptionPage({
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;
 
-  // Calculate max height for list layout (4 rows + 3 gaps)
-  const needsScroll = !useGridLayout && node.options.length > MAX_VISIBLE_ROWS;
-  const maxListHeight =
-    MAX_VISIBLE_ROWS * ROW_HEIGHT + (MAX_VISIBLE_ROWS - 1) * ROW_GAP;
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} />
 
-      {/* Options */}
-      {useGridLayout ? (
-        <div className="flex-1 overflow-y-auto scroll-fade px-6 pb-4">
+      <ScrollContent>
+        {useGridLayout ? (
           <div className="grid grid-cols-4 gap-2">
             {node.options.map((option) => (
               <GridOptionCell
@@ -44,13 +32,8 @@ export function ChooseOptionPage({
               />
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="px-6 pb-4">
-          <div
-            className={`flex flex-col gap-3 ${needsScroll ? "overflow-y-auto scroll-fade" : ""}`}
-            style={needsScroll ? { maxHeight: maxListHeight } : undefined}
-          >
+        ) : (
+          <div className="flex flex-col gap-3">
             {node.options.map((option) => (
               <OptionRow
                 key={option.id}
@@ -59,10 +42,9 @@ export function ChooseOptionPage({
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </ScrollContent>
 
-      {/* Footer - only on root page */}
       {isRootPage && (
         <div className="py-4 text-center">
           <span className="text-sm text-[var(--daimo-text-muted)]">

@@ -3,7 +3,7 @@ import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 import type { EthereumProvider } from "../hooks/walletProvider.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, resolveIconUrl } from "./shared.js";
+import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
 
 type ChooseWalletPageProps = {
   node: NavNodeChooseOption;
@@ -13,10 +13,6 @@ type ChooseWalletPageProps = {
   onBack: (() => void) | null;
 };
 
-const MAX_VISIBLE_ROWS = 4;
-const ROW_HEIGHT = 64;
-const ROW_GAP = 12;
-
 /** Wallet selection page: EIP-6963 browser wallets at top, deeplink wallets below. */
 export function ChooseWalletPage({
   node,
@@ -25,20 +21,12 @@ export function ChooseWalletPage({
   onNavigate,
   onBack,
 }: ChooseWalletPageProps) {
-  const totalRows = injectedWallets.length + node.options.length;
-  const needsScroll = totalRows > MAX_VISIBLE_ROWS;
-  const maxListHeight =
-    MAX_VISIBLE_ROWS * ROW_HEIGHT + (MAX_VISIBLE_ROWS - 1) * ROW_GAP;
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} />
 
-      <div className="px-6 pb-4">
-        <div
-          className={`flex flex-col gap-3 ${needsScroll ? "overflow-y-auto scroll-fade" : ""}`}
-          style={needsScroll ? { maxHeight: maxListHeight } : undefined}
-        >
+      <ScrollContent>
+        <div className="flex flex-col gap-3">
           {injectedWallets.map((w) => (
             <InjectedWalletRow
               key={w.info.rdns}
@@ -55,7 +43,7 @@ export function ChooseWalletPage({
             />
           ))}
         </div>
-      </div>
+      </ScrollContent>
     </div>
   );
 }

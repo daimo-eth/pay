@@ -2,7 +2,7 @@ import type { NavNodeDeeplink } from "../api/navTree.js";
 
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
-import { PageContent, PageHeader, PageLogo, resolveIconUrl } from "./shared.js";
+import { CenteredContent, PageHeader, PageLogo, resolveIconUrl } from "./shared.js";
 import { QRCode } from "./QRCode.js";
 
 type DeeplinkPageProps = {
@@ -23,7 +23,7 @@ export function DeeplinkPage({ node, onBack }: DeeplinkPageProps) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         <PageHeader title={node.title} onBack={onBack ?? undefined} />
-        <PageContent>
+        <CenteredContent>
           <div className="w-full max-w-[200px] sm:max-w-[260px]">
             <QRCode
               value={node.url}
@@ -41,7 +41,7 @@ export function DeeplinkPage({ node, onBack }: DeeplinkPageProps) {
           <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs text-sm">
             {t.scanWithPhone}
           </p>
-        </PageContent>
+        </CenteredContent>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export function DeeplinkPage({ node, onBack }: DeeplinkPageProps) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack ?? undefined} />
-      <PageContent>
+      <CenteredContent>
         {node.icon && <PageLogo icon={node.icon} alt={node.title} />}
         <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs">
           {t.continueIn} {node.title} {t.toCompleteYourPayment}
@@ -63,7 +63,7 @@ export function DeeplinkPage({ node, onBack }: DeeplinkPageProps) {
         <PrimaryButton onClick={openDeeplink} icon={<ExternalLinkIcon />}>
           {t.openIn} {node.title}
         </PrimaryButton>
-      </PageContent>
+      </CenteredContent>
     </div>
   );
 }

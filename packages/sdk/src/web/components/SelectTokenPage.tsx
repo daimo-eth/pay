@@ -2,7 +2,7 @@ import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { getChainName } from "../../common/chain.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, TokenIconWithChainBadge } from "./shared.js";
+import { PageHeader, ScrollContent, TokenIconWithChainBadge } from "./shared.js";
 
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
@@ -24,27 +24,20 @@ export function SelectTokenPage({
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="shrink-0">
-          <PageHeader title={t.selectToken} />
-        </div>
-        {/* Scrollable container */}
-        <div className="flex-1 min-h-0 overflow-y-auto scroll-fade px-6 pb-4">
-          {/* Bottom-up layout: items align to bottom when few, scroll normally when full.
-              - min-h-full ensures wrapper spans at least the full scroll area
-              - justify-end pushes items to bottom for easier thumb reach on mobile
-              - when items exceed container height, normal top-down scrolling kicks in */}
+      <div className="flex flex-col flex-1 min-h-0">
+        <PageHeader title={t.selectToken} />
+        <ScrollContent>
+          {/* Bottom-up layout: items align to bottom when few, scroll normally when full. */}
           <div className="min-h-full flex flex-col justify-end gap-3">
             {Array.from({ length: skeletonCount }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
           </div>
-        </div>
+        </ScrollContent>
       </div>
     );
   }
 
-  // Filter options: valid tokens first, then disabled (insufficient balance or liquidity)
   const validOptions = options.filter(
     (opt) => opt.balance.usd >= opt.minimumRequired.usd && !opt.disabledReason,
   );
@@ -53,12 +46,9 @@ export function SelectTokenPage({
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0">
-        <PageHeader title={t.selectToken} />
-      </div>
-      {/* Scrollable container */}
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-fade px-6 pb-4">
+    <div className="flex flex-col flex-1 min-h-0">
+      <PageHeader title={t.selectToken} />
+      <ScrollContent>
         {options.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <p className="text-[var(--daimo-text-secondary)]">
@@ -66,12 +56,8 @@ export function SelectTokenPage({
             </p>
           </div>
         ) : (
-          /* Bottom-up layout: items align to bottom when few, scroll normally when full.
-             - min-h-full ensures wrapper spans at least the full scroll area
-             - justify-end pushes items to bottom for easier thumb reach on mobile
-             - when items exceed container height, normal top-down scrolling kicks in */
+          /* Bottom-up layout: items align to bottom when few, scroll normally when full. */
           <div className="min-h-full flex flex-col justify-end gap-3">
-            {/* Valid options - selectable */}
             {validOptions.map((option) => (
               <TokenRow
                 key={getTokenKey(option.balance.token)}
@@ -79,7 +65,6 @@ export function SelectTokenPage({
                 onSelect={onSelect}
               />
             ))}
-            {/* Disabled options - insufficient balance or liquidity */}
             {disabledOptions.map((option) => (
               <TokenRow
                 key={getTokenKey(option.balance.token)}
@@ -90,7 +75,7 @@ export function SelectTokenPage({
             ))}
           </div>
         )}
-      </div>
+      </ScrollContent>
     </div>
   );
 }

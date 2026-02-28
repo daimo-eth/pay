@@ -1,6 +1,6 @@
 {
   "name": "@daimo/sdk",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "description": "Daimo SDK - universal ramp for stablecoin apps",
   "author": "Daimo",
   "license": "BSD-2-Clause",
@@ -38,10 +38,10 @@
     "zod": "^3.24.2"
   },
   "peerDependencies": {
-    "react": "18.x || 19.x",
-    "react-dom": "18.x || 19.x",
+    "@solana/web3.js": "^1.95.4",
     "qrcode": "^1.5.0",
-    "@solana/web3.js": "^1.95.4"
+    "react": "18.x || 19.x",
+    "react-dom": "18.x || 19.x"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -55,6 +55,7 @@
     }
   },
   "devDependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@types/qrcode": "^1.4.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

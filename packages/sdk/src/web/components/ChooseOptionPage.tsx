@@ -1,4 +1,4 @@
-import { NavNode, NavNodeChooseOption } from "../common/legacy/session.js";
+import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 
 import { t } from "../hooks/locale.js";
 import { PageHeader, resolveIconUrl } from "./shared.js";

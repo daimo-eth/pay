@@ -1,5 +1,5 @@
-import type { NavNode } from "../common/legacy/session.js";
-import type { DaimoClient } from "../common/legacy/client.js";
+import type { NavNode } from "../api/navTree.js";
+import type { DaimoClient } from "../../client/createDaimoClient.js";
 
 /** Node types from NavNode union */
 export type NavNodeType = NavNode["type"];
@@ -44,14 +44,14 @@ export type NavEvent = NavEventContext & NavEventAction;
 
 /** Create a fire-and-forget nav event logger bound to a DaimoClient. */
 export function createNavLogger(client: DaimoClient) {
-  return function logNavEvent(sessionId: string, event: NavEvent): void {
-    const { action, nodeId, nodeType, ...rest } = event;
-    client
-      .logNavEvent({
-        sessionId,
-        action,
-        data: { nodeId, nodeType, ...rest },
-      })
+  return function logNavEvent(
+    sessionId: string,
+    clientSecret: string,
+    event: NavEvent,
+  ): void {
+    const { action } = event;
+    client.internal.sessions
+      .logNavEvent(sessionId, { clientSecret, event: action })
       .catch((e) => {
         console.error("[navEvent] failed to log:", action, e);
       });

@@ -1,4 +1,4 @@
-import { NavNodeExchange } from "../common/legacy/session.js";
+import type { NavNodeExchange } from "../api/navTree.js";
 
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";

@@ -1,7 +1,7 @@
 {
   "name": "@daimo/sdk",
-  "version": "0.1.0",
-  "description": "Daimo SDK — session-based crypto payments",
+  "version": "1.0.0-rc.1",
+  "description": "Daimo SDK - universal ramp for stablecoin apps",
   "author": "Daimo",
   "license": "BSD-2-Clause",
   "type": "module",
@@ -10,21 +10,17 @@
       "import": "./dist/common/index.js",
       "types": "./dist/common/index.d.ts"
     },
-    "./common/legacy": {
-      "import": "./dist/common/legacy/index.js",
-      "types": "./dist/common/legacy/index.d.ts"
-    },
     "./client": {
       "import": "./dist/client/index.js",
       "types": "./dist/client/index.d.ts"
     },
-    "./hooks": {
-      "import": "./dist/hooks/index.js",
-      "types": "./dist/hooks/index.d.ts"
-    },
     "./web": {
       "import": "./dist/web/index.js",
       "types": "./dist/web/index.d.ts"
+    },
+    "./web/api": {
+      "import": "./dist/web/api/index.js",
+      "types": "./dist/web/api/index.d.ts"
     },
     "./web/theme.css": "./dist/web/theme.css"
   },
@@ -34,6 +30,7 @@
   ],
   "scripts": {
     "build": "tsc && cp src/web/theme.css dist/web/theme.css",
+    "test": "npm run lint",
     "lint": "eslint --max-warnings=0"
   },
   "dependencies": {

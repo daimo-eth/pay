@@ -1,10 +1,7 @@
-import type {
-  ModalSession,
-  NavNode,
-  WalletPaymentOption,
-} from "../common/legacy/session.js";
+import type { NavNode, SessionWithNav } from "../api/navTree.js";
+import type { WalletPaymentOption } from "../api/walletTypes.js";
 
-export type { ModalSession };
+export type { SessionWithNav };
 
 /**
  * A single entry in the navigation stack. Back = pop.

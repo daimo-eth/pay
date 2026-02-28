@@ -1,14 +1,12 @@
-import type {
-  NavNodeChooseOption,
-  NavNodeExchange,
-  WalletPaymentOption,
-} from "../common/legacy/session.js";
+import type { NavNodeChooseOption, NavNodeExchange } from "../api/navTree.js";
+import type { SessionWithNav } from "../api/navTree.js";
+import type { WalletPaymentOption } from "../api/walletTypes.js";
 import { useCallback, useMemo, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
-import { findNode, type NavEntry, type ModalSession } from "./types.js";
+import { findNode, type NavEntry } from "./types.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
@@ -30,13 +28,9 @@ type SessionNavResult = {
   handleWalletTxResult: (txHash?: string, error?: string) => void;
 };
 
-/**
- * Manages session navigation via a single NavEntry stack.
- * Back = pop (collapsing auto-nav entries). Flow screens are stack entries.
- */
 export function useSessionNav(
-  session: ModalSession,
-  setSession: React.Dispatch<React.SetStateAction<ModalSession>>,
+  session: SessionWithNav,
+  setSession: React.Dispatch<React.SetStateAction<SessionWithNav>>,
   platform?: "ios" | "android" | "other",
 ): SessionNavResult {
   const client = useDaimoClient();
@@ -61,86 +55,84 @@ export function useSessionNav(
   const fetchTronAddress = useCallback(
     async (nodeId: string, amountUsd: number) => {
       try {
-        const result = await client.createTronAddress({
-          sessionId: session.sessionId,
-          amountUsd,
-        });
+        const result = await client.sessions.paymentMethods.create(
+          session.sessionId,
+          {
+            clientSecret: session.clientSecret,
+            paymentMethod: { type: "tron", amountUsd },
+          },
+        );
 
-        if ("error" in result) {
-          logNavEvent(session.sessionId, {
-            nodeId,
-            nodeType: "TronDeposit",
-            action: "flow_tron_address",
-            success: false,
-            error: result.error,
-          });
-          setStack((prev) => {
-            const top = prev[prev.length - 1];
-            if (top?.type !== "waiting-tron" || top.nodeId !== nodeId)
-              return prev;
-            return [...prev.slice(0, -1), { ...top, error: result.error }];
-          });
-        } else {
-          logNavEvent(session.sessionId, {
-            nodeId,
-            nodeType: "TronDeposit",
-            action: "flow_tron_address",
-            success: true,
-            address: result.address,
-          });
-          setStack((prev) => {
-            const top = prev[prev.length - 1];
-            if (top?.type !== "waiting-tron" || top.nodeId !== nodeId)
-              return prev;
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...top,
-                address: result.address,
-                expiresAt: result.expiresAt,
-                error: undefined,
-              },
-            ];
-          });
+        if (!result.tron) {
+          throw new Error("tron address not returned");
         }
-      } catch (error) {
-        console.error("failed to create tron address:", error);
-        logNavEvent(session.sessionId, {
+
+        logNavEvent(session.sessionId, session.clientSecret, {
           nodeId,
           nodeType: "TronDeposit",
           action: "flow_tron_address",
-          success: false,
-          error: t.tronUnavailable,
+          success: true,
+          address: result.tron.receiverAddress,
         });
         setStack((prev) => {
           const top = prev[prev.length - 1];
           if (top?.type !== "waiting-tron" || top.nodeId !== nodeId)
             return prev;
-          return [...prev.slice(0, -1), { ...top, error: t.tronUnavailable }];
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...top,
+              address: result.tron!.receiverAddress,
+              expiresAt: result.tron!.expiresAt,
+              error: undefined,
+            },
+          ];
+        });
+      } catch (error) {
+        console.error("failed to create tron address:", error);
+        const errorMsg =
+          error instanceof Error ? error.message : t.tronUnavailable;
+        logNavEvent(session.sessionId, session.clientSecret, {
+          nodeId,
+          nodeType: "TronDeposit",
+          action: "flow_tron_address",
+          success: false,
+          error: errorMsg,
+        });
+        setStack((prev) => {
+          const top = prev[prev.length - 1];
+          if (top?.type !== "waiting-tron" || top.nodeId !== nodeId)
+            return prev;
+          return [...prev.slice(0, -1), { ...top, error: errorMsg }];
         });
       }
     },
-    [session.sessionId, client],
+    [session.sessionId, session.clientSecret, client],
   );
 
   const fetchExchangeUrl = useCallback(
     async (nodeId: string, exchangeId: string, amountUsd: number) => {
       try {
-        const result = await client.getExchangeUrl({
-          sessionId: session.sessionId,
-          daAddr: session.receivers.evm.address,
-          exchangeId,
-          amountUsd,
-          platform,
-        });
-        if (!result) return;
-        logNavEvent(session.sessionId, {
+        const result = await client.sessions.paymentMethods.create(
+          session.sessionId,
+          {
+            clientSecret: session.clientSecret,
+            paymentMethod: {
+              type: "exchange",
+              exchangeId: exchangeId as "Coinbase" | "Binance" | "Lemon",
+              amountUsd,
+              platform,
+            },
+          },
+        );
+        if (!result.exchange) return;
+        logNavEvent(session.sessionId, session.clientSecret, {
           nodeId,
           nodeType: "Exchange",
           action: "flow_exchange_url",
           exchangeId,
           success: true,
-          url: result.url,
+          url: result.exchange.url,
         });
         setStack((prev) => {
           const top = prev[prev.length - 1];
@@ -150,8 +142,8 @@ export function useSessionNav(
             ...prev.slice(0, -1),
             {
               ...top,
-              exchangeUrl: result.url,
-              waitingMessage: result.waitingMessage,
+              exchangeUrl: result.exchange!.url,
+              waitingMessage: result.exchange!.waitingMessage,
               error: undefined,
             },
           ];
@@ -160,7 +152,7 @@ export function useSessionNav(
         console.error("failed to get exchange url:", error);
         const errorMsg =
           error instanceof Error ? error.message : "failed to get exchange url";
-        logNavEvent(session.sessionId, {
+        logNavEvent(session.sessionId, session.clientSecret, {
           nodeId,
           nodeType: "Exchange",
           action: "flow_exchange_url",
@@ -176,7 +168,7 @@ export function useSessionNav(
         });
       }
     },
-    [session.sessionId, session.receivers, platform, client],
+    [session.sessionId, session.clientSecret, platform, client],
   );
 
   // ─── Navigation handlers ────────────────────────────────────────────────
@@ -190,7 +182,7 @@ export function useSessionNav(
       const autoNav = options?.autoNav ?? false;
 
       if (targetNode.type === "Deeplink" && targetNode.url) {
-        logNavEvent(session.sessionId, {
+        logNavEvent(session.sessionId, session.clientSecret, {
           ...nodeCtx,
           action: "nav_deeplink",
           url: targetNode.url,
@@ -198,7 +190,7 @@ export function useSessionNav(
         window.open(targetNode.url, "_blank");
       }
 
-      logNavEvent(session.sessionId, {
+      logNavEvent(session.sessionId, session.clientSecret, {
         ...nodeCtx,
         action: "nav_select",
         targetNodeId: nodeId,
@@ -306,7 +298,7 @@ export function useSessionNav(
   );
 
   const handleBack = useCallback(() => {
-    logNavEvent(session.sessionId, { ...getNodeCtx(), action: "nav_back" });
+    logNavEvent(session.sessionId, session.clientSecret, { ...getNodeCtx(), action: "nav_back" });
 
     setStack((prev) => {
       if (prev.length === 0) return prev;
@@ -335,7 +327,7 @@ export function useSessionNav(
       if (!topEntry || topEntry.type !== "select-amount") return;
       const { nodeId, flowType } = topEntry;
 
-      logNavEvent(session.sessionId, {
+      logNavEvent(session.sessionId, session.clientSecret, {
         nodeId,
         nodeType:
           flowType === "deposit"
@@ -416,18 +408,19 @@ export function useSessionNav(
   }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl]);
 
   const handleRefresh = useCallback(async () => {
-    logNavEvent(session.sessionId, { ...getNodeCtx(), action: "flow_refresh" });
+    logNavEvent(session.sessionId, session.clientSecret, { ...getNodeCtx(), action: "flow_refresh" });
 
     try {
-      const newSession = await client.recreateSession({
-        sessionId: session.sessionId,
-      });
+      const { session: newSession } = await client.internal.sessions.recreate(
+        session.sessionId,
+        session.clientSecret,
+      );
       setStack([]);
       setSession(newSession);
     } catch (error) {
       console.error("failed to recreate session:", error);
     }
-  }, [session.sessionId, getNodeCtx, setSession, client]);
+  }, [session.sessionId, session.clientSecret, getNodeCtx, setSession, client]);
 
   // ─── Wallet flow handlers ───────────────────────────────────────────────
 

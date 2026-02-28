@@ -7,7 +7,7 @@ import type { SessionPublicInfo } from "./session.js";
 export const zSessionId = z.string().regex(/^[0-9a-f]{32}$/);
 
 export const zCreatePaymentMethodRequest = z.object({
-  clientSecret: z.string().min(1),
+  clientSecret: z.string(),
   paymentMethod: z.discriminatedUnion("type", [
     z.object({ type: z.literal("evm") }),
     z.object({ type: z.literal("tron"), amountUsd: z.number().positive() }),
@@ -17,11 +17,17 @@ export const zCreatePaymentMethodRequest = z.object({
       inputTokenMint: z.string().min(1),
       amountUsd: z.number().positive(),
     }),
+    z.object({
+      type: z.literal("exchange"),
+      exchangeId: z.enum(["Coinbase", "Binance", "Lemon"]),
+      amountUsd: z.number().positive(),
+      platform: z.enum(["ios", "android", "other"]).optional(),
+    }),
   ]),
 });
 
 export const zCheckSessionRequest = z.object({
-  clientSecret: z.string().min(1),
+  clientSecret: z.string(),
   txHash: z.string().optional(),
 });
 
@@ -29,14 +35,14 @@ export const zTokenOptionsRequest = z
   .object({
     evmAddress: zAddress.optional(),
     solanaAddress: zSolanaAddress.optional(),
-    clientSecret: z.string().min(1),
+    clientSecret: z.string(),
   })
   .refine((data) => data.evmAddress || data.solanaAddress, {
     message: "at least one of evmAddress or solanaAddress is required",
   });
 
 export const zLogNavEventRequest = z.object({
-  clientSecret: z.string().min(1),
+  clientSecret: z.string(),
   event: z.string().min(1),
 });
 
@@ -68,6 +74,13 @@ export type CreatePaymentMethodResponse = {
   solana?: {
     /** Base64-encoded Solana transaction for the user to sign. */
     serializedTx: string;
+  };
+  /** Exchange-specific payment details, present when payment method is Exchange. */
+  exchange?: {
+    /** Deeplink URL for the exchange. */
+    url: string;
+    /** Message to display while waiting. */
+    waitingMessage: string;
   };
 };
 

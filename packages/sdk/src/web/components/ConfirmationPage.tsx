@@ -1,5 +1,5 @@
-import { getChainName } from "../common/chain.js";
-import { SessionStatus } from "../common/legacy/session.js";
+import { getChainName } from "../../common/chain.js";
+import type { SessionStatus } from "../../common/session.js";
 import { useEffect, useState } from "react";
 
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
@@ -154,7 +154,7 @@ function getConfirmationStatus(
   sessionState: SessionStatus | undefined,
 ): ConfirmationStatus {
   if (sessionState === "processing") return "processing";
-  if (sessionState === "completed") return "done";
+  if (sessionState === "succeeded") return "done";
   if (sessionState === "bounced") return "refunding";
   if (pendingTxHash) return "waiting";
   return "confirming";

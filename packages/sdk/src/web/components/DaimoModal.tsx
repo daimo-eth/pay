@@ -1,14 +1,14 @@
 import type {
-  ModalSession,
   NavNode,
   NavNodeChooseOption,
   NavNodeDeeplink,
   NavNodeDepositAddress,
   NavNodeExchange,
   NavNodeTronDeposit,
-  WalletPaymentOption,
-} from "../common/legacy/session.js";
-import { tron } from "../common/chain.js";
+  SessionWithNav,
+} from "../api/navTree.js";
+import type { WalletPaymentOption } from "../api/walletTypes.js";
+import { tron } from "../../common/chain.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { formatUserError } from "../hooks/formatUserError.js";
@@ -37,12 +37,13 @@ import {
   ContactSupportButton,
   ErrorMessage as SharedErrorMessage,
 } from "./shared.js";
-import { useWalletFlow, isUserRejection } from "./useWalletFlow.js";
+import { useWalletFlow, isUserRejection } from "../hooks/useWalletFlow.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
 
 export type DaimoModalProps = DaimoModalEventHandlers & {
-  session: ModalSession | null;
+  sessionId: string;
+  clientSecret: string;
   defaultOpen?: boolean;
   connectedWalletOnly?: boolean;
   embedded?: boolean;
@@ -57,6 +58,7 @@ type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
 function useModalCloseHandler(
   sessionId: string,
+  clientSecret: string,
   getNodeCtx: () => NodeContext,
   isOpen: boolean,
   setIsOpen: (open: boolean) => void,
@@ -67,27 +69,37 @@ function useModalCloseHandler(
 
   useEffect(() => {
     if (!isOpen) return;
-    logNavEvent(sessionId, { ...getNodeCtx(), action: "nav_open" });
+    logNavEvent(sessionId, clientSecret, { ...getNodeCtx(), action: "nav_open" });
   }, [isOpen, sessionId, getNodeCtx]);
 
   const handleClose = useCallback(() => {
-    logNavEvent(sessionId, { ...getNodeCtx(), action: "nav_close" });
+    logNavEvent(sessionId, clientSecret, { ...getNodeCtx(), action: "nav_close" });
     setIsOpen(false);
     onClose?.();
-  }, [sessionId, getNodeCtx, setIsOpen, onClose]);
+  }, [sessionId, clientSecret, getNodeCtx, setIsOpen, onClose]);
 
   return { handleClose };
 }
 
 export function DaimoModal(props: DaimoModalProps) {
   const {
-    session,
+    sessionId,
+    clientSecret,
     embedded = false,
     animate = true,
     defaultOpen = true,
     maxHeight,
   } = props;
+  const client = useDaimoClient();
+  const [session, setSession] = useState<SessionWithNav | null>(null);
   const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    client.internal.sessions
+      .retrieveWithNav(sessionId)
+      .then(({ session: s }) => setSession({ ...s, clientSecret }))
+      .catch((err) => console.error("failed to fetch session:", err));
+  }, [sessionId, clientSecret]);
 
   if (!session) {
     if (!isOpen) return null;
@@ -114,6 +126,12 @@ const CONNECTED_WALLET_NAV: NavNode[] = [
   { type: "ConnectedWallet", id: "ConnectedWallet", title: "Connected Wallet" },
 ];
 
+type DaimoModalInnerProps = DaimoModalProps & {
+  session: SessionWithNav;
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+};
+
 function DaimoModalInner({
   session: initialSession,
   isOpen,
@@ -129,16 +147,38 @@ function DaimoModalInner({
   onPaymentCompleted,
   onOpen,
   onClose,
-}: DaimoModalProps & {
-  session: ModalSession;
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-}) {
+}: DaimoModalInnerProps) {
+  const client = useDaimoClient();
+
   const effectiveInitial = connectedWalletOnly
     ? { ...initialSession, navTree: CONNECTED_WALLET_NAV }
     : initialSession;
 
   const { session, setSession } = useSessionPolling(effectiveInitial, isOpen);
+
+  // Create EVM payment method on load to get the deposit address
+  const [depositAddress, setDepositAddress] = useState<string | null>(
+    session.paymentMethod?.type === "evm"
+      ? (session.paymentMethod as { receiverAddress?: string }).receiverAddress ?? null
+      : null,
+  );
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (initRef.current || depositAddress) return;
+    initRef.current = true;
+    client.sessions.paymentMethods
+      .create(session.sessionId, {
+        clientSecret: session.clientSecret,
+        paymentMethod: { type: "evm" },
+      })
+      .then((result) => {
+        const pm = result.session.paymentMethod;
+        if (pm?.type === "evm") {
+          setDepositAddress((pm as { receiverAddress: string }).receiverAddress);
+        }
+      })
+      .catch((err) => console.error("failed to init evm payment method:", err));
+  }, [session.sessionId, session.clientSecret, depositAddress, client]);
 
   const nav = useSessionNav(session, setSession, platform);
 
@@ -147,8 +187,9 @@ function DaimoModalInner({
   );
   const walletFlow = useWalletFlow(
     session.sessionId,
-    session.receivers.evm.address,
+    depositAddress ?? "",
     hasConnectedWallet,
+    session.clientSecret,
   );
 
   const autoNavRef = useRef<string | null>(null);
@@ -223,6 +264,7 @@ function DaimoModalInner({
 
   const { handleClose } = useModalCloseHandler(
     session.sessionId,
+    session.clientSecret,
     nav.getNodeCtx,
     isOpen,
     setIsOpen,
@@ -239,7 +281,7 @@ function DaimoModalInner({
 
   const isTerminal =
     session.status === "expired" ||
-    session.status === "completed" ||
+    session.status === "succeeded" ||
     session.status === "bounced";
   const pageKey = isTerminal
     ? session.status
@@ -282,7 +324,7 @@ function DaimoModalInner({
   }
   if (
     session.status === "processing" ||
-    session.status === "completed" ||
+    session.status === "succeeded" ||
     session.status === "bounced"
   ) {
     return renderInContainer(
@@ -319,7 +361,7 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; navTree: NavNode[] };
+  session: { sessionId: string; clientSecret: string; navTree: NavNode[] };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -427,7 +469,7 @@ function renderWaitingDeposit(entry: NavEntry & { type: "waiting-deposit" }, ctx
   const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeDepositAddress | null;
   if (!node) return null;
   const selectedToken = node.tokenSuffix === "USDC" || node.tokenSuffix === "USDT" ? node.tokenSuffix : undefined;
-  return <WaitingDepositAddressPage node={node} amountUsd={entry.amountUsd} selectedToken={selectedToken} sessionId={ctx.session.sessionId} onBack={ctx.onBack} onRefresh={ctx.onRefresh} />;
+  return <WaitingDepositAddressPage node={node} amountUsd={entry.amountUsd} selectedToken={selectedToken} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRefresh} />;
 }
 
 function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: RenderContext): React.ReactNode {
@@ -437,7 +479,7 @@ function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: Rend
   return (
     <WaitingDepositAddressPage
       node={{ type: "DepositAddress", id: entry.nodeId, title: node.title, address: (entry.address as `0x${string}`) ?? ("" as `0x${string}`), chainId: tron.chainId, icon: node.icon, minimumUsd: node.minimumUsd, maximumUsd: node.maximumUsd, expiresAt: entry.expiresAt ?? 0, tokenSuffix: "USDT" }}
-      amountUsd={entry.amountUsd} selectedToken="USDT" loading={!entry.address} sessionId={ctx.session.sessionId} onBack={ctx.onBack} onRefresh={ctx.onRetry}
+      amountUsd={entry.amountUsd} selectedToken="USDT" loading={!entry.address} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRetry}
     />
   );
 }

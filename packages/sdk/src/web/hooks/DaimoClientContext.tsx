@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { createDaimoClient, type DaimoClient } from "../common/legacy/client.js";
+import { createDaimoClient, type DaimoClient } from "../../client/createDaimoClient.js";
 
 const DaimoClientContext = createContext<DaimoClient | null>(null);
 
@@ -11,7 +11,7 @@ export function DaimoSDKProvider({
   children: React.ReactNode;
 }) {
   const client = useMemo(
-    () => createDaimoClient(apiUrl ?? "https://pay-api.daimo.xyz"),
+    () => createDaimoClient({ baseUrl: apiUrl ?? "https://api.daimo.com" }),
     [apiUrl],
   );
   return (

@@ -168,3 +168,7 @@ export type Session = SessionPublicInfo & {
 export function isSessionTerminal(status: SessionStatus): boolean {
   return status === "succeeded" || status === "bounced" || status === "expired";
 }
+
+export function isSessionActive(status: SessionStatus): boolean {
+  return !isSessionTerminal(status);
+}

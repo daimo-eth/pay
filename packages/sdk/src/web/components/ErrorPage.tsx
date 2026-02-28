@@ -28,6 +28,7 @@ type ErrorPageProps = {
   supportInfo?: Record<string, string>;
   /** Session ID for event logging (optional) */
   sessionId?: string;
+  clientSecret?: string;
   /** Current node context for event logging (optional) */
   nodeId?: string | null;
   nodeType?: NavNodeType | null;
@@ -48,6 +49,7 @@ export function ErrorPage({
   supportSubject = t.error,
   supportInfo = {},
   sessionId,
+  clientSecret = "",
   nodeId = null,
   nodeType = null,
   hideRetry = false,
@@ -60,7 +62,7 @@ export function ErrorPage({
   useEffect(() => {
     console.error("[ErrorPage]", message);
     if (sessionId == null) return;
-    logNavEvent(sessionId, {
+    logNavEvent(sessionId, clientSecret, {
       nodeId,
       nodeType,
       action: "error_shown",

@@ -1,5 +1,4 @@
 import { Address, getAddress, zeroAddress } from "viem";
-import { assertNotNull } from "./legacy/assert.js";
 import {
   arbitrum,
   base,
@@ -861,18 +860,17 @@ export function isNativeToken(chainId: number, token: Address): boolean {
 }
 
 export function getChainNativeToken(chainId: number): Token {
-  return assertNotNull(
-    tokensByChainAndType.get(chainId)?.[TokenType.NATIVE],
-    () => `missing native token for chainId ${chainId}`,
-  );
+  const token = tokensByChainAndType.get(chainId)?.[TokenType.NATIVE];
+  if (!token) throw new Error(`missing native token for chainId ${chainId}`);
+  return token;
 }
 
 export function getChainWrappedNativeToken(chainId: number): Token {
-  return assertNotNull(
-    tokensByChainAndType.get(chainId)?.[TokenType.WRAPPED_NATIVE],
-    () => `missing wrapped native token for chainId ${chainId}`,
-  );
+  const token = tokensByChainAndType.get(chainId)?.[TokenType.WRAPPED_NATIVE];
+  if (!token) throw new Error(`missing wrapped native token for chainId ${chainId}`);
+  return token;
 }
+
 
 export function getChainNativeUSDC(chainId: number): Token | undefined {
   return tokensByChainAndType.get(chainId)?.[TokenType.NATIVE_USDC];

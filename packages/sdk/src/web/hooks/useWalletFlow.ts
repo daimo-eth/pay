@@ -1,14 +1,13 @@
-import { getChainName, solana } from "../common/chain.js";
-import { assert } from "../common/legacy/assert.js";
-import type { SolanaPublicKey } from "../common/legacy/primitiveTypes.js";
-import type { WalletPaymentOption } from "../common/legacy/session.js";
-import { isNativeToken } from "../common/token.js";
+import { getChainName, solana } from "../../common/chain.js";
+import type { WalletPaymentOption } from "../api/walletTypes.js";
+import { isNativeToken } from "../../common/token.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Address, encodeFunctionData, getAddress, hexToBytes } from "viem";
 
-import { useDaimoClient } from "../hooks/DaimoClientContext.js";
-import { t } from "../hooks/locale.js";
+import type { DaimoClient } from "../../client/createDaimoClient.js";
+import { useDaimoClient } from "./DaimoClientContext.js";
+import { t } from "./locale.js";
 import {
   EthereumProvider,
   getEthereumProvider,
@@ -29,7 +28,7 @@ const erc20TransferAbi = [
 
 export type WalletData = {
   evmAddress: Address | null;
-  solAddress: SolanaPublicKey | null;
+  solAddress: string | null;
 };
 
 type BalanceCache = {
@@ -40,8 +39,8 @@ type BalanceCache = {
 
 let balanceCache: BalanceCache | null = null;
 
-function makeCacheKey(wallet: WalletData): string {
-  const parts: string[] = [];
+function makeCacheKey(sessionId: string, wallet: WalletData): string {
+  const parts: string[] = [sessionId];
   if (wallet.evmAddress) parts.push(`evm:${wallet.evmAddress}`);
   if (wallet.solAddress) parts.push(`sol:${wallet.solAddress}`);
   return parts.join("|");
@@ -65,6 +64,7 @@ export function useWalletFlow(
   sessionId: string,
   destAddr: string,
   autoConnect: boolean,
+  clientSecret?: string,
 ): WalletFlowResult {
   const client = useDaimoClient();
 
@@ -82,21 +82,26 @@ export function useWalletFlow(
   const fetchBalances = useCallback(
     async (walletData: WalletData, showLoading: boolean) => {
       if (!walletData.evmAddress && !walletData.solAddress) return;
+      if (!clientSecret) return;
 
-      const cacheKey = makeCacheKey(walletData);
+      const cacheKey = makeCacheKey(sessionId, walletData);
 
       if (balanceCache?.key === cacheKey) {
         setBalances(balanceCache.balances);
         if (Date.now() - balanceCache.fetchedAt > 30000) {
-          client
-            .getWalletPaymentOptions({
-              sessionId,
+          client.internal.sessions
+            .walletOptions(sessionId, {
+              clientSecret,
               evmAddress: walletData.evmAddress ?? undefined,
               solanaAddress: walletData.solAddress ?? undefined,
             })
             .then((result) => {
               if (balanceCache == null || balanceCache.key === cacheKey) {
-                balanceCache = { key: cacheKey, balances: result, fetchedAt: Date.now() };
+                balanceCache = {
+                  key: cacheKey,
+                  balances: result,
+                  fetchedAt: Date.now(),
+                };
               }
               setBalances(result);
             })
@@ -111,13 +116,17 @@ export function useWalletFlow(
 
       try {
         currentFetchRef.current = cacheKey;
-        const result = await client.getWalletPaymentOptions({
-          sessionId,
+        const result = await client.internal.sessions.walletOptions(sessionId, {
+          clientSecret,
           evmAddress: walletData.evmAddress ?? undefined,
           solanaAddress: walletData.solAddress ?? undefined,
         });
         if (balanceCache == null || balanceCache.key === cacheKey) {
-          balanceCache = { key: cacheKey, balances: result, fetchedAt: Date.now() };
+          balanceCache = {
+            key: cacheKey,
+            balances: result,
+            fetchedAt: Date.now(),
+          };
         }
         if (currentFetchRef.current === cacheKey) setBalances(result);
       } catch (err) {
@@ -126,7 +135,7 @@ export function useWalletFlow(
         if (currentFetchRef.current === cacheKey) setIsLoadingBalances(false);
       }
     },
-    [sessionId, client],
+    [sessionId, clientSecret, client],
   );
 
   const connect = useCallback(async () => {
@@ -162,7 +171,7 @@ export function useWalletFlow(
 
     const params = new URLSearchParams(window.location.search);
     const testEvmWallet = params.get("testWallet");
-    const testSolWallet = params.get("testSolana") as SolanaPublicKey | null;
+    const testSolWallet = params.get("testSolana");
 
     if (testEvmWallet || testSolWallet) {
       const evmAddress = testEvmWallet ? getAddress(testEvmWallet) : null;
@@ -222,9 +231,7 @@ export function useWalletFlow(
 
     const handleAccountChanged = (publicKey: unknown) => {
       const newSolAddress = publicKey
-        ? ((
-            publicKey as { toBase58: () => string }
-          ).toBase58() as SolanaPublicKey)
+        ? (publicKey as { toBase58: () => string }).toBase58()
         : null;
 
       setWallet((prev) => {
@@ -253,6 +260,7 @@ export function useWalletFlow(
       amountUsd: number,
     ): Promise<{ txHash: string }> => {
       if (!wallet) throw new Error(t.walletUnavailable);
+      if (!clientSecret) throw new Error("missing client secret");
 
       const tokenInfo = token.balance.token;
       if (tokenInfo.chainId === solana.chainId) {
@@ -260,6 +268,7 @@ export function useWalletFlow(
           client,
           wallet,
           sessionId,
+          clientSecret,
           tokenInfo.token,
           amountUsd,
         );
@@ -274,7 +283,7 @@ export function useWalletFlow(
       );
       return { txHash };
     },
-    [wallet, sessionId, destAddr, client],
+    [wallet, sessionId, destAddr, clientSecret, client],
   );
 
   return {
@@ -306,13 +315,13 @@ async function connectEvm(): Promise<Address | null> {
   }
 }
 
-async function connectSolana(): Promise<SolanaPublicKey | null> {
+async function connectSolana(): Promise<string | null> {
   const solanaProvider = getSolanaProvider();
   if (!solanaProvider) return null;
   try {
     const pk =
       solanaProvider.publicKey ?? (await solanaProvider.connect()).publicKey;
-    return pk.toBase58() as SolanaPublicKey;
+    return pk.toBase58();
   } catch (err) {
     console.warn("failed to connect Solana wallet:", err);
     return null;
@@ -351,7 +360,7 @@ async function sendEvmTransaction(
 
   const tokenBalance = BigInt(token.balance.amount);
   const balanceUsd = token.balance.usd;
-  assert(balanceUsd > 0, "balance must be positive");
+  if (balanceUsd <= 0) throw new Error("balance must be positive");
   const rawTokenAmount =
     (tokenBalance * BigInt(Math.floor(amountUsd * 1e6))) /
     BigInt(Math.floor(balanceUsd * 1e6));
@@ -386,9 +395,10 @@ async function sendEvmTransaction(
 }
 
 async function sendSolanaTransaction(
-  client: import("../common/legacy/client.js").DaimoClient,
+  client: DaimoClient,
   wallet: WalletData,
   sessionId: string,
+  clientSecret: string,
   inputTokenMint: string,
   amountUsd: number,
 ): Promise<string> {
@@ -396,25 +406,31 @@ async function sendSolanaTransaction(
   if (!solanaWallet) throw new Error(t.walletUnavailable);
   if (!wallet.solAddress) throw new Error(t.walletDisconnected);
 
-  const { tx: serializedTx, fulfillmentId } =
-    await client.prepareSolanaBurnTx({
-      sessionId,
-      userPublicKey: wallet.solAddress,
+  const result = await client.sessions.paymentMethods.create(sessionId, {
+    clientSecret,
+    paymentMethod: {
+      type: "solana",
+      walletAddress: wallet.solAddress,
       inputTokenMint,
       amountUsd,
-    });
-
-  const tx = VersionedTransaction.deserialize(hexToBytes(serializedTx as `0x${string}`));
-  const result = await solanaWallet.signAndSendTransaction(tx);
-
-  await client.processSolanaPayment({
-    sessionId,
-    fulfillmentId,
-    startTxHash: result.signature,
-    sourceToken: inputTokenMint,
+    },
   });
 
-  return result.signature;
+  if (!result.solana?.serializedTx) {
+    throw new Error("solana transaction not returned");
+  }
+
+  const tx = VersionedTransaction.deserialize(
+    hexToBytes(result.solana.serializedTx as `0x${string}`),
+  );
+  const txResult = await solanaWallet.signAndSendTransaction(tx);
+
+  await client.sessions.check(sessionId, {
+    clientSecret,
+    txHash: txResult.signature,
+  });
+
+  return txResult.signature;
 }
 
 /** Check if error is a user rejection/cancellation */

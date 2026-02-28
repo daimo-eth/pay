@@ -1,4 +1,4 @@
-import { DaimoPayToken, WalletPaymentOption } from "../common/legacy/session.js";
+import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { useCallback, useEffect, useState } from "react";
 import { formatUnits } from "viem";
 

@@ -1,8 +1,6 @@
-import {
-  DaimoPayToken,
-  NavNodeDepositAddress,
-} from "../common/legacy/session.js";
-import { TokenLogo } from "../common/token.js";
+import type { NavNodeDepositAddress } from "../api/navTree.js";
+import type { DaimoPayToken } from "../api/walletTypes.js";
+import { TokenLogo } from "../../common/token.js";
 
 import { PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";

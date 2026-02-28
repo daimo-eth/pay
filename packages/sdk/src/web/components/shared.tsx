@@ -16,8 +16,8 @@ import {
   supportedChains,
   tron,
   worldchain,
-} from "../common/chain.js";
-import { DaimoPayToken } from "../common/legacy/session.js";
+} from "../../common/chain.js";
+import type { DaimoPayToken } from "../api/walletTypes.js";
 import { ReactNode, useCallback, useState } from "react";
 
 import { BackArrowIcon, CopyIcon } from "./icons.js";
@@ -148,7 +148,7 @@ export function AmountInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
-          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none caret-[var(--daimo-text-muted)]"
+          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none ring-0 shadow-none caret-[var(--daimo-text-muted)] focus:outline-none"
           style={{
             width: inputWidth,
             minWidth: "1ch",

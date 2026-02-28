@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { ModalSession } from "./types.js";
+import type { SessionWithNav } from "../api/navTree.js";
 
 type PaymentCallbacks = {
   onOpen?: () => void;
@@ -15,15 +15,15 @@ type PaymentCallbacks = {
  * - onPaymentCompleted: when session completes
  */
 export function usePaymentCallbacks(
-  session: ModalSession,
+  session: SessionWithNav,
   isOpen: boolean,
   callbacks: PaymentCallbacks,
 ) {
   const isStarted =
     session.status === "processing" ||
-    session.status === "completed" ||
+    session.status === "succeeded" ||
     session.status === "bounced";
-  const isCompleted = session.status === "completed";
+  const isCompleted = session.status === "succeeded";
 
   const { onOpen, onPaymentStarted, onPaymentCompleted } = callbacks;
 

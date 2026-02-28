@@ -1,5 +1,5 @@
-import { DaimoPayToken, WalletPaymentOption } from "../common/legacy/session.js";
-import { getChainName } from "../common/chain.js";
+import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
+import { getChainName } from "../../common/chain.js";
 
 import { t } from "../hooks/locale.js";
 import { PageHeader, TokenIconWithChainBadge } from "./shared.js";

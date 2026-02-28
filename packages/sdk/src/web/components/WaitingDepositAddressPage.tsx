@@ -1,6 +1,6 @@
-import { NavNodeDepositAddress } from "../common/legacy/session.js";
-import { TokenLogo } from "../common/token.js";
-import { tron } from "../common/chain.js";
+import type { NavNodeDepositAddress } from "../api/navTree.js";
+import { TokenLogo } from "../../common/token.js";
+import { tron } from "../../common/chain.js";
 import { useEffect, useMemo, useState } from "react";
 import { getAddress } from "viem";
 
@@ -31,6 +31,7 @@ type WaitingDepositAddressPageProps = {
   amountUsd: number;
   selectedToken?: DepositToken;
   sessionId: string;
+  clientSecret?: string;
   loading?: boolean;
   onBack: () => void;
   onRefresh: () => void;
@@ -41,6 +42,7 @@ export function WaitingDepositAddressPage({
   amountUsd,
   selectedToken,
   sessionId,
+  clientSecret = "",
   loading = false,
   onBack,
   onRefresh,
@@ -64,13 +66,13 @@ export function WaitingDepositAddressPage({
   const handleQRToggle = () => {
     if (!hasAddress) return;
     setShowQR((v) => {
-      logNavEvent(sessionId, { ...nodeCtx, action: "qr_toggle", visible: !v });
+      logNavEvent(sessionId, clientSecret, { ...nodeCtx, action: "qr_toggle", visible: !v });
       return !v;
     });
   };
 
   const handleCopyAddress = (value: string) => {
-    logNavEvent(sessionId, {
+    logNavEvent(sessionId, clientSecret, {
       ...nodeCtx,
       action: "copy_address",
       address: value,

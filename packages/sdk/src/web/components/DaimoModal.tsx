@@ -9,11 +9,12 @@ import type {
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 import { tron } from "../../common/chain.js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { isSessionTerminal } from "../../common/session.js";
+import { useCallback, useEffect, useState } from "react";
 
-import { formatUserError } from "../hooks/formatUserError.js";
 import { t } from "../hooks/locale.js";
 import { createNavLogger, type NavNodeType } from "../hooks/navEvent.js";
+import { useDepositAddress } from "../hooks/useDepositAddress.js";
 import { usePaymentCallbacks } from "../hooks/usePaymentCallbacks.js";
 import { useSessionNav } from "../hooks/useSessionNav.js";
 import { useSessionPolling } from "../hooks/useSessionPolling.js";
@@ -44,7 +45,7 @@ import {
   useInjectedWallets,
   type InjectedWallet,
 } from "../hooks/useInjectedWallets.js";
-import { useWalletFlow, isUserRejection } from "../hooks/useWalletFlow.js";
+import { useWalletFlow } from "../hooks/useWalletFlow.js";
 import type { EthereumProvider } from "../hooks/walletProvider.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
@@ -156,37 +157,13 @@ function DaimoModalInner({
   onOpen,
   onClose,
 }: DaimoModalInnerProps) {
-  const client = useDaimoClient();
-
   const effectiveInitial = connectedWalletOnly
     ? { ...initialSession, navTree: CONNECTED_WALLET_NAV }
     : initialSession;
 
   const { session, setSession } = useSessionPolling(effectiveInitial, isOpen);
 
-  // Create EVM payment method on load to get the deposit address
-  const [depositAddress, setDepositAddress] = useState<string | null>(
-    session.paymentMethod?.type === "evm"
-      ? (session.paymentMethod as { receiverAddress?: string }).receiverAddress ?? null
-      : null,
-  );
-  const initRef = useRef(false);
-  useEffect(() => {
-    if (initRef.current || depositAddress) return;
-    initRef.current = true;
-    client.sessions.paymentMethods
-      .create(session.sessionId, {
-        clientSecret: session.clientSecret,
-        paymentMethod: { type: "evm" },
-      })
-      .then((result) => {
-        const pm = result.session.paymentMethod;
-        if (pm?.type === "evm") {
-          setDepositAddress((pm as { receiverAddress: string }).receiverAddress);
-        }
-      })
-      .catch((err) => console.error("failed to init evm payment method:", err));
-  }, [session.sessionId, session.clientSecret, depositAddress, client]);
+  const depositAddress = useDepositAddress(session);
 
   const hasConnectedWallet = session.navTree.some(
     (n) => n.type === "ConnectedWallet",
@@ -198,79 +175,9 @@ function DaimoModalInner({
     session.clientSecret,
   );
 
-  const nav = useSessionNav(session, setSession, platform, walletFlow);
+  const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);
 
   const injectedWallets = useInjectedWallets();
-
-  const autoNavRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (
-      nav.topEntry &&
-      nav.topEntry.type !== "choose-option" &&
-      nav.topEntry.type !== "deeplink"
-    ) {
-      return;
-    }
-
-    const currentNodeId = nav.topEntry?.nodeId;
-    let node: NavNode | null = currentNodeId
-      ? findNode(currentNodeId, session.navTree)
-      : (session.navTree[0] ?? null);
-
-    let targetId: string | null = null;
-    while (node?.type === "ChooseOption") {
-      const chooseNode = node as NavNodeChooseOption;
-      if (chooseNode.options?.length !== 1) break;
-      targetId = chooseNode.options[0].id;
-      node = findNode(targetId, session.navTree);
-    }
-
-    if (!targetId && node && node.type !== "ChooseOption") {
-      targetId = node.id;
-    }
-
-    if (targetId && autoNavRef.current !== targetId) {
-      autoNavRef.current = targetId;
-      nav.handleNavigate(targetId, { autoNav: true });
-    }
-  }, [isOpen, nav, session.navTree]);
-
-  useEffect(() => {
-    if (nav.topEntry?.type !== "wallet-connect") return;
-    if (walletFlow.isConnecting || !walletFlow.wallet) return;
-    nav.handleWalletConnected();
-  }, [nav.topEntry, walletFlow.wallet, walletFlow.isConnecting, nav]);
-
-  const sendingRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (nav.topEntry?.type !== "wallet-sending") return;
-    if (nav.topEntry.txHash || nav.topEntry.error) return;
-
-    const sendKey = `${nav.topEntry.nodeId}-${nav.topEntry.amountUsd}`;
-    if (sendingRef.current === sendKey) return;
-    sendingRef.current = sendKey;
-
-    const { token, amountUsd } = nav.topEntry;
-    walletFlow
-      .sendTransaction(token, amountUsd)
-      .then(({ txHash }) => {
-        nav.handleWalletTxResult(txHash);
-        sendingRef.current = null;
-      })
-      .catch((err) => {
-        sendingRef.current = null;
-        if (isUserRejection(err)) {
-          nav.handleBack();
-          return;
-        }
-        nav.handleWalletTxResult(
-          undefined,
-          formatUserError(err, t.transactionFailed),
-        );
-      });
-  }, [nav, walletFlow]);
 
   const { handleClose } = useModalCloseHandler(
     session.sessionId,
@@ -289,10 +196,7 @@ function DaimoModalInner({
 
   if (!isOpen) return null;
 
-  const isTerminal =
-    session.status === "expired" ||
-    session.status === "succeeded" ||
-    session.status === "bounced";
+  const isTerminal = isSessionTerminal(session.status);
   const pageKey = isTerminal
     ? session.status
     : `${nav.topEntry?.type ?? "root"}-${nav.topEntry?.nodeId ?? ""}`;

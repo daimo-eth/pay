@@ -1,14 +1,19 @@
-import type { NavNodeChooseOption, NavNodeExchange } from "../api/navTree.js";
-import type { SessionWithNav } from "../api/navTree.js";
+import type {
+  NavNode,
+  NavNodeChooseOption,
+  NavNodeExchange,
+  SessionWithNav,
+} from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
+import { formatUserError } from "./formatUserError.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
+import { isUserRejection, type WalletFlowResult } from "./useWalletFlow.js";
 import type { EthereumProvider } from "./walletProvider.js";
-import type { WalletFlowResult } from "./useWalletFlow.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
@@ -25,15 +30,14 @@ type SessionNavResult = {
   handleRefresh: () => Promise<void>;
 
   handleInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
-  handleWalletConnected: () => void;
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
-  handleWalletTxResult: (txHash?: string, error?: string) => void;
 };
 
 export function useSessionNav(
   session: SessionWithNav,
   setSession: React.Dispatch<React.SetStateAction<SessionWithNav>>,
+  isOpen: boolean,
   platform?: "ios" | "android" | "other",
   walletFlow?: WalletFlowResult,
 ): SessionNavResult {
@@ -439,55 +443,7 @@ export function useSessionNav(
     [walletFlow],
   );
 
-  const handleWalletConnected = useCallback(() => {
-    if (topEntry?.type !== "wallet-connect") return;
-    setStack((prev) => [
-      ...prev,
-      { type: "wallet-select-token", nodeId: topEntry.nodeId },
-    ]);
-  }, [topEntry]);
-
-  const handleWalletSelectToken = useCallback(
-    (token: WalletPaymentOption) => {
-      if (topEntry?.type !== "wallet-select-token") return;
-      const { amountUnits } = session.destination;
-      const requiredUsd = amountUnits ? parseFloat(amountUnits) : 0;
-      if (requiredUsd > 0) {
-        setStack((prev) => [
-          ...prev,
-          {
-            type: "wallet-sending",
-            nodeId: topEntry.nodeId,
-            token,
-            amountUsd: requiredUsd,
-          },
-        ]);
-      } else {
-        setStack((prev) => [
-          ...prev,
-          { type: "wallet-select-amount", nodeId: topEntry.nodeId, token },
-        ]);
-      }
-    },
-    [topEntry, session.destination],
-  );
-
-  const handleWalletSending = useCallback(
-    (token: WalletPaymentOption, amountUsd: number) => {
-      if (
-        topEntry?.type !== "wallet-select-amount" &&
-        topEntry?.type !== "wallet-select-token"
-      )
-        return;
-      setStack((prev) => [
-        ...prev,
-        { type: "wallet-sending", nodeId: topEntry.nodeId, token, amountUsd },
-      ]);
-    },
-    [topEntry],
-  );
-
-  const handleWalletTxResult = useCallback(
+  const updateWalletTxResult = useCallback(
     (txHash?: string, error?: string) => {
       setStack((prev) => {
         const top = prev[prev.length - 1];
@@ -497,6 +453,109 @@ export function useSessionNav(
     },
     [],
   );
+
+  const fireWalletSend = useCallback(
+    (nodeId: string, token: WalletPaymentOption, amountUsd: number) => {
+      setStack((prev) => [
+        ...prev,
+        { type: "wallet-sending", nodeId, token, amountUsd },
+      ]);
+
+      walletFlow
+        ?.sendTransaction(token, amountUsd)
+        .then(({ txHash }) => {
+          updateWalletTxResult(txHash);
+        })
+        .catch((err) => {
+          if (isUserRejection(err)) {
+            handleBack();
+            return;
+          }
+          updateWalletTxResult(
+            undefined,
+            formatUserError(err, t.transactionFailed),
+          );
+        });
+    },
+    [walletFlow, handleBack, updateWalletTxResult],
+  );
+
+  const handleWalletSelectToken = useCallback(
+    (token: WalletPaymentOption) => {
+      if (topEntry?.type !== "wallet-select-token") return;
+      const { amountUnits } = session.destination;
+      const requiredUsd = amountUnits ? parseFloat(amountUnits) : 0;
+      if (requiredUsd > 0) {
+        fireWalletSend(topEntry.nodeId, token, requiredUsd);
+      } else {
+        setStack((prev) => [
+          ...prev,
+          { type: "wallet-select-amount", nodeId: topEntry.nodeId, token },
+        ]);
+      }
+    },
+    [topEntry, session.destination, fireWalletSend],
+  );
+
+  const handleWalletSending = useCallback(
+    (token: WalletPaymentOption, amountUsd: number) => {
+      if (
+        topEntry?.type !== "wallet-select-amount" &&
+        topEntry?.type !== "wallet-select-token"
+      )
+        return;
+      fireWalletSend(topEntry.nodeId, token, amountUsd);
+    },
+    [topEntry, fireWalletSend],
+  );
+
+  // ─── Internal effects ──────────────────────────────────────────────────
+
+  // Auto-navigate through single-option ChooseOption chains
+  const autoNavRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (
+      topEntry &&
+      topEntry.type !== "choose-option" &&
+      topEntry.type !== "deeplink"
+    ) {
+      return;
+    }
+
+    const currentNodeId = topEntry?.nodeId;
+    let node: NavNode | null = currentNodeId
+      ? findNode(currentNodeId, session.navTree)
+      : (session.navTree[0] ?? null);
+
+    let targetId: string | null = null;
+    while (node?.type === "ChooseOption") {
+      const chooseNode = node as NavNodeChooseOption;
+      if (chooseNode.options?.length !== 1) break;
+      targetId = chooseNode.options[0].id;
+      node = findNode(targetId, session.navTree);
+    }
+
+    if (!targetId && node && node.type !== "ChooseOption") {
+      targetId = node.id;
+    }
+
+    if (targetId && autoNavRef.current !== targetId) {
+      autoNavRef.current = targetId;
+      handleNavigate(targetId, { autoNav: true });
+    }
+  }, [isOpen, topEntry, session.navTree, handleNavigate]);
+
+  // Auto-advance from wallet-connect to wallet-select-token when connected
+  useEffect(() => {
+    if (topEntry?.type !== "wallet-connect") return;
+    if (walletFlow?.isConnecting || !walletFlow?.wallet) return;
+    setStack((prev) => [
+      ...prev,
+      { type: "wallet-select-token", nodeId: topEntry.nodeId },
+    ]);
+  }, [topEntry, walletFlow?.wallet, walletFlow?.isConnecting]);
 
   return useMemo(
     () => ({
@@ -510,10 +569,8 @@ export function useSessionNav(
       handleRetry,
       handleRefresh,
       handleInjectedWalletSelect,
-      handleWalletConnected,
       handleWalletSelectToken,
       handleWalletSending,
-      handleWalletTxResult,
     }),
     [
       stack,
@@ -526,10 +583,8 @@ export function useSessionNav(
       handleRetry,
       handleRefresh,
       handleInjectedWalletSelect,
-      handleWalletConnected,
       handleWalletSelectToken,
       handleWalletSending,
-      handleWalletTxResult,
     ],
   );
 }

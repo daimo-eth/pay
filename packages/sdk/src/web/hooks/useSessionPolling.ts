@@ -1,4 +1,4 @@
-import { isSessionActive } from "../../common/session.js";
+import { isSessionActive, isSessionTerminal } from "../../common/session.js";
 import { useEffect, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
@@ -6,6 +6,12 @@ import { createNavLogger } from "./navEvent.js";
 import type { SessionWithNav } from "../api/navTree.js";
 
 const POLL_INTERVAL_MS = 3000;
+
+const terminalAction = {
+  expired: "session_expired",
+  succeeded: "session_completed",
+  bounced: "session_bounced",
+} as const;
 
 /**
  * Polls session status from the server while modal is open until terminal.
@@ -21,23 +27,14 @@ export function useSessionPolling(
   const [session, setSession] = useState(initialSession);
 
   useEffect(() => {
-    if (session.status === "expired") {
+    if (!isSessionTerminal(session.status)) return;
+    const action =
+      terminalAction[session.status as keyof typeof terminalAction];
+    if (action) {
       logNavEvent(session.sessionId, session.clientSecret, {
         nodeId: null,
         nodeType: null,
-        action: "session_expired",
-      });
-    } else if (session.status === "succeeded") {
-      logNavEvent(session.sessionId, session.clientSecret, {
-        nodeId: null,
-        nodeType: null,
-        action: "session_completed",
-      });
-    } else if (session.status === "bounced") {
-      logNavEvent(session.sessionId, session.clientSecret, {
-        nodeId: null,
-        nodeType: null,
-        action: "session_bounced",
+        action,
       });
     }
   }, [session.status, session.sessionId]);

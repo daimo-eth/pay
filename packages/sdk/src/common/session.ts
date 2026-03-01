@@ -172,3 +172,10 @@ export function isSessionTerminal(status: SessionStatus): boolean {
 export function isSessionActive(status: SessionStatus): boolean {
   return !isSessionTerminal(status);
 }
+
+/** Payment has been initiated (processing, succeeded, or bounced). */
+export function isSessionStarted(status: SessionStatus): boolean {
+  return (
+    status === "processing" || status === "succeeded" || status === "bounced"
+  );
+}

@@ -1,3 +1,4 @@
+import { isSessionStarted } from "../../common/session.js";
 import { useEffect } from "react";
 
 import type { SessionWithNav } from "../api/navTree.js";
@@ -19,10 +20,7 @@ export function usePaymentCallbacks(
   isOpen: boolean,
   callbacks: PaymentCallbacks,
 ) {
-  const isStarted =
-    session.status === "processing" ||
-    session.status === "succeeded" ||
-    session.status === "bounced";
+  const isStarted = isSessionStarted(session.status);
   const isCompleted = session.status === "succeeded";
 
   const { onOpen, onPaymentStarted, onPaymentCompleted } = callbacks;

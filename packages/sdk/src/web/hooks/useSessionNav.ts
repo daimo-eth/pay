@@ -12,8 +12,8 @@ import { formatUserError } from "./formatUserError.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
+import type { InjectedWallet } from "./useInjectedWallets.js";
 import { isUserRejection, type WalletFlowResult } from "./useWalletFlow.js";
-import type { EthereumProvider } from "./walletProvider.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 
@@ -29,7 +29,8 @@ type SessionNavResult = {
   handleRetry: () => void;
   handleRefresh: () => Promise<void>;
 
-  handleInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
+  handleInjectedWalletSelect: (wallet: InjectedWallet) => void;
+  handleChainSelect: (chain: "evm" | "solana") => void;
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
 };
@@ -432,13 +433,50 @@ export function useSessionNav(
 
   // ─── Wallet flow handlers ───────────────────────────────────────────────
 
+  const pendingWalletRef = useRef<InjectedWallet | null>(null);
+
   const handleInjectedWalletSelect = useCallback(
-    (provider: EthereumProvider, walletName: string, walletIcon: string) => {
+    (wallet: InjectedWallet) => {
+      const { name: walletName, icon: walletIcon } = wallet.info;
+
+      if (wallet.evmProvider && wallet.solanaProvider) {
+        pendingWalletRef.current = wallet;
+        setStack((prev) => [
+          ...prev,
+          { type: "wallet-choose-chain", nodeId: "InjectedWallet", walletName, walletIcon },
+        ]);
+        return;
+      }
+
       setStack((prev) => [
         ...prev,
-        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon },
+        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon, autoNav: true },
       ]);
-      walletFlow?.connectWithProvider(provider);
+      if (wallet.solanaProvider) {
+        walletFlow?.connectWithSolanaProvider(wallet.solanaProvider);
+      } else if (wallet.evmProvider) {
+        walletFlow?.connectWithProvider(wallet.evmProvider);
+      }
+    },
+    [walletFlow],
+  );
+
+  const handleChainSelect = useCallback(
+    (chain: "evm" | "solana") => {
+      const wallet = pendingWalletRef.current;
+      if (!wallet) return;
+      const { name: walletName, icon: walletIcon } = wallet.info;
+
+      setStack((prev) => [
+        ...prev,
+        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon, autoNav: true },
+      ]);
+
+      if (chain === "solana" && wallet.solanaProvider) {
+        walletFlow?.connectWithSolanaProvider(wallet.solanaProvider);
+      } else if (wallet.evmProvider) {
+        walletFlow?.connectWithProvider(wallet.evmProvider);
+      }
     },
     [walletFlow],
   );
@@ -569,6 +607,7 @@ export function useSessionNav(
       handleRetry,
       handleRefresh,
       handleInjectedWalletSelect,
+      handleChainSelect,
       handleWalletSelectToken,
       handleWalletSending,
     }),
@@ -583,6 +622,7 @@ export function useSessionNav(
       handleRetry,
       handleRefresh,
       handleInjectedWalletSelect,
+      handleChainSelect,
       handleWalletSelectToken,
       handleWalletSending,
     ],

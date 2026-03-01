@@ -1,14 +1,12 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
-import type { EthereumProvider } from "../hooks/walletProvider.js";
 
-import { t } from "../hooks/locale.js";
 import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
 
 type ChooseWalletPageProps = {
   node: NavNodeChooseOption;
   injectedWallets: InjectedWallet[];
-  onInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
+  onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
 };
@@ -31,7 +29,7 @@ export function ChooseWalletPage({
             <InjectedWalletRow
               key={w.info.rdns}
               wallet={w}
-              onClick={() => onInjectedWalletSelect(w.provider, w.info.name, w.info.icon)}
+              onClick={() => onInjectedWalletSelect(w)}
             />
           ))}
 

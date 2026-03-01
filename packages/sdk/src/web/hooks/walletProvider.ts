@@ -41,3 +41,11 @@ export function getSolanaProvider(): SolanaProvider | null {
   const w = window as WindowWithWallets;
   return w.phantom?.solana ?? w.solana ?? null;
 }
+
+/** Get the Solana provider for a known multi-chain wallet by EIP-6963 rdns. */
+export function getSolanaProviderForRdns(rdns: string): SolanaProvider | null {
+  if (typeof window === "undefined") return null;
+  const w = window as WindowWithWallets;
+  if (rdns === "app.phantom") return w.phantom?.solana ?? null;
+  return null;
+}

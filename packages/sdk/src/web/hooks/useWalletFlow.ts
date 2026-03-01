@@ -10,6 +10,7 @@ import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
 import {
   EthereumProvider,
+  SolanaProvider,
   getEthereumProvider,
   getSolanaProvider,
 } from "./walletProvider.js";
@@ -55,6 +56,7 @@ export type WalletFlowResult = {
   connectError: string | null;
   connect: () => Promise<void>;
   connectWithProvider: (provider: EthereumProvider) => Promise<void>;
+  connectWithSolanaProvider: (provider: SolanaProvider) => Promise<void>;
   retryConnect: () => Promise<void>;
   sendTransaction: (
     token: WalletPaymentOption,
@@ -191,6 +193,31 @@ export function useWalletFlow(
         fetchBalances(walletData, true);
       } catch (err) {
         console.error("failed to connect wallet:", err);
+        setConnectError(
+          err instanceof Error ? err.message : t.walletUnavailable,
+        );
+        setIsConnecting(false);
+      }
+    },
+    [fetchBalances],
+  );
+
+  const connectWithSolanaProvider = useCallback(
+    async (provider: SolanaProvider) => {
+      setConnectError(null);
+      setIsConnecting(true);
+
+      try {
+        const pk =
+          provider.publicKey ?? (await provider.connect()).publicKey;
+        const solAddress = pk.toBase58();
+
+        const walletData: WalletData = { evmAddress: null, solAddress };
+        setWallet(walletData);
+        setIsConnecting(false);
+        fetchBalances(walletData, true);
+      } catch (err) {
+        console.error("failed to connect solana wallet:", err);
         setConnectError(
           err instanceof Error ? err.message : t.walletUnavailable,
         );
@@ -342,6 +369,7 @@ export function useWalletFlow(
     connectError,
     connect,
     connectWithProvider,
+    connectWithSolanaProvider,
     retryConnect,
     sendTransaction,
   };

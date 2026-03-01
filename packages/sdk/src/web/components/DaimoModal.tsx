@@ -27,6 +27,7 @@ import {
 
 import { PrimaryButton } from "./buttons.js";
 import { ChooseOptionPage } from "./ChooseOptionPage.js";
+import { ChooseChainPage } from "./ChooseChainPage.js";
 import { ChooseWalletPage } from "./ChooseWalletPage.js";
 import { ConfirmationPage } from "./ConfirmationPage.js";
 import { EmbeddedContainer, ModalContainer } from "./containers.js";
@@ -46,7 +47,6 @@ import {
   type InjectedWallet,
 } from "../hooks/useInjectedWallets.js";
 import { useWalletFlow } from "../hooks/useWalletFlow.js";
-import type { EthereumProvider } from "../hooks/walletProvider.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
 
@@ -261,6 +261,7 @@ function DaimoModalInner({
     onRefresh: nav.handleRefresh,
     injectedWallets,
     onInjectedWalletSelect: nav.handleInjectedWalletSelect,
+    onChainSelect: nav.handleChainSelect,
     walletFlow,
     onWalletSelectToken: nav.handleWalletSelectToken,
     onWalletSending: nav.handleWalletSending,
@@ -285,7 +286,8 @@ type RenderContext = {
   onRetry: () => void;
   onRefresh: () => Promise<void>;
   injectedWallets: InjectedWallet[];
-  onInjectedWalletSelect: (provider: EthereumProvider, walletName: string, walletIcon: string) => void;
+  onInjectedWalletSelect: (wallet: InjectedWallet) => void;
+  onChainSelect: (chain: "evm" | "solana") => void;
   walletFlow: {
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
     balances: WalletPaymentOption[] | null;
@@ -354,6 +356,15 @@ function renderEntry(
       return renderWaitingTron(entry, ctx);
     case "exchange-page":
       return renderExchangePage(entry, ctx);
+    case "wallet-choose-chain":
+      return (
+        <ChooseChainPage
+          walletName={entry.walletName}
+          walletIcon={entry.walletIcon}
+          onSelectChain={ctx.onChainSelect}
+          onBack={ctx.canGoBack ? ctx.onBack : null}
+        />
+      );
     case "wallet-connect":
       return renderWalletConnect(entry, ctx);
     case "wallet-select-token":
@@ -456,7 +467,7 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 }
 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
-  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} />;
+  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.onBack} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {

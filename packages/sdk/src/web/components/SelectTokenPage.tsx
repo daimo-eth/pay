@@ -12,6 +12,7 @@ type SelectTokenPageProps = {
   /** Number of skeleton rows to show while loading */
   skeletonCount?: number;
   onSelect: (option: WalletPaymentOption) => void;
+  onBack?: (() => void) | null;
 };
 
 /** Token selection page for wallet payment flow */
@@ -20,12 +21,13 @@ export function SelectTokenPage({
   isLoading = false,
   skeletonCount = 11,
   onSelect,
+  onBack,
 }: SelectTokenPageProps) {
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <PageHeader title={t.selectToken} />
+        <PageHeader title={t.selectToken} onBack={onBack} />
         <ScrollContent>
           {/* Bottom-up layout: items align to bottom when few, scroll normally when full. */}
           <div className="min-h-full flex flex-col justify-end gap-3">
@@ -47,7 +49,7 @@ export function SelectTokenPage({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={t.selectToken} />
+      <PageHeader title={t.selectToken} onBack={onBack} />
       <ScrollContent>
         {options.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">

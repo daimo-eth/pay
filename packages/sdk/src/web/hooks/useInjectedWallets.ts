@@ -1,17 +1,16 @@
 /**
- * EIP-6963: Multi Injected Provider Discovery.
+ * Multi-chain injected wallet discovery.
  *
- * Browser extension wallets (MetaMask, Rabby, Phantom, etc.) announce
- * themselves by firing `eip6963:announceProvider` events on `window`.
- * We dispatch `eip6963:requestProvider` to trigger announcements, then
- * collect each provider's metadata (name, icon, rdns, uuid) and its
- * EIP-1193 provider object.
+ * EVM: EIP-6963 announceProvider events on window.
+ * Solana: Known window globals (e.g. window.phantom.solana).
  *
- * See https://eips.ethereum.org/EIPS/eip-6963
+ * Wallets supporting both chains (e.g. Phantom) are deduplicated into a
+ * single entry with both evmProvider and solanaProvider set.
  */
 import { useEffect, useState } from "react";
 
-import type { EthereumProvider } from "./walletProvider.js";
+import type { EthereumProvider, SolanaProvider } from "./walletProvider.js";
+import { getSolanaProvider, getSolanaProviderForRdns } from "./walletProvider.js";
 
 export type InjectedWalletInfo = {
   name: string;
@@ -22,7 +21,8 @@ export type InjectedWalletInfo = {
 
 export type InjectedWallet = {
   info: InjectedWalletInfo;
-  provider: EthereumProvider;
+  evmProvider?: EthereumProvider;
+  solanaProvider?: SolanaProvider;
 };
 
 type EIP6963AnnounceEvent = Event & {
@@ -43,7 +43,15 @@ export function useInjectedWallets(): InjectedWallet[] {
       if (!detail?.info?.rdns) return;
       setWallets((prev) => {
         if (prev.some((w) => w.info.rdns === detail.info.rdns)) return prev;
-        return [...prev, { info: detail.info, provider: detail.provider }];
+        const solanaProvider = getSolanaProviderForRdns(detail.info.rdns) ?? undefined;
+        return [
+          ...prev,
+          {
+            info: detail.info,
+            evmProvider: detail.provider,
+            solanaProvider,
+          },
+        ];
       });
     };
 
@@ -54,6 +62,29 @@ export function useInjectedWallets(): InjectedWallet[] {
       window.removeEventListener("eip6963:announceProvider", handleAnnounce);
     };
   }, []);
+
+  // After EIP-6963 discovery, add standalone Solana wallets with no EVM match.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const solana = getSolanaProvider();
+    if (!solana) return;
+
+    setWallets((prev) => {
+      if (prev.some((w) => w.solanaProvider === solana)) return prev;
+      return [
+        ...prev,
+        {
+          info: {
+            name: "Solana Wallet",
+            icon: "",
+            rdns: "standalone.solana",
+            uuid: "standalone-solana",
+          },
+          solanaProvider: solana,
+        },
+      ];
+    });
+  }, [wallets.length]);
 
   return wallets;
 }

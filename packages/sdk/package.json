@@ -22,6 +22,7 @@
       "import": "./dist/web/api/index.js",
       "types": "./dist/web/api/index.d.ts"
     },
+    "./web/styles.css": "./dist/web/styles.css",
     "./web/theme.css": "./dist/web/theme.css"
   },
   "files": [
@@ -30,7 +31,7 @@
   ],
   "scripts": {
     "dev": "tsc --watch --preserveWatchOutput",
-    "build": "tsc && cp src/web/theme.css dist/web/theme.css",
+    "build": "tsc && cp src/web/theme.css dist/web/theme.css && npx tailwindcss -i src/web/styles.css -o dist/web/styles.css --minify",
     "test": "npm run lint",
     "lint": "eslint --max-warnings=0"
   },
@@ -60,6 +61,7 @@
     "@types/qrcode": "^1.4.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.12",
     "typescript": "5.9.2"
   }
 }

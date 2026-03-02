@@ -1,0 +1,15 @@
+/**
+ * Daimo Modal Styles
+ *
+ * Single import for consumers:
+ *   import "@daimo/sdk/web/styles.css";
+ *
+ * Includes compiled Tailwind utilities + theme variables + animations.
+ * Override --daimo-* CSS variables to customize appearance.
+ */
+
+/* Theme variables (light + dark) and custom component styles */
+@import "./theme.css";
+
+/* Compiled Tailwind utilities used by SDK components */
+@tailwind utilities;

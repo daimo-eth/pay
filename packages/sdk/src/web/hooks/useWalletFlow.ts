@@ -341,12 +341,12 @@ export function useWalletFlow(
       const tokenInfo = token.balance.token;
       if (tokenInfo.chainId === solana.chainId) {
         const txHash = await sendSolanaTransaction(
-          client,
           wallet,
           sessionId,
           clientSecret,
           tokenInfo.token,
           amountUsd,
+          client,
           solanaProviderRef.current,
         );
         return { txHash };
@@ -477,12 +477,12 @@ async function sendEvmTransaction(
 }
 
 async function sendSolanaTransaction(
-  client: DaimoClient,
   wallet: WalletData,
   sessionId: string,
   clientSecret: string,
   inputTokenMint: string,
   amountUsd: number,
+  client: DaimoClient,
   providerOverride?: SolanaProvider | null,
 ): Promise<string> {
   const solanaWallet = providerOverride ?? getSolanaProvider();
@@ -507,12 +507,6 @@ async function sendSolanaTransaction(
     hexToBytes(result.solana.serializedTx as `0x${string}`),
   );
   const txResult = await solanaWallet.signAndSendTransaction(tx);
-
-  await client.sessions.check(sessionId, {
-    clientSecret,
-    txHash: txResult.signature,
-  });
-
   return txResult.signature;
 }
 

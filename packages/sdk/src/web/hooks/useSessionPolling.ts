@@ -20,6 +20,7 @@ const terminalAction = {
 export function useSessionPolling(
   initialSession: SessionWithNav,
   isOpen: boolean,
+  txHash?: string,
 ) {
   const client = useDaimoClient();
   const logNavEvent = createNavLogger(client);
@@ -46,6 +47,7 @@ export function useSessionPolling(
       try {
         const result = await client.sessions.check(session.sessionId, {
           clientSecret: session.clientSecret,
+          txHash,
         });
         setSession((prev) => ({
           ...prev,
@@ -59,7 +61,7 @@ export function useSessionPolling(
 
     const interval = setInterval(poll, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [isOpen, session.sessionId, session.status, session.clientSecret, client]);
+  }, [isOpen, session.sessionId, session.status, session.clientSecret, client, txHash]);
 
   return { session, setSession };
 }

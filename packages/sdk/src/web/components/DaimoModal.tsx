@@ -106,13 +106,10 @@ export function DaimoModal(props: DaimoModalProps) {
   const [pageKey, setPageKey] = useState<string>();
   const [showFooterSpacer, setShowFooterSpacer] = useState(true);
 
-  const defaultClose = useCallback(() => {
+  const closeRef = useRef(() => {
     setIsOpen(false);
     onClose?.();
-  }, [onClose]);
-
-  const closeRef = useRef(defaultClose);
-  closeRef.current = defaultClose;
+  });
 
   useEffect(() => {
     client.internal.sessions
@@ -190,7 +187,8 @@ function DaimoModalInner({
     ? { ...initialSession, navTree: CONNECTED_WALLET_NAV }
     : initialSession;
 
-  const { session, setSession } = useSessionPolling(effectiveInitial, isOpen);
+  const [pendingTxHash, setPendingTxHash] = useState<string | undefined>();
+  const { session, setSession } = useSessionPolling(effectiveInitial, isOpen, pendingTxHash);
 
   const depositAddress = useDepositAddress(session);
 
@@ -205,6 +203,13 @@ function DaimoModalInner({
   );
 
   const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);
+
+  useEffect(() => {
+    const top = nav.topEntry;
+    if (top?.type === "wallet-sending" && top.txHash) {
+      setPendingTxHash(top.txHash);
+    }
+  }, [nav.topEntry]);
 
   const injectedWallets = useInjectedWallets();
 
@@ -224,8 +229,6 @@ function DaimoModalInner({
     onPaymentStarted,
     onPaymentCompleted,
   });
-
-  if (!isOpen) return null;
 
   const isTerminal = isSessionTerminal(session.status);
   const pageKey = isTerminal

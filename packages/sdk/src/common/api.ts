@@ -4,7 +4,9 @@ import type { TronAddress, UUID } from "./primitives.js";
 import { zAddress, zSolanaAddress } from "./primitives.js";
 import type { SessionPublicInfo } from "./session.js";
 
-export const zSessionId = z.string().regex(/^[0-9a-f]{32}$/);
+export const zSessionId = z
+  .string()
+  .describe("Session ID");
 
 export const zCreatePaymentMethodRequest = z.object({
   clientSecret: z.string(),

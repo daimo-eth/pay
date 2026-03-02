@@ -79,6 +79,7 @@ export function useWalletFlow(
   const [connectError, setConnectError] = useState<string | null>(null);
   const currentFetchRef = useRef<string | null>(null);
   const evmProviderRef = useRef<EthereumProvider | null>(null);
+  const solanaProviderRef = useRef<SolanaProvider | null>(null);
 
   const hasInjectedWallet =
     typeof window !== "undefined" &&
@@ -206,6 +207,7 @@ export function useWalletFlow(
     async (provider: SolanaProvider) => {
       setConnectError(null);
       setIsConnecting(true);
+      solanaProviderRef.current = provider;
 
       try {
         const pk =
@@ -228,13 +230,14 @@ export function useWalletFlow(
   );
 
   const retryConnect = useCallback(async () => {
-    const provider = evmProviderRef.current;
-    if (provider) {
-      await connectWithProvider(provider);
+    if (solanaProviderRef.current) {
+      await connectWithSolanaProvider(solanaProviderRef.current);
+    } else if (evmProviderRef.current) {
+      await connectWithProvider(evmProviderRef.current);
     } else {
       await connect();
     }
-  }, [connectWithProvider, connect]);
+  }, [connectWithSolanaProvider, connectWithProvider, connect]);
 
   const hasInitialized = useRef(false);
   useEffect(() => {
@@ -344,6 +347,7 @@ export function useWalletFlow(
           clientSecret,
           tokenInfo.token,
           amountUsd,
+          solanaProviderRef.current,
         );
         return { txHash };
       }
@@ -479,8 +483,9 @@ async function sendSolanaTransaction(
   clientSecret: string,
   inputTokenMint: string,
   amountUsd: number,
+  providerOverride?: SolanaProvider | null,
 ): Promise<string> {
-  const solanaWallet = getSolanaProvider();
+  const solanaWallet = providerOverride ?? getSolanaProvider();
   if (!solanaWallet) throw new Error(t.walletUnavailable);
   if (!wallet.solAddress) throw new Error(t.walletDisconnected);
 

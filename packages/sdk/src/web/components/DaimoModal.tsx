@@ -10,7 +10,7 @@ import type {
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 import { tron } from "../../common/chain.js";
 import { isSessionTerminal } from "../../common/session.js";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { t } from "../hooks/locale.js";
 import { createNavLogger, type NavNodeType } from "../hooks/navEvent.js";
@@ -98,10 +98,21 @@ export function DaimoModal(props: DaimoModalProps) {
     animate = true,
     defaultOpen = true,
     maxHeight,
+    onClose,
   } = props;
   const client = useDaimoClient();
   const [session, setSession] = useState<SessionWithNav | null>(null);
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [pageKey, setPageKey] = useState<string>();
+  const [showFooterSpacer, setShowFooterSpacer] = useState(true);
+
+  const defaultClose = useCallback(() => {
+    setIsOpen(false);
+    onClose?.();
+  }, [onClose]);
+
+  const closeRef = useRef(defaultClose);
+  closeRef.current = defaultClose;
 
   useEffect(() => {
     client.internal.sessions
@@ -110,24 +121,39 @@ export function DaimoModal(props: DaimoModalProps) {
       .catch((err) => console.error("failed to fetch session:", err));
   }, [sessionId, clientSecret]);
 
-  if (!session) {
-    if (!isOpen) return null;
-    const skeleton = <SkeletonContent />;
-    if (embedded) return <EmbeddedContainer>{skeleton}</EmbeddedContainer>;
-    return (
-      <ModalContainer animate={animate} maxHeight={maxHeight}>
-        {skeleton}
-      </ModalContainer>
-    );
-  }
+  if (!isOpen) return null;
 
-  return (
+  const content = session ? (
     <DaimoModalInner
       {...props}
       session={session}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      closeRef={closeRef}
+      setPageKey={setPageKey}
+      setShowFooterSpacer={setShowFooterSpacer}
     />
+  ) : (
+    <SkeletonContent />
+  );
+
+  if (embedded) {
+    return (
+      <EmbeddedContainer showFooterSpacer={showFooterSpacer}>
+        {content}
+      </EmbeddedContainer>
+    );
+  }
+  return (
+    <ModalContainer
+      animate={animate}
+      maxHeight={maxHeight}
+      onClose={() => closeRef.current()}
+      pageKey={pageKey}
+      showFooterSpacer={showFooterSpacer}
+    >
+      {content}
+    </ModalContainer>
   );
 }
 
@@ -139,16 +165,19 @@ type DaimoModalInnerProps = DaimoModalProps & {
   session: SessionWithNav;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  closeRef: { current: () => void };
+  setPageKey: (key: string | undefined) => void;
+  setShowFooterSpacer: (show: boolean) => void;
 };
 
 function DaimoModalInner({
   session: initialSession,
   isOpen,
   setIsOpen,
+  closeRef,
+  setPageKey,
+  setShowFooterSpacer,
   connectedWalletOnly = false,
-  embedded = false,
-  animate = true,
-  maxHeight,
   platform,
   returnUrl,
   returnLabel,
@@ -188,6 +217,8 @@ function DaimoModalInner({
     onClose,
   );
 
+  closeRef.current = handleClose;
+
   usePaymentCallbacks(session, isOpen, {
     onOpen,
     onPaymentStarted,
@@ -201,78 +232,57 @@ function DaimoModalInner({
     ? session.status
     : `${nav.topEntry?.type ?? "root"}-${nav.topEntry?.nodeId ?? ""}`;
 
-  const renderInContainer = (
-    content: React.ReactNode,
-    showFooterSpacer = true,
-  ) => {
-    const page = (
-      <div
-        key={pageKey}
-        className="daimo-page-enter flex-1 min-h-0 flex flex-col"
-      >
-        {content}
-      </div>
-    );
-    if (embedded) {
-      return (
-        <EmbeddedContainer showFooterSpacer={showFooterSpacer}>
-          {page}
-        </EmbeddedContainer>
-      );
-    }
-    return (
-      <ModalContainer
-        showFooterSpacer={showFooterSpacer}
-        onClose={handleClose}
-        animate={animate}
-        pageKey={pageKey}
-        maxHeight={maxHeight}
-      >
-        {page}
-      </ModalContainer>
-    );
-  };
+  let content: React.ReactNode;
+  let showFooterSpacer = true;
 
   if (session.status === "expired") {
-    return renderInContainer(<ExpiredPage sessionId={session.sessionId} onClose={handleClose} />);
-  }
-  if (
+    content = <ExpiredPage sessionId={session.sessionId} onClose={handleClose} />;
+  } else if (
     session.status === "processing" ||
     session.status === "succeeded" ||
     session.status === "bounced"
   ) {
-    return renderInContainer(
+    content = (
       <ConfirmationPage
         sessionId={session.sessionId}
         sessionState={session.status}
         returnUrl={returnUrl}
         returnLabel={returnLabel}
-      />,
+      />
     );
+  } else {
+    showFooterSpacer = !(
+      !nav.topEntry ||
+      (nav.topEntry.type === "choose-option" && !nav.canGoBack)
+    );
+    content = renderEntry(nav.topEntry, {
+      session,
+      canGoBack: nav.canGoBack,
+      onNavigate: nav.handleNavigate,
+      onBack: nav.handleBack,
+      onAmountContinue: nav.handleAmountContinue,
+      onRetry: nav.handleRetry,
+      onRefresh: nav.handleRefresh,
+      injectedWallets,
+      onInjectedWalletSelect: nav.handleInjectedWalletSelect,
+      onChainSelect: nav.handleChainSelect,
+      walletFlow,
+      onWalletSelectToken: nav.handleWalletSelectToken,
+      onWalletSending: nav.handleWalletSending,
+    });
   }
 
-  const content = renderEntry(nav.topEntry, {
-    session,
-    canGoBack: nav.canGoBack,
-    onNavigate: nav.handleNavigate,
-    onBack: nav.handleBack,
-    onAmountContinue: nav.handleAmountContinue,
-    onRetry: nav.handleRetry,
-    onRefresh: nav.handleRefresh,
-    injectedWallets,
-    onInjectedWalletSelect: nav.handleInjectedWalletSelect,
-    onChainSelect: nav.handleChainSelect,
-    walletFlow,
-    onWalletSelectToken: nav.handleWalletSelectToken,
-    onWalletSending: nav.handleWalletSending,
-  });
+  useLayoutEffect(() => setPageKey(pageKey), [pageKey, setPageKey]);
+  useLayoutEffect(() => setShowFooterSpacer(showFooterSpacer), [showFooterSpacer, setShowFooterSpacer]);
 
-  const showFooterSpacer = !(
-    !nav.topEntry ||
-    (nav.topEntry.type === "choose-option" && !nav.canGoBack)
+  return (
+    <div
+      key={pageKey}
+      className="daimo-page-enter flex-1 min-h-0 flex flex-col"
+    >
+      {content}
+    </div>
   );
-
-  return renderInContainer(content, showFooterSpacer);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

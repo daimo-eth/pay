@@ -242,7 +242,7 @@ export function ScrollContent({ children }: { children: ReactNode }) {
 /** Centered content container for detail pages (icon + message + action). */
 export function CenteredContent({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6 min-h-[320px]">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
       {children}
     </div>
   );
@@ -332,7 +332,7 @@ export function TokenIconWithChainBadge({
   const tokenSymbol = token?.symbol ?? symbol ?? "USDC";
   const tokenChainId = token?.chainId ?? chainId ?? 1;
   const logoUrl = token?.logoURI ?? logoURI;
-  const chainLogoUrl = `/chain-logos/${getChainLogoFilename(tokenChainId)}`;
+  const chainLogoUrl = getChainLogoUrl(tokenChainId);
 
   const sizeConfig = {
     sm: {
@@ -387,7 +387,7 @@ export function TokenIconWithChainBadge({
       )}
       {/* Chain badge with background fill */}
       <img
-        src={resolveIconUrl(chainLogoUrl)}
+        src={chainLogoUrl}
         alt={getChainName(tokenChainId)}
         className={`${config.position} ${config.badge} rounded-full ${badgeBorderClass ?? ""}`}
         style={badgeBorderClass ? undefined : config.style}
@@ -402,6 +402,11 @@ export function TokenIconWithChainBadge({
 /** Map chainId to logo filename */
 export function getChainLogoFilename(chainId: number): string {
   return CHAIN_LOGOS[chainId] ?? "ethereum.svg";
+}
+
+/** Fully resolved chain logo URL, ready to use as an img src. */
+export function getChainLogoUrl(chainId: number): string {
+  return resolveIconUrl(`/chain-logos/${getChainLogoFilename(chainId)}`);
 }
 
 // --- Copyable Info Card ---

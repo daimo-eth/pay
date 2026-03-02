@@ -29,6 +29,7 @@
     "README.md"
   ],
   "scripts": {
+    "dev": "tsc --watch --preserveWatchOutput",
     "build": "tsc && cp src/web/theme.css dist/web/theme.css",
     "test": "npm run lint",
     "lint": "eslint --max-warnings=0"

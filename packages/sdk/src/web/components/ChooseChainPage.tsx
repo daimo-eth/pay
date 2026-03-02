@@ -1,6 +1,6 @@
 import { ethereum, solana } from "../../common/chain.js";
 
-import { PageHeader, getChainLogoFilename, resolveIconUrl } from "./shared.js";
+import { PageHeader, getChainLogoUrl } from "./shared.js";
 
 type ChooseChainPageProps = {
   walletName: string;
@@ -31,12 +31,12 @@ export function ChooseChainPage({
         <div className="flex flex-col gap-3 w-full">
           <ChainRow
             label="Ethereum"
-            icon={resolveIconUrl(getChainLogoFilename(ethereum.chainId))}
+            icon={getChainLogoUrl(ethereum.chainId)}
             onClick={() => onSelectChain("evm")}
           />
           <ChainRow
             label="Solana"
-            icon={resolveIconUrl(getChainLogoFilename(solana.chainId))}
+            icon={getChainLogoUrl(solana.chainId)}
             onClick={() => onSelectChain("solana")}
           />
         </div>

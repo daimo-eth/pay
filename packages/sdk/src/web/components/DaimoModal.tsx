@@ -325,6 +325,7 @@ function renderEntry(
       return (
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
+          injectedWallets={ctx.injectedWallets}
           onNavigate={ctx.onNavigate}
           onBack={null}
         />

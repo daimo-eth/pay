@@ -26,10 +26,6 @@ export type { InjectedWallet, InjectedWalletInfo } from "./hooks/useInjectedWall
 export { useWalletFlow, isUserRejection } from "./hooks/useWalletFlow.js";
 export type { WalletFlowResult, WalletData } from "./hooks/useWalletFlow.js";
 export { useCopyToClipboard } from "./hooks/useCopyToClipboard.js";
-export {
-  getEthereumProvider,
-  getSolanaProvider,
-} from "./hooks/walletProvider.js";
 export type {
   EthereumProvider,
   SolanaProvider,

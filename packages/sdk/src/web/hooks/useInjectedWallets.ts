@@ -1,7 +1,8 @@
 /**
  * Multi-chain injected wallet discovery.
  *
- * EVM: EIP-6963 announceProvider events on window.
+ * EVM: EIP-6963 announceProvider events on window, with window.ethereum
+ *      fallback for in-app browsers (MiniPay, MetaMask mobile, etc.).
  * Solana: Known window globals (e.g. window.phantom.solana).
  *
  * Wallets supporting both chains (e.g. Phantom) are deduplicated into a
@@ -10,7 +11,11 @@
 import { useEffect, useState } from "react";
 
 import type { EthereumProvider, SolanaProvider } from "./walletProvider.js";
-import { getSolanaProvider, getSolanaProviderForRdns } from "./walletProvider.js";
+import {
+  getEthereumProvider,
+  getSolanaProvider,
+  getSolanaProviderForRdns,
+} from "./walletProvider.js";
 
 export type InjectedWalletInfo = {
   name: string;
@@ -32,9 +37,42 @@ type EIP6963AnnounceEvent = Event & {
   };
 };
 
-export function useInjectedWallets(): InjectedWallet[] {
-  const [wallets, setWallets] = useState<InjectedWallet[]>([]);
+function getInitialWallets(): InjectedWallet[] {
+  if (typeof window === "undefined") return [];
+  const ethereum = getEthereumProvider();
+  const solana = getSolanaProvider();
+  if (!ethereum && !solana) return [];
 
+  const wallets: InjectedWallet[] = [];
+  if (ethereum) {
+    wallets.push({
+      info: {
+        name: "Wallet",
+        icon: "",
+        rdns: "standalone.evm",
+        uuid: "standalone-evm",
+      },
+      evmProvider: ethereum,
+      solanaProvider: solana ?? undefined,
+    });
+  } else if (solana) {
+    wallets.push({
+      info: {
+        name: "Solana Wallet",
+        icon: "",
+        rdns: "standalone.solana",
+        uuid: "standalone-solana",
+      },
+      solanaProvider: solana,
+    });
+  }
+  return wallets;
+}
+
+export function useInjectedWallets(): InjectedWallet[] {
+  const [wallets, setWallets] = useState<InjectedWallet[]>(getInitialWallets);
+
+  // EIP-6963 discovery. Any announcement supersedes the window.ethereum fallback.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -44,8 +82,9 @@ export function useInjectedWallets(): InjectedWallet[] {
       setWallets((prev) => {
         if (prev.some((w) => w.info.rdns === detail.info.rdns)) return prev;
         const solanaProvider = getSolanaProviderForRdns(detail.info.rdns) ?? undefined;
+        const filtered = prev.filter((w) => w.info.rdns !== "standalone.evm");
         return [
-          ...prev,
+          ...filtered,
           {
             info: detail.info,
             evmProvider: detail.provider,
@@ -63,7 +102,7 @@ export function useInjectedWallets(): InjectedWallet[] {
     };
   }, []);
 
-  // After EIP-6963 discovery, add standalone Solana wallets with no EVM match.
+  // Add standalone Solana wallets with no EVM match.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const solana = getSolanaProvider();

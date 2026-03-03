@@ -195,11 +195,13 @@ function DaimoModalInner({
   const hasConnectedWallet = session.navTree.some(
     (n) => n.type === "ConnectedWallet",
   );
+  const injectedWallets = useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,
     depositAddress ?? "",
     hasConnectedWallet,
     session.clientSecret,
+    injectedWallets,
   );
 
   const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);
@@ -210,8 +212,6 @@ function DaimoModalInner({
       setPendingTxHash(top.txHash);
     }
   }, [nav.topEntry]);
-
-  const injectedWallets = useInjectedWallets();
 
   const { handleClose } = useModalCloseHandler(
     session.sessionId,

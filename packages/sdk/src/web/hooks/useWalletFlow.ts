@@ -8,12 +8,8 @@ import { Address, encodeFunctionData, getAddress, hexToBytes } from "viem";
 import type { DaimoClient } from "../../client/createDaimoClient.js";
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
-import {
-  EthereumProvider,
-  SolanaProvider,
-  getEthereumProvider,
-  getSolanaProvider,
-} from "./walletProvider.js";
+import type { EthereumProvider, SolanaProvider } from "./walletProvider.js";
+import type { InjectedWallet } from "./useInjectedWallets.js";
 
 const erc20TransferAbi = [
   {
@@ -68,7 +64,8 @@ export function useWalletFlow(
   sessionId: string,
   destAddr: string,
   autoConnect: boolean,
-  clientSecret?: string,
+  clientSecret: string | undefined,
+  injectedWallets: InjectedWallet[],
 ): WalletFlowResult {
   const client = useDaimoClient();
 
@@ -81,9 +78,7 @@ export function useWalletFlow(
   const evmProviderRef = useRef<EthereumProvider | null>(null);
   const solanaProviderRef = useRef<SolanaProvider | null>(null);
 
-  const hasInjectedWallet =
-    typeof window !== "undefined" &&
-    (getEthereumProvider() !== null || getSolanaProvider() !== null);
+  const hasInjectedWallet = injectedWallets.length > 0;
 
   const fetchBalances = useCallback(
     async (walletData: WalletData, showLoading: boolean) => {
@@ -149,8 +144,16 @@ export function useWalletFlow(
     setIsConnecting(true);
 
     try {
-      const evmAddress = await connectEvm();
-      const solAddress = await connectSolana();
+      const evmProvider = injectedWallets.find((w) => w.evmProvider)?.evmProvider;
+      const solProvider = injectedWallets.find((w) => w.solanaProvider)?.solanaProvider;
+
+      if (evmProvider) evmProviderRef.current = evmProvider;
+      if (solProvider) solanaProviderRef.current = solProvider;
+
+      const [evmAddress, solAddress] = await Promise.all([
+        evmProvider ? requestEvmAccounts(evmProvider) : null,
+        solProvider ? requestSolanaConnect(solProvider) : null,
+      ]);
 
       if (!evmAddress && !solAddress) {
         setConnectError(t.walletUnavailable);
@@ -167,7 +170,7 @@ export function useWalletFlow(
       setConnectError(err instanceof Error ? err.message : t.walletUnavailable);
       setIsConnecting(false);
     }
-  }, [fetchBalances]);
+  }, [fetchBalances, injectedWallets]);
 
   const connectWithProvider = useCallback(
     async (provider: EthereumProvider) => {
@@ -263,7 +266,9 @@ export function useWalletFlow(
   }, [autoConnect, connect, fetchBalances, hasInjectedWallet]);
 
   useEffect(() => {
-    const ethereum = evmProviderRef.current ?? getEthereumProvider();
+    const ethereum =
+      evmProviderRef.current ??
+      injectedWallets.find((w) => w.evmProvider)?.evmProvider;
     if (!ethereum?.on) return;
 
     const handleAccountsChanged = (accounts: unknown) => {
@@ -299,11 +304,13 @@ export function useWalletFlow(
     ethereum.on("accountsChanged", handleAccountsChanged);
     return () =>
       ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
-  }, [fetchBalances]);
+  }, [fetchBalances, injectedWallets]);
 
   useEffect(() => {
-    const solanaProvider = getSolanaProvider();
-    if (!solanaProvider?.on) return;
+    const solana =
+      solanaProviderRef.current ??
+      injectedWallets.find((w) => w.solanaProvider)?.solanaProvider;
+    if (!solana?.on) return;
 
     const handleAccountChanged = (publicKey: unknown) => {
       const newSolAddress = publicKey
@@ -326,9 +333,9 @@ export function useWalletFlow(
       });
     };
 
-    solanaProvider.on("accountChanged", handleAccountChanged);
-    return () => solanaProvider.off?.("accountChanged", handleAccountChanged);
-  }, [fetchBalances]);
+    solana.on("accountChanged", handleAccountChanged);
+    return () => solana.off?.("accountChanged", handleAccountChanged);
+  }, [fetchBalances, injectedWallets]);
 
   const sendTransaction = useCallback(
     async (
@@ -381,11 +388,11 @@ export function useWalletFlow(
 
 // ─── Connection helpers ─────────────────────────────────────────────────────
 
-async function connectEvm(): Promise<Address | null> {
-  const ethereum = getEthereumProvider();
-  if (!ethereum) return null;
+async function requestEvmAccounts(
+  provider: EthereumProvider,
+): Promise<Address | null> {
   try {
-    const accounts = (await ethereum.request({
+    const accounts = (await provider.request({
       method: "eth_requestAccounts",
     })) as string[];
     if (!accounts?.length) return null;
@@ -396,12 +403,11 @@ async function connectEvm(): Promise<Address | null> {
   }
 }
 
-async function connectSolana(): Promise<string | null> {
-  const solanaProvider = getSolanaProvider();
-  if (!solanaProvider) return null;
+async function requestSolanaConnect(
+  provider: SolanaProvider,
+): Promise<string | null> {
   try {
-    const pk =
-      solanaProvider.publicKey ?? (await solanaProvider.connect()).publicKey;
+    const pk = provider.publicKey ?? (await provider.connect()).publicKey;
     return pk.toBase58();
   } catch (err) {
     console.warn("failed to connect Solana wallet:", err);
@@ -416,9 +422,8 @@ async function sendEvmTransaction(
   destAddr: string,
   token: WalletPaymentOption,
   amountUsd: number,
-  providerOverride?: EthereumProvider | null,
+  ethereum: EthereumProvider | null | undefined,
 ): Promise<string> {
-  const ethereum = providerOverride ?? getEthereumProvider();
   if (!ethereum) throw new Error(t.walletUnavailable);
   if (!wallet.evmAddress) throw new Error(t.walletDisconnected);
 
@@ -483,9 +488,8 @@ async function sendSolanaTransaction(
   inputTokenMint: string,
   amountUsd: number,
   client: DaimoClient,
-  providerOverride?: SolanaProvider | null,
+  solanaWallet: SolanaProvider | null | undefined,
 ): Promise<string> {
-  const solanaWallet = providerOverride ?? getSolanaProvider();
   if (!solanaWallet) throw new Error(t.walletUnavailable);
   if (!wallet.solAddress) throw new Error(t.walletDisconnected);
 

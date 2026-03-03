@@ -23,7 +23,8 @@ export function ChooseWalletPage({
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
   const deeplinkOptions = node.options.filter(
-    (option) => !injectedNames.has(option.title.toLowerCase()),
+    (option) =>
+      option.type !== "Deeplink" || !injectedNames.has(option.title.toLowerCase()),
   );
 
   return (

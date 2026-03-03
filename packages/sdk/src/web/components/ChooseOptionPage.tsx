@@ -1,19 +1,28 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
+import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
 import { t } from "../hooks/locale.js";
 import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
 
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
+  injectedWallets?: InjectedWallet[];
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
 };
 
 export function ChooseOptionPage({
   node,
+  injectedWallets = [],
   onNavigate,
   onBack,
 }: ChooseOptionPageProps) {
+  const injectedNames = new Set(
+    injectedWallets.map((w) => w.info.name.toLowerCase()),
+  );
+  const options = node.options.filter(
+    (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
+  );
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;
 
@@ -24,7 +33,7 @@ export function ChooseOptionPage({
       <ScrollContent>
         {useGridLayout ? (
           <div className="grid grid-cols-4 gap-2">
-            {node.options.map((option) => (
+            {options.map((option) => (
               <GridOptionCell
                 key={option.id}
                 option={option}
@@ -34,7 +43,7 @@ export function ChooseOptionPage({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {node.options.map((option) => (
+            {options.map((option) => (
               <OptionRow
                 key={option.id}
                 option={option}

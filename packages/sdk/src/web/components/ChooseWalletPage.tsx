@@ -19,6 +19,14 @@ export function ChooseWalletPage({
   onNavigate,
   onBack,
 }: ChooseWalletPageProps) {
+  const injectedNames = new Set(
+    injectedWallets.map((w) => w.info.name.toLowerCase()),
+  );
+  const deeplinkOptions = node.options.filter(
+    (option) =>
+      option.type !== "Deeplink" || !injectedNames.has(option.title.toLowerCase()),
+  );
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} />
@@ -33,7 +41,7 @@ export function ChooseWalletPage({
             />
           ))}
 
-          {node.options.map((option) => (
+          {deeplinkOptions.map((option) => (
             <DeeplinkWalletRow
               key={option.id}
               option={option}

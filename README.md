@@ -1,4 +1,4 @@
-## Daimo Pay
+## Daimo
 
 - [**SDK**](packages/sdk/) — `@daimo/sdk`, TypeScript client and React modal
 - [**Contracts**](packages/contract/) — Solidity smart contracts (Foundry)

@@ -1,4 +1,4 @@
-## Daimo Pay Contracts
+## Daimo Contracts
 
 Main contracts:
 

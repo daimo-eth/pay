@@ -15,6 +15,7 @@ type ChooseWalletPageProps = {
   onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
+  baseUrl: string;
 };
 
 /** Wallet selection page: EIP-6963 browser wallets at top, deeplink wallets below. */
@@ -24,6 +25,7 @@ export function ChooseWalletPage({
   onInjectedWalletSelect,
   onNavigate,
   onBack,
+  baseUrl,
 }: ChooseWalletPageProps) {
   const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
@@ -54,6 +56,7 @@ export function ChooseWalletPage({
               key={option.id}
               option={option}
               onClick={() => onNavigate(option.id)}
+              baseUrl={baseUrl}
             />
           ))}
         </div>
@@ -87,9 +90,11 @@ function InjectedWalletRow({
 function DeeplinkWalletRow({
   option,
   onClick,
+  baseUrl,
 }: {
   option: NavNode;
   onClick: () => void;
+  baseUrl: string;
 }) {
   const label = option.label ?? option.title;
   const icon = "icon" in option && option.icon ? option.icon : null;
@@ -100,7 +105,7 @@ function DeeplinkWalletRow({
       right={
         icon ? (
           <img
-            src={resolveIconUrl(icon)}
+            src={resolveIconUrl(icon, baseUrl)}
             alt={label}
             className="w-8 h-8 object-contain rounded-[25%]"
           />

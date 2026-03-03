@@ -41,6 +41,7 @@ type ConfirmationPageProps = {
   onRetry?: () => void;
   /** Back handler - only shown during "confirming" state */
   onBack?: () => void;
+  baseUrl: string;
 };
 
 /**
@@ -64,6 +65,7 @@ export function ConfirmationPage({
   rejected,
   onRetry,
   onBack,
+  baseUrl,
 }: ConfirmationPageProps) {
   const status = getConfirmationStatus(pendingTxHash, sessionState);
 
@@ -109,6 +111,7 @@ export function ConfirmationPage({
             symbol={sourceTokenSymbol}
             logoURI={sourceTokenLogoURI}
             size="lg"
+            baseUrl={baseUrl}
           />
         )}
 
@@ -156,7 +159,7 @@ export function ConfirmationPage({
         {/* Show receipt button for waiting/processing/done states */}
         {(status === "waiting" ||
           status === "processing" ||
-          status === "done") && <ShowReceiptButton sessionId={sessionId} />}
+          status === "done") && <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />}
       </div>
     </div>
   );

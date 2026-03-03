@@ -3,8 +3,12 @@ import type { SessionPublicInfo } from "../../common/session.js";
 
 /** Session with navigation tree for the modal UI. */
 export type SessionWithNav = SessionPublicInfo & {
+  /** Client secret for session updates */
   clientSecret: string;
+  /** Server-defined nav */
   navTree: NavNode[];
+  /** Base URL for receipt links and icon resolution (set by server). */
+  baseUrl: string;
 };
 
 type NavNodeCommon = {

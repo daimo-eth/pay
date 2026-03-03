@@ -25,6 +25,7 @@ type SelectAmountPageProps = {
   onContinue: (amountUsd: number) => void;
   isLoading?: boolean;
   error?: string | null;
+  baseUrl: string;
 };
 
 export function SelectAmountPage({
@@ -37,6 +38,7 @@ export function SelectAmountPage({
   onContinue,
   isLoading,
   error,
+  baseUrl,
 }: SelectAmountPageProps) {
   const { amountUsd, isValid, handleChange } = useAmountInput(
     minimumUsd,
@@ -76,11 +78,12 @@ export function SelectAmountPage({
               token={displayToken}
               size="lg"
               badgeBorderClass="border-2 bg-[var(--daimo-surface)] border-[var(--daimo-surface)]"
+              baseUrl={baseUrl}
             />
           ) : (
             node.icon && (
               <img
-                src={resolveIconUrl(node.icon)}
+                src={resolveIconUrl(node.icon, baseUrl)}
                 alt={node.title}
                 className="w-20 h-20 rounded-full"
               />

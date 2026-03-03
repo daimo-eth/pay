@@ -7,6 +7,7 @@ type ChooseChainPageProps = {
   walletIcon: string;
   onSelectChain: (chain: "evm" | "solana") => void;
   onBack: (() => void) | null;
+  baseUrl: string;
 };
 
 export function ChooseChainPage({
@@ -14,6 +15,7 @@ export function ChooseChainPage({
   walletIcon,
   onSelectChain,
   onBack,
+  baseUrl,
 }: ChooseChainPageProps) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -31,12 +33,12 @@ export function ChooseChainPage({
         <div className="flex flex-col gap-3 w-full">
           <ChainRow
             label="Ethereum"
-            icon={getChainLogoUrl(ethereum.chainId)}
+            icon={getChainLogoUrl(ethereum.chainId, baseUrl)}
             onClick={() => onSelectChain("evm")}
           />
           <ChainRow
             label="Solana"
-            icon={getChainLogoUrl(solana.chainId)}
+            icon={getChainLogoUrl(solana.chainId, baseUrl)}
             onClick={() => onSelectChain("solana")}
           />
         </div>

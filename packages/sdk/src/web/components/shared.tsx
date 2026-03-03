@@ -25,8 +25,6 @@ import { BackArrowIcon, CopyIcon } from "./icons.js";
 
 export { BackArrowIcon };
 
-const PAY_BASE_URL = "https://daimo.com";
-
 type SupportedChainId = (typeof supportedChains)[number]["chainId"];
 
 const CHAIN_LOGOS: Record<SupportedChainId, string> = {
@@ -190,7 +188,7 @@ export function useAmountInput(minimumUsd: number, maximumUsd: number) {
 }
 
 /** Resolve relative icon paths to absolute URLs */
-export function resolveIconUrl(icon: string): string {
+export function resolveIconUrl(icon: string, baseUrl: string): string {
   if (
     icon.startsWith("http://") ||
     icon.startsWith("https://") ||
@@ -198,7 +196,7 @@ export function resolveIconUrl(icon: string): string {
   ) {
     return icon;
   }
-  return `${PAY_BASE_URL}${icon}`;
+  return `${baseUrl}${icon}`;
 }
 
 /** Standard page header with optional back button and centered title */
@@ -240,13 +238,14 @@ type PageLogoProps = {
   icon: string;
   alt: string;
   size?: "md" | "lg";
+  baseUrl: string;
 };
 
-export function PageLogo({ icon, alt, size = "lg" }: PageLogoProps) {
+export function PageLogo({ icon, alt, size = "lg", baseUrl }: PageLogoProps) {
   const sizeClass = size === "lg" ? "w-20 h-20" : "w-16 h-16";
   return (
     <img
-      src={resolveIconUrl(icon)}
+      src={resolveIconUrl(icon, baseUrl)}
       alt={alt}
       className={`${sizeClass} object-contain rounded-[25%]`}
     />
@@ -379,10 +378,16 @@ export function ContactSupportButton({
 }
 
 /** Show receipt link button */
-export function ShowReceiptButton({ sessionId }: { sessionId: string }) {
+export function ShowReceiptButton({
+  sessionId,
+  baseUrl,
+}: {
+  sessionId: string;
+  baseUrl: string;
+}) {
   return (
     <a
-      href={`${PAY_BASE_URL}/receipt?id=${sessionId}`}
+      href={`${baseUrl}/receipt?id=${sessionId}`}
       target="_blank"
       rel="noopener noreferrer"
       className="text-sm text-[var(--daimo-text-muted)] underline"
@@ -405,6 +410,7 @@ type TokenIconWithChainBadgeProps = {
   size?: "sm" | "lg" | "qr";
   /** Border color class for the chain badge (defaults to row background colors) */
   badgeBorderClass?: string;
+  baseUrl: string;
 };
 
 /**
@@ -420,11 +426,12 @@ export function TokenIconWithChainBadge({
   logoURI,
   size = "sm",
   badgeBorderClass,
+  baseUrl,
 }: TokenIconWithChainBadgeProps) {
   const tokenSymbol = token?.symbol ?? symbol ?? "USDC";
   const tokenChainId = token?.chainId ?? chainId ?? 1;
   const logoUrl = token?.logoURI ?? logoURI;
-  const chainLogoUrl = getChainLogoUrl(tokenChainId);
+  const chainLogoUrl = getChainLogoUrl(tokenChainId, baseUrl);
 
   const sizeConfig = {
     sm: {
@@ -469,7 +476,7 @@ export function TokenIconWithChainBadge({
       {/* Token icon */}
       {logoUrl && (
         <img
-          src={resolveIconUrl(logoUrl)}
+          src={resolveIconUrl(logoUrl, baseUrl)}
           alt={tokenSymbol}
           className={config.icon}
           onError={(e) => {
@@ -497,8 +504,8 @@ export function getChainLogoFilename(chainId: number): string {
 }
 
 /** Fully resolved chain logo URL, ready to use as an img src. */
-export function getChainLogoUrl(chainId: number): string {
-  return resolveIconUrl(`/chain-logos/${getChainLogoFilename(chainId)}`);
+export function getChainLogoUrl(chainId: number, baseUrl: string): string {
+  return resolveIconUrl(`/chain-logos/${getChainLogoFilename(chainId)}`, baseUrl);
 }
 
 // --- Copyable Info Card ---

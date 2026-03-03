@@ -17,6 +17,7 @@ type ChooseOptionPageProps = {
   connectedAddress?: string | null;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
+  baseUrl: string;
 };
 
 export function ChooseOptionPage({
@@ -25,6 +26,7 @@ export function ChooseOptionPage({
   connectedAddress,
   onNavigate,
   onBack,
+  baseUrl,
 }: ChooseOptionPageProps) {
   const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
@@ -64,6 +66,7 @@ export function ChooseOptionPage({
                 key={option.id}
                 option={option}
                 onClick={() => onNavigate(option.id)}
+                baseUrl={baseUrl}
               />
             ))}
           </div>
@@ -74,6 +77,7 @@ export function ChooseOptionPage({
                 key={option.id}
                 option={option}
                 onClick={() => onNavigate(option.id)}
+                baseUrl={baseUrl}
               />
             ))}
           </div>
@@ -95,9 +99,11 @@ export function ChooseOptionPage({
 function GridOptionCell({
   option,
   onClick,
+  baseUrl,
 }: {
   option: NavNode;
   onClick: () => void;
+  baseUrl: string;
 }) {
   const icons = getOptionIcons(option);
   const label = option.label ?? option.title;
@@ -109,7 +115,7 @@ function GridOptionCell({
     >
       {icons.length > 0 && (
         <img
-          src={resolveIconUrl(icons[0])}
+          src={resolveIconUrl(icons[0], baseUrl)}
           alt={label}
           className="w-full aspect-square max-w-16 object-contain rounded-[25%]"
         />
@@ -124,16 +130,18 @@ function GridOptionCell({
 function OptionRow({
   option,
   onClick,
+  baseUrl,
 }: {
   option: NavNode;
   onClick: () => void;
+  baseUrl: string;
 }) {
   const label = option.label ?? option.title;
 
   return (
     <ListRow
       label={label}
-      right={<OptionIcons option={option} />}
+      right={<OptionIcons option={option} baseUrl={baseUrl} />}
       onClick={onClick}
     />
   );
@@ -151,7 +159,7 @@ function getOptionIcons(option: NavNode): string[] {
 }
 
 /** Render icons for a list row option */
-function OptionIcons({ option }: { option: NavNode }) {
+function OptionIcons({ option, baseUrl }: { option: NavNode; baseUrl: string }) {
   const icons = getOptionIcons(option);
   if (icons.length === 0) return null;
 
@@ -162,7 +170,7 @@ function OptionIcons({ option }: { option: NavNode }) {
         {icons.slice(0, 4).map((icon, i) => (
           <img
             key={i}
-            src={resolveIconUrl(icon)}
+            src={resolveIconUrl(icon, baseUrl)}
             alt=""
             className="w-[15px] h-[15px] object-contain rounded-[25%]"
           />
@@ -177,7 +185,7 @@ function OptionIcons({ option }: { option: NavNode }) {
       {icons.map((icon, i) => (
         <img
           key={i}
-          src={resolveIconUrl(icon)}
+          src={resolveIconUrl(icon, baseUrl)}
           alt=""
           className="w-8 h-8 object-contain rounded-[25%] relative"
           style={{

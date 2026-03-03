@@ -35,6 +35,7 @@ type WaitingDepositAddressPageProps = {
   loading?: boolean;
   onBack: () => void;
   onRefresh: () => void;
+  baseUrl: string;
 };
 
 export function WaitingDepositAddressPage({
@@ -46,6 +47,7 @@ export function WaitingDepositAddressPage({
   loading = false,
   onBack,
   onRefresh,
+  baseUrl,
 }: WaitingDepositAddressPageProps) {
   const client = useDaimoClient();
   const logNavEvent = useMemo(() => createNavLogger(client), [client]);
@@ -100,6 +102,7 @@ export function WaitingDepositAddressPage({
             address={address}
             node={node}
             selectedToken={selectedToken}
+            baseUrl={baseUrl}
           />
         )}
 
@@ -141,11 +144,13 @@ function LogoOrQR({
   address,
   node,
   selectedToken,
+  baseUrl,
 }: {
   showQR: boolean;
   address: string;
   node: NavNodeDepositAddress;
   selectedToken?: DepositToken;
+  baseUrl: string;
 }) {
   return (
     <div className="relative w-full flex items-center justify-center">
@@ -168,7 +173,7 @@ function LogoOrQR({
           <QRCode
             value={address}
             image={
-              <TokenIcon node={node} selectedToken={selectedToken} size="qr" />
+              <TokenIcon node={node} selectedToken={selectedToken} size="qr" baseUrl={baseUrl} />
             }
           />
         </div>
@@ -183,7 +188,7 @@ function LogoOrQR({
             opacity: showQR ? 0 : 1,
           }}
         >
-          <TokenIcon node={node} selectedToken={selectedToken} size="lg" />
+          <TokenIcon node={node} selectedToken={selectedToken} size="lg" baseUrl={baseUrl} />
         </div>
       </div>
     </div>
@@ -195,10 +200,12 @@ function TokenIcon({
   node,
   selectedToken,
   size,
+  baseUrl,
 }: {
   node: NavNodeDepositAddress;
   selectedToken?: DepositToken;
   size: "lg" | "qr";
+  baseUrl: string;
 }) {
   if (selectedToken) {
     return (
@@ -207,6 +214,7 @@ function TokenIcon({
         symbol={selectedToken}
         logoURI={depositTokenLogos[selectedToken]}
         size={size}
+        baseUrl={baseUrl}
         badgeBorderClass={
           size === "qr"
             ? "border-[1.5px] bg-[var(--daimo-qr-bg,white)] border-[var(--daimo-qr-bg,white)]"
@@ -219,7 +227,7 @@ function TokenIcon({
     const iconSize = size === "qr" ? "w-12 h-12" : "w-20 h-20";
     return (
       <img
-        src={resolveIconUrl(node.icon)}
+        src={resolveIconUrl(node.icon, baseUrl)}
         alt={node.title}
         className={`${iconSize} rounded-full`}
       />

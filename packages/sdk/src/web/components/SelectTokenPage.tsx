@@ -20,6 +20,7 @@ type SelectTokenPageProps = {
   skeletonCount?: number;
   onSelect: (option: WalletPaymentOption) => void;
   onBack?: (() => void) | null;
+  baseUrl: string;
 };
 
 /** Token selection page for wallet payment flow */
@@ -29,6 +30,7 @@ export function SelectTokenPage({
   skeletonCount = 11,
   onSelect,
   onBack,
+  baseUrl,
 }: SelectTokenPageProps) {
   const { scrolled, atBottom, onScroll } = useScrollBorder();
 
@@ -80,6 +82,7 @@ export function SelectTokenPage({
                 key={getTokenKey(option.balance.token)}
                 option={option}
                 onSelect={onSelect}
+                baseUrl={baseUrl}
               />
             ))}
             {disabledOptions.map((option) => (
@@ -88,6 +91,7 @@ export function SelectTokenPage({
                 option={option}
                 onSelect={onSelect}
                 disabled
+                baseUrl={baseUrl}
               />
             ))}
           </div>
@@ -133,13 +137,14 @@ type TokenRowProps = {
   option: WalletPaymentOption;
   onSelect: (option: WalletPaymentOption) => void;
   disabled?: boolean;
+  baseUrl: string;
 };
 
 /**
  * Token option row - 64px height, matching ChooseOptionPage row style.
  * Shows "$X TOKEN on Chain" with "Y TOKEN" subtitle.
  */
-function TokenRow({ option, onSelect, disabled = false }: TokenRowProps) {
+function TokenRow({ option, onSelect, disabled = false, baseUrl }: TokenRowProps) {
   const chainName = getChainName(option.balance.token.chainId);
   const tokenAmount = formatTokenAmount(
     option.balance.amount,
@@ -162,7 +167,7 @@ function TokenRow({ option, onSelect, disabled = false }: TokenRowProps) {
     <ListRow
       label={title}
       subtitle={subtitle}
-      right={<TokenIconWithChainBadge token={option.balance.token} size="sm" />}
+      right={<TokenIconWithChainBadge token={option.balance.token} size="sm" baseUrl={baseUrl} />}
       onClick={() => onSelect(option)}
       disabled={disabled}
     />

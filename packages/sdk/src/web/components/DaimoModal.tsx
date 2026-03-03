@@ -251,6 +251,7 @@ function DaimoModalInner({
         sessionState={session.status}
         returnUrl={returnUrl}
         returnLabel={returnLabel}
+        baseUrl={session.baseUrl}
       />
     );
   } else {
@@ -291,7 +292,7 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; clientSecret: string; navTree: NavNode[] };
+  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; baseUrl: string };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -330,6 +331,7 @@ function renderEntry(
           connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={null}
+          baseUrl={ctx.session.baseUrl}
         />
       );
     }
@@ -348,6 +350,7 @@ function renderEntry(
             onInjectedWalletSelect={ctx.onInjectedWalletSelect}
             onNavigate={ctx.onNavigate}
             onBack={ctx.canGoBack ? ctx.onBack : null}
+            baseUrl={ctx.session.baseUrl}
           />
         );
       }
@@ -358,13 +361,14 @@ function renderEntry(
           connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={ctx.canGoBack ? ctx.onBack : null}
+          baseUrl={ctx.session.baseUrl}
         />
       );
     }
     case "deeplink": {
       const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeDeeplink | null;
       if (!node) return null;
-      return <DeeplinkPage node={node} onBack={ctx.canGoBack ? ctx.onBack : null} />;
+      return <DeeplinkPage node={node} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
     }
     case "select-amount":
       return renderSelectAmount(entry, ctx);
@@ -381,6 +385,7 @@ function renderEntry(
           walletIcon={entry.walletIcon}
           onSelectChain={ctx.onChainSelect}
           onBack={ctx.canGoBack ? ctx.onBack : null}
+          baseUrl={ctx.session.baseUrl}
         />
       );
     case "wallet-connect":
@@ -406,19 +411,19 @@ function renderSelectAmount(
   if (entry.flowType === "deposit") {
     const depositNode = node as NavNodeDepositAddress;
     return (
-      <SelectAmountPage node={depositNode} minimumUsd={depositNode.minimumUsd} maximumUsd={depositNode.maximumUsd} tokenSuffix={depositNode.tokenSuffix} chainId={depositNode.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} />
+      <SelectAmountPage node={depositNode} minimumUsd={depositNode.minimumUsd} maximumUsd={depositNode.maximumUsd} tokenSuffix={depositNode.tokenSuffix} chainId={depositNode.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
     );
   }
   if (entry.flowType === "tron") {
     const tronNode = node as NavNodeTronDeposit;
     return (
-      <SelectAmountPage node={{ icon: tronNode.icon, title: tronNode.title }} minimumUsd={tronNode.minimumUsd} maximumUsd={tronNode.maximumUsd} tokenSuffix="USDT" chainId={tron.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} />
+      <SelectAmountPage node={{ icon: tronNode.icon, title: tronNode.title }} minimumUsd={tronNode.minimumUsd} maximumUsd={tronNode.maximumUsd} tokenSuffix="USDT" chainId={tron.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
     );
   }
   if (entry.flowType === "exchange") {
     const exchangeNode = node as NavNodeExchange;
     return (
-      <SelectAmountPage node={{ icon: exchangeNode.icon, title: exchangeNode.title }} minimumUsd={exchangeNode.minimumUsd} maximumUsd={exchangeNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} />
+      <SelectAmountPage node={{ icon: exchangeNode.icon, title: exchangeNode.title }} minimumUsd={exchangeNode.minimumUsd} maximumUsd={exchangeNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
     );
   }
   return null;
@@ -428,7 +433,7 @@ function renderWaitingDeposit(entry: NavEntry & { type: "waiting-deposit" }, ctx
   const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeDepositAddress | null;
   if (!node) return null;
   const selectedToken = node.tokenSuffix === "USDC" || node.tokenSuffix === "USDT" ? node.tokenSuffix : undefined;
-  return <WaitingDepositAddressPage node={node} amountUsd={entry.amountUsd} selectedToken={selectedToken} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRefresh} />;
+  return <WaitingDepositAddressPage node={node} amountUsd={entry.amountUsd} selectedToken={selectedToken} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRefresh} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: RenderContext): React.ReactNode {
@@ -438,7 +443,7 @@ function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: Rend
   return (
     <WaitingDepositAddressPage
       node={{ type: "DepositAddress", id: entry.nodeId, title: node.title, address: (entry.address as `0x${string}`) ?? ("" as `0x${string}`), chainId: tron.chainId, icon: node.icon, minimumUsd: node.minimumUsd, maximumUsd: node.maximumUsd, expiresAt: entry.expiresAt ?? 0, tokenSuffix: "USDT" }}
-      amountUsd={entry.amountUsd} selectedToken="USDT" loading={!entry.address} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRetry}
+      amountUsd={entry.amountUsd} selectedToken="USDT" loading={!entry.address} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRetry} baseUrl={ctx.session.baseUrl}
     />
   );
 }
@@ -447,7 +452,7 @@ function renderExchangePage(entry: NavEntry & { type: "exchange-page" }, ctx: Re
   const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeExchange | null;
   if (!node) return null;
   if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onRetry} />;
-  return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} />;
+  return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: RenderContext): React.ReactNode {
@@ -498,17 +503,17 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
       </div>
     );
   }
-  return <SelectTokenPage options={walletFlow.balances} isLoading={walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} />;
+  return <SelectTokenPage options={walletFlow.balances} isLoading={walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {
-  return <WalletAmountPage token={entry.token} onBack={ctx.onBack} onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)} />;
+  return <WalletAmountPage token={entry.token} onBack={ctx.onBack} onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletSending(entry: NavEntry & { type: "wallet-sending" }, ctx: RenderContext): React.ReactNode {
   if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onBack} />;
   return (
-    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} rejected={entry.rejected} onRetry={ctx.onRetry} onBack={!entry.txHash ? ctx.onBack : undefined} />
+    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} rejected={entry.rejected} onRetry={ctx.onRetry} onBack={!entry.txHash ? ctx.onBack : undefined} baseUrl={ctx.session.baseUrl} />
   );
 }
 

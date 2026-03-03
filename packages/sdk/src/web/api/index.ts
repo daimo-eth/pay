@@ -20,7 +20,7 @@ export type {
 } from "./walletTypes.js";
 
 export type RetrieveSessionWithNavResponse = {
-  session: SessionPublicInfo & { navTree: NavNode[] };
+  session: SessionPublicInfo & { navTree: NavNode[]; baseUrl: string };
 };
 
 export type WalletOptionsResponse = WalletPaymentOption[];

@@ -16,6 +16,7 @@ type WalletAmountPageProps = {
   token: WalletPaymentOption;
   onBack: () => void;
   onContinue: (amountUsd: number) => void;
+  baseUrl: string;
 };
 
 /** Amount entry page for wallet payment flow */
@@ -23,6 +24,7 @@ export function WalletAmountPage({
   token,
   onBack,
   onContinue,
+  baseUrl,
 }: WalletAmountPageProps) {
   const balanceToken = token.balance.token;
   const minimumUsd = token.minimumRequired.usd;
@@ -182,7 +184,7 @@ export function WalletAmountPage({
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         {/* Token logo with chain badge */}
         <div className="mb-3">
-          <TokenIconWithChainBadge token={balanceToken} size="lg" />
+          <TokenIconWithChainBadge token={balanceToken} size="lg" baseUrl={baseUrl} />
         </div>
 
         {/* Amount input with Max button */}

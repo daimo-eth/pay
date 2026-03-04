@@ -307,8 +307,10 @@ type RenderContext = {
     isConnecting: boolean;
     isLoadingBalances: boolean;
     connectError: string | null;
+    balanceError: string | null;
     connect: () => Promise<void>;
     retryConnect: () => Promise<void>;
+    retryBalances: () => void;
   };
   onWalletSelectToken: (token: WalletPaymentOption) => void;
   onWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
@@ -482,7 +484,7 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 }
 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
-  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.onBack} />;
+  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} error={ctx.walletFlow.balanceError} onRetry={ctx.walletFlow.retryBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.onBack} sessionId={ctx.session.sessionId} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {

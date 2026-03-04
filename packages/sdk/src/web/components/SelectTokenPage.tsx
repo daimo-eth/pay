@@ -2,7 +2,15 @@ import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { getChainName } from "../../common/chain.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, ScrollContent, TokenIconWithChainBadge } from "./shared.js";
+import { PrimaryButton } from "./buttons.js";
+import {
+  CenteredContent,
+  ContactSupportButton,
+  ErrorMessage as SharedErrorMessage,
+  PageHeader,
+  ScrollContent,
+  TokenIconWithChainBadge,
+} from "./shared.js";
 
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
@@ -11,8 +19,14 @@ type SelectTokenPageProps = {
   isLoading?: boolean;
   /** Number of skeleton rows to show while loading */
   skeletonCount?: number;
+  /** Error message when balance fetch fails */
+  error?: string | null;
+  /** Retry callback for error state */
+  onRetry?: (() => void) | undefined;
   onSelect: (option: WalletPaymentOption) => void;
   onBack?: (() => void) | null;
+  /** Session ID for contact support */
+  sessionId?: string;
 };
 
 /** Token selection page for wallet payment flow */
@@ -20,9 +34,33 @@ export function SelectTokenPage({
   options,
   isLoading = false,
   skeletonCount = 11,
+  error,
+  onRetry,
   onSelect,
   onBack,
+  sessionId,
 }: SelectTokenPageProps) {
+  // Show error state when balance fetch fails
+  if (error) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <PageHeader title={t.selectToken} onBack={onBack} />
+        <CenteredContent>
+          <SharedErrorMessage message={error} />
+          {onRetry && (
+            <PrimaryButton onClick={onRetry}>{t.tryAgain}</PrimaryButton>
+          )}
+        </CenteredContent>
+        <div className="px-6 pb-6 flex flex-col items-center">
+          <ContactSupportButton
+            subject="Token loading error"
+            info={{ sessionId: sessionId ?? "", error }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (

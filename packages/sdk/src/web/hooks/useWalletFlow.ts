@@ -50,10 +50,12 @@ export type WalletFlowResult = {
   isConnecting: boolean;
   isLoadingBalances: boolean;
   connectError: string | null;
+  balanceError: string | null;
   connect: () => Promise<void>;
   connectWithProvider: (provider: EthereumProvider) => Promise<void>;
   connectWithSolanaProvider: (provider: SolanaProvider) => Promise<void>;
   retryConnect: () => Promise<void>;
+  retryBalances: () => void;
   sendTransaction: (
     token: WalletPaymentOption,
     amountUsd: number,
@@ -74,6 +76,7 @@ export function useWalletFlow(
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
   const currentFetchRef = useRef<string | null>(null);
   const evmProviderRef = useRef<EthereumProvider | null>(null);
   const solanaProviderRef = useRef<SolanaProvider | null>(null);
@@ -83,7 +86,11 @@ export function useWalletFlow(
   const fetchBalances = useCallback(
     async (walletData: WalletData, showLoading: boolean) => {
       if (!walletData.evmAddress && !walletData.solAddress) return;
-      if (!clientSecret) return;
+      if (!clientSecret) {
+        setBalanceError("missing authentication");
+        setIsLoadingBalances(false);
+        return;
+      }
 
       const cacheKey = makeCacheKey(sessionId, walletData);
 
@@ -129,9 +136,17 @@ export function useWalletFlow(
             fetchedAt: Date.now(),
           };
         }
-        if (currentFetchRef.current === cacheKey) setBalances(result);
+        if (currentFetchRef.current === cacheKey) {
+          setBalances(result);
+          setBalanceError(null);
+        }
       } catch (err) {
         console.error("failed to fetch balances:", err);
+        if (currentFetchRef.current === cacheKey) {
+          setBalanceError(
+            err instanceof Error ? err.message : t.somethingWentWrong,
+          );
+        }
       } finally {
         if (currentFetchRef.current === cacheKey) setIsLoadingBalances(false);
       }
@@ -231,6 +246,13 @@ export function useWalletFlow(
     },
     [fetchBalances],
   );
+
+  const retryBalances = useCallback(() => {
+    if (wallet) {
+      setBalanceError(null);
+      fetchBalances(wallet, true);
+    }
+  }, [wallet, fetchBalances]);
 
   const retryConnect = useCallback(async () => {
     if (solanaProviderRef.current) {
@@ -378,10 +400,12 @@ export function useWalletFlow(
     isConnecting,
     isLoadingBalances,
     connectError,
+    balanceError,
     connect,
     connectWithProvider,
     connectWithSolanaProvider,
     retryConnect,
+    retryBalances,
     sendTransaction,
   };
 }

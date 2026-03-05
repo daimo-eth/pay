@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef } from "react";
 
-import { CloseIcon } from "./icons.js";
 import { t } from "../hooks/locale.js";
+import { CloseIcon } from "./icons.js";
 
 const DEFAULT_MIN_HEIGHT = 320;
 
@@ -79,7 +79,9 @@ export function ModalContainer({
     ? "daimo-modal-backdrop fixed inset-0 z-50 bg-black/50"
     : "fixed inset-0 z-50 bg-black/50";
 
-  const overflow = maxHeight ? "overflow-hidden" : "max-h-[90vh] overflow-y-auto";
+  const overflow = maxHeight
+    ? "overflow-hidden"
+    : "max-h-[90vh] overflow-y-auto";
   const baseContentClass = `relative w-full max-w-md ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-lg)] sm:rounded-[var(--daimo-radius-lg)] shadow-lg flex flex-col`;
   const contentClass = animate
     ? `daimo-modal-content ${baseContentClass}`
@@ -94,12 +96,14 @@ export function ModalContainer({
       {/* Backdrop with fade-in - click to close */}
       <div className={backdropClass} onClick={onClose} />
       {/* Modal container - bottom aligned for thumb reachability */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-0 sm:px-4 sm:pb-4">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none px-0 sm:px-4 sm:pb-4">
         <div
           ref={contentRef}
-          className={contentClass}
+          className={`pointer-events-auto ${contentClass}`}
           style={{
-            minHeight: maxHeight ? Math.min(DEFAULT_MIN_HEIGHT, maxHeight) : DEFAULT_MIN_HEIGHT,
+            minHeight: maxHeight
+              ? Math.min(DEFAULT_MIN_HEIGHT, maxHeight)
+              : DEFAULT_MIN_HEIGHT,
             ...(maxHeight ? { maxHeight } : {}),
           }}
           onClick={(e) => e.stopPropagation()}
@@ -147,7 +151,10 @@ export function EmbeddedContainer({
 }: ContainerProps) {
   return (
     <div className="bg-transparent flex flex-col items-center">
-      <div className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col" style={{ minHeight: DEFAULT_MIN_HEIGHT }}>
+      <div
+        className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col"
+        style={{ minHeight: DEFAULT_MIN_HEIGHT }}
+      >
         {children}
         {showFooterSpacer && <div className="h-8" />}
       </div>

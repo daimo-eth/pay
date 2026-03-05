@@ -127,7 +127,7 @@ export function ConfirmationPage({
         {status === "done" && returnUrl && (
           <a
             href={returnUrl}
-            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-semibold bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.97] touch-action-manipulation transition-[background-color,transform] duration-150 ease-out text-center flex items-center justify-center"
+            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-semibold bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease text-center flex items-center justify-center"
           >
             {t.returnToApp}
           </a>

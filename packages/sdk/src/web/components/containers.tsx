@@ -82,7 +82,7 @@ export function ModalContainer({
   const overflow = maxHeight
     ? "overflow-hidden"
     : "max-h-[90vh] overflow-y-auto";
-  const baseContentClass = `relative w-full max-w-md ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-lg)] sm:rounded-[var(--daimo-radius-lg)] shadow-lg flex flex-col`;
+  const baseContentClass = `relative w-full max-w-md ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-xl)] sm:rounded-[var(--daimo-radius-xl)] shadow-lg flex flex-col`;
   const contentClass = animate
     ? `daimo-modal-content ${baseContentClass}`
     : baseContentClass;

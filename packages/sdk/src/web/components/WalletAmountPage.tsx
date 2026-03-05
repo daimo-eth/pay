@@ -223,7 +223,7 @@ export function WalletAmountPage({
           {/* Max button: 44px min tap target, touch-friendly */}
           <button
             onClick={handleMax}
-            className="px-3 py-1 min-h-[44px] min-w-[44px] text-sm font-normal rounded-full bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.95] touch-action-manipulation transition-[background-color,transform] duration-150 ease-out"
+            className="px-3 py-1 min-h-[44px] min-w-[44px] text-sm font-normal rounded-full bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease"
           >
             {t.max}
           </button>

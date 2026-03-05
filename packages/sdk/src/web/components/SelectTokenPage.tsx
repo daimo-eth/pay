@@ -147,10 +147,10 @@ function TokenRow({ option, onSelect, disabled = false }: TokenRowProps) {
     <button
       onClick={() => !disabled && onSelect(option)}
       disabled={disabled}
-      className={`w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] text-left touch-action-manipulation transition-[background-color,transform] duration-150 ease-out ${
+      className={`w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] text-left touch-action-manipulation transition-[background-color] duration-100 ease ${
         disabled
           ? "opacity-50 cursor-not-allowed bg-[var(--daimo-surface-secondary)]"
-          : "bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.98]"
+          : "bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)]"
       }`}
     >
       <div className="flex-1 min-w-0 mr-3">

@@ -42,6 +42,7 @@
   --daimo-radius-sm: 0.5rem;
   --daimo-radius-md: 0.75rem;
   --daimo-radius-lg: 1rem;
+  --daimo-radius-xl: 20px;
 }
 
 /* Dark mode: system preference */

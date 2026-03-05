@@ -200,7 +200,7 @@ export function PageHeader({ title, onBack }: PageHeaderProps) {
         <button
           onClick={onBack}
           aria-label="Go back"
-          className="absolute left-2 min-w-[44px] min-h-[44px] flex items-center justify-center px-4 py-2 rounded-lg touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:bg-[var(--daimo-surface-secondary)] active:scale-[0.95] transition-[background-color,transform] duration-150 ease-out"
+          className="absolute left-2 min-w-[44px] min-h-[44px] flex items-center justify-center px-4 py-2 rounded-lg touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:bg-[var(--daimo-surface-secondary)] transition-[background-color] duration-100 ease"
         >
           <BackArrowIcon />
         </button>
@@ -444,7 +444,7 @@ export function CopyableInfoCard({
       onClick={handleCopy}
       disabled={disabled}
       aria-label={`Copy ${label}`}
-      className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-lg)] flex items-center justify-between touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.98] transition-[background-color,transform] duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-sm)] flex items-center justify-between touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-[background-color] duration-100 ease disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <div className="text-left">
         <p className="text-sm text-[var(--daimo-text-secondary)] font-medium mb-1">

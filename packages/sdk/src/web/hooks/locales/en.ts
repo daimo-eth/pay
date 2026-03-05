@@ -1,12 +1,12 @@
 /** English (default) strings for DaimoModal UI. */
 export const en = {
   // ConfirmationPage
-  confirmYourPayment: "Confirm your payment",
-  waitingForYourPayment: "Waiting for your payment",
+  confirmYourPayment: "Confirm Your Payment",
+  waitingForYourPayment: "Waiting for Your Payment",
   paymentReceived: "Payment Received",
-  processingYourPayment: "Processing your payment...",
+  processingYourPayment: "Processing Your Payment...",
   paymentCompleted: "Payment Completed",
-  refundingYourPayment: "Refunding your payment",
+  refundingYourPayment: "Refunding Your Payment",
   returnToApp: "Return to app",
   onChain: "on",
 

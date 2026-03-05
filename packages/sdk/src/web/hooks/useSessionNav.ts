@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   NavNode,
   NavNodeChooseOption,
@@ -5,7 +6,6 @@ import type {
   SessionWithNav,
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { formatUserError } from "./formatUserError.js";
@@ -307,7 +307,10 @@ export function useSessionNav(
   );
 
   const handleBack = useCallback(() => {
-    logNavEvent(session.sessionId, session.clientSecret, { ...getNodeCtx(), action: "nav_back" });
+    logNavEvent(session.sessionId, session.clientSecret, {
+      ...getNodeCtx(),
+      action: "nav_back",
+    });
 
     setStack((prev) => {
       if (prev.length === 0) return prev;
@@ -417,7 +420,10 @@ export function useSessionNav(
   }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl]);
 
   const handleRefresh = useCallback(async () => {
-    logNavEvent(session.sessionId, session.clientSecret, { ...getNodeCtx(), action: "flow_refresh" });
+    logNavEvent(session.sessionId, session.clientSecret, {
+      ...getNodeCtx(),
+      action: "flow_refresh",
+    });
 
     try {
       const { session: newSession } = await client.internal.sessions.recreate(
@@ -443,14 +449,25 @@ export function useSessionNav(
         pendingWalletRef.current = wallet;
         setStack((prev) => [
           ...prev,
-          { type: "wallet-choose-chain", nodeId: "InjectedWallet", walletName, walletIcon },
+          {
+            type: "wallet-choose-chain",
+            nodeId: "InjectedWallet",
+            walletName,
+            walletIcon,
+          },
         ]);
         return;
       }
 
       setStack((prev) => [
         ...prev,
-        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon, autoNav: true },
+        {
+          type: "wallet-connect",
+          nodeId: "InjectedWallet",
+          walletName,
+          walletIcon,
+          autoNav: true,
+        },
       ]);
       if (wallet.solanaProvider) {
         walletFlow?.connectWithSolanaProvider(wallet.solanaProvider);
@@ -469,7 +486,13 @@ export function useSessionNav(
 
       setStack((prev) => [
         ...prev,
-        { type: "wallet-connect", nodeId: "InjectedWallet", walletName, walletIcon, autoNav: true },
+        {
+          type: "wallet-connect",
+          nodeId: "InjectedWallet",
+          walletName,
+          walletIcon,
+          autoNav: true,
+        },
       ]);
 
       if (chain === "solana" && wallet.solanaProvider) {
@@ -554,11 +577,7 @@ export function useSessionNav(
   useEffect(() => {
     if (!isOpen) return;
 
-    if (
-      topEntry &&
-      topEntry.type !== "choose-option" &&
-      topEntry.type !== "deeplink"
-    ) {
+    if (topEntry && topEntry.type !== "choose-option") {
       return;
     }
 

@@ -319,6 +319,7 @@ export function useSessionNav(
         const top = next[next.length - 1];
         if (!top.autoNav) break;
         if (top.type === "select-amount") break;
+        if (top.type === "wallet-select-token") break;
         if (top.type === "choose-option") {
           const node = findNode(
             top.nodeId,
@@ -529,7 +530,6 @@ export function useSessionNav(
         })
         .catch((err) => {
           if (isUserRejection(err)) {
-            handleBack();
             return;
           }
           updateWalletTxResult(
@@ -538,7 +538,7 @@ export function useSessionNav(
           );
         });
     },
-    [walletFlow, handleBack, updateWalletTxResult],
+    [walletFlow, updateWalletTxResult],
   );
 
   const handleWalletSelectToken = useCallback(
@@ -610,7 +610,7 @@ export function useSessionNav(
     if (walletFlow?.isConnecting || !walletFlow?.wallet) return;
     setStack((prev) => [
       ...prev,
-      { type: "wallet-select-token", nodeId: topEntry.nodeId },
+      { type: "wallet-select-token", nodeId: topEntry.nodeId, autoNav: true },
     ]);
   }, [topEntry, walletFlow?.wallet, walletFlow?.isConnecting]);
 

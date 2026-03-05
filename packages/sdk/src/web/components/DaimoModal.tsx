@@ -482,7 +482,7 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 }
 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
-  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.onBack} />;
+  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {
@@ -492,7 +492,7 @@ function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amoun
 function renderWalletSending(entry: NavEntry & { type: "wallet-sending" }, ctx: RenderContext): React.ReactNode {
   if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onBack} />;
   return (
-    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} onBack={!entry.txHash ? ctx.onBack : undefined} actionVerb={ctx.session.display.verb} />
+    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} onBack={!entry.txHash ? ctx.onBack : undefined} />
   );
 }
 

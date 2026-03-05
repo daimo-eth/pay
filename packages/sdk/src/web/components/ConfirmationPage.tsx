@@ -1,10 +1,9 @@
+import { useEffect, useState } from "react";
 import { getChainName } from "../../common/chain.js";
 import type { SessionStatus } from "../../common/session.js";
-import { useEffect, useState } from "react";
 
-import { PrimaryButton } from "./buttons.js";
-import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
 import { t } from "../hooks/locale.js";
+import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
 import {
   PageHeader,
   ShowReceiptButton,
@@ -37,8 +36,6 @@ type ConfirmationPageProps = {
   returnLabel?: string;
   /** Back handler - only shown during "confirming" state */
   onBack?: () => void;
-  /** Verb for the CTA button during confirming state (e.g. "Deposit", "Pay") */
-  actionVerb?: string;
 };
 
 /**
@@ -60,7 +57,6 @@ export function ConfirmationPage({
   returnUrl,
   returnLabel,
   onBack,
-  actionVerb,
 }: ConfirmationPageProps) {
   const status = getConfirmationStatus(pendingTxHash, sessionState);
 
@@ -148,12 +144,6 @@ export function ConfirmationPage({
           status === "processing" ||
           status === "done") && <ShowReceiptButton sessionId={sessionId} />}
       </div>
-
-      {status === "confirming" && actionVerb && (
-        <div className="px-6 pb-6 flex flex-col items-center gap-3">
-          <PrimaryButton disabled>{actionVerb}</PrimaryButton>
-        </div>
-      )}
     </div>
   );
 }

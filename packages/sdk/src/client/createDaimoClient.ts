@@ -8,15 +8,12 @@ import type {
   TokenOptionsRequest,
   TokenOptionsResponse,
 } from "../common/api.js";
-import type { SessionWithNav, WalletPaymentOption } from "../web/api/index.js";
+import type {
+  RetrieveSessionWithNavResponse,
+  WalletOptionsResponse,
+} from "../web/api/index.js";
 
 import { createTransport, type TransportConfig } from "./transport.js";
-
-export type RetrieveSessionWithNavResponse = {
-  session: SessionWithNav;
-};
-
-export type WalletOptionsResponse = WalletPaymentOption[];
 
 export type DaimoClient = {
   sessions: {
@@ -42,6 +39,7 @@ export type DaimoClient = {
     sessions: {
       retrieveWithNav(
         sessionId: string,
+        clientSecret: string,
       ): Promise<RetrieveSessionWithNavResponse>;
       recreate(
         sessionId: string,
@@ -110,10 +108,11 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
 
     internal: {
       sessions: {
-        async retrieveWithNav(sessionId) {
+        async retrieveWithNav(sessionId, clientSecret) {
           return transport.request<RetrieveSessionWithNavResponse>({
             method: "GET",
             path: `/v1/sessions/${sessionId}/internal/nav`,
+            query: { clientSecret },
           });
         },
         async recreate(sessionId, clientSecret) {

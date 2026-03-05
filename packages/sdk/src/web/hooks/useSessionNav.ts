@@ -431,7 +431,7 @@ export function useSessionNav(
         session.clientSecret,
       );
       setStack([]);
-      setSession(newSession);
+      setSession({ ...newSession, clientSecret: session.clientSecret });
     } catch (error) {
       console.error("failed to recreate session:", error);
     }

@@ -1,8 +1,11 @@
 import type { Address } from "viem";
-import type { Session } from "../../common/session.js";
+import type { SessionPublicInfo } from "../../common/session.js";
 
 /** Session with navigation tree for the modal UI. */
-export type SessionWithNav = Session & { navTree: NavNode[] };
+export type SessionWithNav = SessionPublicInfo & {
+  clientSecret: string;
+  navTree: NavNode[];
+};
 
 type NavNodeCommon = {
   id: string;

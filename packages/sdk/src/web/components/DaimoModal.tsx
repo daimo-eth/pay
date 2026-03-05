@@ -113,7 +113,7 @@ export function DaimoModal(props: DaimoModalProps) {
 
   useEffect(() => {
     client.internal.sessions
-      .retrieveWithNav(sessionId)
+      .retrieveWithNav(sessionId, clientSecret)
       .then(({ session: s }) => setSession({ ...s, clientSecret }))
       .catch((err) => console.error("failed to fetch session:", err));
   }, [sessionId, clientSecret]);

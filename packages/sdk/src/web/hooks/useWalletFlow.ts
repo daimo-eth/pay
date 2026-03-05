@@ -1,15 +1,15 @@
-import { getChainName, solana } from "../../common/chain.js";
-import type { WalletPaymentOption } from "../api/walletTypes.js";
-import { isNativeToken } from "../../common/token.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Address, encodeFunctionData, getAddress, hexToBytes } from "viem";
+import { getChainName, solana } from "../../common/chain.js";
+import { isNativeToken } from "../../common/token.js";
+import type { WalletPaymentOption } from "../api/walletTypes.js";
 
 import type { DaimoClient } from "../../client/createDaimoClient.js";
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { t } from "./locale.js";
-import type { EthereumProvider, SolanaProvider } from "./walletProvider.js";
 import type { InjectedWallet } from "./useInjectedWallets.js";
+import type { EthereumProvider, SolanaProvider } from "./walletProvider.js";
 
 const erc20TransferAbi = [
   {
@@ -64,7 +64,7 @@ export function useWalletFlow(
   sessionId: string,
   destAddr: string,
   autoConnect: boolean,
-  clientSecret: string | undefined,
+  clientSecret: string,
   injectedWallets: InjectedWallet[],
 ): WalletFlowResult {
   const client = useDaimoClient();
@@ -83,7 +83,6 @@ export function useWalletFlow(
   const fetchBalances = useCallback(
     async (walletData: WalletData, showLoading: boolean) => {
       if (!walletData.evmAddress && !walletData.solAddress) return;
-      if (!clientSecret) return;
 
       const cacheKey = makeCacheKey(sessionId, walletData);
 
@@ -144,8 +143,12 @@ export function useWalletFlow(
     setIsConnecting(true);
 
     try {
-      const evmProvider = injectedWallets.find((w) => w.evmProvider)?.evmProvider;
-      const solProvider = injectedWallets.find((w) => w.solanaProvider)?.solanaProvider;
+      const evmProvider = injectedWallets.find(
+        (w) => w.evmProvider,
+      )?.evmProvider;
+      const solProvider = injectedWallets.find(
+        (w) => w.solanaProvider,
+      )?.solanaProvider;
 
       if (evmProvider) evmProviderRef.current = evmProvider;
       if (solProvider) solanaProviderRef.current = solProvider;
@@ -182,8 +185,7 @@ export function useWalletFlow(
         const accounts = (await provider.request({
           method: "eth_requestAccounts",
         })) as string[];
-        const evmAddress =
-          accounts?.length ? getAddress(accounts[0]) : null;
+        const evmAddress = accounts?.length ? getAddress(accounts[0]) : null;
 
         if (!evmAddress) {
           setConnectError(t.walletUnavailable);
@@ -213,8 +215,7 @@ export function useWalletFlow(
       solanaProviderRef.current = provider;
 
       try {
-        const pk =
-          provider.publicKey ?? (await provider.connect()).publicKey;
+        const pk = provider.publicKey ?? (await provider.connect()).publicKey;
         const solAddress = pk.toBase58();
 
         const walletData: WalletData = { evmAddress: null, solAddress };
@@ -343,7 +344,6 @@ export function useWalletFlow(
       amountUsd: number,
     ): Promise<{ txHash: string }> => {
       if (!wallet) throw new Error(t.walletUnavailable);
-      if (!clientSecret) throw new Error("missing client secret");
 
       const tokenInfo = token.balance.token;
       if (tokenInfo.chainId === solana.chainId) {

@@ -64,19 +64,19 @@ export function ErrorIcon({ className, size = 40 }: IconProps) {
 }
 
 /** Back arrow for navigation */
-export function BackArrowIcon({ className, size = 20 }: IconProps) {
+export function BackArrowIcon({ className, size = 9 }: IconProps) {
   return (
     <svg
-      width={size * 0.6}
-      height={size}
-      viewBox="0 0 12 20"
+      width={size}
+      height={Math.round((size * 16) / 9)}
+      viewBox="0 0 9 16"
       fill="none"
       className={className ?? "text-[var(--daimo-text-muted)]"}
     >
       <path
-        d="M10 18L2 10L10 2"
+        d="M8 1L1 8L8 15"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -84,22 +84,21 @@ export function BackArrowIcon({ className, size = 20 }: IconProps) {
   );
 }
 
-/** Close X icon for modal dismiss - matches BackArrowIcon style */
-export function CloseIcon({ className, size = 20 }: IconProps) {
+/** Close X icon for modal dismiss */
+export function CloseIcon({ className, size = 14 }: IconProps) {
   return (
     <svg
-      width={size * 0.6}
-      height={size * 0.6}
-      viewBox="0 0 12 12"
+      width={size}
+      height={size}
+      viewBox="0 0 14 14"
       fill="none"
       className={className ?? "text-[var(--daimo-text-muted)]"}
     >
       <path
-        d="M2 2L10 10M10 2L2 10"
+        d="M1 13L13 1M1 1L13 13"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

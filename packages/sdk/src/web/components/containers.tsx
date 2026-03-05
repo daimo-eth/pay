@@ -111,10 +111,10 @@ export function ModalContainer({
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute right-2 top-6 z-20 px-4 py-2"
+              className="absolute right-[17px] top-[22px] z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
               aria-label={t.close}
             >
-              <CloseIcon size={30} />
+              <CloseIcon />
             </button>
           )}
           <div className="flex-1 min-h-0 flex flex-col">{children}</div>

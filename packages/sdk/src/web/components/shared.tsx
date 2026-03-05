@@ -200,7 +200,7 @@ export function PageHeader({ title, onBack }: PageHeaderProps) {
         <button
           onClick={onBack}
           aria-label="Go back"
-          className="absolute left-2 min-w-[44px] min-h-[44px] flex items-center justify-center px-4 py-2 rounded-lg touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:bg-[var(--daimo-surface-secondary)] transition-[background-color] duration-100 ease"
+          className="absolute left-5 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
         >
           <BackArrowIcon />
         </button>

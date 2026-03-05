@@ -36,6 +36,10 @@
     "lint": "eslint --max-warnings=0"
   },
   "dependencies": {
+    "@scure/base": "^2.0.0",
+    "@solana/wallet-standard-features": "^1.3.0",
+    "@wallet-standard/app": "^1.1.0",
+    "@wallet-standard/features": "^1.1.0",
     "viem": "^2.43.4",
     "zod": "^3.24.2"
   },

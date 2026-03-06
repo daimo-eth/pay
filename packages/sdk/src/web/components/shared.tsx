@@ -51,7 +51,7 @@ const CHAIN_LOGOS: Record<SupportedChainId, string> = {
 
 export function useScrollBorder() {
   const [scrolled, setScrolled] = useState(false);
-  const [atBottom, setAtBottom] = useState(false);
+  const [atBottom, setAtBottom] = useState(true);
   const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     setScrolled(el.scrollTop > 0);
@@ -210,7 +210,7 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, onBack, borderVisible }: PageHeaderProps) {
   return (
-    <div className="sticky top-0 z-10 bg-[var(--daimo-surface)]">
+    <div className="sticky top-0 z-10 shrink-0 bg-[var(--daimo-surface)]">
       <div className="flex items-center justify-center p-6">
         {onBack && (
           <button
@@ -259,17 +259,20 @@ export function ScrollContent({
   onScroll,
   atBottom,
   fade,
+  grow = true,
 }: {
   children: ReactNode;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   atBottom?: boolean;
   fade?: boolean;
+  grow?: boolean;
 }) {
   const fadeClass = fade ? ` scroll-fade${atBottom ? " scroll-end" : ""}` : "";
   const padClass = fade ? "pb-0" : "pb-4";
+  const growClass = grow ? "flex-1" : "";
   return (
     <div
-      className={`flex-1 min-h-0 overflow-y-auto px-6 ${padClass}${fadeClass}`}
+      className={`${growClass} min-h-0 overflow-y-auto px-6 ${padClass}${fadeClass}`}
       onScroll={onScroll}
     >
       {children}

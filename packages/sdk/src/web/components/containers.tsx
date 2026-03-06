@@ -3,8 +3,6 @@ import { ReactNode, useEffect, useRef } from "react";
 import { t } from "../hooks/locale.js";
 import { CloseIcon } from "./icons.js";
 
-const DEFAULT_MIN_HEIGHT = 320;
-
 type ContainerProps = {
   children: ReactNode;
   showFooterSpacer?: boolean;
@@ -100,12 +98,7 @@ export function ModalContainer({
         <div
           ref={contentRef}
           className={`pointer-events-auto ${contentClass}`}
-          style={{
-            minHeight: maxHeight
-              ? Math.min(DEFAULT_MIN_HEIGHT, maxHeight)
-              : DEFAULT_MIN_HEIGHT,
-            ...(maxHeight ? { maxHeight } : {}),
-          }}
+          style={maxHeight ? { maxHeight } : undefined}
           onClick={(e) => e.stopPropagation()}
         >
           {onClose && (
@@ -153,7 +146,6 @@ export function EmbeddedContainer({
     <div className="bg-transparent flex flex-col items-center">
       <div
         className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col"
-        style={{ minHeight: DEFAULT_MIN_HEIGHT }}
       >
         {children}
         {showFooterSpacer && <div className="h-8" />}

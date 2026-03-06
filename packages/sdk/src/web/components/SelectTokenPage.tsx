@@ -42,8 +42,7 @@ export function SelectTokenPage({
           borderVisible={scrolled}
         />
         <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
-          {/* Bottom-up layout: items align to bottom when few, scroll normally when full. */}
-          <div className="min-h-full flex flex-col justify-end gap-3">
+          <div className="flex flex-col gap-3">
             {Array.from({ length: skeletonCount }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -75,8 +74,7 @@ export function SelectTokenPage({
             </p>
           </div>
         ) : (
-          /* Bottom-up layout: items align to bottom when few, scroll normally when full. */
-          <div className="min-h-full flex flex-col justify-end gap-3">
+          <div className="flex flex-col gap-3">
             {validOptions.map((option) => (
               <TokenRow
                 key={getTokenKey(option.balance.token)}

@@ -56,7 +56,7 @@ export function ChooseOptionPage({
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent onScroll={onScroll}>
+      <ScrollContent onScroll={onScroll} grow={false}>
         {useGridLayout ? (
           <div className="grid grid-cols-4 gap-2">
             {options.map((option) => (
@@ -81,7 +81,7 @@ export function ChooseOptionPage({
       </ScrollContent>
 
       {isRootPage && (
-        <div className="py-4 flex items-center justify-center gap-1.5">
+        <div className="mt-auto py-4 flex items-center justify-center gap-1.5">
           <DaimoLogoIcon size={14} />
           <span className="text-sm text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}

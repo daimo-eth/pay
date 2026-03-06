@@ -39,7 +39,7 @@ export function ChooseWalletPage({
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent onScroll={onScroll}>
+      <ScrollContent onScroll={onScroll} grow={false}>
         <div className="flex flex-col gap-3">
           {injectedWallets.map((w) => (
             <InjectedWalletRow

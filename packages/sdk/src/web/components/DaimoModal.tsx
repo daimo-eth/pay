@@ -291,7 +291,7 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; display: { verb: string } };
+  session: { sessionId: string; clientSecret: string; navTree: NavNode[] };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;

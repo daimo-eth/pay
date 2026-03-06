@@ -46,6 +46,7 @@ function makeCacheKey(sessionId: string, wallet: WalletData): string {
 export type WalletFlowResult = {
   hasInjectedWallet: boolean;
   wallet: WalletData | null;
+  connectedAddress: string | null;
   balances: WalletPaymentOption[] | null;
   isConnecting: boolean;
   isLoadingBalances: boolean;
@@ -79,6 +80,7 @@ export function useWalletFlow(
   const solanaProviderRef = useRef<SolanaProvider | null>(null);
 
   const hasInjectedWallet = injectedWallets.length > 0;
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
 
   const fetchBalances = useCallback(
     async (walletData: WalletData, showLoading: boolean) => {
@@ -266,6 +268,37 @@ export function useWalletFlow(
     }
   }, [autoConnect, connect, fetchBalances, hasInjectedWallet]);
 
+  // Passively detect already-authorized address for display (no wallet prompt)
+  useEffect(() => {
+    if (wallet) {
+      setConnectedAddress(wallet.evmAddress);
+      return;
+    }
+    if (isConnecting) return;
+
+    const evmProvider = injectedWallets.find((w) => w.evmProvider)?.evmProvider;
+    if (!evmProvider) {
+      setConnectedAddress(null);
+      return;
+    }
+
+    let cancelled = false;
+    evmProvider.request({ method: "eth_accounts" }).then(
+      (accts) => {
+        if (cancelled) return;
+        const accounts = accts as string[];
+        setConnectedAddress(accounts?.length ? getAddress(accounts[0]) : null);
+      },
+      () => {
+        if (!cancelled) setConnectedAddress(null);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [injectedWallets, wallet, isConnecting]);
+
   useEffect(() => {
     const ethereum =
       evmProviderRef.current ??
@@ -374,6 +407,7 @@ export function useWalletFlow(
   return {
     hasInjectedWallet,
     wallet,
+    connectedAddress,
     balances,
     isConnecting,
     isLoadingBalances,

@@ -303,6 +303,7 @@ type RenderContext = {
   onChainSelect: (chain: "evm" | "solana") => void;
   walletFlow: {
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
+    connectedAddress: string | null;
     balances: WalletPaymentOption[] | null;
     isConnecting: boolean;
     isLoadingBalances: boolean;
@@ -326,7 +327,7 @@ function renderEntry(
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
           injectedWallets={ctx.injectedWallets}
-          connectedAddress={ctx.walletFlow.wallet?.evmAddress}
+          connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={null}
         />
@@ -354,7 +355,7 @@ function renderEntry(
         <ChooseOptionPage
           node={node}
           injectedWallets={ctx.injectedWallets}
-          connectedAddress={ctx.walletFlow.wallet?.evmAddress}
+          connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={ctx.canGoBack ? ctx.onBack : null}
         />

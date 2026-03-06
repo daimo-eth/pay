@@ -44,7 +44,7 @@ function makeCacheKey(sessionId: string, wallet: WalletData): string {
 }
 
 export type WalletFlowResult = {
-  hasInjectedWallet: boolean;
+  isLoadingWallets: boolean;
   wallet: WalletData | null;
   connectedAddress: string | null;
   balances: WalletPaymentOption[] | null;
@@ -67,6 +67,7 @@ export function useWalletFlow(
   autoConnect: boolean,
   clientSecret: string,
   injectedWallets: InjectedWallet[],
+  isLoadingWallets: boolean,
 ): WalletFlowResult {
   const client = useDaimoClient();
 
@@ -79,7 +80,6 @@ export function useWalletFlow(
   const evmProviderRef = useRef<EthereumProvider | null>(null);
   const solanaProviderRef = useRef<SolanaProvider | null>(null);
 
-  const hasInjectedWallet = injectedWallets.length > 0;
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
 
   const fetchBalances = useCallback(
@@ -248,7 +248,6 @@ export function useWalletFlow(
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (hasInitialized.current) return;
-    hasInitialized.current = true;
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
@@ -256,6 +255,7 @@ export function useWalletFlow(
     const testSolWallet = params.get("testSolana");
 
     if (testEvmWallet || testSolWallet) {
+      hasInitialized.current = true;
       const evmAddress = testEvmWallet ? getAddress(testEvmWallet) : null;
       const walletData = { evmAddress, solAddress: testSolWallet };
       setWallet(walletData);
@@ -263,10 +263,11 @@ export function useWalletFlow(
       return;
     }
 
-    if (autoConnect && hasInjectedWallet) {
-      connect();
+    if (autoConnect && !isLoadingWallets) {
+      hasInitialized.current = true;
+      if (injectedWallets.length > 0) connect();
     }
-  }, [autoConnect, connect, fetchBalances, hasInjectedWallet]);
+  }, [autoConnect, connect, fetchBalances, isLoadingWallets, injectedWallets]);
 
   // Passively detect already-authorized address for display (no wallet prompt)
   useEffect(() => {
@@ -405,7 +406,7 @@ export function useWalletFlow(
   );
 
   return {
-    hasInjectedWallet,
+    isLoadingWallets,
     wallet,
     connectedAddress,
     balances,

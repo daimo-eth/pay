@@ -220,7 +220,7 @@ export function useSessionNav(
       }
 
       if (targetNode.type === "ConnectedWallet") {
-        if (!walletFlow?.wallet && !walletFlow?.isConnecting) {
+        if (!walletFlow?.wallet && !walletFlow?.isConnecting && !walletFlow?.isLoadingWallets) {
           walletFlow?.connect();
         }
         setStack((prev) => [
@@ -308,6 +308,7 @@ export function useSessionNav(
       fetchExchangeUrl,
       walletFlow?.wallet,
       walletFlow?.isConnecting,
+      walletFlow?.isLoadingWallets,
       walletFlow?.connect,
     ],
   );

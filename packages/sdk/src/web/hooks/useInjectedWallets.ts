@@ -11,7 +11,9 @@
  * single entry with both evmProvider and solanaProvider set.
  */
 import { getWallets } from "@wallet-standard/app";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const DISCOVERY_TIMEOUT_MS = 2000;
 
 import type {
   EthereumProvider,
@@ -86,8 +88,31 @@ function getInitialWallets(): InjectedWallet[] {
   return wallets;
 }
 
-export function useInjectedWallets(): InjectedWallet[] {
+export function useInjectedWallets(): {
+  wallets: InjectedWallet[];
+  isLoading: boolean;
+} {
   const [wallets, setWallets] = useState<InjectedWallet[]>(getInitialWallets);
+  const [isLoading, setIsLoading] = useState(
+    () => typeof window !== "undefined" && getInitialWallets().length === 0,
+  );
+  const isLoadingRef = useRef(isLoading);
+
+  // Timeout: stop waiting for async wallet discovery after DISCOVERY_TIMEOUT_MS
+  useEffect(() => {
+    if (!isLoadingRef.current) return;
+    const timer = setTimeout(() => {
+      isLoadingRef.current = false;
+      setIsLoading(false);
+    }, DISCOVERY_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const markLoaded = () => {
+    if (!isLoadingRef.current) return;
+    isLoadingRef.current = false;
+    setIsLoading(false);
+  };
 
   // EIP-6963 discovery. Any announcement supersedes the window.ethereum fallback.
   useEffect(() => {
@@ -96,6 +121,7 @@ export function useInjectedWallets(): InjectedWallet[] {
     const handleAnnounce = (event: Event) => {
       const { detail } = event as EIP6963AnnounceEvent;
       if (!detail?.info?.rdns) return;
+      markLoaded();
       setWallets((prev) => {
         if (prev.some((w) => w.info.rdns === detail.info.rdns)) return prev;
         const filtered = prev.filter((w) => w.info.rdns !== "standalone.evm");
@@ -141,6 +167,7 @@ export function useInjectedWallets(): InjectedWallet[] {
       const solanaProvider = wrapWalletStandard(stdWallet);
       if (!solanaProvider) return;
 
+      markLoaded();
       setWallets((prev) => {
         // Merge with existing EIP-6963 entry that lacks a Solana provider
         const evmIdx = findMergeable(prev, stdWallet.name, "solanaProvider");
@@ -179,5 +206,5 @@ export function useInjectedWallets(): InjectedWallet[] {
     return off;
   }, []);
 
-  return wallets;
+  return { wallets, isLoading };
 }

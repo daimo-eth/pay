@@ -195,13 +195,14 @@ function DaimoModalInner({
   const hasConnectedWallet = session.navTree.some(
     (n) => n.type === "ConnectedWallet",
   );
-  const injectedWallets = useInjectedWallets();
+  const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,
     depositAddress ?? "",
     hasConnectedWallet,
     session.clientSecret,
     injectedWallets,
+    isLoadingWallets,
   );
 
   const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);
@@ -303,6 +304,7 @@ type RenderContext = {
   onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onChainSelect: (chain: "evm" | "solana") => void;
   walletFlow: {
+    isLoadingWallets: boolean;
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
     connectedAddress: string | null;
     balances: WalletPaymentOption[] | null;
@@ -503,7 +505,8 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
       </div>
     );
   }
-  return <SelectTokenPage options={walletFlow.balances} isLoading={walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
+  const isLoading = walletFlow.isLoadingWallets || walletFlow.isConnecting || walletFlow.isLoadingBalances;
+  return <SelectTokenPage options={walletFlow.balances} isLoading={isLoading} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {

@@ -277,6 +277,57 @@ export function ScrollContent({
   );
 }
 
+// --- List Row ---
+
+export const LIST_ROW_CLASS =
+  "w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left touch-action-manipulation";
+
+type ListRowProps = {
+  label: string;
+  subtitle?: string;
+  right?: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+export function ListRow({
+  label,
+  subtitle,
+  right,
+  onClick,
+  disabled,
+}: ListRowProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${LIST_ROW_CLASS} transition-[background-color] duration-100 ease ${
+        disabled
+          ? "opacity-50 cursor-not-allowed !hover:bg-[var(--daimo-surface-secondary)]"
+          : ""
+      }`}
+    >
+      <div className="flex-1 min-w-0 mr-3">
+        <div
+          className={`text-base font-medium truncate ${
+            disabled
+              ? "text-[var(--daimo-text-muted)]"
+              : "text-[var(--daimo-text)]"
+          }`}
+        >
+          {label}
+        </div>
+        {subtitle && (
+          <div className="text-sm text-[var(--daimo-text-secondary)] truncate">
+            {subtitle}
+          </div>
+        )}
+      </div>
+      {right}
+    </button>
+  );
+}
+
 /** Centered content container for detail pages (icon + message + action). */
 export function CenteredContent({ children }: { children: ReactNode }) {
   return (

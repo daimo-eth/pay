@@ -117,7 +117,7 @@ export function ConfirmationPage({
                 ? `$${sourceAmountUsd.toFixed(2)} ${sourceTokenSymbol}`
                 : sourceTokenSymbol}
             </p>
-            <p className="text-lg text-[var(--daimo-text-secondary)]">
+            <p className="text-base text-[var(--daimo-text-secondary)]">
               {t.onChain} {chainName}
             </p>
           </div>
@@ -127,7 +127,7 @@ export function ConfirmationPage({
         {status === "done" && returnUrl && (
           <a
             href={returnUrl}
-            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-semibold bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease text-center flex items-center justify-center"
+            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-medium bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease text-center flex items-center justify-center"
           >
             {t.returnToApp}
           </a>

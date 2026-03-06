@@ -3,6 +3,7 @@ import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
 import { t } from "../hooks/locale.js";
 import {
+  ListRow,
   PageHeader,
   ScrollContent,
   resolveIconUrl,
@@ -128,13 +129,11 @@ function OptionRow({
   const label = option.label ?? option.title;
 
   return (
-    <button
+    <ListRow
+      label={label}
+      right={<OptionIcons option={option} />}
       onClick={onClick}
-      className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left"
-    >
-      <span className="text-[var(--daimo-text)] font-semibold">{label}</span>
-      <OptionIcons option={option} />
-    </button>
+    />
   );
 }
 

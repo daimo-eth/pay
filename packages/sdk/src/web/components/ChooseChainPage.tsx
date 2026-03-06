@@ -1,6 +1,6 @@
 import { ethereum, solana } from "../../common/chain.js";
 
-import { PageHeader, getChainLogoUrl } from "./shared.js";
+import { ListRow, PageHeader, getChainLogoUrl } from "./shared.js";
 
 type ChooseChainPageProps = {
   walletName: string;
@@ -55,16 +55,16 @@ function ChainRow({
   onClick: () => void;
 }) {
   return (
-    <button
+    <ListRow
+      label={label}
+      right={
+        <img
+          src={icon}
+          alt={label}
+          className="w-8 h-8 object-contain rounded-full"
+        />
+      }
       onClick={onClick}
-      className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left"
-    >
-      <span className="text-[var(--daimo-text)] font-semibold">{label}</span>
-      <img
-        src={icon}
-        alt={label}
-        className="w-8 h-8 object-contain rounded-full"
-      />
-    </button>
+    />
   );
 }

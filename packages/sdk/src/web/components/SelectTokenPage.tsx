@@ -3,6 +3,8 @@ import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
 import {
+  LIST_ROW_CLASS,
+  ListRow,
   PageHeader,
   ScrollContent,
   TokenIconWithChainBadge,
@@ -100,7 +102,7 @@ export function SelectTokenPage({
 /** Skeleton loading row - matches TokenRow dimensions with token + chain badge */
 function SkeletonRow() {
   return (
-    <div className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] animate-pulse">
+    <div className={`${LIST_ROW_CLASS} animate-pulse`}>
       <div className="flex-1 min-w-0 mr-3">
         <div
           className="h-5 w-48 rounded mb-2"
@@ -159,32 +161,13 @@ function TokenRow({ option, onSelect, disabled = false }: TokenRowProps) {
       : `${tokenAmount} ${option.balance.token.symbol}`;
 
   return (
-    <button
-      onClick={() => !disabled && onSelect(option)}
+    <ListRow
+      label={title}
+      subtitle={subtitle}
+      right={<TokenIconWithChainBadge token={option.balance.token} size="sm" />}
+      onClick={() => onSelect(option)}
       disabled={disabled}
-      className={`w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] text-left touch-action-manipulation transition-[background-color] duration-100 ease ${
-        disabled
-          ? "opacity-50 cursor-not-allowed bg-[var(--daimo-surface-secondary)]"
-          : "bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)]"
-      }`}
-    >
-      <div className="flex-1 min-w-0 mr-3">
-        {/* Use tabular-nums for consistent number widths */}
-        <div
-          className={`font-semibold truncate tabular-nums ${
-            disabled
-              ? "text-[var(--daimo-text-muted)]"
-              : "text-[var(--daimo-text)]"
-          }`}
-        >
-          {title}
-        </div>
-        <div className="text-sm text-[var(--daimo-text-secondary)] truncate tabular-nums">
-          {subtitle}
-        </div>
-      </div>
-      <TokenIconWithChainBadge token={option.balance.token} size="sm" />
-    </button>
+    />
   );
 }
 

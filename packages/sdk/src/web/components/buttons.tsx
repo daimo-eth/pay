@@ -22,7 +22,7 @@ export function PrimaryButton({
 }: ButtonProps) {
   // Base: min 44px tap target, prevent double-tap zoom
   const baseStyles =
-    "w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-semibold flex items-center justify-center gap-2 touch-action-manipulation transition-[background-color] duration-100 ease";
+    "w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-medium flex items-center justify-center gap-2 touch-action-manipulation transition-[background-color] duration-100 ease";
   const enabledStyles =
     "bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)]";
   const disabledStyles =

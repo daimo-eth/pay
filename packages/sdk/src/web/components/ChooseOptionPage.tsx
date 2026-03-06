@@ -12,6 +12,7 @@ import {
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
   injectedWallets?: InjectedWallet[];
+  connectedAddress?: string | null;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
 };
@@ -19,6 +20,7 @@ type ChooseOptionPageProps = {
 export function ChooseOptionPage({
   node,
   injectedWallets = [],
+  connectedAddress,
   onNavigate,
   onBack,
 }: ChooseOptionPageProps) {
@@ -30,13 +32,20 @@ export function ChooseOptionPage({
     .filter(
       (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
     )
-    // Replace generic ConnectedWallet icon with actual injected wallet icon
+    // Replace generic ConnectedWallet icon/label with actual wallet info
     .map((o) => {
-      if (o.type === "ConnectedWallet" && injectedWallets.length > 0) {
+      if (o.type !== "ConnectedWallet") return o;
+      let updated = o;
+      if (injectedWallets.length > 0) {
         const walletIcon = injectedWallets[0].info.icon;
-        if (walletIcon) return { ...o, icon: walletIcon };
+        if (walletIcon) updated = { ...updated, icon: walletIcon };
       }
-      return o;
+      if (connectedAddress) {
+        const verb = node.title.split(" ")[0] || "Pay";
+        const short = `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
+        updated = { ...updated, label: `${verb} with ${short}` };
+      }
+      return updated;
     });
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;

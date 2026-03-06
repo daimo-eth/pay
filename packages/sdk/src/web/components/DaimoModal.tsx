@@ -326,6 +326,7 @@ function renderEntry(
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
           injectedWallets={ctx.injectedWallets}
+          connectedAddress={ctx.walletFlow.wallet?.evmAddress}
           onNavigate={ctx.onNavigate}
           onBack={null}
         />
@@ -353,6 +354,7 @@ function renderEntry(
         <ChooseOptionPage
           node={node}
           injectedWallets={ctx.injectedWallets}
+          connectedAddress={ctx.walletFlow.wallet?.evmAddress}
           onNavigate={ctx.onNavigate}
           onBack={ctx.canGoBack ? ctx.onBack : null}
         />

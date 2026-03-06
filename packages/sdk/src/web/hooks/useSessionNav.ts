@@ -220,9 +220,12 @@ export function useSessionNav(
       }
 
       if (targetNode.type === "ConnectedWallet") {
+        if (!walletFlow?.wallet && !walletFlow?.isConnecting) {
+          walletFlow?.connect();
+        }
         setStack((prev) => [
           ...prev,
-          { type: "wallet-connect", nodeId, autoNav },
+          { type: "wallet-select-token", nodeId, autoNav },
         ]);
         return;
       }
@@ -303,6 +306,9 @@ export function useSessionNav(
       getNodeCtx,
       fetchTronAddress,
       fetchExchangeUrl,
+      walletFlow?.wallet,
+      walletFlow?.isConnecting,
+      walletFlow?.connect,
     ],
   );
 

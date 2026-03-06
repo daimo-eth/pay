@@ -306,7 +306,7 @@ export function ListRow({
       disabled={disabled}
       className={`${LIST_ROW_CLASS} transition-[background-color] duration-100 ease ${
         disabled
-          ? "opacity-50 cursor-not-allowed !hover:bg-[var(--daimo-surface-secondary)]"
+          ? "opacity-50 cursor-not-allowed hover:[@media(hover:hover)]:!bg-[var(--daimo-surface-secondary)]"
           : ""
       }`}
     >

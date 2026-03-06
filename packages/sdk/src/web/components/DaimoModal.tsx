@@ -485,7 +485,20 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 }
 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
-  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} />;
+  const { walletFlow } = ctx;
+  // Show error if wallet connection failed (e.g. ConnectedWallet skips wallet-connect page)
+  if (!walletFlow.isLoadingBalances && walletFlow.balances === null && walletFlow.connectError) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <PageHeader title={t.selectToken} onBack={ctx.canGoBack ? ctx.onBack : null} borderVisible={false} />
+        <CenteredContent>
+          <SharedErrorMessage message={walletFlow.connectError} />
+          <PrimaryButton onClick={walletFlow.retryConnect}>{t.tryAgain}</PrimaryButton>
+        </CenteredContent>
+      </div>
+    );
+  }
+  return <SelectTokenPage options={walletFlow.balances} isLoading={walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {

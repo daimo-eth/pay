@@ -271,7 +271,7 @@ export function useWalletFlow(
   // Passively detect already-authorized address for display (no wallet prompt)
   useEffect(() => {
     if (wallet) {
-      setConnectedAddress(wallet.evmAddress);
+      setConnectedAddress(wallet.evmAddress ?? wallet.solAddress);
       return;
     }
     if (isConnecting) return;

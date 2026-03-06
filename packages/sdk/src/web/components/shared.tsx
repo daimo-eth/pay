@@ -132,7 +132,7 @@ export function AmountInput({
   const inputWidth =
     inputValue.length === 0
       ? "3.55ch"
-      : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.45, 10)}ch`;
+      : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.55, 10)}ch`;
 
   const label = showMinWarning
     ? `${t.minimum} $${minimumUsd.toFixed(2)}`
@@ -142,8 +142,8 @@ export function AmountInput({
 
   const labelClass =
     showMinWarning || showMaxWarning
-      ? "text-sm text-[var(--daimo-text)]"
-      : "text-sm text-[var(--daimo-text-secondary)]";
+      ? "text-base text-[var(--daimo-text)]"
+      : "text-base text-[var(--daimo-text-secondary)]";
 
   // $ sign color: placeholder when empty, text color when typed
   const dollarColor = inputValue
@@ -151,9 +151,9 @@ export function AmountInput({
     : "text-[var(--daimo-placeholder)]";
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-3">
       <div className="flex items-center justify-center gap-1">
-        <span className={`text-3xl font-semibold ${dollarColor}`}>$</span>
+        <span className={`text-[24px] font-semibold ${dollarColor}`}>$</span>
         <input
           type="text"
           inputMode="decimal"
@@ -161,11 +161,12 @@ export function AmountInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
-          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
+          className="bg-transparent font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
           style={{
             width: inputWidth,
             minWidth: "1ch",
             maxWidth: "10ch",
+            fontSize: "clamp(16px, 30px, 30px)", // 30px with 16px min to prevent iOS zoom
           }}
           autoFocus
         />

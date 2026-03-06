@@ -1,9 +1,9 @@
+import { TokenLogo } from "../../common/token.js";
 import type { NavNodeDepositAddress } from "../api/navTree.js";
 import type { DaimoPayToken } from "../api/walletTypes.js";
-import { TokenLogo } from "../../common/token.js";
 
-import { PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
+import { PrimaryButton } from "./buttons.js";
 import {
   AmountInput,
   PageHeader,
@@ -68,9 +68,9 @@ export function SelectAmountPage({
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={t.selectAmount} onBack={onBack} />
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center p-6 gap-6">
+      <div className="flex-1 flex flex-col items-center p-6">
         {/* Logo - Token with chain badge when available */}
-        <div className="h-24 flex items-center justify-center">
+        <div className="h-24 flex items-center justify-center mb-3">
           {displayToken ? (
             <TokenIconWithChainBadge
               token={displayToken}
@@ -89,21 +89,24 @@ export function SelectAmountPage({
         </div>
 
         {/* Amount input */}
-        <AmountInput
-          minimumUsd={minimumUsd}
-          maximumUsd={maximumUsd}
-          onSubmit={onContinue}
-          onChange={handleChange}
-        />
+        <div className="mb-6">
+          <AmountInput
+            minimumUsd={minimumUsd}
+            maximumUsd={maximumUsd}
+            onSubmit={onContinue}
+            onChange={handleChange}
+          />
+        </div>
 
         {/* Error message */}
         {error && (
-          <div className="text-red-500 text-sm text-center">{error}</div>
+          <div className="text-red-500 text-sm text-center mb-3">{error}</div>
         )}
 
         <PrimaryButton
           onClick={() => isValid && !isLoading && onContinue(amountUsd)}
           disabled={!isValid || isLoading}
+          className="max-w-none"
         >
           {isLoading ? t.loading : t.continue}
         </PrimaryButton>

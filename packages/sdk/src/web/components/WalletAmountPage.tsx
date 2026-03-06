@@ -1,9 +1,9 @@
-import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { useCallback, useEffect, useState } from "react";
 import { formatUnits } from "viem";
+import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
-import { PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
+import { PrimaryButton } from "./buttons.js";
 import { PageHeader, TokenIconWithChainBadge } from "./shared.js";
 
 /** Check if device supports touch (to avoid autofocus on mobile) */
@@ -139,7 +139,7 @@ export function WalletAmountPage({
   const inputWidth =
     currentValue.length === 0
       ? "3.55ch"
-      : `${Math.min(currentValue.length - (currentValue.match(/\./g) || []).length * 0.45, 10)}ch`;
+      : `${Math.min(currentValue.length - (currentValue.match(/\./g) || []).length * 0.55, 10)}ch`;
 
   // Balance/warning message
   const maxTokenAmountUnits = Number(
@@ -166,10 +166,10 @@ export function WalletAmountPage({
     return getBalanceMessage();
   };
 
-  const messageClass =
+  const messageColor =
     showMinWarning || showMaxWarning
-      ? "text-sm text-[var(--daimo-text)]"
-      : "text-sm text-[var(--daimo-text-secondary)]";
+      ? "text-[var(--daimo-text)]"
+      : "text-[var(--daimo-text-secondary)]";
 
   // Secondary amount for switch button
   const secondaryAmount = isEditingUsd
@@ -179,19 +179,21 @@ export function WalletAmountPage({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader title={t.enterAmount} onBack={onBack} />
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
         {/* Token logo with chain badge */}
-        <TokenIconWithChainBadge token={balanceToken} size="lg" />
+        <div className="mb-3">
+          <TokenIconWithChainBadge token={balanceToken} size="lg" />
+        </div>
 
         {/* Amount input with Max button */}
         <div className="flex items-center justify-center gap-2">
           {/* Invisible spacer for balance */}
-          <button className="invisible px-3 py-1 text-sm min-h-[44px]">{t.max}</button>
+          <span className="invisible py-[3px] px-2 text-sm">{t.max}</span>
 
           <div className="flex items-center justify-center gap-1">
             {isEditingUsd && (
               <span
-                className={`text-3xl font-semibold tabular-nums ${usdStr ? "text-[var(--daimo-text)]" : "text-[var(--daimo-placeholder)]"}`}
+                className={`text-[24px] font-semibold tabular-nums ${usdStr ? "text-[var(--daimo-text)]" : "text-[var(--daimo-placeholder)]"}`}
               >
                 $
               </span>
@@ -204,50 +206,53 @@ export function WalletAmountPage({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="0.00"
-              className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] tabular-nums ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
+              className="bg-transparent font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] tabular-nums ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
               style={{
                 width: inputWidth,
                 minWidth: "1ch",
                 maxWidth: "10ch",
-                fontSize: "clamp(16px, 3rem, 3rem)", // Ensure 16px minimum for iOS
+                fontSize: "clamp(16px, 30px, 30px)", // 30px with 16px min to prevent iOS zoom
               }}
               autoFocus={shouldAutoFocus}
             />
             {!isEditingUsd && (
-              <span className="text-xl font-semibold text-[var(--daimo-text-muted)]">
+              <span className="text-base font-normal text-[var(--daimo-text-muted)]">
                 {balanceToken.symbol}
               </span>
             )}
           </div>
 
-          {/* Max button: 44px min tap target, touch-friendly */}
+          {/* Max button: compact pill */}
           <button
             onClick={handleMax}
-            className="px-3 py-1 min-h-[44px] min-w-[44px] text-sm font-normal rounded-full bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease"
+            className="py-[3px] px-2 text-sm font-normal rounded-full bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease"
           >
             {t.max}
           </button>
         </div>
 
-        {/* Currency switch for non-USD tokens - simple text button like connectkit */}
+        {/* Currency switch for non-USD tokens */}
         {!isUsdStablecoin && (
-          <button
-            onClick={handleSwitchCurrency}
-            className="flex items-center gap-1 min-h-[44px] px-4 hover:[@media(hover:hover)]:opacity-70 active:opacity-50 touch-action-manipulation transition-opacity duration-150 ease"
-          >
-            <SwitchIcon />
-            <span className="text-base text-[var(--daimo-text-secondary)] tabular-nums">
-              {secondaryAmount}
-            </span>
-          </button>
+          <div>
+            <SwitchButton
+              onClick={handleSwitchCurrency}
+              secondaryAmount={secondaryAmount}
+              isEditingUsd={isEditingUsd}
+            />
+          </div>
         )}
 
         {/* Balance / warning message - tabular-nums for stable number widths */}
-        <p className={`${messageClass} tabular-nums`}>{getMessage()}</p>
+        <p
+          className={`${messageColor} text-base font-normal leading-[21px] tabular-nums mb-6`}
+        >
+          {getMessage()}
+        </p>
 
         <PrimaryButton
           onClick={() => isValid && onContinue(amountUsd)}
           disabled={!isValid}
+          className="max-w-none"
         >
           {t.continue}
         </PrimaryButton>
@@ -277,22 +282,42 @@ function stripTrailingZeros(val: string): string {
   return val.includes(".") ? val.replace(/\.?0+$/, "") : val;
 }
 
-function SwitchIcon() {
+function SwitchButton({
+  onClick,
+  secondaryAmount,
+  isEditingUsd,
+}: {
+  onClick: () => void;
+  secondaryAmount: string;
+  isEditingUsd: boolean;
+}) {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      className="text-[var(--daimo-text-muted)]"
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 py-3 px-4 hover:[@media(hover:hover)]:opacity-70 active:opacity-50 touch-action-manipulation transition-opacity duration-150 ease"
     >
-      <path
-        d="M7 10L12 5L17 10M17 14L12 19L7 14"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="text-[var(--daimo-text-muted)]"
+        style={{
+          transform: isEditingUsd ? "scaleY(1)" : "scaleY(-1)",
+          transition: "transform 0.2s ease-in-out",
+        }}
+      >
+        <path
+          d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="text-base font-normal leading-[21px] text-[var(--daimo-text-secondary)] tabular-nums">
+        {secondaryAmount}
+      </span>
+    </button>
   );
 }

@@ -44,7 +44,6 @@ function makeCacheKey(sessionId: string, wallet: WalletData): string {
 }
 
 export type WalletFlowResult = {
-  isLoadingWallets: boolean;
   wallet: WalletData | null;
   connectedAddress: string | null;
   balances: WalletPaymentOption[] | null;
@@ -67,7 +66,6 @@ export function useWalletFlow(
   autoConnect: boolean,
   clientSecret: string,
   injectedWallets: InjectedWallet[],
-  isLoadingWallets: boolean,
 ): WalletFlowResult {
   const client = useDaimoClient();
 
@@ -245,6 +243,7 @@ export function useWalletFlow(
     }
   }, [connectWithSolanaProvider, connectWithProvider, connect]);
 
+  // One-shot: test wallet URL params
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -260,14 +259,25 @@ export function useWalletFlow(
       const walletData = { evmAddress, solAddress: testSolWallet };
       setWallet(walletData);
       fetchBalances(walletData, true);
-      return;
     }
+  }, [fetchBalances]);
 
-    if (autoConnect && !isLoadingWallets) {
-      hasInitialized.current = true;
-      if (injectedWallets.length > 0) connect();
-    }
-  }, [autoConnect, connect, fetchBalances, isLoadingWallets, injectedWallets]);
+  // Reactive auto-connect: connect when new providers appear
+  const triedWalletsRef = useRef<InjectedWallet[] | null>(null);
+  useEffect(() => {
+    if (!autoConnect || isConnecting || hasInitialized.current) return;
+    if (injectedWallets.length === 0) return;
+    if (injectedWallets === triedWalletsRef.current) return;
+
+    const needsEvm =
+      injectedWallets.some((w) => w.evmProvider) && !wallet?.evmAddress;
+    const needsSol =
+      injectedWallets.some((w) => w.solanaProvider) && !wallet?.solAddress;
+    if (!needsEvm && !needsSol) return;
+
+    triedWalletsRef.current = injectedWallets;
+    connect();
+  }, [autoConnect, injectedWallets, wallet, isConnecting, connect]);
 
   // Passively detect already-authorized address for display (no wallet prompt)
   useEffect(() => {
@@ -406,7 +416,6 @@ export function useWalletFlow(
   );
 
   return {
-    isLoadingWallets,
     wallet,
     connectedAddress,
     balances,

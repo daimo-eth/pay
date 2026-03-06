@@ -1,6 +1,6 @@
 {
   "name": "@daimo/sdk",
-  "version": "1.0.2",
+  "version": "1.0.3-dev",
   "description": "Daimo SDK - universal ramp for stablecoin apps",
   "author": "Daimo",
   "license": "BSD-2-Clause",

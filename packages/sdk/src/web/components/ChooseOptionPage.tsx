@@ -2,6 +2,7 @@ import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
 import { t } from "../hooks/locale.js";
+import { DaimoLogoIcon } from "./icons.js";
 import {
   ListRow,
   PageHeader,
@@ -80,7 +81,8 @@ export function ChooseOptionPage({
       </ScrollContent>
 
       {isRootPage && (
-        <div className="py-4 text-center">
+        <div className="py-4 flex items-center justify-center gap-1.5">
+          <DaimoLogoIcon size={14} />
           <span className="text-sm text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}
           </span>

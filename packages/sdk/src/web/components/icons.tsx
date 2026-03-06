@@ -145,6 +145,38 @@ export function CopyIcon({
   );
 }
 
+/** Daimo asterisk logo */
+export function DaimoLogoIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="70 78 160 144"
+      fill="none"
+      className={className ?? "text-[var(--daimo-text-muted)]"}
+    >
+      <path
+        d="M180 202L120 98"
+        stroke="currentColor"
+        strokeWidth="34"
+        strokeLinecap="round"
+      />
+      <path
+        d="M210 150L90 150"
+        stroke="currentColor"
+        strokeWidth="34"
+        strokeLinecap="round"
+      />
+      <path
+        d="M180 98L120 202"
+        stroke="currentColor"
+        strokeWidth="34"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /** External link icon */
 export function ExternalLinkIcon({ className, size = 16 }: IconProps) {
   return (

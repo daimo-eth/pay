@@ -1,3 +1,4 @@
+import { ReactNode, useCallback, useState } from "react";
 import {
   arbitrum,
   base,
@@ -18,10 +19,9 @@ import {
   worldchain,
 } from "../../common/chain.js";
 import type { DaimoPayToken } from "../api/walletTypes.js";
-import { ReactNode, useCallback, useState } from "react";
 
-import { BackArrowIcon, CopyIcon } from "./icons.js";
 import { t } from "../hooks/locale.js";
+import { BackArrowIcon, CopyIcon } from "./icons.js";
 
 export { BackArrowIcon };
 
@@ -46,6 +46,19 @@ const CHAIN_LOGOS: Record<SupportedChainId, string> = {
   [tron.chainId]: "tron.svg",
   [worldchain.chainId]: "worldchain.svg",
 };
+
+// --- Scroll Border Hook ---
+
+export function useScrollBorder() {
+  const [scrolled, setScrolled] = useState(false);
+  const [atBottom, setAtBottom] = useState(true);
+  const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    setScrolled(el.scrollTop > 0);
+    setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 1);
+  }, []);
+  return { scrolled, atBottom, onScroll };
+}
 
 // --- Copy to Clipboard Hook ---
 
@@ -119,7 +132,7 @@ export function AmountInput({
   const inputWidth =
     inputValue.length === 0
       ? "3.55ch"
-      : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.45, 10)}ch`;
+      : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.55, 10)}ch`;
 
   const label = showMinWarning
     ? `${t.minimum} $${minimumUsd.toFixed(2)}`
@@ -129,8 +142,8 @@ export function AmountInput({
 
   const labelClass =
     showMinWarning || showMaxWarning
-      ? "text-sm text-[var(--daimo-text)]"
-      : "text-sm text-[var(--daimo-text-secondary)]";
+      ? "text-base text-[var(--daimo-text)]"
+      : "text-base text-[var(--daimo-text-secondary)]";
 
   // $ sign color: placeholder when empty, text color when typed
   const dollarColor = inputValue
@@ -138,9 +151,9 @@ export function AmountInput({
     : "text-[var(--daimo-placeholder)]";
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-3">
       <div className="flex items-center justify-center gap-1">
-        <span className={`text-3xl font-semibold ${dollarColor}`}>$</span>
+        <span className={`text-[24px] font-semibold ${dollarColor}`}>$</span>
         <input
           type="text"
           inputMode="decimal"
@@ -148,11 +161,12 @@ export function AmountInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
-          className="bg-transparent text-5xl font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
+          className="bg-transparent font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
           style={{
             width: inputWidth,
             minWidth: "1ch",
             maxWidth: "10ch",
+            fontSize: "clamp(16px, 30px, 30px)", // 30px with 16px min to prevent iOS zoom
           }}
           autoFocus
         />
@@ -191,23 +205,32 @@ export function resolveIconUrl(icon: string): string {
 type PageHeaderProps = {
   title: string;
   onBack?: (() => void) | null;
+  borderVisible?: boolean;
 };
 
-export function PageHeader({ title, onBack }: PageHeaderProps) {
+export function PageHeader({ title, onBack, borderVisible }: PageHeaderProps) {
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-center p-6 bg-[var(--daimo-surface)]">
-      {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Go back"
-          className="absolute left-2 min-w-[44px] min-h-[44px] flex items-center justify-center px-4 py-2 rounded-lg touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:bg-[var(--daimo-surface-secondary)] active:scale-[0.95] transition-[background-color,transform] duration-150 ease-out"
-        >
-          <BackArrowIcon />
-        </button>
-      )}
-      <h1 className="text-lg font-semibold text-[var(--daimo-title)] text-balance">
-        {title}
-      </h1>
+    <div className="sticky top-0 z-10 shrink-0 bg-[var(--daimo-surface)]">
+      <div className="flex items-center justify-center p-6">
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Go back"
+            className="absolute left-5 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
+          >
+            <BackArrowIcon />
+          </button>
+        )}
+        <h1 className="text-lg font-semibold text-[var(--daimo-title)] text-balance">
+          {title}
+        </h1>
+      </div>
+      <div
+        className="mx-6 border-b transition-[border-color] duration-300 ease"
+        style={{
+          borderColor: borderVisible ? "var(--daimo-border)" : "transparent",
+        }}
+      />
     </div>
   );
 }
@@ -231,11 +254,80 @@ export function PageLogo({ icon, alt, size = "lg" }: PageLogoProps) {
 }
 
 /** Scrollable content area for list pages. Fills remaining space after header. */
-export function ScrollContent({ children }: { children: ReactNode }) {
+export function ScrollContent({
+  children,
+  onScroll,
+  atBottom,
+  fade,
+  grow = true,
+}: {
+  children: ReactNode;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  atBottom?: boolean;
+  fade?: boolean;
+  grow?: boolean;
+}) {
+  const fadeClass = fade ? ` scroll-fade${atBottom ? " scroll-end" : ""}` : "";
+  const padClass = fade ? "pb-0" : "pb-4";
+  const growClass = grow ? "flex-1" : "";
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto scroll-fade px-6 pb-4">
+    <div
+      className={`${growClass} min-h-0 overflow-y-auto px-6 ${padClass}${fadeClass}`}
+      onScroll={onScroll}
+    >
       {children}
     </div>
+  );
+}
+
+// --- List Row ---
+
+export const LIST_ROW_CLASS =
+  "w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left touch-action-manipulation";
+
+type ListRowProps = {
+  label: string;
+  subtitle?: string;
+  right?: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+export function ListRow({
+  label,
+  subtitle,
+  right,
+  onClick,
+  disabled,
+}: ListRowProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${LIST_ROW_CLASS} transition-[background-color] duration-100 ease ${
+        disabled
+          ? "opacity-50 cursor-not-allowed hover:[@media(hover:hover)]:!bg-[var(--daimo-surface-secondary)]"
+          : ""
+      }`}
+    >
+      <div className="flex-1 min-w-0 mr-3">
+        <div
+          className={`text-base font-medium truncate ${
+            disabled
+              ? "text-[var(--daimo-text-muted)]"
+              : "text-[var(--daimo-text)]"
+          }`}
+        >
+          {label}
+        </div>
+        {subtitle && (
+          <div className="text-sm text-[var(--daimo-text-secondary)] truncate">
+            {subtitle}
+          </div>
+        )}
+      </div>
+      {right}
+    </button>
   );
 }
 
@@ -444,7 +536,7 @@ export function CopyableInfoCard({
       onClick={handleCopy}
       disabled={disabled}
       aria-label={`Copy ${label}`}
-      className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-lg)] flex items-center justify-between touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.98] transition-[background-color,transform] duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-sm)] flex items-center justify-between touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-[background-color] duration-100 ease disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <div className="text-left">
         <p className="text-sm text-[var(--daimo-text-secondary)] font-medium mb-1">

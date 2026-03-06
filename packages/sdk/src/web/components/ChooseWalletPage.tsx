@@ -1,7 +1,13 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
-import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
+import {
+  ListRow,
+  PageHeader,
+  ScrollContent,
+  resolveIconUrl,
+  useScrollBorder,
+} from "./shared.js";
 
 type ChooseWalletPageProps = {
   node: NavNodeChooseOption;
@@ -19,19 +25,21 @@ export function ChooseWalletPage({
   onNavigate,
   onBack,
 }: ChooseWalletPageProps) {
+  const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
   const deeplinkOptions = node.options.filter(
     (option) =>
-      option.type !== "Deeplink" || !injectedNames.has(option.title.toLowerCase()),
+      option.type !== "Deeplink" ||
+      !injectedNames.has(option.title.toLowerCase()),
   );
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={node.title} onBack={onBack} />
+      <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent>
+      <ScrollContent onScroll={onScroll} grow={false}>
         <div className="flex flex-col gap-3">
           {injectedWallets.map((w) => (
             <InjectedWalletRow
@@ -62,19 +70,17 @@ function InjectedWalletRow({
   onClick: () => void;
 }) {
   return (
-    <button
+    <ListRow
+      label={wallet.info.name}
+      right={
+        <img
+          src={wallet.info.icon}
+          alt={wallet.info.name}
+          className="w-8 h-8 object-contain rounded-[25%]"
+        />
+      }
       onClick={onClick}
-      className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left"
-    >
-      <span className="text-[var(--daimo-text)] font-semibold">
-        {wallet.info.name}
-      </span>
-      <img
-        src={wallet.info.icon}
-        alt={wallet.info.name}
-        className="w-8 h-8 object-contain rounded-[25%]"
-      />
-    </button>
+    />
   );
 }
 
@@ -89,18 +95,18 @@ function DeeplinkWalletRow({
   const icon = "icon" in option && option.icon ? option.icon : null;
 
   return (
-    <button
+    <ListRow
+      label={label}
+      right={
+        icon ? (
+          <img
+            src={resolveIconUrl(icon)}
+            alt={label}
+            className="w-8 h-8 object-contain rounded-[25%]"
+          />
+        ) : undefined
+      }
       onClick={onClick}
-      className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left"
-    >
-      <span className="text-[var(--daimo-text)] font-semibold">{label}</span>
-      {icon && (
-        <img
-          src={resolveIconUrl(icon)}
-          alt={label}
-          className="w-8 h-8 object-contain rounded-[25%]"
-        />
-      )}
-    </button>
+    />
   );
 }

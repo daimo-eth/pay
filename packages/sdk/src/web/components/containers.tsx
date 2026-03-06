@@ -1,9 +1,7 @@
 import { ReactNode, useEffect, useRef } from "react";
 
-import { CloseIcon } from "./icons.js";
 import { t } from "../hooks/locale.js";
-
-const DEFAULT_MIN_HEIGHT = 320;
+import { CloseIcon } from "./icons.js";
 
 type ContainerProps = {
   children: ReactNode;
@@ -79,8 +77,10 @@ export function ModalContainer({
     ? "daimo-modal-backdrop fixed inset-0 z-50 bg-black/50"
     : "fixed inset-0 z-50 bg-black/50";
 
-  const overflow = maxHeight ? "overflow-hidden" : "max-h-[90vh] overflow-y-auto";
-  const baseContentClass = `relative w-full max-w-md ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-lg)] sm:rounded-[var(--daimo-radius-lg)] shadow-lg flex flex-col`;
+  const overflow = maxHeight
+    ? "overflow-hidden"
+    : "max-h-[90vh] overflow-y-auto";
+  const baseContentClass = `relative w-full max-w-[420px] ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-xl)] sm:rounded-[var(--daimo-radius-xl)] shadow-lg flex flex-col`;
   const contentClass = animate
     ? `daimo-modal-content ${baseContentClass}`
     : baseContentClass;
@@ -94,23 +94,20 @@ export function ModalContainer({
       {/* Backdrop with fade-in - click to close */}
       <div className={backdropClass} onClick={onClose} />
       {/* Modal container - bottom aligned for thumb reachability */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-0 sm:px-4 sm:pb-4">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none px-0 sm:px-4 sm:pb-4">
         <div
           ref={contentRef}
-          className={contentClass}
-          style={{
-            minHeight: maxHeight ? Math.min(DEFAULT_MIN_HEIGHT, maxHeight) : DEFAULT_MIN_HEIGHT,
-            ...(maxHeight ? { maxHeight } : {}),
-          }}
+          className={`pointer-events-auto ${contentClass}`}
+          style={maxHeight ? { maxHeight } : undefined}
           onClick={(e) => e.stopPropagation()}
         >
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute right-2 top-6 z-20 px-4 py-2"
+              className="absolute right-[17px] top-[22px] z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
               aria-label={t.close}
             >
-              <CloseIcon size={30} />
+              <CloseIcon />
             </button>
           )}
           <div className="flex-1 min-h-0 flex flex-col">{children}</div>
@@ -147,7 +144,9 @@ export function EmbeddedContainer({
 }: ContainerProps) {
   return (
     <div className="bg-transparent flex flex-col items-center">
-      <div className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col" style={{ minHeight: DEFAULT_MIN_HEIGHT }}>
+      <div
+        className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col"
+      >
         {children}
         {showFooterSpacer && <div className="h-8" />}
       </div>

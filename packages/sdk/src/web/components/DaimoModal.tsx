@@ -291,7 +291,7 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; display: { verb: string } };
+  session: { sessionId: string; clientSecret: string; navTree: NavNode[] };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -303,6 +303,7 @@ type RenderContext = {
   onChainSelect: (chain: "evm" | "solana") => void;
   walletFlow: {
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
+    connectedAddress: string | null;
     balances: WalletPaymentOption[] | null;
     isConnecting: boolean;
     isLoadingBalances: boolean;
@@ -326,6 +327,7 @@ function renderEntry(
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
           injectedWallets={ctx.injectedWallets}
+          connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={null}
         />
@@ -353,6 +355,7 @@ function renderEntry(
         <ChooseOptionPage
           node={node}
           injectedWallets={ctx.injectedWallets}
+          connectedAddress={ctx.walletFlow.connectedAddress}
           onNavigate={ctx.onNavigate}
           onBack={ctx.canGoBack ? ctx.onBack : null}
         />
@@ -482,7 +485,20 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 }
 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
-  return <SelectTokenPage options={ctx.walletFlow.balances} isLoading={ctx.walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.onBack} />;
+  const { walletFlow } = ctx;
+  // Show error if wallet connection failed (e.g. ConnectedWallet skips wallet-connect page)
+  if (!walletFlow.isLoadingBalances && walletFlow.balances === null && walletFlow.connectError) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <PageHeader title={t.selectToken} onBack={ctx.canGoBack ? ctx.onBack : null} borderVisible={false} />
+        <CenteredContent>
+          <SharedErrorMessage message={walletFlow.connectError} />
+          <PrimaryButton onClick={walletFlow.retryConnect}>{t.tryAgain}</PrimaryButton>
+        </CenteredContent>
+      </div>
+    );
+  }
+  return <SelectTokenPage options={walletFlow.balances} isLoading={walletFlow.isLoadingBalances} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {
@@ -492,7 +508,7 @@ function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amoun
 function renderWalletSending(entry: NavEntry & { type: "wallet-sending" }, ctx: RenderContext): React.ReactNode {
   if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onBack} />;
   return (
-    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} onBack={!entry.txHash ? ctx.onBack : undefined} actionVerb={ctx.session.display.verb} />
+    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} rejected={entry.rejected} onRetry={ctx.onRetry} onBack={!entry.txHash ? ctx.onBack : undefined} />
   );
 }
 

@@ -56,6 +56,7 @@ export type NavEntry =
       amountUsd: number;
       txHash?: string;
       error?: string;
+      rejected?: boolean;
       autoNav?: boolean;
     };
 

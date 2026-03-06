@@ -2,11 +2,19 @@ import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
+import { DaimoLogoIcon } from "./icons.js";
+import {
+  ListRow,
+  PageHeader,
+  ScrollContent,
+  resolveIconUrl,
+  useScrollBorder,
+} from "./shared.js";
 
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
   injectedWallets?: InjectedWallet[];
+  connectedAddress?: string | null;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
 };
@@ -14,23 +22,41 @@ type ChooseOptionPageProps = {
 export function ChooseOptionPage({
   node,
   injectedWallets = [],
+  connectedAddress,
   onNavigate,
   onBack,
 }: ChooseOptionPageProps) {
+  const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
-  const options = node.options.filter(
-    (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
-  );
+  const options = node.options
+    .filter(
+      (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
+    )
+    // Replace generic ConnectedWallet icon/label with actual wallet info
+    .map((o) => {
+      if (o.type !== "ConnectedWallet") return o;
+      let updated = o;
+      if (injectedWallets.length > 0) {
+        const walletIcon = injectedWallets[0].info.icon;
+        if (walletIcon) updated = { ...updated, icon: walletIcon };
+      }
+      if (connectedAddress) {
+        const verb = node.title.split(" ")[0] || "Pay";
+        const short = `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
+        updated = { ...updated, label: `${verb} with ${short}` };
+      }
+      return updated;
+    });
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={node.title} onBack={onBack} />
+      <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent>
+      <ScrollContent onScroll={onScroll} grow={false}>
         {useGridLayout ? (
           <div className="grid grid-cols-4 gap-2">
             {options.map((option) => (
@@ -55,7 +81,8 @@ export function ChooseOptionPage({
       </ScrollContent>
 
       {isRootPage && (
-        <div className="py-4 text-center">
+        <div className="mt-auto py-4 flex items-center justify-center gap-1.5">
+          <DaimoLogoIcon size={14} />
           <span className="text-sm text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}
           </span>
@@ -104,13 +131,11 @@ function OptionRow({
   const label = option.label ?? option.title;
 
   return (
-    <button
+    <ListRow
+      label={label}
+      right={<OptionIcons option={option} />}
       onClick={onClick}
-      className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left"
-    >
-      <span className="text-[var(--daimo-text)] font-semibold">{label}</span>
-      <OptionIcons option={option} />
-    </button>
+    />
   );
 }
 

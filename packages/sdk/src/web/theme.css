@@ -42,6 +42,7 @@
   --daimo-radius-sm: 0.5rem;
   --daimo-radius-md: 0.75rem;
   --daimo-radius-lg: 1rem;
+  --daimo-radius-xl: 20px;
 }
 
 /* Dark mode: system preference */
@@ -81,24 +82,24 @@
   }
 }
 
-/* Scroll fade — 4px gradient at top and bottom of scrollable areas.
-   padding-top offsets the top fade so content is fully visible at rest. */
-.scroll-fade {
-  padding-top: 4px;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black 4px,
-    black calc(100% - 4px),
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black 4px,
-    black calc(100% - 4px),
-    transparent
-  );
+/* Scroll fade — 32px sticky gradient at bottom of scrollable areas.
+   Fades content into the background; disappears when scrolled to bottom. */
+.scroll-fade::after {
+  content: "";
+  pointer-events: none;
+  z-index: 10;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 32px;
+  margin-top: -32px;
+  background: linear-gradient(to bottom, transparent, var(--daimo-surface));
+  transition: opacity 300ms ease;
+}
+.scroll-fade.scroll-end::after {
+  opacity: 0;
 }
 
 /* Page enter animation — subtle fade + slide on page change */

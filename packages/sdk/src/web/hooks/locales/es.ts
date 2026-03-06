@@ -59,5 +59,7 @@ export const es: typeof en = {
   walletDisconnected: "Billetera desconectada",
   switchToChain: (chain: string) => `Cambia a ${chain}`,
   transactionFailed: "Transacción fallida",
+  paymentCancelled: "Pago cancelado",
+  retryPayment: "Reintentar pago",
   closeAndReturn: "Cierra esta página y vuelve a la app",
 };

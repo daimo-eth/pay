@@ -1,8 +1,15 @@
-import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { getChainName } from "../../common/chain.js";
+import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, ScrollContent, TokenIconWithChainBadge } from "./shared.js";
+import {
+  LIST_ROW_CLASS,
+  ListRow,
+  PageHeader,
+  ScrollContent,
+  TokenIconWithChainBadge,
+  useScrollBorder,
+} from "./shared.js";
 
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
@@ -23,14 +30,19 @@ export function SelectTokenPage({
   onSelect,
   onBack,
 }: SelectTokenPageProps) {
+  const { scrolled, atBottom, onScroll } = useScrollBorder();
+
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <PageHeader title={t.selectToken} onBack={onBack} />
-        <ScrollContent>
-          {/* Bottom-up layout: items align to bottom when few, scroll normally when full. */}
-          <div className="min-h-full flex flex-col justify-end gap-3">
+        <PageHeader
+          title={t.selectToken}
+          onBack={onBack}
+          borderVisible={scrolled}
+        />
+        <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
+          <div className="flex flex-col gap-3">
             {Array.from({ length: skeletonCount }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -49,8 +61,12 @@ export function SelectTokenPage({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={t.selectToken} onBack={onBack} />
-      <ScrollContent>
+      <PageHeader
+        title={t.selectToken}
+        onBack={onBack}
+        borderVisible={scrolled}
+      />
+      <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
         {options.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <p className="text-[var(--daimo-text-secondary)]">
@@ -58,8 +74,7 @@ export function SelectTokenPage({
             </p>
           </div>
         ) : (
-          /* Bottom-up layout: items align to bottom when few, scroll normally when full. */
-          <div className="min-h-full flex flex-col justify-end gap-3">
+          <div className="flex flex-col gap-3">
             {validOptions.map((option) => (
               <TokenRow
                 key={getTokenKey(option.balance.token)}
@@ -85,7 +100,7 @@ export function SelectTokenPage({
 /** Skeleton loading row - matches TokenRow dimensions with token + chain badge */
 function SkeletonRow() {
   return (
-    <div className="w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] animate-pulse">
+    <div className={`${LIST_ROW_CLASS} animate-pulse`}>
       <div className="flex-1 min-w-0 mr-3">
         <div
           className="h-5 w-48 rounded mb-2"
@@ -144,32 +159,13 @@ function TokenRow({ option, onSelect, disabled = false }: TokenRowProps) {
       : `${tokenAmount} ${option.balance.token.symbol}`;
 
   return (
-    <button
-      onClick={() => !disabled && onSelect(option)}
+    <ListRow
+      label={title}
+      subtitle={subtitle}
+      right={<TokenIconWithChainBadge token={option.balance.token} size="sm" />}
+      onClick={() => onSelect(option)}
       disabled={disabled}
-      className={`w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] text-left touch-action-manipulation transition-[background-color,transform] duration-150 ease-out ${
-        disabled
-          ? "opacity-50 cursor-not-allowed bg-[var(--daimo-surface-secondary)]"
-          : "bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.98]"
-      }`}
-    >
-      <div className="flex-1 min-w-0 mr-3">
-        {/* Use tabular-nums for consistent number widths */}
-        <div
-          className={`font-semibold truncate tabular-nums ${
-            disabled
-              ? "text-[var(--daimo-text-muted)]"
-              : "text-[var(--daimo-text)]"
-          }`}
-        >
-          {title}
-        </div>
-        <div className="text-sm text-[var(--daimo-text-secondary)] truncate tabular-nums">
-          {subtitle}
-        </div>
-      </div>
-      <TokenIconWithChainBadge token={option.balance.token} size="sm" />
-    </button>
+    />
   );
 }
 

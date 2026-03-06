@@ -249,7 +249,7 @@ function QRToggleButton({
 
 function AddressSkeleton() {
   return (
-    <div className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-lg)] flex flex-col gap-2">
+    <div className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-sm)] flex flex-col gap-2">
       <div
         className="h-3 w-24 rounded animate-pulse"
         style={{ backgroundColor: "var(--daimo-skeleton)" }}

@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import { getChainName } from "../../common/chain.js";
 import type { SessionStatus } from "../../common/session.js";
-import { useEffect, useState } from "react";
 
+import { t } from "../hooks/locale.js";
 import { PrimaryButton } from "./buttons.js";
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
-import { t } from "../hooks/locale.js";
 import {
   PageHeader,
   ShowReceiptButton,
@@ -35,10 +35,12 @@ type ConfirmationPageProps = {
   returnUrl?: string;
   /** Secondary message to show when done (only for session page, not modal) */
   returnLabel?: string;
+  /** User rejected the wallet transaction */
+  rejected?: boolean;
+  /** Retry handler for rejected transactions */
+  onRetry?: () => void;
   /** Back handler - only shown during "confirming" state */
   onBack?: () => void;
-  /** Verb for the CTA button during confirming state (e.g. "Deposit", "Pay") */
-  actionVerb?: string;
 };
 
 /**
@@ -59,8 +61,9 @@ export function ConfirmationPage({
   pendingTxHash,
   returnUrl,
   returnLabel,
+  rejected,
+  onRetry,
   onBack,
-  actionVerb,
 }: ConfirmationPageProps) {
   const status = getConfirmationStatus(pendingTxHash, sessionState);
 
@@ -84,11 +87,13 @@ export function ConfirmationPage({
   // Show token icon only when we also have a logo URI
   const showSourceIcon = showSourceInfo && sourceTokenLogoURI != null;
 
-  // Show back button only during confirming (before tx submitted)
-  const showBack = status === "confirming" && onBack != null;
+  // Show back button during confirming or rejected (before tx submitted)
+  const showBack = (status === "confirming" || rejected) && onBack != null;
 
   // Get display title based on status
-  const displayTitle = getDisplayTitle(status, processingMessage);
+  const displayTitle = rejected
+    ? t.paymentCancelled
+    : getDisplayTitle(status, processingMessage);
 
   // Chain name for display
   const chainName = sourceChainId ? getChainName(sourceChainId) : "";
@@ -121,17 +126,22 @@ export function ConfirmationPage({
                 ? `$${sourceAmountUsd.toFixed(2)} ${sourceTokenSymbol}`
                 : sourceTokenSymbol}
             </p>
-            <p className="text-lg text-[var(--daimo-text-secondary)]">
+            <p className="text-base text-[var(--daimo-text-secondary)]">
               {t.onChain} {chainName}
             </p>
           </div>
+        )}
+
+        {/* Retry button when user rejected wallet transaction */}
+        {rejected && onRetry && (
+          <PrimaryButton onClick={onRetry}>{t.retryPayment}</PrimaryButton>
         )}
 
         {/* Return button or secondary message for done state */}
         {status === "done" && returnUrl && (
           <a
             href={returnUrl}
-            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-semibold bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] active:scale-[0.97] touch-action-manipulation transition-[background-color,transform] duration-150 ease-out text-center flex items-center justify-center"
+            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-medium bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease text-center flex items-center justify-center"
           >
             {t.returnToApp}
           </a>
@@ -148,12 +158,6 @@ export function ConfirmationPage({
           status === "processing" ||
           status === "done") && <ShowReceiptButton sessionId={sessionId} />}
       </div>
-
-      {status === "confirming" && actionVerb && (
-        <div className="px-6 pb-6 flex flex-col items-center gap-3">
-          <PrimaryButton disabled>{actionVerb}</PrimaryButton>
-        </div>
-      )}
     </div>
   );
 }

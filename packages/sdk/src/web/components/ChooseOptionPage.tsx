@@ -26,9 +26,18 @@ export function ChooseOptionPage({
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
-  const options = node.options.filter(
-    (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
-  );
+  const options = node.options
+    .filter(
+      (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
+    )
+    // Replace generic ConnectedWallet icon with actual injected wallet icon
+    .map((o) => {
+      if (o.type === "ConnectedWallet" && injectedWallets.length > 0) {
+        const walletIcon = injectedWallets[0].info.icon;
+        if (walletIcon) return { ...o, icon: walletIcon };
+      }
+      return o;
+    });
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;
 

@@ -387,8 +387,53 @@ export function useSessionNav(
     ],
   );
 
+  const updateWalletTxResult = useCallback(
+    (txHash?: string, error?: string) => {
+      setStack((prev) => {
+        const top = prev[prev.length - 1];
+        if (top?.type !== "wallet-sending") return prev;
+        return [...prev.slice(0, -1), { ...top, txHash, error }];
+      });
+    },
+    [],
+  );
+
+  /** Send wallet tx, setting rejected/error on the top stack entry. */
+  const doWalletSend = useCallback(
+    (token: WalletPaymentOption, amountUsd: number) => {
+      walletFlow
+        ?.sendTransaction(token, amountUsd)
+        .then(({ txHash }) => updateWalletTxResult(txHash))
+        .catch((err) => {
+          if (isUserRejection(err)) {
+            setStack((prev) => {
+              const top = prev[prev.length - 1];
+              if (top?.type !== "wallet-sending") return prev;
+              return [...prev.slice(0, -1), { ...top, rejected: true }];
+            });
+            return;
+          }
+          updateWalletTxResult(
+            undefined,
+            formatUserError(err, t.transactionFailed),
+          );
+        });
+    },
+    [walletFlow, updateWalletTxResult],
+  );
+
   const handleRetry = useCallback(() => {
     if (!topEntry) return;
+
+    if (topEntry.type === "wallet-sending") {
+      setStack((prev) => {
+        const top = prev[prev.length - 1];
+        if (top?.type !== "wallet-sending") return prev;
+        return [...prev.slice(0, -1), { ...top, rejected: false }];
+      });
+      doWalletSend(topEntry.token, topEntry.amountUsd);
+      return;
+    }
 
     if (topEntry.type === "waiting-tron") {
       setStack((prev) => {
@@ -424,7 +469,7 @@ export function useSessionNav(
       });
       fetchExchangeUrl(topEntry.nodeId, node.exchangeId, topEntry.amountUsd);
     }
-  }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl]);
+  }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl, doWalletSend]);
 
   const handleRefresh = useCallback(async () => {
     logNavEvent(session.sessionId, session.clientSecret, {
@@ -511,40 +556,15 @@ export function useSessionNav(
     [walletFlow],
   );
 
-  const updateWalletTxResult = useCallback(
-    (txHash?: string, error?: string) => {
-      setStack((prev) => {
-        const top = prev[prev.length - 1];
-        if (top?.type !== "wallet-sending") return prev;
-        return [...prev.slice(0, -1), { ...top, txHash, error }];
-      });
-    },
-    [],
-  );
-
   const fireWalletSend = useCallback(
     (nodeId: string, token: WalletPaymentOption, amountUsd: number) => {
       setStack((prev) => [
         ...prev,
         { type: "wallet-sending", nodeId, token, amountUsd },
       ]);
-
-      walletFlow
-        ?.sendTransaction(token, amountUsd)
-        .then(({ txHash }) => {
-          updateWalletTxResult(txHash);
-        })
-        .catch((err) => {
-          if (isUserRejection(err)) {
-            return;
-          }
-          updateWalletTxResult(
-            undefined,
-            formatUserError(err, t.transactionFailed),
-          );
-        });
+      doWalletSend(token, amountUsd);
     },
-    [walletFlow, updateWalletTxResult],
+    [doWalletSend],
   );
 
   const handleWalletSelectToken = useCallback(

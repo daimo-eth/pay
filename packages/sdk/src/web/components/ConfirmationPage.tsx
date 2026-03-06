@@ -3,6 +3,7 @@ import { getChainName } from "../../common/chain.js";
 import type { SessionStatus } from "../../common/session.js";
 
 import { t } from "../hooks/locale.js";
+import { PrimaryButton } from "./buttons.js";
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
 import {
   PageHeader,
@@ -34,6 +35,10 @@ type ConfirmationPageProps = {
   returnUrl?: string;
   /** Secondary message to show when done (only for session page, not modal) */
   returnLabel?: string;
+  /** User rejected the wallet transaction */
+  rejected?: boolean;
+  /** Retry handler for rejected transactions */
+  onRetry?: () => void;
   /** Back handler - only shown during "confirming" state */
   onBack?: () => void;
 };
@@ -56,6 +61,8 @@ export function ConfirmationPage({
   pendingTxHash,
   returnUrl,
   returnLabel,
+  rejected,
+  onRetry,
   onBack,
 }: ConfirmationPageProps) {
   const status = getConfirmationStatus(pendingTxHash, sessionState);
@@ -80,11 +87,13 @@ export function ConfirmationPage({
   // Show token icon only when we also have a logo URI
   const showSourceIcon = showSourceInfo && sourceTokenLogoURI != null;
 
-  // Show back button only during confirming (before tx submitted)
-  const showBack = status === "confirming" && onBack != null;
+  // Show back button during confirming or rejected (before tx submitted)
+  const showBack = (status === "confirming" || rejected) && onBack != null;
 
   // Get display title based on status
-  const displayTitle = getDisplayTitle(status, processingMessage);
+  const displayTitle = rejected
+    ? t.paymentCancelled
+    : getDisplayTitle(status, processingMessage);
 
   // Chain name for display
   const chainName = sourceChainId ? getChainName(sourceChainId) : "";
@@ -121,6 +130,11 @@ export function ConfirmationPage({
               {t.onChain} {chainName}
             </p>
           </div>
+        )}
+
+        {/* Retry button when user rejected wallet transaction */}
+        {rejected && onRetry && (
+          <PrimaryButton onClick={onRetry}>{t.retryPayment}</PrimaryButton>
         )}
 
         {/* Return button or secondary message for done state */}

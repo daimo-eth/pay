@@ -7,7 +7,7 @@ export const en = {
   processingYourPayment: "Processing Your Payment...",
   paymentCompleted: "Payment Completed",
   refundingYourPayment: "Refunding Your Payment",
-  returnToApp: "Return to app",
+  returnToApp: "Return to App",
   onChain: "on",
 
   // ExpiredPage
@@ -57,9 +57,9 @@ export const en = {
   unknownError: "unknown error",
 
   // shared
-  contactSupport: "Contact support",
+  contactSupport: "Contact Support",
   tellUsHowWeCanHelp: "Tell us how we can help",
-  showReceipt: "Show receipt",
+  showReceipt: "Show Receipt",
   poweredByDaimo: "Powered by Daimo",
 
   // containers
@@ -87,6 +87,8 @@ export const en = {
   walletUnavailable: "Wallet unavailable",
   walletDisconnected: "Wallet disconnected",
   switchToChain: (chain: string) => `Please switch to ${chain}`,
-  transactionFailed: "Transaction failed",
+  transactionFailed: "Transaction Failed",
+  paymentCancelled: "Payment Cancelled",
+  retryPayment: "Retry Payment",
   closeAndReturn: "Close this page and return to app",
 };

@@ -1,8 +1,13 @@
-import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 import { getChainName } from "../../common/chain.js";
+import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, ScrollContent, TokenIconWithChainBadge } from "./shared.js";
+import {
+  PageHeader,
+  ScrollContent,
+  TokenIconWithChainBadge,
+  useScrollBorder,
+} from "./shared.js";
 
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
@@ -23,12 +28,18 @@ export function SelectTokenPage({
   onSelect,
   onBack,
 }: SelectTokenPageProps) {
+  const { scrolled, atBottom, onScroll } = useScrollBorder();
+
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <PageHeader title={t.selectToken} onBack={onBack} />
-        <ScrollContent>
+        <PageHeader
+          title={t.selectToken}
+          onBack={onBack}
+          borderVisible={scrolled}
+        />
+        <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
           {/* Bottom-up layout: items align to bottom when few, scroll normally when full. */}
           <div className="min-h-full flex flex-col justify-end gap-3">
             {Array.from({ length: skeletonCount }).map((_, i) => (
@@ -49,8 +60,12 @@ export function SelectTokenPage({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={t.selectToken} onBack={onBack} />
-      <ScrollContent>
+      <PageHeader
+        title={t.selectToken}
+        onBack={onBack}
+        borderVisible={scrolled}
+      />
+      <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
         {options.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <p className="text-[var(--daimo-text-secondary)]">

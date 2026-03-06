@@ -2,7 +2,12 @@ import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
 import { t } from "../hooks/locale.js";
-import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
+import {
+  PageHeader,
+  ScrollContent,
+  resolveIconUrl,
+  useScrollBorder,
+} from "./shared.js";
 
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
@@ -17,6 +22,7 @@ export function ChooseOptionPage({
   onNavigate,
   onBack,
 }: ChooseOptionPageProps) {
+  const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
@@ -28,9 +34,9 @@ export function ChooseOptionPage({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={node.title} onBack={onBack} />
+      <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent>
+      <ScrollContent onScroll={onScroll}>
         {useGridLayout ? (
           <div className="grid grid-cols-4 gap-2">
             {options.map((option) => (

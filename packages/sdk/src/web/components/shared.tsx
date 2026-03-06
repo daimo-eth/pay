@@ -1,3 +1,4 @@
+import { ReactNode, useCallback, useState } from "react";
 import {
   arbitrum,
   base,
@@ -18,10 +19,9 @@ import {
   worldchain,
 } from "../../common/chain.js";
 import type { DaimoPayToken } from "../api/walletTypes.js";
-import { ReactNode, useCallback, useState } from "react";
 
-import { BackArrowIcon, CopyIcon } from "./icons.js";
 import { t } from "../hooks/locale.js";
+import { BackArrowIcon, CopyIcon } from "./icons.js";
 
 export { BackArrowIcon };
 
@@ -46,6 +46,19 @@ const CHAIN_LOGOS: Record<SupportedChainId, string> = {
   [tron.chainId]: "tron.svg",
   [worldchain.chainId]: "worldchain.svg",
 };
+
+// --- Scroll Border Hook ---
+
+export function useScrollBorder() {
+  const [scrolled, setScrolled] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
+  const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    setScrolled(el.scrollTop > 0);
+    setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 1);
+  }, []);
+  return { scrolled, atBottom, onScroll };
+}
 
 // --- Copy to Clipboard Hook ---
 
@@ -191,23 +204,32 @@ export function resolveIconUrl(icon: string): string {
 type PageHeaderProps = {
   title: string;
   onBack?: (() => void) | null;
+  borderVisible?: boolean;
 };
 
-export function PageHeader({ title, onBack }: PageHeaderProps) {
+export function PageHeader({ title, onBack, borderVisible }: PageHeaderProps) {
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-center p-6 bg-[var(--daimo-surface)]">
-      {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Go back"
-          className="absolute left-5 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
-        >
-          <BackArrowIcon />
-        </button>
-      )}
-      <h1 className="text-lg font-semibold text-[var(--daimo-title)] text-balance">
-        {title}
-      </h1>
+    <div className="sticky top-0 z-10 bg-[var(--daimo-surface)]">
+      <div className="flex items-center justify-center p-6">
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Go back"
+            className="absolute left-5 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
+          >
+            <BackArrowIcon />
+          </button>
+        )}
+        <h1 className="text-lg font-semibold text-[var(--daimo-title)] text-balance">
+          {title}
+        </h1>
+      </div>
+      <div
+        className="mx-6 border-b transition-[border-color] duration-300 ease"
+        style={{
+          borderColor: borderVisible ? "var(--daimo-border)" : "transparent",
+        }}
+      />
     </div>
   );
 }
@@ -231,9 +253,24 @@ export function PageLogo({ icon, alt, size = "lg" }: PageLogoProps) {
 }
 
 /** Scrollable content area for list pages. Fills remaining space after header. */
-export function ScrollContent({ children }: { children: ReactNode }) {
+export function ScrollContent({
+  children,
+  onScroll,
+  atBottom,
+  fade,
+}: {
+  children: ReactNode;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  atBottom?: boolean;
+  fade?: boolean;
+}) {
+  const fadeClass = fade ? ` scroll-fade${atBottom ? " scroll-end" : ""}` : "";
+  const padClass = fade ? "pb-0" : "pb-4";
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto scroll-fade px-6 pb-4">
+    <div
+      className={`flex-1 min-h-0 overflow-y-auto px-6 ${padClass}${fadeClass}`}
+      onScroll={onScroll}
+    >
       {children}
     </div>
   );

@@ -1,7 +1,12 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
-import { PageHeader, ScrollContent, resolveIconUrl } from "./shared.js";
+import {
+  PageHeader,
+  ScrollContent,
+  resolveIconUrl,
+  useScrollBorder,
+} from "./shared.js";
 
 type ChooseWalletPageProps = {
   node: NavNodeChooseOption;
@@ -19,19 +24,21 @@ export function ChooseWalletPage({
   onNavigate,
   onBack,
 }: ChooseWalletPageProps) {
+  const { scrolled, onScroll } = useScrollBorder();
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
   const deeplinkOptions = node.options.filter(
     (option) =>
-      option.type !== "Deeplink" || !injectedNames.has(option.title.toLowerCase()),
+      option.type !== "Deeplink" ||
+      !injectedNames.has(option.title.toLowerCase()),
   );
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={node.title} onBack={onBack} />
+      <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
-      <ScrollContent>
+      <ScrollContent onScroll={onScroll}>
         <div className="flex flex-col gap-3">
           {injectedWallets.map((w) => (
             <InjectedWalletRow

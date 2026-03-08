@@ -28,7 +28,7 @@ export function WalletAmountPage({
 }: WalletAmountPageProps) {
   const balanceToken = token.balance.token;
   const minimumUsd = token.minimumRequired.usd;
-  const maximumUsd = token.balance.usd;
+  const maximumUsd = Math.min(token.balance.usd, balanceToken.maxAcceptUsd);
 
   // Check if this is a USD stablecoin (fiatISO is set on base Token type)
   const isUsdStablecoin = balanceToken.fiatISO === "USD";
@@ -114,9 +114,13 @@ export function WalletAmountPage({
   };
 
   const handleMax = () => {
-    const maxTokenAmountUnits = Number(
+    const balanceTokenUnits = Number(
       formatUnits(BigInt(token.balance.amount), balanceToken.decimals),
     );
+    const cappedByLiquidity = balanceToken.maxAcceptUsd < token.balance.usd;
+    const maxTokenAmountUnits = cappedByLiquidity
+      ? maximumUsd / balanceToken.usd
+      : balanceTokenUnits;
     const maxUsdStr = roundUsd(maximumUsd);
     const maxTokenStr = roundTokenAmountUnits(
       maxTokenAmountUnits,
@@ -148,11 +152,13 @@ export function WalletAmountPage({
     formatUnits(BigInt(token.balance.amount), balanceToken.decimals),
   );
 
+  const balanceUsd = token.balance.usd;
+
   const getBalanceMessage = () => {
     if (isEditingUsd) {
       return isUsdStablecoin
-        ? `${t.balance} $${roundUsd(maximumUsd)}`
-        : `${t.balance} $${roundUsd(maximumUsd)} ${balanceToken.symbol}`;
+        ? `${t.balance} $${roundUsd(balanceUsd)}`
+        : `${t.balance} $${roundUsd(balanceUsd)} ${balanceToken.symbol}`;
     }
     return `${t.balance} ${roundTokenAmountUnits(maxTokenAmountUnits, balanceToken)} ${balanceToken.symbol}`;
   };

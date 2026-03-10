@@ -490,13 +490,17 @@ async function sendEvmTransaction(
   }
 
   const tokenBalance = BigInt(token.balance.amount);
-  const balanceUsd = token.balance.usd;
-  if (balanceUsd <= 0) throw new Error("balance must be positive");
-  const rawTokenAmount =
-    (tokenBalance * BigInt(Math.floor(amountUsd * 1e6))) /
-    BigInt(Math.floor(balanceUsd * 1e6));
-  const tokenAmount =
-    rawTokenAmount > tokenBalance ? tokenBalance : rawTokenAmount;
+  let tokenAmount: bigint;
+  if (token.required.usd > 0) {
+    tokenAmount = BigInt(token.required.amount);
+  } else {
+    const balanceUsd = token.balance.usd;
+    if (balanceUsd <= 0) throw new Error("balance must be positive");
+    const rawTokenAmount =
+      (tokenBalance * BigInt(Math.floor(amountUsd * 1e6))) /
+      BigInt(Math.floor(balanceUsd * 1e6));
+    tokenAmount = rawTokenAmount > tokenBalance ? tokenBalance : rawTokenAmount;
+  }
 
   const tokenAddress = getAddress(tokenInfo.token);
 

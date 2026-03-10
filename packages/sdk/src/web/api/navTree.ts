@@ -29,6 +29,7 @@ export type NavNodeDepositAddress = NavNodeCommon & {
   address: Address;
   chainId: number;
   icon?: string;
+  requiredUsd?: number;
   minimumUsd: number;
   maximumUsd: number;
   expiresAt: number;
@@ -46,6 +47,7 @@ export type NavNodeExchange = NavNodeCommon & {
   type: "Exchange";
   exchangeId: "Coinbase" | "Binance" | "Lemon";
   icon?: string;
+  requiredUsd?: number;
   minimumUsd: number;
   maximumUsd: number;
 };
@@ -53,6 +55,7 @@ export type NavNodeExchange = NavNodeCommon & {
 export type NavNodeTronDeposit = NavNodeCommon & {
   type: "TronDeposit";
   icon?: string;
+  requiredUsd?: number;
   minimumUsd: number;
   maximumUsd: number;
 };

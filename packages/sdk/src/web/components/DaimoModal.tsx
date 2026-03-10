@@ -22,6 +22,7 @@ import { useDaimoClient } from "../hooks/DaimoClientContext.js";
 import {
   type DaimoModalEventHandlers,
   findNode,
+  findNodeByType,
   type NavEntry,
 } from "../hooks/types.js";
 
@@ -193,7 +194,7 @@ function DaimoModalInner({
   const depositAddress = useDepositAddress(session);
 
   const hasConnectedWallet =
-    findNode("ConnectedWallet", session.navTree) != null;
+    findNodeByType("ConnectedWallet", session.navTree) != null;
   const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,

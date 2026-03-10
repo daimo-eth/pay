@@ -77,3 +77,17 @@ export function findNode(nodeId: string, nodes: NavNode[]): NavNode | null {
   }
   return null;
 }
+
+/** Helper to find a node by type in the nav tree */
+export function findNodeByType(
+  type: string,
+  nodes: NavNode[],
+): NavNode | null {
+  for (const node of nodes) {
+    if (node.type === type) return node;
+    if (node.type !== "ChooseOption") continue;
+    const found = findNodeByType(type, node.options);
+    if (found) return found;
+  }
+  return null;
+}

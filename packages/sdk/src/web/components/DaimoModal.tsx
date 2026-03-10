@@ -506,7 +506,9 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
     );
   }
   const isLoading = ctx.isLoadingWallets || walletFlow.isConnecting || walletFlow.isLoadingBalances;
-  const showRequired = !!ctx.session.destination?.amountUnits;
+  // Is the amount pre-set in the session? If so, show the required amount the
+  // user should pay in the token selection page.
+  const showRequired = !!ctx.session.destination.amountUnits;
   return <SelectTokenPage options={walletFlow.balances} isLoading={isLoading} showRequired={showRequired} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
 }
 

@@ -14,12 +14,15 @@ import {
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
   options: WalletPaymentOption[] | null;
+  /**
+   * Show the required payment amount instead of the user's balance if amount
+   * is pre-set in the session.
+   */
+  showRequired: boolean;
   /** Loading state - show skeletons */
   isLoading?: boolean;
   /** Number of skeleton rows to show while loading */
   skeletonCount?: number;
-  /** Show the required payment amount instead of the user's balance */
-  showRequired?: boolean;
   onSelect: (option: WalletPaymentOption) => void;
   onBack?: (() => void) | null;
   baseUrl: string;
@@ -28,9 +31,9 @@ type SelectTokenPageProps = {
 /** Token selection page for wallet payment flow */
 export function SelectTokenPage({
   options,
+  showRequired,
   isLoading = false,
   skeletonCount = 11,
-  showRequired = false,
   onSelect,
   onBack,
   baseUrl,

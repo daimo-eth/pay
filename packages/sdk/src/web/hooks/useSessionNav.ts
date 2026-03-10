@@ -8,9 +8,9 @@ import type {
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 
+import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { formatUserError } from "./formatUserError.js";
-import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
@@ -484,12 +484,28 @@ export function useSessionNav(
         if (top?.type !== "exchange-page") return prev;
         return [
           ...prev.slice(0, -1),
-          { ...top, exchangeUrl: undefined, expiresAt: undefined, error: undefined },
+          {
+            ...top,
+            exchangeUrl: undefined,
+            expiresAt: undefined,
+            error: undefined,
+          },
         ];
       });
-      fetchExchangeUrl(topEntry.nodeId, exchangeId, topEntry.amountUsd, nodeType);
+      fetchExchangeUrl(
+        topEntry.nodeId,
+        exchangeId,
+        topEntry.amountUsd,
+        nodeType,
+      );
     }
-  }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl, doWalletSend]);
+  }, [
+    topEntry,
+    session.navTree,
+    fetchTronAddress,
+    fetchExchangeUrl,
+    doWalletSend,
+  ]);
 
   const handleRefresh = useCallback(async () => {
     logNavEvent(session.sessionId, session.clientSecret, {

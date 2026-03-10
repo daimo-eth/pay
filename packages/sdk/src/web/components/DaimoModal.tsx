@@ -192,9 +192,8 @@ function DaimoModalInner({
 
   const depositAddress = useDepositAddress(session);
 
-  const hasConnectedWallet = session.navTree.some(
-    (n) => n.type === "ConnectedWallet",
-  );
+  const hasConnectedWallet =
+    findNode("ConnectedWallet", session.navTree) != null;
   const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,

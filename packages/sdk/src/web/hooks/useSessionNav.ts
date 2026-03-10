@@ -227,16 +227,8 @@ export function useSessionNav(
         return;
       }
 
-      const { amountUnits, tokenSymbol } = session.destination;
-      if (amountUnits) {
-        console.assert(
-          tokenSymbol.includes("USD"),
-          `expected USD destination, got ${tokenSymbol}`,
-        );
-      }
-      const requiredUsd = amountUnits ? parseFloat(amountUnits) : 0;
-
       if (targetNode.type === "DepositAddress") {
+        const requiredUsd = targetNode.requiredUsd ?? 0;
         if (requiredUsd > 0) {
           setStack((prev) => [
             ...prev,
@@ -257,6 +249,7 @@ export function useSessionNav(
       }
 
       if (targetNode.type === "TronDeposit") {
+        const requiredUsd = targetNode.requiredUsd ?? 0;
         if (requiredUsd > 0) {
           setStack((prev) => [
             ...prev,
@@ -278,6 +271,7 @@ export function useSessionNav(
       }
 
       if (targetNode.type === "Exchange") {
+        const requiredUsd = targetNode.requiredUsd ?? 0;
         if (requiredUsd > 0) {
           setStack((prev) => [
             ...prev,
@@ -285,7 +279,7 @@ export function useSessionNav(
           ]);
           fetchExchangeUrl(
             nodeId,
-            (targetNode as NavNodeExchange).exchangeId,
+            targetNode.exchangeId,
             requiredUsd,
           );
           return;
@@ -299,7 +293,6 @@ export function useSessionNav(
     [
       session.navTree,
       session.sessionId,
-      session.destination,
       getNodeCtx,
       fetchTronAddress,
       fetchExchangeUrl,
@@ -564,8 +557,7 @@ export function useSessionNav(
   const handleWalletSelectToken = useCallback(
     (token: WalletPaymentOption) => {
       if (topEntry?.type !== "wallet-select-token") return;
-      const { amountUnits } = session.destination;
-      const requiredUsd = amountUnits ? parseFloat(amountUnits) : 0;
+      const requiredUsd = token.required.usd;
       if (requiredUsd > 0) {
         fireWalletSend(topEntry.nodeId, token, requiredUsd);
       } else {
@@ -575,7 +567,7 @@ export function useSessionNav(
         ]);
       }
     },
-    [topEntry, session.destination, fireWalletSend],
+    [topEntry, fireWalletSend],
   );
 
   const handleWalletSending = useCallback(

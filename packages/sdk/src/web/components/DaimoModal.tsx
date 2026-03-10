@@ -293,7 +293,7 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; baseUrl: string };
+  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; baseUrl: string; destination: { amountUnits?: string } };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -506,7 +506,8 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
     );
   }
   const isLoading = ctx.isLoadingWallets || walletFlow.isConnecting || walletFlow.isLoadingBalances;
-  return <SelectTokenPage options={walletFlow.balances} isLoading={isLoading} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
+  const showRequired = !!ctx.session.destination?.amountUnits;
+  return <SelectTokenPage options={walletFlow.balances} isLoading={isLoading} showRequired={showRequired} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {

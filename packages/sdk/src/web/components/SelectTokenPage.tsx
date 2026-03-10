@@ -14,6 +14,11 @@ import {
 type SelectTokenPageProps = {
   /** Token options, or null if not yet loaded */
   options: WalletPaymentOption[] | null;
+  /**
+   * Show the required payment amount instead of the user's balance if amount
+   * is pre-set in the session.
+   */
+  showRequired: boolean;
   /** Loading state - show skeletons */
   isLoading?: boolean;
   /** Number of skeleton rows to show while loading */
@@ -26,6 +31,7 @@ type SelectTokenPageProps = {
 /** Token selection page for wallet payment flow */
 export function SelectTokenPage({
   options,
+  showRequired,
   isLoading = false,
   skeletonCount = 11,
   onSelect,
@@ -81,6 +87,7 @@ export function SelectTokenPage({
               <TokenRow
                 key={getTokenKey(option.balance.token)}
                 option={option}
+                showRequired={showRequired}
                 onSelect={onSelect}
                 baseUrl={baseUrl}
               />
@@ -89,6 +96,7 @@ export function SelectTokenPage({
               <TokenRow
                 key={getTokenKey(option.balance.token)}
                 option={option}
+                showRequired={showRequired}
                 onSelect={onSelect}
                 disabled
                 baseUrl={baseUrl}
@@ -135,6 +143,7 @@ function SkeletonRow() {
 
 type TokenRowProps = {
   option: WalletPaymentOption;
+  showRequired?: boolean;
   onSelect: (option: WalletPaymentOption) => void;
   disabled?: boolean;
   baseUrl: string;
@@ -144,30 +153,28 @@ type TokenRowProps = {
  * Token option row - 64px height, matching ChooseOptionPage row style.
  * Shows "$X TOKEN on Chain" with "Y TOKEN" subtitle.
  */
-function TokenRow({ option, onSelect, disabled = false, baseUrl }: TokenRowProps) {
-  const chainName = getChainName(option.balance.token.chainId);
-  const tokenAmount = formatTokenAmount(
-    option.balance.amount,
-    option.balance.token,
-  );
-  const usdAmount = formatUsdAmount(option.balance.usd);
+function TokenRow({ option, showRequired = false, onSelect, disabled = false, baseUrl }: TokenRowProps) {
+  const display = showRequired ? option.required : option.balance;
+  const chainName = getChainName(display.token.chainId);
+  const tokenAmount = formatTokenAmount(display.amount, display.token);
+  const usdAmount = formatUsdAmount(display.usd);
   const disabledReason =
     option.disabledReason ??
     (option.balance.usd < option.minimumRequired.usd
       ? `$${option.minimumRequired.usd.toFixed(2)} ${t.minimum.toLowerCase()}`
       : null);
 
-  const title = `$${usdAmount} ${option.balance.token.symbol} ${t.onChain} ${chainName}`;
+  const title = `$${usdAmount} ${display.token.symbol} ${t.onChain} ${chainName}`;
   const subtitle =
     disabled && disabledReason
       ? disabledReason
-      : `${tokenAmount} ${option.balance.token.symbol}`;
+      : `${tokenAmount} ${display.token.symbol}`;
 
   return (
     <ListRow
       label={title}
       subtitle={subtitle}
-      right={<TokenIconWithChainBadge token={option.balance.token} size="sm" baseUrl={baseUrl} />}
+      right={<TokenIconWithChainBadge token={display.token} size="sm" baseUrl={baseUrl} />}
       onClick={() => onSelect(option)}
       disabled={disabled}
     />

@@ -20,7 +20,7 @@ export type {
   DaimoModalEventHandlers,
   NavEntry,
 } from "./hooks/types.js";
-export { findNode } from "./hooks/types.js";
+export { findNode, findNodeByType } from "./hooks/types.js";
 export { useInjectedWallets } from "./hooks/useInjectedWallets.js";
 export type { InjectedWallet, InjectedWalletInfo } from "./hooks/useInjectedWallets.js";
 export { useWalletFlow, isUserRejection } from "./hooks/useWalletFlow.js";

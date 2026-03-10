@@ -85,12 +85,17 @@ export function ChooseOptionPage({
       </ScrollContent>
 
       {isRootPage && (
-        <div className="mt-auto py-4 flex items-center justify-center gap-1.5">
+        <a
+          href="https://daimo.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-auto py-4 flex items-center justify-center gap-1.5 no-underline"
+        >
           <DaimoLogoIcon size={14} />
-          <span className="text-sm text-[var(--daimo-text-muted)]">
+          <span className="text-sm font-semibold text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}
           </span>
-        </div>
+        </a>
       )}
     </div>
   );
@@ -159,7 +164,13 @@ function getOptionIcons(option: NavNode): string[] {
 }
 
 /** Render icons for a list row option */
-function OptionIcons({ option, baseUrl }: { option: NavNode; baseUrl: string }) {
+function OptionIcons({
+  option,
+  baseUrl,
+}: {
+  option: NavNode;
+  baseUrl: string;
+}) {
   const icons = getOptionIcons(option);
   if (icons.length === 0) return null;
 

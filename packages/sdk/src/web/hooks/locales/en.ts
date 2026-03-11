@@ -7,6 +7,7 @@ export const en = {
   processingYourPayment: "Processing Your Payment...",
   paymentCompleted: "Payment Completed",
   refundingYourPayment: "Refunding Your Payment",
+  paymentRefunded: "Payment Refunded",
   returnToApp: "Return to App",
   onChain: "on",
 

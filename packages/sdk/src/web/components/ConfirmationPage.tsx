@@ -16,7 +16,7 @@ type ConfirmationStatus =
   | "waiting" // Tx submitted, waiting for onchain detection
   | "processing" // Funds received, processing
   | "done" // Payment completed
-  | "refunding"; // Payment bounced
+  | "refunded"; // Payment bounced/refunded
 
 type ConfirmationPageProps = {
   sessionId: string;
@@ -50,7 +50,7 @@ type ConfirmationPageProps = {
  * - waiting: Tx submitted, show source token icon
  * - processing: Fulfillment STARTED, show spinner
  * - done: Fulfillment COMPLETED, show green checkmark
- * - refunding: Payment bounced, show spinner (future use)
+ * - refunded: Payment bounced, show checkmark + receipt link
  */
 export function ConfirmationPage({
   sessionId,
@@ -115,9 +115,9 @@ export function ConfirmationPage({
           />
         )}
 
-        {/* Spinner (processing/refunding) or checkmark (done) */}
+        {/* Spinner (processing) or checkmark (done/refunded) */}
         {status !== "confirming" && status !== "waiting" && (
-          <ConfirmationSpinner done={status === "done"} />
+          <ConfirmationSpinner done={status === "done" || status === "refunded"} />
         )}
 
         {/* Amount and chain info */}
@@ -156,10 +156,11 @@ export function ConfirmationPage({
           </p>
         )}
 
-        {/* Show receipt button for waiting/processing/done states */}
+        {/* Show receipt button for waiting/processing/done/refunded states */}
         {(status === "waiting" ||
           status === "processing" ||
-          status === "done") && <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />}
+          status === "done" ||
+          status === "refunded") && <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />}
       </div>
     </div>
   );
@@ -172,7 +173,7 @@ function getConfirmationStatus(
 ): ConfirmationStatus {
   if (sessionState === "processing") return "processing";
   if (sessionState === "succeeded") return "done";
-  if (sessionState === "bounced") return "refunding";
+  if (sessionState === "bounced") return "refunded";
   if (pendingTxHash) return "waiting";
   return "confirming";
 }
@@ -191,7 +192,7 @@ function getDisplayTitle(
       return processingMessage;
     case "done":
       return t.paymentCompleted;
-    case "refunding":
-      return t.refundingYourPayment;
+    case "refunded":
+      return t.paymentRefunded;
   }
 }

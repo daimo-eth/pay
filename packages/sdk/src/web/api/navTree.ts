@@ -55,6 +55,7 @@ export type NavNodeExchange = NavNodeCommon & {
 export type NavNodeCashApp = NavNodeCommon & {
   type: "CashApp";
   icon?: string;
+  requiredUsd?: number;
   minimumUsd: number;
   maximumUsd: number;
 };

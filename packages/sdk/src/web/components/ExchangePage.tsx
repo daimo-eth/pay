@@ -116,13 +116,26 @@ export function ExchangePage({
               `${t.continueTo} ${node.title} ${t.toCompleteYourDeposit}`}
           </p>
         )}
-        <PrimaryButton
-          onClick={openExchange}
-          icon={<ExternalLinkIcon />}
-          disabled={isLoading}
-        >
-          {t.open} {node.title}
-        </PrimaryButton>
+        {expiresAt && isExpired ? (
+          <SecondaryButton onClick={onRetry}>
+            {t.refreshInvoice}
+          </SecondaryButton>
+        ) : (
+          <PrimaryButton
+            onClick={openExchange}
+            icon={<ExternalLinkIcon />}
+            disabled={isLoading}
+          >
+            {t.open} {node.title}
+          </PrimaryButton>
+        )}
+        {expiresAt && (
+          <Countdown
+            remainingS={remainingS}
+            isExpired={isExpired}
+            totalS={LIGHTNING_LIFETIME_S}
+          />
+        )}
       </CenteredContent>
     </div>
   );

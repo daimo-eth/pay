@@ -19,6 +19,7 @@ export const es: typeof en = {
   continueTo: "Continuar a",
   toCompleteYourDeposit: "para completar tu depósito",
   open: "Abrir",
+  refreshInvoice: "Actualizar",
   selectAmount: "Seleccionar monto",
   loading: "Cargando...",
   continue: "Continuar",

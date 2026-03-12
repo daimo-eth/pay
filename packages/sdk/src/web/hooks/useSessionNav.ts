@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   NavNode,
+  NavNodeCashApp,
   NavNodeChooseOption,
   NavNodeExchange,
   SessionWithNav,
@@ -9,6 +10,7 @@ import type { WalletPaymentOption } from "../api/walletTypes.js";
 
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { formatUserError } from "./formatUserError.js";
+import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
@@ -16,6 +18,8 @@ import type { InjectedWallet } from "./useInjectedWallets.js";
 import { isUserRejection, type WalletFlowResult } from "./useWalletFlow.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
+type ExchangeId = "Coinbase" | "Binance" | "Lemon" | "CashApp";
+type ExchangeNode = NavNodeExchange | NavNodeCashApp;
 
 type SessionNavResult = {
   stack: NavEntry[];
@@ -35,6 +39,20 @@ type SessionNavResult = {
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
 };
 
+function isExchangeNode(node: NavNode | null): node is ExchangeNode {
+  return node?.type === "Exchange" || node?.type === "CashApp";
+}
+
+function getExchangeSelection(node: ExchangeNode): {
+  exchangeId: ExchangeId;
+  nodeType: "Exchange" | "CashApp";
+} {
+  if (node.type === "CashApp") {
+    return { exchangeId: "CashApp", nodeType: "CashApp" };
+  }
+  return { exchangeId: node.exchangeId, nodeType: "Exchange" };
+}
+
 export function useSessionNav(
   session: SessionWithNav,
   setSession: React.Dispatch<React.SetStateAction<SessionWithNav>>,
@@ -42,6 +60,8 @@ export function useSessionNav(
   platform?: "ios" | "android" | "other",
   walletFlow?: WalletFlowResult,
 ): SessionNavResult {
+  const effectivePlatform =
+    platform ?? (isDesktopBrowser() ? "other" : "android");
   const client = useDaimoClient();
   const logNavEvent = createNavLogger(client);
 
@@ -120,7 +140,12 @@ export function useSessionNav(
   );
 
   const fetchExchangeUrl = useCallback(
-    async (nodeId: string, exchangeId: string, amountUsd: number) => {
+    async (
+      nodeId: string,
+      exchangeId: ExchangeId,
+      amountUsd: number,
+      nodeType: "Exchange" | "CashApp",
+    ) => {
       try {
         const result = await client.sessions.paymentMethods.create(
           session.sessionId,
@@ -128,16 +153,16 @@ export function useSessionNav(
             clientSecret: session.clientSecret,
             paymentMethod: {
               type: "exchange",
-              exchangeId: exchangeId as "Coinbase" | "Binance" | "Lemon",
+              exchangeId,
               amountUsd,
-              platform,
+              platform: effectivePlatform,
             },
           },
         );
         if (!result.exchange) return;
         logNavEvent(session.sessionId, session.clientSecret, {
           nodeId,
-          nodeType: "Exchange",
+          nodeType,
           action: "flow_exchange_url",
           exchangeId,
           success: true,
@@ -153,6 +178,7 @@ export function useSessionNav(
               ...top,
               exchangeUrl: result.exchange!.url,
               waitingMessage: result.exchange!.waitingMessage,
+              expiresAt: result.exchange!.expiresAt,
               error: undefined,
             },
           ];
@@ -163,7 +189,7 @@ export function useSessionNav(
           error instanceof Error ? error.message : "failed to get exchange url";
         logNavEvent(session.sessionId, session.clientSecret, {
           nodeId,
-          nodeType: "Exchange",
+          nodeType,
           action: "flow_exchange_url",
           exchangeId,
           success: false,
@@ -177,7 +203,7 @@ export function useSessionNav(
         });
       }
     },
-    [session.sessionId, session.clientSecret, platform, client],
+    [session.sessionId, session.clientSecret, effectivePlatform, client],
   );
 
   // ─── Navigation handlers ────────────────────────────────────────────────
@@ -196,7 +222,9 @@ export function useSessionNav(
           action: "nav_deeplink",
           url: targetNode.url,
         });
-        window.open(targetNode.url, "_blank");
+        if (!isDesktopBrowser()) {
+          window.open(targetNode.url, "_blank");
+        }
       }
 
       logNavEvent(session.sessionId, session.clientSecret, {
@@ -270,24 +298,27 @@ export function useSessionNav(
         return;
       }
 
-      if (targetNode.type === "Exchange") {
+      if (isExchangeNode(targetNode)) {
+        const { exchangeId, nodeType } = getExchangeSelection(targetNode);
         const requiredUsd = targetNode.requiredUsd ?? 0;
         if (requiredUsd > 0) {
           setStack((prev) => [
             ...prev,
             { type: "exchange-page", nodeId, amountUsd: requiredUsd, autoNav },
           ]);
-          fetchExchangeUrl(
-            nodeId,
-            targetNode.exchangeId,
-            requiredUsd,
-          );
+          fetchExchangeUrl(nodeId, exchangeId, requiredUsd, nodeType);
           return;
         }
         setStack((prev) => [
           ...prev,
-          { type: "select-amount", nodeId, flowType: "exchange", autoNav },
+          {
+            type: "select-amount",
+            nodeId,
+            flowType: targetNode.type === "CashApp" ? "cashapp" : "exchange",
+            autoNav,
+          },
         ]);
+        return;
       }
     },
     [
@@ -340,7 +371,9 @@ export function useSessionNav(
             ? "DepositAddress"
             : flowType === "tron"
               ? "TronDeposit"
-              : "Exchange",
+              : flowType === "cashapp"
+                ? "CashApp"
+                : "Exchange",
         action: "flow_amount_continue",
         amountUsd,
       });
@@ -356,13 +389,15 @@ export function useSessionNav(
           { type: "waiting-tron", nodeId, amountUsd },
         ]);
         fetchTronAddress(nodeId, amountUsd);
-      } else if (flowType === "exchange") {
-        const node = findNode(nodeId, session.navTree) as NavNodeExchange;
+      } else if (flowType === "exchange" || flowType === "cashapp") {
+        const node = findNode(nodeId, session.navTree);
+        if (!isExchangeNode(node)) return;
+        const { exchangeId, nodeType } = getExchangeSelection(node);
         setStack((prev) => [
           ...prev,
           { type: "exchange-page", nodeId, amountUsd },
         ]);
-        if (node) fetchExchangeUrl(nodeId, node.exchangeId, amountUsd);
+        fetchExchangeUrl(nodeId, exchangeId, amountUsd, nodeType);
       }
     },
     [
@@ -441,20 +476,18 @@ export function useSessionNav(
     }
 
     if (topEntry.type === "exchange-page") {
-      const node = findNode(
-        topEntry.nodeId,
-        session.navTree,
-      ) as NavNodeExchange;
-      if (!node) return;
+      const node = findNode(topEntry.nodeId, session.navTree);
+      if (!isExchangeNode(node)) return;
+      const { exchangeId, nodeType } = getExchangeSelection(node);
       setStack((prev) => {
         const top = prev[prev.length - 1];
         if (top?.type !== "exchange-page") return prev;
         return [
           ...prev.slice(0, -1),
-          { ...top, exchangeUrl: undefined, error: undefined },
+          { ...top, exchangeUrl: undefined, expiresAt: undefined, error: undefined },
         ];
       });
-      fetchExchangeUrl(topEntry.nodeId, node.exchangeId, topEntry.amountUsd);
+      fetchExchangeUrl(topEntry.nodeId, exchangeId, topEntry.amountUsd, nodeType);
     }
   }, [topEntry, session.navTree, fetchTronAddress, fetchExchangeUrl, doWalletSend]);
 
@@ -470,7 +503,7 @@ export function useSessionNav(
         session.clientSecret,
       );
       setStack([]);
-      setSession({ ...newSession, clientSecret: session.clientSecret });
+      setSession(newSession);
     } catch (error) {
       console.error("failed to recreate session:", error);
     }

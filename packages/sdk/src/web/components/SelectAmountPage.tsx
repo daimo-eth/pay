@@ -85,7 +85,7 @@ export function SelectAmountPage({
               <img
                 src={resolveIconUrl(node.icon, baseUrl)}
                 alt={node.title}
-                className="w-20 h-20 rounded-full"
+                className="w-20 h-20 rounded-[25%]"
               />
             )
           )}

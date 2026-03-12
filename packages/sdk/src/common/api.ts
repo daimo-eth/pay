@@ -21,7 +21,7 @@ export const zCreatePaymentMethodRequest = z.object({
     }),
     z.object({
       type: z.literal("exchange"),
-      exchangeId: z.enum(["Coinbase", "Binance", "Lemon"]),
+      exchangeId: z.enum(["Coinbase", "Binance", "Lemon", "CashApp"]),
       amountUsd: z.number().positive(),
       platform: z.enum(["ios", "android", "other"]).optional(),
     }),
@@ -83,6 +83,8 @@ export type CreatePaymentMethodResponse = {
     url: string;
     /** Message to display while waiting. */
     waitingMessage: string;
+    /** Invoice expiry time (unix seconds). Present for Lightning invoices. */
+    expiresAt?: number;
   };
 };
 

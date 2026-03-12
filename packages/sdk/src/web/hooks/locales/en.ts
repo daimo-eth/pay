@@ -24,6 +24,7 @@ export const en = {
   continueTo: "Continue to",
   toCompleteYourDeposit: "to complete your deposit",
   open: "Open",
+  refreshInvoice: "Refresh",
 
   // SelectAmountPage
   selectAmount: "Select Amount",

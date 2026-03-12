@@ -1,10 +1,11 @@
 import type { NavNodeDepositAddress } from "../api/navTree.js";
 import { TokenLogo } from "../../common/token.js";
 import { tron } from "../../common/chain.js";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { getAddress } from "viem";
 
 import { SecondaryButton } from "./buttons.js";
+import { Countdown, useCountdown } from "./Countdown.js";
 import { useDaimoClient } from "../hooks/DaimoClientContext.js";
 import { t } from "../hooks/locale.js";
 import { createNavLogger } from "../hooks/navEvent.js";
@@ -63,7 +64,7 @@ export function WaitingDepositAddressPage({
   const tokenSuffix = selectedToken ?? node.tokenSuffix ?? "USDT or USDC";
 
   const nodeCtx = { nodeId: node.id, nodeType: node.type };
-  const { remainingS, isExpired } = useCountdown(node.expiresAt);
+  const { remainingS, isExpired } = useCountdown(node.expiresAt, DA_LIFETIME_S);
 
   const handleQRToggle = () => {
     if (!hasAddress) return;
@@ -130,7 +131,7 @@ export function WaitingDepositAddressPage({
           />
         </div>
 
-        <Countdown remainingS={remainingS} isExpired={isExpired} />
+        <Countdown remainingS={remainingS} isExpired={isExpired} totalS={DA_LIFETIME_S} />
       </div>
     </div>
   );
@@ -273,74 +274,6 @@ function AddressSkeleton() {
   );
 }
 
-function Countdown({
-  remainingS,
-  isExpired,
-}: {
-  remainingS: number;
-  isExpired: boolean;
-}) {
-  const m = `${Math.floor(remainingS / 60)}`.padStart(2, "0");
-  const s = `${remainingS % 60}`.padStart(2, "0");
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-sm text-[var(--daimo-text)]">
-        {isExpired ? t.expired : t.expiresIn}
-      </span>
-      <div className="flex items-center gap-2">
-        <CircleTimer remainingS={remainingS} totalS={DA_LIFETIME_S} />
-        <span
-          className="font-semibold tabular-nums"
-          style={{
-            color: isExpired ? "var(--daimo-error)" : "var(--daimo-text)",
-          }}
-        >
-          {isExpired ? t.expired : `${m}:${s}`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function CircleTimer({
-  remainingS,
-  totalS,
-}: {
-  remainingS: number;
-  totalS: number;
-}) {
-  const size = 18;
-  const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - (totalS > 0 ? remainingS / totalS : 0));
-
-  return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="var(--daimo-placeholder)"
-        strokeWidth={strokeWidth}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={remainingS > 0 ? "var(--daimo-success)" : "var(--daimo-error)"}
-        strokeWidth={strokeWidth}
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function QRIcon() {
   return (
     <svg
@@ -373,24 +306,4 @@ function QRIcon() {
 function normalizeAddress(addr: string, chainId: number): string {
   if (chainId === tron.chainId) return addr;
   return getAddress(addr);
-}
-
-/** Countdown hook — ticks every second once expiresAt is set. */
-function useCountdown(expiresAt: number) {
-  const hasExpiry = expiresAt > 0;
-  const [remainingS, setRemainingS] = useState(() =>
-    hasExpiry
-      ? Math.max(0, Math.floor(expiresAt - Date.now() / 1000))
-      : DA_LIFETIME_S,
-  );
-
-  useEffect(() => {
-    if (!hasExpiry) return;
-    const interval = setInterval(() => {
-      setRemainingS(Math.max(0, Math.floor(expiresAt - Date.now() / 1000)));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt, hasExpiry]);
-
-  return { remainingS, isExpired: hasExpiry && remainingS === 0 };
 }

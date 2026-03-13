@@ -1,5 +1,6 @@
 import type {
   NavNode,
+  NavNodeCashApp,
   NavNodeChooseOption,
   NavNodeDeeplink,
   NavNodeDepositAddress,
@@ -50,6 +51,8 @@ import {
 import { useWalletFlow } from "../hooks/useWalletFlow.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
+
+type ExchangeLikeNode = NavNodeExchange | NavNodeCashApp;
 
 export type DaimoModalProps = DaimoModalEventHandlers & {
   sessionId: string;
@@ -428,6 +431,12 @@ function renderSelectAmount(
       <SelectAmountPage node={{ icon: exchangeNode.icon, title: exchangeNode.title }} minimumUsd={exchangeNode.minimumUsd} maximumUsd={exchangeNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
     );
   }
+  if (entry.flowType === "cashapp") {
+    const cashAppNode = node as NavNodeCashApp;
+    return (
+      <SelectAmountPage node={{ icon: cashAppNode.icon, title: cashAppNode.title }} minimumUsd={cashAppNode.minimumUsd} maximumUsd={cashAppNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
+    );
+  }
   return null;
 }
 
@@ -451,10 +460,10 @@ function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: Rend
 }
 
 function renderExchangePage(entry: NavEntry & { type: "exchange-page" }, ctx: RenderContext): React.ReactNode {
-  const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeExchange | null;
+  const node = findNode(entry.nodeId, ctx.session.navTree) as ExchangeLikeNode | null;
   if (!node) return null;
   if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onRetry} />;
-  return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} baseUrl={ctx.session.baseUrl} />;
+  return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} expiresAt={entry.expiresAt} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} onRetry={ctx.onRetry} baseUrl={ctx.session.baseUrl} />;
 }
 
 function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: RenderContext): React.ReactNode {

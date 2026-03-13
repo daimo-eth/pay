@@ -1,8 +1,9 @@
 import type { SessionPublicInfo } from "../../common/session.js";
-import type { NavNode } from "./navTree.js";
+import type { NavNode, SessionWithNav } from "./navTree.js";
 import type { WalletPaymentOption } from "./walletTypes.js";
 
 export type {
+  NavNodeCashApp,
   NavNode,
   NavNodeChooseOption,
   NavNodeConnectedWallet,
@@ -21,6 +22,10 @@ export type {
 
 export type RetrieveSessionWithNavResponse = {
   session: SessionPublicInfo & { navTree: NavNode[]; baseUrl: string };
+};
+
+export type RecreateSessionWithNavResponse = {
+  session: SessionWithNav;
 };
 
 export type WalletOptionsResponse = WalletPaymentOption[];

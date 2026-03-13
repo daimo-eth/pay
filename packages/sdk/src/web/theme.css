@@ -124,6 +124,72 @@
   }
 }
 
+/* QR placeholder: real QR SVG faded + diagonal shimmer + logo on top */
+.daimo-qr-placeholder-qr {
+  opacity: 0.1;
+}
+
+.daimo-qr-shimmer {
+  pointer-events: none;
+  transform: scale(2) rotate(45deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: qr-shimmer 1s linear infinite both;
+}
+
+.daimo-qr-placeholder-logo {
+  z-index: 2;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  width: 28%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes qr-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes daimo-qr-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes daimo-qr-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.daimo-qr-fade-in {
+  animation: daimo-qr-fade-in 200ms ease-out both;
+}
+
+.daimo-qr-fade-out {
+  animation: daimo-qr-fade-out 200ms ease-out both;
+}
+
 /* QR toggle animation */
 
 /* QR code enter/exit — ease-out for responsiveness */
@@ -148,6 +214,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .daimo-qr-shimmer {
+    animation: none;
+  }
+
+  .daimo-qr-fade-in,
+  .daimo-qr-fade-out {
+    animation: none;
+  }
+
   .transition-qr,
   .transition-qr-icon,
   .transition-qr-spacer {

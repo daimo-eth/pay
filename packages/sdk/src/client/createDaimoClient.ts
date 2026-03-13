@@ -9,6 +9,7 @@ import type {
   TokenOptionsResponse,
 } from "../common/api.js";
 import type {
+  RecreateSessionWithNavResponse,
   RetrieveSessionWithNavResponse,
   WalletOptionsResponse,
 } from "../web/api/index.js";
@@ -44,7 +45,7 @@ export type DaimoClient = {
       recreate(
         sessionId: string,
         clientSecret: string,
-      ): Promise<RetrieveSessionWithNavResponse>;
+      ): Promise<RecreateSessionWithNavResponse>;
       walletOptions(
         sessionId: string,
         params: {
@@ -116,7 +117,7 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
           });
         },
         async recreate(sessionId, clientSecret) {
-          return transport.request<RetrieveSessionWithNavResponse>({
+          return transport.request<RecreateSessionWithNavResponse>({
             method: "POST",
             path: `/v1/sessions/${sessionId}/internal/recreate`,
             body: { clientSecret },

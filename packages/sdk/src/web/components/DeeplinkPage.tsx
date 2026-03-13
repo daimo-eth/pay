@@ -1,5 +1,6 @@
 import type { NavNodeDeeplink } from "../api/navTree.js";
 
+import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
 import { CenteredContent, PageHeader, PageLogo, resolveIconUrl } from "./shared.js";
@@ -11,14 +12,9 @@ type DeeplinkPageProps = {
   baseUrl: string;
 };
 
-function isDesktop(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return navigator.maxTouchPoints === 0;
-}
-
 /** Mobile wallet deeplink page. Opens directly on mobile; shows as QR code on desktop. */
 export function DeeplinkPage({ node, onBack, baseUrl }: DeeplinkPageProps) {
-  const desktop = isDesktop();
+  const desktop = isDesktopBrowser();
 
   if (desktop) {
     return (

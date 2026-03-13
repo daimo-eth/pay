@@ -52,6 +52,14 @@ export type NavNodeExchange = NavNodeCommon & {
   maximumUsd: number;
 };
 
+export type NavNodeCashApp = NavNodeCommon & {
+  type: "CashApp";
+  icon?: string;
+  requiredUsd?: number;
+  minimumUsd: number;
+  maximumUsd: number;
+};
+
 export type NavNodeTronDeposit = NavNodeCommon & {
   type: "TronDeposit";
   icon?: string;
@@ -70,5 +78,6 @@ export type NavNode =
   | NavNodeDepositAddress
   | NavNodeDeeplink
   | NavNodeExchange
+  | NavNodeCashApp
   | NavNodeTronDeposit
   | NavNodeConnectedWallet;

@@ -13,7 +13,7 @@ export type NavEntry =
   | {
       type: "select-amount";
       nodeId: string;
-      flowType: "deposit" | "tron" | "exchange";
+      flowType: "deposit" | "tron" | "exchange" | "cashapp";
       autoNav?: boolean;
     }
   | {
@@ -37,6 +37,7 @@ export type NavEntry =
       amountUsd: number;
       exchangeUrl?: string;
       waitingMessage?: string;
+      expiresAt?: number;
       error?: string;
       autoNav?: boolean;
     }

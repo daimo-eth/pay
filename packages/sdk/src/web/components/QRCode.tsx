@@ -1,129 +1,216 @@
 import QRCodeLib from "qrcode";
 import { ReactElement, useMemo } from "react";
 
+type QRDensity = "short" | "medium" | "long";
+
 type QRCodeProps = {
-  value: string;
+  value?: string;
   image?: React.ReactNode;
+  /** Hint for placeholder density. Longer = denser QR skeleton. */
+  placeholderDensity?: QRDensity;
+};
+
+type QRPlaceholderProps = {
+  image?: React.ReactNode;
+  density?: QRDensity;
 };
 
 /** SVG viewBox size for quality (actual display size is controlled by CSS) */
 const VIEW_SIZE = 288;
+const LOGO_SIZE_PERCENT = 28;
+const LOGO_SIZE_RATIO = LOGO_SIZE_PERCENT / 100;
+const centerLogoStyle = {
+  width: `${LOGO_SIZE_PERCENT}%`,
+  height: `${LOGO_SIZE_PERCENT}%`,
+} as const;
 
-export function QRCode({ value, image }: QRCodeProps) {
-  const dots = useMemo(() => {
-    const dots: ReactElement[] = [];
+/** Dummy values of varying length to produce different QR densities */
+const PLACEHOLDER_VALUES: Record<QRDensity, string> = {
+  short: "https://pay.daimo.com/x",
+  medium: "https://pay.daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx",
+  long: "https://pay.daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx234yza567bcd890efg123hij456klm789nop012qrs345tuv678wxy901zab234cde567fgh890ijk123lmn456opq789rst012uvw345xyz",
+};
 
-    let matrix: number[][];
-    try {
-      const qr = QRCodeLib.create(value, { errorCorrectionLevel: "M" });
-      const arr = Array.prototype.slice.call(qr.modules.data, 0);
-      const sqrt = Math.sqrt(arr.length);
-      matrix = arr.reduce(
-        (rows: number[][], key: number, index: number) =>
-          (index % sqrt === 0
-            ? rows.push([key])
-            : rows[rows.length - 1].push(key)) && rows,
-        [],
-      );
-    } catch {
-      return dots;
-    }
-
-    const cellSize = VIEW_SIZE / matrix.length;
-
-    // Draw position finder patterns (3 corners) as nested rounded rectangles
-    const finderPositions = [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 0, y: 1 },
-    ];
-
-    finderPositions.forEach(({ x, y }) => {
-      const x1 = (matrix.length - 7) * cellSize * x;
-      const y1 = (matrix.length - 7) * cellSize * y;
-      // Draw 3 nested rectangles: outer (black), middle (white), inner (black)
-      for (let i = 0; i < 3; i++) {
-        dots.push(
-          <rect
-            key={`finder-${i}-${x}-${y}`}
-            fill={
-              i % 2 !== 0
-                ? "var(--daimo-qr-bg, white)"
-                : "var(--daimo-qr-dot, black)"
-            }
-            rx={(i - 2) * -5 + (i === 0 ? 2 : 3)}
-            ry={(i - 2) * -5 + (i === 0 ? 2 : 3)}
-            width={cellSize * (7 - i * 2)}
-            height={cellSize * (7 - i * 2)}
-            x={x1 + cellSize * i}
-            y={y1 + cellSize * i}
-          />,
-        );
-      }
-    });
-
-    // Calculate center clear area for logo (28% of QR)
-    const logoAreaSize = Math.floor((VIEW_SIZE * 0.28) / cellSize);
-    const matrixMiddleStart = matrix.length / 2 - logoAreaSize / 2;
-    const matrixMiddleEnd = matrix.length / 2 + logoAreaSize / 2 - 1;
-
-    // Draw data dots (circles)
-    matrix.forEach((row, i) => {
-      row.forEach((cell, j) => {
-        if (!cell) return;
-
-        // Skip position finder patterns
-        const inTopLeft = i < 7 && j < 7;
-        const inTopRight = i > matrix.length - 8 && j < 7;
-        const inBottomLeft = i < 7 && j > matrix.length - 8;
-        if (inTopLeft || inTopRight || inBottomLeft) return;
-
-        // Skip center area if image is provided
-        if (image) {
-          const inCenter =
-            i > matrixMiddleStart &&
-            i < matrixMiddleEnd &&
-            j > matrixMiddleStart &&
-            j < matrixMiddleEnd;
-          if (inCenter) return;
-        }
-
-        dots.push(
-          <circle
-            key={`dot-${i}-${j}`}
-            cx={i * cellSize + cellSize / 2}
-            cy={j * cellSize + cellSize / 2}
-            fill="var(--daimo-qr-dot, black)"
-            r={cellSize / 3}
-          />,
-        );
-      });
-    });
-
-    return dots;
-  }, [value, image]);
-
+function QRCodeShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="qr-container relative w-full overflow-hidden rounded-2xl border border-[var(--daimo-border)] bg-[var(--daimo-qr-bg,white)]">
-      {/* Square aspect ratio container */}
       <div className="relative w-full pb-[100%]">
-        {/* QR content with padding */}
-        <div className="absolute inset-[13px]">
-          <svg
-            viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
-            className="block h-auto w-full"
-          >
-            {dots}
-          </svg>
-
-          {/* Logo/image overlay (centered, 28% size) */}
-          {image && (
-            <div className="absolute left-1/2 top-1/2 flex h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-              {image}
-            </div>
-          )}
-        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function generateQRDots(
+  value: string,
+  clearCenter: boolean,
+): ReactElement[] {
+  const dots: ReactElement[] = [];
+
+  let matrix: number[][];
+  try {
+    const qr = QRCodeLib.create(value, { errorCorrectionLevel: "M" });
+    const arr = Array.prototype.slice.call(qr.modules.data, 0);
+    const sqrt = Math.sqrt(arr.length);
+    matrix = arr.reduce(
+      (rows: number[][], key: number, index: number) =>
+        (index % sqrt === 0
+          ? rows.push([key])
+          : rows[rows.length - 1].push(key)) && rows,
+      [],
+    );
+  } catch {
+    return dots;
+  }
+
+  const cellSize = VIEW_SIZE / matrix.length;
+
+  // Draw position finder patterns (3 corners) as nested rounded rectangles
+  const finderPositions = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+  ];
+
+  finderPositions.forEach(({ x, y }) => {
+    const x1 = (matrix.length - 7) * cellSize * x;
+    const y1 = (matrix.length - 7) * cellSize * y;
+    for (let i = 0; i < 3; i++) {
+      dots.push(
+        <rect
+          key={`finder-${i}-${x}-${y}`}
+          fill={
+            i % 2 !== 0
+              ? "var(--daimo-qr-bg, white)"
+              : "var(--daimo-qr-dot, black)"
+          }
+          rx={(i - 2) * -5 + (i === 0 ? 2 : 3)}
+          ry={(i - 2) * -5 + (i === 0 ? 2 : 3)}
+          width={cellSize * (7 - i * 2)}
+          height={cellSize * (7 - i * 2)}
+          x={x1 + cellSize * i}
+          y={y1 + cellSize * i}
+        />,
+      );
+    }
+  });
+
+  // Calculate center clear area for logo
+  const logoAreaSize = Math.floor((VIEW_SIZE * LOGO_SIZE_RATIO) / cellSize);
+  const matrixMiddleStart = matrix.length / 2 - logoAreaSize / 2;
+  const matrixMiddleEnd = matrix.length / 2 + logoAreaSize / 2 - 1;
+
+  // Draw data dots (circles)
+  matrix.forEach((row, i) => {
+    row.forEach((cell, j) => {
+      if (!cell) return;
+
+      // Skip position finder patterns
+      const inTopLeft = i < 7 && j < 7;
+      const inTopRight = i > matrix.length - 8 && j < 7;
+      const inBottomLeft = i < 7 && j > matrix.length - 8;
+      if (inTopLeft || inTopRight || inBottomLeft) return;
+
+      // Skip center area
+      if (clearCenter) {
+        const inCenter =
+          i > matrixMiddleStart &&
+          i < matrixMiddleEnd &&
+          j > matrixMiddleStart &&
+          j < matrixMiddleEnd;
+        if (inCenter) return;
+      }
+
+      dots.push(
+        <circle
+          key={`dot-${i}-${j}`}
+          cx={i * cellSize + cellSize / 2}
+          cy={j * cellSize + cellSize / 2}
+          fill="var(--daimo-qr-dot, black)"
+          r={cellSize / 3}
+        />,
+      );
+    });
+  });
+
+  return dots;
+}
+
+function QRCodeContent({ value, image }: { value: string; image?: React.ReactNode }) {
+  const dots = useMemo(
+    () => generateQRDots(value, !!image),
+    [value, image],
+  );
+
+  return (
+    <div className="absolute inset-[13px]">
+      <svg
+        viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
+        className="block h-auto w-full"
+      >
+        {dots}
+      </svg>
+
+      {image && (
+        <div
+          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+          style={centerLogoStyle}
+        >
+          {image}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QRPlaceholderContent({ image, density = "medium" }: QRPlaceholderProps) {
+  const dots = useMemo(
+    () => generateQRDots(PLACEHOLDER_VALUES[density], true),
+    [density],
+  );
+
+  return (
+    <>
+      {/* Real QR code SVG at low opacity as skeleton */}
+      <div className="absolute inset-[13px] daimo-qr-placeholder-qr">
+        <svg
+          viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
+          className="block h-auto w-full"
+        >
+          {dots}
+        </svg>
+      </div>
+      {/* Diagonal shimmer sweep */}
+      <div className="absolute inset-[13px] overflow-hidden rounded-[5px] daimo-qr-shimmer" />
+      {/* Logo on top, unaffected by shimmer */}
+      {image && (
+        <div className="daimo-qr-placeholder-logo">
+          {image}
+        </div>
+      )}
+    </>
+  );
+}
+
+export function QRPlaceholder({ image, density }: QRPlaceholderProps) {
+  return (
+    <QRCodeShell>
+      <QRPlaceholderContent image={image} density={density} />
+    </QRCodeShell>
+  );
+}
+
+export function QRCode({ value, image, placeholderDensity }: QRCodeProps) {
+  return (
+    <QRCodeShell>
+      <div className={value ? "daimo-qr-fade-out" : ""}>
+        <QRPlaceholderContent image={image} density={placeholderDensity} />
+      </div>
+      {value && (
+        <div className="daimo-qr-fade-in">
+          <QRCodeContent value={value} image={image} />
+        </div>
+      )}
+    </QRCodeShell>
   );
 }

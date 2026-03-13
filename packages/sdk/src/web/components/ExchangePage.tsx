@@ -40,7 +40,7 @@ export function ExchangePage({
   const openExchange = () => {
     if (!exchangeUrl) return;
     if (desktop && exchangeId === "Coinbase") {
-      window.open(exchangeUrl, "coinbase", "width=300,height=600");
+      window.open(exchangeUrl, "coinbase", "width=500,height=700");
     } else {
       window.open(exchangeUrl, "_blank");
     }

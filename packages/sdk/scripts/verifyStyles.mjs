@@ -13,10 +13,11 @@ import ts from "typescript";
 // fixture so unprefixed classes cannot silently slip back in.
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(scriptDir, "..");
-const workspaceRoot = path.resolve(packageRoot, "../../..");
 const require = createRequire(import.meta.url);
+// Resolve from the package root and let Node walk up through whichever
+// workspace layout installed Tailwind.
 const tailwindPackagePath = require.resolve("tailwindcss/package.json", {
-  paths: [packageRoot, workspaceRoot],
+  paths: [packageRoot],
 });
 const selectorParserModule = require(
   path.join(

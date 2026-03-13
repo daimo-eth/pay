@@ -87,12 +87,12 @@ export function WaitingDepositAddressPage({
     : `${t.depositOn} ${node.title}`;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={pageTitle} onBack={onBack} />
 
-      <div className="flex-1 flex flex-col items-center p-6 gap-6">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-p-6 daimo-gap-6">
         {isExpired ? (
-          <div className="h-24 flex items-center justify-center">
+          <div className="daimo-h-24 daimo-flex daimo-items-center daimo-justify-center">
             <SecondaryButton onClick={onRefresh}>
               {t.generateNewAddress}
             </SecondaryButton>
@@ -111,7 +111,7 @@ export function WaitingDepositAddressPage({
           <QRToggleButton showQR={showQR} onToggle={handleQRToggle} />
         )}
 
-        <div className="w-full max-w-sm space-y-3">
+        <div className="daimo-w-full daimo-max-w-sm daimo-space-y-3">
           {hasAddress ? (
             <CopyableInfoCard
               label={t.oneTimeAddress}
@@ -154,23 +154,23 @@ function LogoOrQR({
   baseUrl: string;
 }) {
   return (
-    <div className="relative w-full flex items-center justify-center">
+    <div className="daimo-relative daimo-w-full daimo-flex daimo-items-center daimo-justify-center">
       {/* Spacer — grows to QR height when toggled */}
       <div
-        className="w-full max-w-[200px] sm:max-w-[260px] transition-qr-spacer"
+        className="daimo-w-full daimo-max-w-[200px] sm:daimo-max-w-[260px] daimo-transition-qr-spacer"
         style={{ height: showQR ? "226px" : "96px" }}
       />
 
       {/* QR code — fades in */}
       <div
-        className="absolute inset-0 flex items-center justify-center transition-qr"
+        className="daimo-absolute daimo-inset-0 daimo-flex daimo-items-center daimo-justify-center daimo-transition-qr"
         style={{
           opacity: showQR ? 1 : 0,
           transform: showQR ? "scale(1)" : "scale(0.96)",
           pointerEvents: showQR ? "auto" : "none",
         }}
       >
-        <div className="w-full max-w-[200px] sm:max-w-[260px]">
+        <div className="daimo-w-full daimo-max-w-[200px] sm:daimo-max-w-[260px]">
           <QRCode
             value={address}
             image={
@@ -181,9 +181,9 @@ function LogoOrQR({
       </div>
 
       {/* Large token icon — fades out when QR opens */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="daimo-absolute daimo-inset-0 daimo-flex daimo-items-center daimo-justify-center daimo-pointer-events-none">
         <div
-          className="transition-qr-icon"
+          className="daimo-transition-qr-icon"
           style={{
             transform: showQR ? "scale(0.6)" : "scale(1)",
             opacity: showQR ? 0 : 1,
@@ -218,19 +218,19 @@ function TokenIcon({
         baseUrl={baseUrl}
         badgeBorderClass={
           size === "qr"
-            ? "border-[1.5px] bg-[var(--daimo-qr-bg,white)] border-[var(--daimo-qr-bg,white)]"
-            : "border-2 bg-[var(--daimo-surface)] border-[var(--daimo-surface)]"
+            ? "daimo-border-[1.5px] daimo-bg-[var(--daimo-qr-bg,white)] daimo-border-[var(--daimo-qr-bg,white)]"
+            : "daimo-border-2 daimo-bg-[var(--daimo-surface)] daimo-border-[var(--daimo-surface)]"
         }
       />
     );
   }
   if (node.icon) {
-    const iconSize = size === "qr" ? "w-12 h-12" : "w-20 h-20";
+    const iconSize = size === "qr" ? "daimo-w-12 daimo-h-12" : "daimo-w-20 daimo-h-20";
     return (
       <img
         src={resolveIconUrl(node.icon, baseUrl)}
         alt={node.title}
-        className={`${iconSize} rounded-full`}
+        className={`${iconSize} daimo-rounded-full`}
       />
     );
   }
@@ -247,10 +247,10 @@ function QRToggleButton({
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-2 text-[var(--daimo-text-secondary)] min-h-[44px] touch-action-manipulation"
+      className="daimo-flex daimo-items-center daimo-gap-2 daimo-text-[var(--daimo-text-secondary)] daimo-min-h-[44px] daimo-touch-action-manipulation"
       aria-label={showQR ? t.hideQR : t.showQR}
     >
-      <span className="text-sm">{showQR ? t.hideQR : t.showQR}</span>
+      <span className="daimo-text-sm">{showQR ? t.hideQR : t.showQR}</span>
       <QRIcon />
     </button>
   );
@@ -258,13 +258,13 @@ function QRToggleButton({
 
 function AddressSkeleton() {
   return (
-    <div className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-sm)] flex flex-col gap-2">
+    <div className="daimo-w-full daimo-min-h-[56px] daimo-p-4 daimo-bg-[var(--daimo-surface-secondary)] daimo-rounded-[var(--daimo-radius-sm)] daimo-flex daimo-flex-col daimo-gap-2">
       <div
-        className="h-3 w-24 rounded animate-pulse"
+        className="daimo-h-3 daimo-w-24 daimo-rounded daimo-animate-daimo-pulse"
         style={{ backgroundColor: "var(--daimo-skeleton)" }}
       />
       <div
-        className="h-5 w-40 rounded animate-pulse"
+        className="daimo-h-5 daimo-w-40 daimo-rounded daimo-animate-daimo-pulse"
         style={{
           backgroundColor: "var(--daimo-skeleton)",
           animationDelay: "100ms",

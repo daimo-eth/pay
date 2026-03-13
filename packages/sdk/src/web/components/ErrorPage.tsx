@@ -79,12 +79,12 @@ export function ErrorPage({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={t.error} />
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6 daimo-gap-6">
         {/* Error icon */}
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center"
+          className="daimo-w-20 daimo-h-20 daimo-rounded-full daimo-flex daimo-items-center daimo-justify-center"
           style={{ backgroundColor: "var(--daimo-error-light)" }}
         >
           <ErrorIcon />

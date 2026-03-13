@@ -22,11 +22,11 @@ export function PrimaryButton({
 }: ButtonProps) {
   // Base: min 44px tap target, prevent double-tap zoom
   const baseStyles =
-    "w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-medium flex items-center justify-center gap-2 touch-action-manipulation transition-[background-color] duration-100 ease";
+    "daimo-w-full daimo-max-w-xs daimo-min-h-[44px] daimo-py-4 daimo-px-6 daimo-rounded-[var(--daimo-radius-lg)] daimo-font-medium daimo-flex daimo-items-center daimo-justify-center daimo-gap-2 daimo-touch-action-manipulation daimo-transition-[background-color] daimo-duration-100 daimo-ease";
   const enabledStyles =
-    "bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)]";
+    "daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)]";
   const disabledStyles =
-    "bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-muted)] cursor-not-allowed";
+    "daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text-muted)] daimo-cursor-not-allowed";
 
   return (
     <button
@@ -50,11 +50,11 @@ export function SecondaryButton({
 }: ButtonProps) {
   // Base: min 44px tap target, prevent double-tap zoom
   const baseStyles =
-    "min-h-[44px] py-3 px-8 rounded-[var(--daimo-radius-md)] font-medium flex items-center justify-center gap-2 touch-action-manipulation transition-[background-color] duration-100 ease";
+    "daimo-min-h-[44px] daimo-py-3 daimo-px-8 daimo-rounded-[var(--daimo-radius-md)] daimo-font-medium daimo-flex daimo-items-center daimo-justify-center daimo-gap-2 daimo-touch-action-manipulation daimo-transition-[background-color] daimo-duration-100 daimo-ease";
   const enabledStyles =
-    "bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)]";
+    "daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)]";
   const disabledStyles =
-    "bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-muted)] cursor-not-allowed";
+    "daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text-muted)] daimo-cursor-not-allowed";
 
   return (
     <button

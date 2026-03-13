@@ -43,14 +43,14 @@ export function SelectTokenPage({
   // Show skeletons while loading
   if (isLoading || options === null) {
     return (
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
         <PageHeader
           title={t.selectToken}
           onBack={onBack}
           borderVisible={scrolled}
         />
         <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
-          <div className="flex flex-col gap-3">
+          <div className="daimo-flex daimo-flex-col daimo-gap-3">
             {Array.from({ length: skeletonCount }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -68,7 +68,7 @@ export function SelectTokenPage({
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader
         title={t.selectToken}
         onBack={onBack}
@@ -76,13 +76,13 @@ export function SelectTokenPage({
       />
       <ScrollContent onScroll={onScroll} atBottom={atBottom} fade>
         {options.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2">
-            <p className="text-[var(--daimo-text-secondary)]">
+          <div className="daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-h-full daimo-gap-2">
+            <p className="daimo-text-[var(--daimo-text-secondary)]">
               {t.noTokensFound}
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="daimo-flex daimo-flex-col daimo-gap-3">
             {validOptions.map((option) => (
               <TokenRow
                 key={getTokenKey(option.balance.token)}
@@ -112,25 +112,25 @@ export function SelectTokenPage({
 /** Skeleton loading row - matches TokenRow dimensions with token + chain badge */
 function SkeletonRow() {
   return (
-    <div className={`${LIST_ROW_CLASS} animate-pulse`}>
-      <div className="flex-1 min-w-0 mr-3">
+    <div className={`${LIST_ROW_CLASS} daimo-animate-daimo-pulse`}>
+      <div className="daimo-flex-1 daimo-min-w-0 daimo-mr-3">
         <div
-          className="h-5 w-48 rounded mb-2"
+          className="daimo-h-5 daimo-w-48 daimo-rounded daimo-mb-2"
           style={{ backgroundColor: "var(--daimo-skeleton)" }}
         />
         <div
-          className="h-4 w-32 rounded"
+          className="daimo-h-4 daimo-w-32 daimo-rounded"
           style={{ backgroundColor: "var(--daimo-skeleton)" }}
         />
       </div>
       {/* Token icon + chain badge skeleton */}
-      <div className="relative w-8 h-8 shrink-0">
+      <div className="daimo-relative daimo-w-8 daimo-h-8 daimo-shrink-0">
         <div
-          className="w-8 h-8 rounded-full"
+          className="daimo-w-8 daimo-h-8 daimo-rounded-full"
           style={{ backgroundColor: "var(--daimo-skeleton)" }}
         />
         <div
-          className="absolute -bottom-0.5 -right-0.5 w-[15px] h-[15px] rounded-full"
+          className="daimo-absolute -daimo-bottom-0.5 -daimo-right-0.5 daimo-w-[15px] daimo-h-[15px] daimo-rounded-full"
           style={{
             backgroundColor: "var(--daimo-skeleton)",
             border: "1px solid var(--daimo-surface-secondary)",

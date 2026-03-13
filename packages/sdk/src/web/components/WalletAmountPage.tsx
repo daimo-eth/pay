@@ -176,8 +176,8 @@ export function WalletAmountPage({
 
   const messageColor =
     showMinWarning || showMaxWarning
-      ? "text-[var(--daimo-text)]"
-      : "text-[var(--daimo-text-secondary)]";
+      ? "daimo-text-[var(--daimo-text)]"
+      : "daimo-text-[var(--daimo-text-secondary)]";
 
   // Secondary amount for switch button
   const secondaryAmount = isEditingUsd
@@ -185,23 +185,23 @@ export function WalletAmountPage({
     : `$${usdStr || roundUsd(0)}`;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={t.enterAmount} onBack={onBack} />
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6">
         {/* Token logo with chain badge */}
-        <div className="mb-3">
+        <div className="daimo-mb-3">
           <TokenIconWithChainBadge token={balanceToken} size="lg" baseUrl={baseUrl} />
         </div>
 
         {/* Amount input with Max button */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="daimo-flex daimo-items-center daimo-justify-center daimo-gap-2">
           {/* Invisible spacer for balance */}
-          <span className="invisible py-[3px] px-2 text-sm">{t.max}</span>
+          <span className="daimo-invisible daimo-py-[3px] daimo-px-2 daimo-text-sm">{t.max}</span>
 
-          <div className="flex items-center justify-center gap-1">
+          <div className="daimo-flex daimo-items-center daimo-justify-center daimo-gap-1">
             {isEditingUsd && (
               <span
-                className={`text-[24px] font-semibold tabular-nums ${usdStr ? "text-[var(--daimo-text)]" : "text-[var(--daimo-placeholder)]"}`}
+                className={`daimo-text-[24px] daimo-font-semibold daimo-tabular-nums ${usdStr ? "daimo-text-[var(--daimo-text)]" : "daimo-text-[var(--daimo-placeholder)]"}`}
               >
                 $
               </span>
@@ -214,7 +214,7 @@ export function WalletAmountPage({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="0.00"
-              className="bg-transparent font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] tabular-nums ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
+              className="daimo-bg-transparent daimo-font-semibold daimo-text-[var(--daimo-text)] daimo-placeholder-[var(--daimo-placeholder)] daimo-outline-none daimo-border-none daimo-shadow-none daimo-caret-[var(--daimo-text-muted)] daimo-tabular-nums daimo-ring-0 focus:daimo-outline-none focus:daimo-ring-0 focus:daimo-border-none focus:daimo-shadow-none"
               style={{
                 width: inputWidth,
                 minWidth: "1ch",
@@ -224,7 +224,7 @@ export function WalletAmountPage({
               autoFocus={shouldAutoFocus}
             />
             {!isEditingUsd && (
-              <span className="text-base font-normal text-[var(--daimo-text-muted)]">
+              <span className="daimo-text-base daimo-font-normal daimo-text-[var(--daimo-text-muted)]">
                 {balanceToken.symbol}
               </span>
             )}
@@ -233,7 +233,7 @@ export function WalletAmountPage({
           {/* Max button: compact pill */}
           <button
             onClick={handleMax}
-            className="py-[3px] px-2 text-sm font-normal rounded-full bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease"
+            className="daimo-py-[3px] daimo-px-2 daimo-text-sm daimo-font-normal daimo-rounded-full daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text-secondary)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)] daimo-touch-action-manipulation daimo-transition-[background-color] daimo-duration-100 daimo-ease"
           >
             {t.max}
           </button>
@@ -252,7 +252,7 @@ export function WalletAmountPage({
 
         {/* Balance / warning message - tabular-nums for stable number widths */}
         <p
-          className={`${messageColor} text-base font-normal leading-[21px] tabular-nums mb-6`}
+          className={`${messageColor} daimo-text-base daimo-font-normal daimo-leading-[21px] daimo-tabular-nums daimo-mb-6`}
         >
           {getMessage()}
         </p>
@@ -260,7 +260,7 @@ export function WalletAmountPage({
         <PrimaryButton
           onClick={() => isValid && onContinue(amountUsd)}
           disabled={!isValid}
-          className="max-w-none"
+          className="daimo-max-w-none"
         >
           {t.continue}
         </PrimaryButton>
@@ -302,14 +302,14 @@ function SwitchButton({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1 py-3 px-4 hover:[@media(hover:hover)]:opacity-70 active:opacity-50 touch-action-manipulation transition-opacity duration-150 ease"
+      className="daimo-flex daimo-items-center daimo-gap-1 daimo-py-3 daimo-px-4 hover:[@media(hover:hover)]:daimo-opacity-70 active:daimo-opacity-50 daimo-touch-action-manipulation daimo-transition-opacity daimo-duration-150 daimo-ease"
     >
       <svg
         width="16"
         height="16"
         viewBox="0 0 24 24"
         fill="none"
-        className="text-[var(--daimo-text-muted)]"
+        className="daimo-text-[var(--daimo-text-muted)]"
         style={{
           transform: isEditingUsd ? "scaleY(1)" : "scaleY(-1)",
           transition: "transform 0.2s ease-in-out",
@@ -323,7 +323,7 @@ function SwitchButton({
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-base font-normal leading-[21px] text-[var(--daimo-text-secondary)] tabular-nums">
+      <span className="daimo-text-base daimo-font-normal daimo-leading-[21px] daimo-text-[var(--daimo-text-secondary)] daimo-tabular-nums">
         {secondaryAmount}
       </span>
     </button>

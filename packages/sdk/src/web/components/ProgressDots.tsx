@@ -17,9 +17,9 @@ export function ProgressDots({ status, label }: ProgressDotsProps) {
   const colors = getColors(status);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3">
       {/* Dots and line */}
-      <div className="flex items-center gap-0">
+      <div className="daimo-flex daimo-items-center daimo-gap-0">
         <Dot filled={status !== "confirming"} color={colors.first} />
         <Line color={colors.line} />
         <Dot
@@ -29,7 +29,7 @@ export function ProgressDots({ status, label }: ProgressDotsProps) {
       </div>
 
       {/* Label */}
-      <span className="text-sm font-medium" style={{ color: colors.text }}>
+      <span className="daimo-text-sm daimo-font-medium" style={{ color: colors.text }}>
         {label}
       </span>
     </div>
@@ -44,7 +44,7 @@ type DotProps = {
 function Dot({ filled, color }: DotProps) {
   return (
     <div
-      className="w-3 h-3 rounded-full border-2"
+      className="daimo-w-3 daimo-h-3 daimo-rounded-full daimo-border-2"
       style={{
         borderColor: color,
         backgroundColor: filled ? color : "transparent",
@@ -54,7 +54,7 @@ function Dot({ filled, color }: DotProps) {
 }
 
 function Line({ color }: { color: string }) {
-  return <div className="w-12 h-0.5" style={{ backgroundColor: color }} />;
+  return <div className="daimo-w-12 daimo-h-0.5" style={{ backgroundColor: color }} />;
 }
 
 type Colors = {

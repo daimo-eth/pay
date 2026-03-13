@@ -1,0 +1,299 @@
+/**
+ * Shared Daimo Modal base styles.
+ *
+ * Contains theme variables and custom component classes used by both the
+ * compiled SDK stylesheet and the legacy `theme.css` entrypoint.
+ */
+
+:root {
+  /* Backgrounds */
+  --daimo-bg: #00000008;
+  --daimo-surface: #ffffff;
+  --daimo-surface-secondary: #f6f7f9;
+  --daimo-surface-hover: #f0f2f5;
+  --daimo-skeleton: #f6f7f9;
+
+  /* Text */
+  --daimo-title: #373737;
+  --daimo-text: #373737;
+  --daimo-text-secondary: #999999;
+  --daimo-text-muted: #9ca3af;
+
+  /* Semantic */
+  --daimo-success: #22c55e;
+  --daimo-success-light: #dcfce7;
+  --daimo-checkmark: #22c55e;
+  --daimo-error: #ef4444;
+  --daimo-error-light: #fee2e2;
+  --daimo-warning: #f97316;
+  --daimo-accent: #3b82f6;
+
+  /* Placeholder/Inactive */
+  --daimo-placeholder: #d1d5db;
+
+  /* Border */
+  --daimo-border: #fbfafb;
+
+  /* QR Code */
+  --daimo-qr-bg: #ffffff;
+  --daimo-qr-dot: #373737;
+
+  /* Radius */
+  --daimo-radius-sm: 0.5rem;
+  --daimo-radius-md: 0.75rem;
+  --daimo-radius-lg: 1rem;
+  --daimo-radius-xl: 20px;
+}
+
+/* Dark mode: system preference */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Backgrounds */
+    --daimo-bg: #00000008;
+    --daimo-surface: #2b2b2b;
+    --daimo-surface-secondary: #383838;
+    --daimo-surface-hover: #404040;
+    --daimo-skeleton: #2b2b2b;
+
+    /* Text */
+    --daimo-title: #ffffff;
+    --daimo-text: #ffffff;
+    --daimo-text-secondary: #7e7e7e;
+    --daimo-text-muted: #858585;
+
+    /* Semantic */
+    --daimo-success: #4ade80;
+    --daimo-success-light: #14532d;
+    --daimo-checkmark: #f3f4f6;
+    --daimo-error: #f87171;
+    --daimo-error-light: #7f1d1d;
+    --daimo-warning: #fb923c;
+    --daimo-accent: #0977d5;
+
+    /* Placeholder/Inactive */
+    --daimo-placeholder: #9ca3af;
+
+    /* Border */
+    --daimo-border: #3d3d3d;
+
+    /* QR Code */
+    --daimo-qr-bg: #2b2b2b;
+    --daimo-qr-dot: #ffffff;
+  }
+}
+
+/* Scroll fade — 32px sticky gradient at bottom of scrollable areas.
+   Fades content into the background; disappears when scrolled to bottom. */
+.daimo-scroll-fade::after {
+  content: "";
+  pointer-events: none;
+  z-index: 10;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 32px;
+  margin-top: -32px;
+  background: linear-gradient(to bottom, transparent, var(--daimo-surface));
+  transition: opacity 300ms ease;
+}
+.daimo-scroll-fade.daimo-scroll-end::after {
+  opacity: 0;
+}
+
+/* Page enter animation — subtle fade + slide on page change */
+.daimo-page-enter {
+  animation: daimo-page-in 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes daimo-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daimo-page-enter {
+    animation: none;
+  }
+}
+
+.daimo-modal-backdrop {
+  animation: daimo-backdrop-in 200ms ease-out forwards;
+}
+
+@keyframes daimo-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.daimo-modal-content {
+  animation: daimo-modal-slide-up 200ms ease-out forwards;
+}
+
+@keyframes daimo-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes daimo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* QR placeholder: real QR SVG faded + diagonal shimmer + logo on top */
+.daimo-qr-placeholder-qr {
+  opacity: 0.1;
+}
+
+.daimo-qr-shimmer {
+  pointer-events: none;
+  transform: scale(2) rotate(45deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: daimo-qr-shimmer 1s linear infinite both;
+}
+
+.daimo-qr-placeholder-logo {
+  z-index: 2;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  width: 28%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes daimo-qr-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes daimo-qr-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes daimo-qr-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.daimo-qr-fade-in {
+  animation: daimo-qr-fade-in 200ms ease-out both;
+}
+
+.daimo-qr-fade-out {
+  animation: daimo-qr-fade-out 200ms ease-out both;
+}
+/* QR toggle animation */
+
+/* QR code enter/exit — ease-out for responsiveness */
+.daimo-transition-qr {
+  transition:
+    opacity 280ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    transform 280ms cubic-bezier(0.215, 0.61, 0.355, 1);
+  will-change: opacity, transform;
+}
+
+/* Token icon morph — ease-in-out for smooth shrink/fade */
+.daimo-transition-qr-icon {
+  transition:
+    transform 280ms cubic-bezier(0.645, 0.045, 0.355, 1),
+    opacity 280ms cubic-bezier(0.645, 0.045, 0.355, 1);
+  will-change: transform, opacity;
+}
+
+/* Height spacer for smooth layout transition */
+.daimo-transition-qr-spacer {
+  transition: height 280ms cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daimo-modal-backdrop,
+  .daimo-modal-content {
+    animation: none;
+  }
+
+  .daimo-qr-shimmer {
+    animation: none;
+  }
+
+  .daimo-qr-fade-in,
+  .daimo-qr-fade-out {
+    animation: none;
+  }
+  .daimo-transition-qr,
+  .daimo-transition-qr-icon,
+  .daimo-transition-qr-spacer {
+    transition: none;
+  }
+}
+
+/* Dark mode: explicit override */
+[data-theme="dark"] {
+  /* Backgrounds */
+  --daimo-bg: #111827;
+  --daimo-surface: #1f2937;
+  --daimo-surface-secondary: #374151;
+  --daimo-surface-hover: #4b5563;
+  --daimo-skeleton: #4b5563;
+
+  /* Text */
+  --daimo-title: #f3f4f6;
+  --daimo-text: #f3f4f6;
+  --daimo-text-secondary: #9ca3af;
+  --daimo-text-muted: #6b7280;
+
+  /* Semantic */
+  --daimo-success: #4ade80;
+  --daimo-success-light: #14532d;
+  --daimo-checkmark: #f3f4f6;
+  --daimo-error: #f87171;
+  --daimo-error-light: #7f1d1d;
+  --daimo-warning: #fb923c;
+  --daimo-accent: #0977d5;
+
+  /* Placeholder/Inactive */
+  --daimo-placeholder: #6b7280;
+}

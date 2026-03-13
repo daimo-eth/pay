@@ -5,21 +5,21 @@
  */
 export function ModalSkeleton() {
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       {/* Header placeholder */}
-      <div className="flex items-center justify-center h-14 px-6">
+      <div className="daimo-flex daimo-items-center daimo-justify-center daimo-h-14 daimo-px-6">
         <div
-          className="h-5 w-32 rounded motion-safe:animate-pulse"
+          className="daimo-h-5 daimo-w-32 daimo-rounded motion-safe:daimo-animate-daimo-pulse"
           style={{ backgroundColor: "var(--daimo-skeleton)" }}
         />
       </div>
 
       {/* Token rows placeholder - uses motion-safe for reduced motion support */}
-      <div className="flex-1 px-6 pb-4 flex flex-col gap-3">
+      <div className="daimo-flex-1 daimo-px-6 daimo-pb-4 daimo-flex daimo-flex-col daimo-gap-3">
         {[...Array(11)].map((_, i) => (
           <div
             key={i}
-            className="h-16 rounded-[var(--daimo-radius-lg)] motion-safe:animate-pulse"
+            className="daimo-h-16 daimo-rounded-[var(--daimo-radius-lg)] motion-safe:daimo-animate-daimo-pulse"
             style={{
               backgroundColor: "var(--daimo-skeleton)",
               animationDelay: `${i * 100}ms`,

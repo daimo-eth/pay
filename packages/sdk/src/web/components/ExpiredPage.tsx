@@ -13,23 +13,23 @@ type ExpiredPageProps = {
  */
 export function ExpiredPage({ sessionId, onClose }: ExpiredPageProps) {
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={t.expired} />
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6 daimo-gap-6">
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center"
+          className="daimo-w-20 daimo-h-20 daimo-rounded-full daimo-flex daimo-items-center daimo-justify-center"
           style={{ backgroundColor: "var(--daimo-error-light)" }}
         >
           <ExpiredIcon />
         </div>
-        <p className="text-[var(--daimo-text-secondary)]">
+        <p className="daimo-text-[var(--daimo-text-secondary)]">
           {t.paymentSessionExpired}
         </p>
         {onClose && (
           <SecondaryButton onClick={onClose}>{t.close}</SecondaryButton>
         )}
       </div>
-      <div className="px-6 pb-6 flex flex-col items-center">
+      <div className="daimo-px-6 daimo-pb-6 daimo-flex daimo-flex-col daimo-items-center">
         <ContactSupportButton subject="Expired session" info={{ sessionId }} />
       </div>
     </div>

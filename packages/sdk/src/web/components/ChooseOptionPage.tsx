@@ -55,12 +55,12 @@ export function ChooseOptionPage({
   const isRootPage = onBack === null;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
       <ScrollContent onScroll={onScroll} grow={false}>
         {useGridLayout ? (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="daimo-grid daimo-grid-cols-4 daimo-gap-2">
             {options.map((option) => (
               <GridOptionCell
                 key={option.id}
@@ -71,7 +71,7 @@ export function ChooseOptionPage({
             ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="daimo-flex daimo-flex-col daimo-gap-3">
             {options.map((option) => (
               <OptionRow
                 key={option.id}
@@ -89,10 +89,10 @@ export function ChooseOptionPage({
           href="https://daimo.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-auto py-4 flex items-center justify-center gap-1.5 no-underline"
+          className="daimo-mt-auto daimo-py-4 daimo-flex daimo-items-center daimo-justify-center daimo-gap-1.5 daimo-no-underline"
         >
           <DaimoLogoIcon size={14} />
-          <span className="text-sm font-semibold text-[var(--daimo-text-muted)]">
+          <span className="daimo-text-sm daimo-font-semibold daimo-text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}
           </span>
         </a>
@@ -116,16 +116,16 @@ function GridOptionCell({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-2 p-1 rounded-[var(--daimo-radius-md)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] transition-colors min-w-0"
+      className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-2 daimo-p-1 daimo-rounded-[var(--daimo-radius-md)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-secondary)] daimo-transition-colors daimo-min-w-0"
     >
       {icons.length > 0 && (
         <img
           src={resolveIconUrl(icons[0], baseUrl)}
           alt={label}
-          className="w-full aspect-square max-w-16 object-contain rounded-[25%]"
+          className="daimo-w-full daimo-aspect-square daimo-max-w-16 daimo-object-contain daimo-rounded-[25%]"
         />
       )}
-      <span className="text-xs font-medium text-[var(--daimo-text)] text-center leading-tight">
+      <span className="daimo-text-xs daimo-font-medium daimo-text-[var(--daimo-text)] daimo-text-center daimo-leading-tight">
         {label}
       </span>
     </button>
@@ -177,13 +177,13 @@ function OptionIcons({
   // 2x2 grid for 4+ icons
   if (icons.length >= 4) {
     return (
-      <div className="w-8 h-8 grid grid-cols-2 gap-0.5">
+      <div className="daimo-w-8 daimo-h-8 daimo-grid daimo-grid-cols-2 daimo-gap-0.5">
         {icons.slice(0, 4).map((icon, i) => (
           <img
             key={i}
             src={resolveIconUrl(icon, baseUrl)}
             alt=""
-            className="w-[15px] h-[15px] object-contain rounded-[25%]"
+            className="daimo-w-[15px] daimo-h-[15px] daimo-object-contain daimo-rounded-[25%]"
           />
         ))}
       </div>
@@ -192,13 +192,13 @@ function OptionIcons({
 
   // Stacked overlapped icons for <4
   return (
-    <div className="flex items-center">
+    <div className="daimo-flex daimo-items-center">
       {icons.map((icon, i) => (
         <img
           key={i}
           src={resolveIconUrl(icon, baseUrl)}
           alt=""
-          className="w-8 h-8 object-contain rounded-[25%] relative"
+          className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%] daimo-relative"
           style={{
             marginLeft: i > 0 ? -10 : 0,
             zIndex: icons.length - i,

@@ -49,10 +49,10 @@ export function ExchangePage({
   // Desktop QR view for Binance, Lemon, CashApp
   if (showQR) {
     return (
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
         <PageHeader title={node.title} onBack={onBack} />
         <CenteredContent>
-          <div className="w-full max-w-[200px] sm:max-w-[260px]">
+          <div className="daimo-w-full daimo-max-w-[200px] sm:daimo-max-w-[260px]">
             <QRCode
               value={exchangeUrl}
               placeholderDensity={placeholderDensity}
@@ -61,14 +61,14 @@ export function ExchangePage({
                   <img
                     src={resolveIconUrl(node.icon, baseUrl)}
                     alt={node.title}
-                    className="w-full h-full object-contain rounded-[25%]"
+                    className="daimo-w-full daimo-h-full daimo-object-contain daimo-rounded-[25%]"
                   />
                 ) : undefined
               }
             />
           </div>
           {exchangeUrl && (
-            <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs text-sm whitespace-pre-line">
+            <p className="daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs daimo-text-sm daimo-whitespace-pre-line">
               {waitingMessage || t.scanWithPhone}
             </p>
           )}
@@ -79,19 +79,19 @@ export function ExchangePage({
 
   // Mobile (all exchanges) and desktop Coinbase (popup)
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={node.title} onBack={onBack} />
       <CenteredContent>
         {node.icon && (
           <PageLogo icon={node.icon} alt={node.title} baseUrl={baseUrl} />
         )}
         {isLoading ? (
-          <div className="flex flex-col items-center gap-2 max-w-xs w-full">
-            <div className="h-4 w-4/5 rounded bg-[var(--daimo-surface-secondary)] animate-pulse" />
-            <div className="h-4 w-3/5 rounded bg-[var(--daimo-surface-secondary)] animate-pulse" />
+          <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-2 daimo-max-w-xs daimo-w-full">
+            <div className="daimo-h-4 daimo-w-4/5 daimo-rounded daimo-bg-[var(--daimo-surface-secondary)] daimo-animate-daimo-pulse" />
+            <div className="daimo-h-4 daimo-w-3/5 daimo-rounded daimo-bg-[var(--daimo-surface-secondary)] daimo-animate-daimo-pulse" />
           </div>
         ) : (
-          <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs whitespace-pre-line">
+          <p className="daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs daimo-whitespace-pre-line">
             {waitingMessage ||
               `${t.continueTo} ${node.title} ${t.toCompleteYourDeposit}`}
           </p>

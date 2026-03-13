@@ -18,19 +18,19 @@ export function ChooseChainPage({
   baseUrl,
 }: ChooseChainPageProps) {
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={walletName} onBack={onBack} />
 
-      <div className="flex flex-col items-center gap-6 px-6 py-4">
+      <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-6 daimo-px-6 daimo-py-4">
         {walletIcon && (
           <img
             src={walletIcon}
             alt={walletName}
-            className="w-16 h-16 object-contain rounded-[25%]"
+            className="daimo-w-16 daimo-h-16 daimo-object-contain daimo-rounded-[25%]"
           />
         )}
 
-        <div className="flex flex-col gap-3 w-full">
+        <div className="daimo-flex daimo-flex-col daimo-gap-3 daimo-w-full">
           <ChainRow
             label="Ethereum"
             icon={getChainLogoUrl(ethereum.chainId, baseUrl)}
@@ -63,7 +63,7 @@ function ChainRow({
         <img
           src={icon}
           alt={label}
-          className="w-8 h-8 object-contain rounded-full"
+          className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-full"
         />
       }
       onClick={onClick}

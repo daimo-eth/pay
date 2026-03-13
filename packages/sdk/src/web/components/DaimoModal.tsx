@@ -289,7 +289,7 @@ function DaimoModalInner({
   return (
     <div
       key={pageKey}
-      className="daimo-page-enter flex-1 min-h-0 flex flex-col"
+      className="daimo-page-enter daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col"
     >
       {content}
     </div>
@@ -474,20 +474,20 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
   const title = entry.walletName ? `${t.connect} ${entry.walletName}` : t.connectWallet;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={title} onBack={ctx.canGoBack ? ctx.onBack : undefined} />
 
       <CenteredContent>
         {entry.walletIcon && (
-          <img src={entry.walletIcon} alt={entry.walletName ?? ""} className="w-20 h-20 object-contain rounded-[25%]" />
+          <img src={entry.walletIcon} alt={entry.walletName ?? ""} className="daimo-w-20 daimo-h-20 daimo-object-contain daimo-rounded-[25%]" />
         )}
         {walletFlow.isConnecting && (
-          <span className="text-[var(--daimo-text-muted)]">{t.loading}</span>
+          <span className="daimo-text-[var(--daimo-text-muted)]">{t.loading}</span>
         )}
       </CenteredContent>
 
       {/* Fixed bottom: error + retry, contact support */}
-      <div className="px-6 pb-6 flex flex-col items-center gap-3 min-h-[100px]">
+      <div className="daimo-px-6 daimo-pb-6 daimo-flex daimo-flex-col daimo-items-center daimo-gap-3 daimo-min-h-[100px]">
         {walletFlow.connectError && (
           <>
             <SharedErrorMessage message={walletFlow.connectError} />
@@ -508,7 +508,7 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
   // Show error if wallet connection failed (e.g. ConnectedWallet skips wallet-connect page)
   if (!walletFlow.isLoadingBalances && walletFlow.balances === null && walletFlow.connectError) {
     return (
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
         <PageHeader title={t.selectToken} onBack={ctx.canGoBack ? ctx.onBack : null} borderVisible={false} />
         <CenteredContent>
           <SharedErrorMessage message={walletFlow.connectError} />
@@ -537,7 +537,7 @@ function renderWalletSending(entry: NavEntry & { type: "wallet-sending" }, ctx: 
 
 function LoadingMessage() {
   return (
-    <div className="flex items-center justify-center h-full text-[var(--daimo-text-muted)]">
+    <div className="daimo-flex daimo-items-center daimo-justify-center daimo-h-full daimo-text-[var(--daimo-text-muted)]">
       {t.loading}
     </div>
   );
@@ -545,11 +545,11 @@ function LoadingMessage() {
 
 function FlowErrorMessage({ error, onBack, onRetry }: { error: string; onBack: () => void; onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-[var(--daimo-text-muted)]">
+    <div className="daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-h-full daimo-gap-4 daimo-text-[var(--daimo-text-muted)]">
       <p>{error}</p>
-      <div className="flex gap-2">
-        <button className="px-4 py-2 rounded-lg bg-[var(--daimo-surface)] hover:bg-[var(--daimo-surface-hover)] transition-colors" onClick={onBack}>{t.back}</button>
-        <button className="px-4 py-2 rounded-lg bg-[var(--daimo-primary)] text-white hover:opacity-90 transition-opacity" onClick={onRetry}>{t.tryAgain}</button>
+      <div className="daimo-flex daimo-gap-2">
+        <button className="daimo-px-4 daimo-py-2 daimo-rounded-lg daimo-bg-[var(--daimo-surface)] hover:daimo-bg-[var(--daimo-surface-hover)] daimo-transition-colors" onClick={onBack}>{t.back}</button>
+        <button className="daimo-px-4 daimo-py-2 daimo-rounded-lg daimo-bg-[var(--daimo-accent)] daimo-text-white hover:daimo-opacity-90 daimo-transition-opacity" onClick={onRetry}>{t.tryAgain}</button>
       </div>
     </div>
   );
@@ -559,17 +559,17 @@ function SkeletonContent({ rowCount = 4 }: { rowCount?: number }) {
   const skeletonBg = "var(--daimo-skeleton, #e5e7eb)";
   const radiusLg = "var(--daimo-radius-lg, 16px)";
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-center p-6">
-        <div className="h-5 w-32 rounded animate-pulse" style={{ backgroundColor: skeletonBg }} />
+    <div className="daimo-flex daimo-flex-col">
+      <div className="daimo-flex daimo-items-center daimo-justify-center daimo-p-6">
+        <div className="daimo-h-5 daimo-w-32 daimo-rounded daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg }} />
       </div>
-      <div className="px-6 pb-4 flex flex-col gap-3">
+      <div className="daimo-px-6 daimo-pb-4 daimo-flex daimo-flex-col daimo-gap-3">
         {[...Array(rowCount)].map((_, i) => (
-          <div key={i} className="h-16 animate-pulse" style={{ backgroundColor: skeletonBg, borderRadius: radiusLg, animationDelay: `${i * 100}ms` }} />
+          <div key={i} className="daimo-h-16 daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg, borderRadius: radiusLg, animationDelay: `${i * 100}ms` }} />
         ))}
       </div>
-      <div className="py-4 text-center">
-        <span className="inline-block h-4 w-28 rounded animate-pulse" style={{ backgroundColor: skeletonBg }} />
+      <div className="daimo-py-4 daimo-text-center">
+        <span className="daimo-inline-block daimo-h-4 daimo-w-28 daimo-rounded daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg }} />
       </div>
     </div>
   );

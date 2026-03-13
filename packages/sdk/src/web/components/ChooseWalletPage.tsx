@@ -38,11 +38,11 @@ export function ChooseWalletPage({
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
 
       <ScrollContent onScroll={onScroll} grow={false}>
-        <div className="flex flex-col gap-3">
+        <div className="daimo-flex daimo-flex-col daimo-gap-3">
           {injectedWallets.map((w) => (
             <InjectedWalletRow
               key={w.info.rdns}
@@ -79,7 +79,7 @@ function InjectedWalletRow({
         <img
           src={wallet.info.icon}
           alt={wallet.info.name}
-          className="w-8 h-8 object-contain rounded-[25%]"
+          className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%]"
         />
       }
       onClick={onClick}
@@ -107,7 +107,7 @@ function DeeplinkWalletRow({
           <img
             src={resolveIconUrl(icon, baseUrl)}
             alt={label}
-            className="w-8 h-8 object-contain rounded-[25%]"
+            className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%]"
           />
         ) : undefined
       }

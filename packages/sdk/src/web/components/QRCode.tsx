@@ -33,8 +33,8 @@ const PLACEHOLDER_VALUES: Record<QRDensity, string> = {
 
 function QRCodeShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="qr-container relative w-full overflow-hidden rounded-2xl border border-[var(--daimo-border)] bg-[var(--daimo-qr-bg,white)]">
-      <div className="relative w-full pb-[100%]">
+    <div className="daimo-qr-container daimo-relative daimo-w-full daimo-overflow-hidden daimo-rounded-2xl daimo-border daimo-border-[var(--daimo-border)] daimo-bg-[var(--daimo-qr-bg,white)]">
+      <div className="daimo-relative daimo-w-full daimo-pb-[100%]">
         {children}
       </div>
     </div>
@@ -143,17 +143,17 @@ function QRCodeContent({ value, image }: { value: string; image?: React.ReactNod
   );
 
   return (
-    <div className="absolute inset-[13px]">
+    <div className="daimo-absolute daimo-inset-[13px]">
       <svg
         viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
-        className="block h-auto w-full"
+        className="daimo-block daimo-h-auto daimo-w-full"
       >
         {dots}
       </svg>
 
       {image && (
         <div
-          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+          className="daimo-absolute daimo-left-1/2 daimo-top-1/2 daimo-flex -daimo-translate-x-1/2 -daimo-translate-y-1/2 daimo-items-center daimo-justify-center"
           style={centerLogoStyle}
         >
           {image}
@@ -172,16 +172,16 @@ function QRPlaceholderContent({ image, density = "medium" }: QRPlaceholderProps)
   return (
     <>
       {/* Real QR code SVG at low opacity as skeleton */}
-      <div className="absolute inset-[13px] daimo-qr-placeholder-qr">
+      <div className="daimo-absolute daimo-inset-[13px] daimo-qr-placeholder-qr">
         <svg
           viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
-          className="block h-auto w-full"
+          className="daimo-block daimo-h-auto daimo-w-full"
         >
           {dots}
         </svg>
       </div>
       {/* Diagonal shimmer sweep */}
-      <div className="absolute inset-[13px] overflow-hidden rounded-[5px] daimo-qr-shimmer" />
+      <div className="daimo-absolute daimo-inset-[13px] daimo-overflow-hidden daimo-rounded-[5px] daimo-qr-shimmer" />
       {/* Logo on top, unaffected by shimmer */}
       {image && (
         <div className="daimo-qr-placeholder-logo">

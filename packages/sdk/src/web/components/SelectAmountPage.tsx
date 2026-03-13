@@ -67,17 +67,17 @@ export function SelectAmountPage({
       : null;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={t.selectAmount} onBack={onBack} />
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center p-6">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-p-6">
         {/* Logo - Token with chain badge when available */}
-        <div className="h-24 flex items-center justify-center mb-3">
+        <div className="daimo-h-24 daimo-flex daimo-items-center daimo-justify-center daimo-mb-3">
           {displayToken ? (
             <TokenIconWithChainBadge
               token={displayToken}
               size="lg"
-              badgeBorderClass="border-2 bg-[var(--daimo-surface)] border-[var(--daimo-surface)]"
+              badgeBorderClass="daimo-border-2 daimo-bg-[var(--daimo-surface)] daimo-border-[var(--daimo-surface)]"
               baseUrl={baseUrl}
             />
           ) : (
@@ -85,14 +85,14 @@ export function SelectAmountPage({
               <img
                 src={resolveIconUrl(node.icon, baseUrl)}
                 alt={node.title}
-                className="w-20 h-20 rounded-[25%]"
+                className="daimo-w-20 daimo-h-20 daimo-rounded-[25%]"
               />
             )
           )}
         </div>
 
         {/* Amount input */}
-        <div className="mb-6">
+        <div className="daimo-mb-6">
           <AmountInput
             minimumUsd={minimumUsd}
             maximumUsd={maximumUsd}
@@ -103,13 +103,13 @@ export function SelectAmountPage({
 
         {/* Error message */}
         {error && (
-          <div className="text-red-500 text-sm text-center mb-3">{error}</div>
+          <div className="daimo-text-red-500 daimo-text-sm daimo-text-center daimo-mb-3">{error}</div>
         )}
 
         <PrimaryButton
           onClick={() => isValid && !isLoading && onContinue(amountUsd)}
           disabled={!isValid || isLoading}
-          className="max-w-none"
+          className="daimo-max-w-none"
         >
           {isLoading ? t.loading : t.continue}
         </PrimaryButton>

@@ -101,9 +101,9 @@ export function ConfirmationPage({
   const chainName = sourceChainId ? getChainName(sourceChainId) : "";
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader onBack={showBack ? onBack : undefined} title={displayTitle} />
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6 daimo-gap-4">
         {/* Token icon with chain badge (only if logo available) */}
         {showSourceIcon && (
           <TokenIconWithChainBadge
@@ -122,14 +122,14 @@ export function ConfirmationPage({
 
         {/* Amount and chain info */}
         {showSourceInfo && (
-          <div className="text-center">
+          <div className="daimo-text-center">
             {/* Use tabular-nums for stable number widths */}
-            <p className="text-3xl font-semibold text-[var(--daimo-text)] tabular-nums">
+            <p className="daimo-text-3xl daimo-font-semibold daimo-text-[var(--daimo-text)] daimo-tabular-nums">
               {sourceAmountUsd != null
                 ? `$${sourceAmountUsd.toFixed(2)} ${sourceTokenSymbol}`
                 : sourceTokenSymbol}
             </p>
-            <p className="text-base text-[var(--daimo-text-secondary)]">
+            <p className="daimo-text-base daimo-text-[var(--daimo-text-secondary)]">
               {t.onChain} {chainName}
             </p>
           </div>
@@ -144,14 +144,14 @@ export function ConfirmationPage({
         {status === "done" && returnUrl && (
           <a
             href={returnUrl}
-            className="w-full max-w-xs min-h-[44px] py-4 px-6 rounded-[var(--daimo-radius-lg)] font-medium bg-[var(--daimo-surface-secondary)] text-[var(--daimo-text)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] touch-action-manipulation transition-[background-color] duration-100 ease text-center flex items-center justify-center"
+            className="daimo-w-full daimo-max-w-xs daimo-min-h-[44px] daimo-py-4 daimo-px-6 daimo-rounded-[var(--daimo-radius-lg)] daimo-font-medium daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)] daimo-touch-action-manipulation daimo-transition-[background-color] daimo-duration-100 daimo-ease daimo-text-center daimo-flex daimo-items-center daimo-justify-center"
           >
             {t.returnToApp}
           </a>
         )}
         {/* Secondary text message (session page only, when no returnUrl) */}
         {status === "done" && !returnUrl && returnLabel && (
-          <p className="text-center text-[var(--daimo-text-secondary)] px-8 whitespace-pre-line">
+          <p className="daimo-text-center daimo-text-[var(--daimo-text-secondary)] daimo-px-8 daimo-whitespace-pre-line">
             {returnLabel}
           </p>
         )}

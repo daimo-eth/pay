@@ -18,10 +18,10 @@ export function DeeplinkPage({ node, onBack, baseUrl }: DeeplinkPageProps) {
 
   if (desktop) {
     return (
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
         <PageHeader title={node.title} onBack={onBack ?? undefined} />
         <CenteredContent>
-          <div className="w-full max-w-[200px] sm:max-w-[260px]">
+          <div className="daimo-w-full daimo-max-w-[200px] sm:daimo-max-w-[260px]">
             <QRCode
               value={node.url}
               image={
@@ -29,13 +29,13 @@ export function DeeplinkPage({ node, onBack, baseUrl }: DeeplinkPageProps) {
                   <img
                     src={resolveIconUrl(node.icon, baseUrl)}
                     alt={node.title}
-                    className="w-full h-full object-contain rounded-[25%]"
+                    className="daimo-w-full daimo-h-full daimo-object-contain daimo-rounded-[25%]"
                   />
                 ) : undefined
               }
             />
           </div>
-          <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs text-sm">
+          <p className="daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs daimo-text-sm">
             {t.scanWithPhone}
           </p>
         </CenteredContent>
@@ -50,11 +50,11 @@ export function DeeplinkPage({ node, onBack, baseUrl }: DeeplinkPageProps) {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={node.title} onBack={onBack ?? undefined} />
       <CenteredContent>
         {node.icon && <PageLogo icon={node.icon} alt={node.title} baseUrl={baseUrl} />}
-        <p className="text-[var(--daimo-text-secondary)] text-center max-w-xs">
+        <p className="daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs">
           {t.continueIn} {node.title} {t.toCompleteYourPayment}
         </p>
         <PrimaryButton onClick={openDeeplink} icon={<ExternalLinkIcon />}>

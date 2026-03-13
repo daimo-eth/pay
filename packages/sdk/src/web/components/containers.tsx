@@ -74,13 +74,13 @@ export function ModalContainer({
   maxHeight,
 }: ModalContainerProps) {
   const backdropClass = animate
-    ? "daimo-modal-backdrop fixed inset-0 z-50 bg-black/50"
-    : "fixed inset-0 z-50 bg-black/50";
+    ? "daimo-modal-backdrop daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50"
+    : "daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50";
 
   const overflow = maxHeight
-    ? "overflow-hidden"
-    : "max-h-[90vh] overflow-y-auto";
-  const baseContentClass = `relative w-full max-w-[420px] ${overflow} bg-[var(--daimo-surface)] rounded-t-[var(--daimo-radius-xl)] sm:rounded-[var(--daimo-radius-xl)] shadow-lg flex flex-col`;
+    ? "daimo-overflow-hidden"
+    : "daimo-max-h-[90vh] daimo-overflow-y-auto";
+  const baseContentClass = `daimo-relative daimo-w-full daimo-max-w-[420px] ${overflow} daimo-bg-[var(--daimo-surface)] daimo-rounded-t-[var(--daimo-radius-xl)] sm:daimo-rounded-[var(--daimo-radius-xl)] daimo-shadow-lg daimo-flex daimo-flex-col`;
   const contentClass = animate
     ? `daimo-modal-content ${baseContentClass}`
     : baseContentClass;
@@ -94,24 +94,24 @@ export function ModalContainer({
       {/* Backdrop with fade-in - click to close */}
       <div className={backdropClass} onClick={onClose} />
       {/* Modal container - bottom aligned for thumb reachability */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none px-0 sm:px-4 sm:pb-4">
+      <div className="daimo-fixed daimo-inset-x-0 daimo-bottom-0 daimo-z-50 daimo-flex daimo-justify-center daimo-pointer-events-none daimo-px-0 sm:daimo-px-4 sm:daimo-pb-4">
         <div
           ref={contentRef}
-          className={`pointer-events-auto ${contentClass}`}
+          className={`daimo-pointer-events-auto ${contentClass}`}
           style={maxHeight ? { maxHeight } : undefined}
           onClick={(e) => e.stopPropagation()}
         >
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute right-[17px] top-[22px] z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
+              className="daimo-absolute daimo-right-[17px] daimo-top-[22px] daimo-z-20 daimo-w-8 daimo-h-8 daimo-flex daimo-items-center daimo-justify-center daimo-rounded-full daimo-bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-secondary)] active:daimo-scale-[0.9] daimo-transition-[background-color,transform] daimo-[transition-duration:200ms,100ms] daimo-ease daimo-touch-action-manipulation"
               aria-label={t.close}
             >
               <CloseIcon />
             </button>
           )}
-          <div className="flex-1 min-h-0 flex flex-col">{children}</div>
-          {showFooterSpacer && <div className="h-8 shrink-0" />}
+          <div className="daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col">{children}</div>
+          {showFooterSpacer && <div className="daimo-h-8 daimo-shrink-0" />}
         </div>
       </div>
     </>
@@ -143,12 +143,12 @@ export function EmbeddedContainer({
   showFooterSpacer = true,
 }: ContainerProps) {
   return (
-    <div className="bg-transparent flex flex-col items-center">
+    <div className="daimo-bg-transparent daimo-flex daimo-flex-col daimo-items-center">
       <div
-        className="w-full max-w-[512px] bg-[var(--daimo-surface)] flex flex-col"
+        className="daimo-w-full daimo-max-w-[512px] daimo-bg-[var(--daimo-surface)] daimo-flex daimo-flex-col"
       >
         {children}
-        {showFooterSpacer && <div className="h-8" />}
+        {showFooterSpacer && <div className="daimo-h-8" />}
       </div>
     </div>
   );

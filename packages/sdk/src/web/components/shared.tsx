@@ -140,18 +140,18 @@ export function AmountInput({
 
   const labelClass =
     showMinWarning || showMaxWarning
-      ? "text-base text-[var(--daimo-text)]"
-      : "text-base text-[var(--daimo-text-secondary)]";
+      ? "daimo-text-base daimo-text-[var(--daimo-text)]"
+      : "daimo-text-base daimo-text-[var(--daimo-text-secondary)]";
 
   // $ sign color: placeholder when empty, text color when typed
   const dollarColor = inputValue
-    ? "text-[var(--daimo-text)]"
-    : "text-[var(--daimo-placeholder)]";
+    ? "daimo-text-[var(--daimo-text)]"
+    : "daimo-text-[var(--daimo-placeholder)]";
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex items-center justify-center gap-1">
-        <span className={`text-[24px] font-semibold ${dollarColor}`}>$</span>
+    <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3">
+      <div className="daimo-flex daimo-items-center daimo-justify-center daimo-gap-1">
+        <span className={`daimo-text-[24px] daimo-font-semibold ${dollarColor}`}>$</span>
         <input
           type="text"
           inputMode="decimal"
@@ -159,7 +159,7 @@ export function AmountInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
-          className="bg-transparent font-semibold text-[var(--daimo-text)] placeholder-[var(--daimo-placeholder)] outline-none border-none shadow-none caret-[var(--daimo-text-muted)] ring-0 focus:outline-none focus:ring-0 focus:border-none focus:shadow-none"
+          className="daimo-bg-transparent daimo-font-semibold daimo-text-[var(--daimo-text)] daimo-placeholder-[var(--daimo-placeholder)] daimo-outline-none daimo-border-none daimo-shadow-none daimo-caret-[var(--daimo-text-muted)] daimo-ring-0 focus:daimo-outline-none focus:daimo-ring-0 focus:daimo-border-none focus:daimo-shadow-none"
           style={{
             width: inputWidth,
             minWidth: "1ch",
@@ -208,23 +208,23 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, onBack, borderVisible }: PageHeaderProps) {
   return (
-    <div className="sticky top-0 z-10 shrink-0 bg-[var(--daimo-surface)]">
-      <div className="flex items-center justify-center p-6">
+    <div className="daimo-sticky daimo-top-0 daimo-z-10 daimo-shrink-0 daimo-bg-[var(--daimo-surface)]">
+      <div className="daimo-flex daimo-items-center daimo-justify-center daimo-p-6">
         {onBack && (
           <button
             onClick={onBack}
             aria-label="Go back"
-            className="absolute left-5 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-secondary)] active:scale-[0.9] transition-[background-color,transform] [transition-duration:200ms,100ms] ease touch-action-manipulation"
+            className="daimo-absolute daimo-left-5 daimo-w-8 daimo-h-8 daimo-flex daimo-items-center daimo-justify-center daimo-rounded-full daimo-bg-[var(--daimo-surface)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-secondary)] active:daimo-scale-[0.9] daimo-transition-[background-color,transform] daimo-[transition-duration:200ms,100ms] daimo-ease daimo-touch-action-manipulation"
           >
             <BackArrowIcon />
           </button>
         )}
-        <h1 className="text-lg font-semibold text-[var(--daimo-title)] text-balance">
+        <h1 className="daimo-text-lg daimo-font-semibold daimo-text-[var(--daimo-title)] daimo-text-balance">
           {title}
         </h1>
       </div>
       <div
-        className="mx-6 border-b transition-[border-color] duration-300 ease"
+        className="daimo-mx-6 daimo-border-b daimo-transition-[border-color] daimo-duration-300 daimo-ease"
         style={{
           borderColor: borderVisible ? "var(--daimo-border)" : "transparent",
         }}
@@ -242,12 +242,12 @@ type PageLogoProps = {
 };
 
 export function PageLogo({ icon, alt, size = "lg", baseUrl }: PageLogoProps) {
-  const sizeClass = size === "lg" ? "w-20 h-20" : "w-16 h-16";
+  const sizeClass = size === "lg" ? "daimo-w-20 daimo-h-20" : "daimo-w-16 daimo-h-16";
   return (
     <img
       src={resolveIconUrl(icon, baseUrl)}
       alt={alt}
-      className={`${sizeClass} object-contain rounded-[25%]`}
+      className={`${sizeClass} daimo-object-contain daimo-rounded-[25%]`}
     />
   );
 }
@@ -266,12 +266,12 @@ export function ScrollContent({
   fade?: boolean;
   grow?: boolean;
 }) {
-  const fadeClass = fade ? ` scroll-fade${atBottom ? " scroll-end" : ""}` : "";
-  const padClass = fade ? "pb-0" : "pb-4";
-  const growClass = grow ? "flex-1" : "";
+  const fadeClass = fade ? ` daimo-scroll-fade${atBottom ? " daimo-scroll-end" : ""}` : "";
+  const padClass = fade ? "daimo-pb-0" : "daimo-pb-4";
+  const growClass = grow ? "daimo-flex-1" : "";
   return (
     <div
-      className={`${growClass} min-h-0 overflow-y-auto px-6 ${padClass}${fadeClass}`}
+      className={`${growClass} daimo-min-h-0 daimo-overflow-y-auto daimo-px-6 ${padClass}${fadeClass}`}
       onScroll={onScroll}
     >
       {children}
@@ -282,7 +282,7 @@ export function ScrollContent({
 // --- List Row ---
 
 export const LIST_ROW_CLASS =
-  "w-full h-16 shrink-0 flex items-center justify-between px-5 rounded-[var(--daimo-radius-lg)] bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-colors text-left touch-action-manipulation";
+  "daimo-w-full daimo-h-16 daimo-shrink-0 daimo-flex daimo-items-center daimo-justify-between daimo-px-5 daimo-rounded-[var(--daimo-radius-lg)] daimo-bg-[var(--daimo-surface-secondary)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)] daimo-transition-colors daimo-text-left daimo-touch-action-manipulation";
 
 type ListRowProps = {
   label: string;
@@ -303,24 +303,24 @@ export function ListRow({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`${LIST_ROW_CLASS} transition-[background-color] duration-100 ease ${
+      className={`${LIST_ROW_CLASS} daimo-transition-[background-color] daimo-duration-100 daimo-ease ${
         disabled
-          ? "opacity-50 cursor-not-allowed hover:[@media(hover:hover)]:!bg-[var(--daimo-surface-secondary)]"
+          ? "daimo-opacity-50 daimo-cursor-not-allowed hover:[@media(hover:hover)]:!daimo-bg-[var(--daimo-surface-secondary)]"
           : ""
       }`}
     >
-      <div className="flex-1 min-w-0 mr-3">
+      <div className="daimo-flex-1 daimo-min-w-0 daimo-mr-3">
         <div
-          className={`text-base font-medium truncate ${
+          className={`daimo-text-base daimo-font-medium daimo-truncate ${
             disabled
-              ? "text-[var(--daimo-text-muted)]"
-              : "text-[var(--daimo-text)]"
+              ? "daimo-text-[var(--daimo-text-muted)]"
+              : "daimo-text-[var(--daimo-text)]"
           }`}
         >
           {label}
         </div>
         {subtitle && (
-          <div className="text-sm text-[var(--daimo-text-secondary)] truncate">
+          <div className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-truncate">
             {subtitle}
           </div>
         )}
@@ -333,7 +333,7 @@ export function ListRow({
 /** Centered content container for detail pages (icon + message + action). */
 export function CenteredContent({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+    <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6 daimo-gap-6">
       {children}
     </div>
   );
@@ -342,7 +342,7 @@ export function CenteredContent({ children }: { children: ReactNode }) {
 /** Centered error message */
 export function ErrorMessage({ message }: { message: string }) {
   return (
-    <p className="text-sm text-[var(--daimo-text-secondary)] text-center max-w-xs truncate">
+    <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs daimo-truncate">
       {message}
     </p>
   );
@@ -370,7 +370,7 @@ export function ContactSupportButton({
   return (
     <a
       href={href}
-      className="text-sm text-[var(--daimo-text-secondary)] hover:text-[var(--daimo-text)] underline"
+      className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] hover:daimo-text-[var(--daimo-text)] daimo-underline"
     >
       {t.contactSupport}
     </a>
@@ -390,7 +390,7 @@ export function ShowReceiptButton({
       href={`${baseUrl}/receipt?id=${sessionId}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-sm text-[var(--daimo-text-muted)] underline"
+      className="daimo-text-sm daimo-text-[var(--daimo-text-muted)] daimo-underline"
     >
       {t.showReceipt}
     </a>
@@ -435,10 +435,10 @@ export function TokenIconWithChainBadge({
 
   const sizeConfig = {
     sm: {
-      container: "w-8 h-8 shrink-0",
-      icon: "w-8 h-8 rounded-full",
-      badge: "w-[15px] h-[15px]",
-      position: "absolute -bottom-0.5 -right-0.5",
+      container: "daimo-w-8 daimo-h-8 daimo-shrink-0",
+      icon: "daimo-w-8 daimo-h-8 daimo-rounded-full",
+      badge: "daimo-w-[15px] daimo-h-[15px]",
+      position: "daimo-absolute -daimo-bottom-0.5 -daimo-right-0.5",
       style: {
         borderWidth: "1px",
         borderColor: "var(--daimo-surface-secondary)",
@@ -446,10 +446,10 @@ export function TokenIconWithChainBadge({
       },
     },
     lg: {
-      container: "w-20 h-20",
-      icon: "w-20 h-20 object-contain rounded-full",
-      badge: "w-8 h-8",
-      position: "absolute -bottom-1 -right-1",
+      container: "daimo-w-20 daimo-h-20",
+      icon: "daimo-w-20 daimo-h-20 daimo-object-contain daimo-rounded-full",
+      badge: "daimo-w-8 daimo-h-8",
+      position: "daimo-absolute -daimo-bottom-1 -daimo-right-1",
       style: {
         borderWidth: "2px",
         borderColor: "var(--daimo-surface)",
@@ -457,10 +457,10 @@ export function TokenIconWithChainBadge({
       },
     },
     qr: {
-      container: "w-12 h-12",
-      icon: "w-12 h-12 object-contain rounded-full",
-      badge: "w-5 h-5",
-      position: "absolute -bottom-0.5 -right-0.5",
+      container: "daimo-w-12 daimo-h-12",
+      icon: "daimo-w-12 daimo-h-12 daimo-object-contain daimo-rounded-full",
+      badge: "daimo-w-5 daimo-h-5",
+      position: "daimo-absolute -daimo-bottom-0.5 -daimo-right-0.5",
       style: {
         borderWidth: "1.5px",
         borderColor: "var(--daimo-surface)",
@@ -472,7 +472,7 @@ export function TokenIconWithChainBadge({
   const config = sizeConfig[size];
 
   return (
-    <div className={`relative ${config.container}`}>
+    <div className={`daimo-relative ${config.container}`}>
       {/* Token icon */}
       {logoUrl && (
         <img
@@ -488,7 +488,7 @@ export function TokenIconWithChainBadge({
       <img
         src={chainLogoUrl}
         alt={getChainName(tokenChainId)}
-        className={`${config.position} ${config.badge} rounded-full ${badgeBorderClass ?? ""}`}
+        className={`${config.position} ${config.badge} daimo-rounded-full ${badgeBorderClass ?? ""}`}
         style={badgeBorderClass ? undefined : config.style}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = "none";
@@ -543,15 +543,15 @@ export function CopyableInfoCard({
       onClick={handleCopy}
       disabled={disabled}
       aria-label={`Copy ${label}`}
-      className="w-full min-h-[56px] p-4 bg-[var(--daimo-surface-secondary)] rounded-[var(--daimo-radius-sm)] flex items-center justify-between touch-action-manipulation hover:[@media(hover:hover)]:bg-[var(--daimo-surface-hover)] transition-[background-color] duration-100 ease disabled:opacity-50 disabled:cursor-not-allowed"
+      className="daimo-w-full daimo-min-h-[56px] daimo-p-4 daimo-bg-[var(--daimo-surface-secondary)] daimo-rounded-[var(--daimo-radius-sm)] daimo-flex daimo-items-center daimo-justify-between daimo-touch-action-manipulation hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)] daimo-transition-[background-color] daimo-duration-100 daimo-ease disabled:daimo-opacity-50 disabled:daimo-cursor-not-allowed"
     >
-      <div className="text-left">
-        <p className="text-sm text-[var(--daimo-text-secondary)] font-medium mb-1">
+      <div className="daimo-text-left">
+        <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-font-medium daimo-mb-1">
           {label}
         </p>
-        <p className="text-lg font-semibold text-[var(--daimo-text)] tabular-nums">
+        <p className="daimo-text-lg daimo-font-semibold daimo-text-[var(--daimo-text)] daimo-tabular-nums">
           {displayValue ?? value}
-          {suffix && <span className="ml-2">{suffix}</span>}
+          {suffix && <span className="daimo-ml-2">{suffix}</span>}
         </p>
       </div>
       <CopyIcon copied={copied} />

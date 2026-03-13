@@ -15,7 +15,7 @@ export function CheckIcon({ className, size = 40 }: IconProps) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className ?? "text-[var(--daimo-success)]"}
+      className={className ?? "daimo-text-[var(--daimo-success)]"}
     >
       <path d="M20 6L9 17l-5-5" />
     </svg>
@@ -34,7 +34,7 @@ export function ExpiredIcon({ className, size = 40 }: IconProps) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className ?? "text-[var(--daimo-error)]"}
+      className={className ?? "daimo-text-[var(--daimo-error)]"}
     >
       <circle cx="12" cy="12" r="10" />
       <path d="M12 6v6l4 2" />
@@ -54,7 +54,7 @@ export function ErrorIcon({ className, size = 40 }: IconProps) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className ?? "text-[var(--daimo-error)]"}
+      className={className ?? "daimo-text-[var(--daimo-error)]"}
     >
       <circle cx="12" cy="12" r="10" />
       <path d="M15 9l-6 6" />
@@ -71,7 +71,7 @@ export function BackArrowIcon({ className, size = 9 }: IconProps) {
       height={Math.round((size * 16) / 9)}
       viewBox="0 0 9 16"
       fill="none"
-      className={className ?? "text-[var(--daimo-text-muted)]"}
+      className={className ?? "daimo-text-[var(--daimo-text-muted)]"}
     >
       <path
         d="M8 1L1 8L8 15"
@@ -92,7 +92,7 @@ export function CloseIcon({ className, size = 14 }: IconProps) {
       height={size}
       viewBox="0 0 14 14"
       fill="none"
-      className={className ?? "text-[var(--daimo-text-muted)]"}
+      className={className ?? "daimo-text-[var(--daimo-text-muted)]"}
     >
       <path
         d="M1 13L13 1M1 1L13 13"
@@ -121,7 +121,7 @@ export function CopyIcon({
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={className ?? "text-[var(--daimo-accent)]"}
+        className={className ?? "daimo-text-[var(--daimo-accent)]"}
       >
         <path d="M20 6L9 17l-5-5" />
       </svg>
@@ -137,7 +137,7 @@ export function CopyIcon({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className ?? "text-[var(--daimo-text-muted)]"}
+      className={className ?? "daimo-text-[var(--daimo-text-muted)]"}
     >
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
       <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
@@ -153,7 +153,7 @@ export function DaimoLogoIcon({ className, size = 16 }: IconProps) {
       height={size}
       viewBox="70 78 160 144"
       fill="none"
-      className={className ?? "text-[var(--daimo-text-muted)]"}
+      className={className ?? "daimo-text-[var(--daimo-text-muted)]"}
     >
       <path
         d="M180 202L120 98"

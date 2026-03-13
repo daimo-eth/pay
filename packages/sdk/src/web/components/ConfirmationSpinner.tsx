@@ -5,23 +5,23 @@ type ConfirmationSpinnerProps = {
 /** Spinner → checkmark transition for payment confirmation. */
 export function ConfirmationSpinner({ done }: ConfirmationSpinnerProps) {
   return (
-    <div className="relative w-[100px] h-[100px]">
+    <div className="daimo-relative daimo-w-[100px] daimo-h-[100px]">
       <div
-        className="absolute inset-[6px] rounded-full flex items-center justify-center overflow-hidden"
+        className="daimo-absolute daimo-inset-[6px] daimo-rounded-full daimo-flex daimo-items-center daimo-justify-center daimo-overflow-hidden"
         style={{ backgroundColor: "var(--daimo-bg)" }}
       >
         {/* Spinner - visible when not done */}
         <LoadingCircle
-          className={`absolute w-full h-full transition-opacity duration-200 ${
-            done ? "opacity-0" : "opacity-100"
+          className={`daimo-absolute daimo-w-full daimo-h-full daimo-transition-opacity daimo-duration-200 ${
+            done ? "daimo-opacity-0" : "daimo-opacity-100"
           }`}
           spinning={!done}
         />
 
         {/* Checkmark - visible when done */}
         <TickIcon
-          className={`absolute w-full h-full transition-[opacity,transform] duration-200 ${
-            done ? "opacity-100 scale-100" : "opacity-0 scale-50"
+          className={`daimo-absolute daimo-w-full daimo-h-full daimo-transition-[opacity,transform] daimo-duration-200 ${
+            done ? "daimo-opacity-100 daimo-scale-100" : "daimo-opacity-0 daimo-scale-50"
           }`}
           style={{ color: "var(--daimo-checkmark)" }}
         />
@@ -42,7 +42,7 @@ function LoadingCircle({
       className={className}
       style={{
         color: "var(--daimo-accent)",
-        animation: spinning ? "spin 400ms linear infinite" : "none",
+        animation: spinning ? "daimo-spin 400ms linear infinite" : "none",
       }}
       viewBox="0 0 100 100"
       fill="none"
@@ -50,7 +50,7 @@ function LoadingCircle({
       aria-hidden="true"
     >
       <style>{`
-        @keyframes spin {
+        @keyframes daimo-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }

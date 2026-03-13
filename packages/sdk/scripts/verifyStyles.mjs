@@ -18,10 +18,12 @@ const require = createRequire(import.meta.url);
 const tailwindPackagePath = require.resolve("tailwindcss/package.json", {
   paths: [packageRoot, workspaceRoot],
 });
-const selectorParserModule = require(path.join(
-  path.dirname(tailwindPackagePath),
-  "node_modules/postcss-selector-parser",
-));
+const selectorParserModule = require(
+  path.join(
+    path.dirname(tailwindPackagePath),
+    "node_modules/postcss-selector-parser",
+  ),
+);
 const selectorParser = selectorParserModule.default ?? selectorParserModule;
 const distStylesCssPath = path.join(packageRoot, "dist/web/styles.css");
 const distThemeCssPath = path.join(packageRoot, "dist/web/theme.css");
@@ -158,7 +160,8 @@ const forbiddenRawPatterns = [
   },
   {
     label: "invalid prefixed transition value",
-    pattern: /\btransition:\s*["'`][^"'`]*\bdaimo-(?:transform|ease(?:-in|-out|-in-out)?)\b/,
+    pattern:
+      /\btransition:\s*["'`][^"'`]*\bdaimo-(?:transform|ease(?:-in|-out|-in-out)?)\b/,
   },
 ];
 
@@ -192,49 +195,29 @@ function collectKeyframes(css) {
   return names;
 }
 
-function splitAtTopLevel(input, separator) {
-  const parts = [];
-  let current = "";
-  let depth = 0;
-
-  for (const char of input) {
-    if (char === "[" || char === "(") depth += 1;
-    if (char === "]" || char === ")") depth = Math.max(0, depth - 1);
-    if (char === separator && depth === 0) {
-      parts.push(current);
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-
-  parts.push(current);
-  return parts;
-}
-
-function stripModifiers(base) {
-  let value = base;
-  if (value.startsWith("!")) value = value.slice(1);
-  if (value.startsWith("-")) value = value.slice(1);
-  return value;
-}
-
 function getUtilityBase(token) {
-  const parts = splitAtTopLevel(token, ":");
-  return stripModifiers(parts.at(-1) ?? "");
+  // Find the last top-level ":" (not inside brackets) to get the final segment
+  let depth = 0;
+  let lastSep = -1;
+  for (let i = 0; i < token.length; i++) {
+    const ch = token[i];
+    if (ch === "[" || ch === "(") depth += 1;
+    else if (ch === "]" || ch === ")") depth = Math.max(0, depth - 1);
+    else if (ch === ":" && depth === 0) lastSep = i;
+  }
+  let base = lastSep >= 0 ? token.slice(lastSep + 1) : token;
+  if (base.startsWith("!") || base.startsWith("-")) base = base.slice(1);
+  if (base.startsWith("-")) base = base.slice(1);
+  return base;
 }
 
 function looksLikeUtilityToken(token) {
   const base = getUtilityBase(token);
-  if (!base || base.startsWith(namespace) || customNames.has(base)) return false;
+  if (!base || base.startsWith(namespace) || customNames.has(base))
+    return false;
   if (base.startsWith("[")) return true;
   if (simpleUtilities.has(base)) return true;
   return utilityStems.has(base.split("-")[0]);
-}
-
-function isNamespacedToken(token) {
-  const base = getUtilityBase(token);
-  return base.startsWith(namespace) || customNames.has(base);
 }
 
 function isClassLikeName(name) {
@@ -251,14 +234,16 @@ function isClassLikeName(name) {
 }
 
 function propertyNameText(nameNode) {
-  if (ts.isIdentifier(nameNode) || ts.isStringLiteral(nameNode)) return nameNode.text;
+  if (ts.isIdentifier(nameNode) || ts.isStringLiteral(nameNode))
+    return nameNode.text;
   return nameNode.getText();
 }
 
 function nodeHasClassContext(node) {
   let current = node.parent;
   while (current) {
-    if (ts.isJsxAttribute(current) && current.name.text === "className") return true;
+    if (ts.isJsxAttribute(current) && current.name.text === "className")
+      return true;
     if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name)) {
       return isClassLikeName(current.name.text);
     }
@@ -274,15 +259,12 @@ function rawNodeText(sourceText, node) {
   const start = node.getStart();
   switch (node.kind) {
     case ts.SyntaxKind.StringLiteral:
-      return sourceText.slice(start + 1, node.end - 1);
     case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
-      return sourceText.slice(start + 1, node.end - 1);
-    case ts.SyntaxKind.TemplateHead:
-      return sourceText.slice(start + 1, node.end - 2);
-    case ts.SyntaxKind.TemplateMiddle:
-      return sourceText.slice(start + 1, node.end - 2);
     case ts.SyntaxKind.TemplateTail:
       return sourceText.slice(start + 1, node.end - 1);
+    case ts.SyntaxKind.TemplateHead:
+    case ts.SyntaxKind.TemplateMiddle:
+      return sourceText.slice(start + 1, node.end - 2);
     default:
       return "";
   }
@@ -316,7 +298,9 @@ function validateSourceClassContexts() {
     if (filePath.endsWith(".css")) {
       for (const pattern of forbiddenSourcePatterns) {
         if (pattern.test(text)) {
-          violations.push(`${path.relative(packageRoot, filePath)}: ${pattern}`);
+          violations.push(
+            `${path.relative(packageRoot, filePath)}: ${pattern}`,
+          );
         }
       }
       continue;
@@ -342,8 +326,10 @@ function validateSourceClassContexts() {
         const raw = rawNodeText(text, node);
         const tokens = raw.split(/\s+/).filter(Boolean);
         for (const token of tokens) {
-          if (looksLikeUtilityToken(token) && !isNamespacedToken(token)) {
-            violations.push(`${path.relative(packageRoot, filePath)}: ${token}`);
+          if (looksLikeUtilityToken(token)) {
+            violations.push(
+              `${path.relative(packageRoot, filePath)}: ${token}`,
+            );
           }
         }
       }
@@ -355,19 +341,29 @@ function validateSourceClassContexts() {
   }
 
   if (violations.length > 0) {
-    throw new Error(`found stale un-namespaced source tokens:\n${violations.join("\n")}`);
+    throw new Error(
+      `found stale un-namespaced source tokens:\n${violations.join("\n")}`,
+    );
   }
 }
 
 function ensureNamespaced(sdkClasses, sdkKeyframes) {
-  const badClasses = [...sdkClasses].filter((className) => !className.includes(namespace));
-  const badKeyframes = [...sdkKeyframes].filter((name) => !name.startsWith(namespace));
+  const badClasses = [...sdkClasses].filter(
+    (className) => !className.includes(namespace),
+  );
+  const badKeyframes = [...sdkKeyframes].filter(
+    (name) => !name.startsWith(namespace),
+  );
 
   if (badClasses.length > 0) {
-    throw new Error(`found non-namespaced sdk classes: ${badClasses.slice(0, 10).join(", ")}`);
+    throw new Error(
+      `found non-namespaced sdk classes: ${badClasses.slice(0, 10).join(", ")}`,
+    );
   }
   if (badKeyframes.length > 0) {
-    throw new Error(`found non-namespaced sdk keyframes: ${badKeyframes.slice(0, 10).join(", ")}`);
+    throw new Error(
+      `found non-namespaced sdk keyframes: ${badKeyframes.slice(0, 10).join(", ")}`,
+    );
   }
 }
 
@@ -398,14 +394,22 @@ function ensureNoFixtureOverlap(sdkClasses, sdkKeyframes) {
   const hostCss = readText(hostCssPath);
   const hostClasses = collectClasses(hostCss);
   const hostKeyframes = collectKeyframes(hostCss);
-  const overlappingClasses = [...sdkClasses].filter((className) => hostClasses.has(className));
-  const overlappingKeyframes = [...sdkKeyframes].filter((name) => hostKeyframes.has(name));
+  const overlappingClasses = [...sdkClasses].filter((className) =>
+    hostClasses.has(className),
+  );
+  const overlappingKeyframes = [...sdkKeyframes].filter((name) =>
+    hostKeyframes.has(name),
+  );
 
   if (overlappingClasses.length > 0) {
-    throw new Error(`host fixture shares sdk classes: ${overlappingClasses.slice(0, 10).join(", ")}`);
+    throw new Error(
+      `host fixture shares sdk classes: ${overlappingClasses.slice(0, 10).join(", ")}`,
+    );
   }
   if (overlappingKeyframes.length > 0) {
-    throw new Error(`host fixture shares sdk keyframes: ${overlappingKeyframes.slice(0, 10).join(", ")}`);
+    throw new Error(
+      `host fixture shares sdk keyframes: ${overlappingKeyframes.slice(0, 10).join(", ")}`,
+    );
   }
 }
 
@@ -424,10 +428,6 @@ function validatePublicEntrypoints() {
   }
 }
 
-if (!fs.existsSync(distThemeCssPath)) {
-  throw new Error(`missing built stylesheet at ${distThemeCssPath}`);
-}
-
 validateSourceClassContexts();
 validatePublicEntrypoints();
 
@@ -438,4 +438,6 @@ const sdkKeyframes = collectKeyframes(sdkCss);
 ensureNamespaced(sdkClasses, sdkKeyframes);
 ensureNoFixtureOverlap(sdkClasses, sdkKeyframes);
 
-console.log(`verified ${sdkClasses.size} sdk classes and ${sdkKeyframes.size} keyframes`);
+console.log(
+  `verified ${sdkClasses.size} sdk classes and ${sdkKeyframes.size} keyframes`,
+);

@@ -257,6 +257,16 @@ function propertyNameText(nameNode) {
   return nameNode.getText();
 }
 
+function isStyleJsxTag(node) {
+  if (ts.isJsxElement(node)) {
+    return node.openingElement.tagName.getText() === "style";
+  }
+  if (ts.isJsxSelfClosingElement(node)) {
+    return node.tagName.getText() === "style";
+  }
+  return false;
+}
+
 function nodeHasClassContext(node) {
   let current = node.parent;
   while (current) {
@@ -333,6 +343,12 @@ function validateSourceClassContexts() {
     );
 
     const visit = (node) => {
+      if (isStyleJsxTag(node)) {
+        violations.push(
+          `${path.relative(packageRoot, filePath)}: inline <style> tags are not allowed`,
+        );
+      }
+
       const isStringLike =
         ts.isStringLiteral(node) ||
         ts.isNoSubstitutionTemplateLiteral(node) ||

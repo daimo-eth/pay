@@ -49,12 +49,6 @@ function LoadingCircle({
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <style>{`
-        @keyframes daimo-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
       <circle cx="50" cy="50" r="50" fill="currentColor" fillOpacity="0.15" />
       <circle
         cx="50"

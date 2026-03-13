@@ -90,7 +90,6 @@ export function ModalContainer({
 
   return (
     <>
-      {animate && <style>{modalAnimationStyles}</style>}
       {/* Backdrop with fade-in - click to close */}
       <div className={backdropClass} onClick={onClose} />
       {/* Modal container - bottom aligned for thumb reachability */}
@@ -117,26 +116,6 @@ export function ModalContainer({
     </>
   );
 }
-
-const modalAnimationStyles = `
-  .daimo-modal-backdrop {
-    animation: daimo-backdrop-in 200ms ease-out forwards;
-  }
-  @keyframes daimo-backdrop-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .daimo-modal-content {
-    animation: daimo-modal-slide-up 200ms ease-out forwards;
-  }
-  @keyframes daimo-modal-slide-up {
-    from { opacity: 0; transform: translateY(100%); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .daimo-modal-backdrop, .daimo-modal-content { animation: none; }
-  }
-`;
 
 export function EmbeddedContainer({
   children,

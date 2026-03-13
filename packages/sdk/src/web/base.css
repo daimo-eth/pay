@@ -124,6 +124,108 @@
   }
 }
 
+.daimo-modal-backdrop {
+  animation: daimo-backdrop-in 200ms ease-out forwards;
+}
+
+@keyframes daimo-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.daimo-modal-content {
+  animation: daimo-modal-slide-up 200ms ease-out forwards;
+}
+
+@keyframes daimo-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes daimo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* QR placeholder: real QR SVG faded + diagonal shimmer + logo on top */
+.daimo-qr-placeholder-qr {
+  opacity: 0.1;
+}
+
+.daimo-qr-shimmer {
+  pointer-events: none;
+  transform: scale(2) rotate(45deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: daimo-qr-shimmer 1s linear infinite both;
+}
+
+.daimo-qr-placeholder-logo {
+  z-index: 2;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  width: 28%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes daimo-qr-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes daimo-qr-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes daimo-qr-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.daimo-qr-fade-in {
+  animation: daimo-qr-fade-in 200ms ease-out both;
+}
+
+.daimo-qr-fade-out {
+  animation: daimo-qr-fade-out 200ms ease-out both;
+}
 /* QR toggle animation */
 
 /* QR code enter/exit — ease-out for responsiveness */
@@ -148,6 +250,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .daimo-modal-backdrop,
+  .daimo-modal-content {
+    animation: none;
+  }
+
+  .daimo-qr-shimmer {
+    animation: none;
+  }
+
+  .daimo-qr-fade-in,
+  .daimo-qr-fade-out {
+    animation: none;
+  }
   .daimo-transition-qr,
   .daimo-transition-qr-icon,
   .daimo-transition-qr-spacer {

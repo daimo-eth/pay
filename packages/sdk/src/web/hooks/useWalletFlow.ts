@@ -63,7 +63,7 @@ export type WalletFlowResult = {
 export function useWalletFlow(
   sessionId: string,
   destAddr: string,
-  autoConnect: boolean,
+  connectMode: "auto" | "passive" | "none",
   clientSecret: string,
   injectedWallets: InjectedWallet[],
 ): WalletFlowResult {
@@ -233,6 +233,46 @@ export function useWalletFlow(
     [fetchBalances],
   );
 
+  const connectPassive = useCallback(async () => {
+    setConnectError(null);
+    setIsConnecting(true);
+
+    try {
+      const evmProvider = injectedWallets.find(
+        (w) => w.evmProvider,
+      )?.evmProvider;
+
+      if (!evmProvider) {
+        setConnectError(t.walletUnavailable);
+        setIsConnecting(false);
+        return;
+      }
+
+      evmProviderRef.current = evmProvider;
+
+      // Passive: eth_accounts only, no prompt
+      const accounts = (await evmProvider.request({
+        method: "eth_accounts",
+      })) as string[];
+      const evmAddress = accounts?.length ? getAddress(accounts[0]) : null;
+
+      if (!evmAddress) {
+        setConnectError(t.walletUnavailable);
+        setIsConnecting(false);
+        return;
+      }
+
+      const walletData = { evmAddress, solAddress: null };
+      setWallet(walletData);
+      setIsConnecting(false);
+      fetchBalances(walletData, true);
+    } catch (err) {
+      console.error("failed to passively connect wallet:", err);
+      setConnectError(err instanceof Error ? err.message : t.walletUnavailable);
+      setIsConnecting(false);
+    }
+  }, [fetchBalances, injectedWallets]);
+
   const retryConnect = useCallback(async () => {
     if (solanaProviderRef.current) {
       await connectWithSolanaProvider(solanaProviderRef.current);
@@ -265,7 +305,7 @@ export function useWalletFlow(
   // Reactive auto-connect: connect when new providers appear
   const triedWalletsRef = useRef<InjectedWallet[] | null>(null);
   useEffect(() => {
-    if (!autoConnect || isConnecting || hasInitialized.current) return;
+    if (connectMode === "none" || isConnecting || hasInitialized.current) return;
     if (injectedWallets.length === 0) return;
     if (injectedWallets === triedWalletsRef.current) return;
 
@@ -276,8 +316,12 @@ export function useWalletFlow(
     if (!needsEvm && !needsSol) return;
 
     triedWalletsRef.current = injectedWallets;
-    connect();
-  }, [autoConnect, injectedWallets, wallet, isConnecting, connect]);
+    if (connectMode === "auto") {
+      connect();
+    } else {
+      connectPassive();
+    }
+  }, [connectMode, injectedWallets, wallet, isConnecting, connect, connectPassive]);
 
   // Passively detect already-authorized address for display (no wallet prompt)
   useEffect(() => {

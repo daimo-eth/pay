@@ -71,6 +71,8 @@ export type NavNodeTronDeposit = NavNodeCommon & {
 export type NavNodeConnectedWallet = NavNodeCommon & {
   type: "ConnectedWallet";
   icon?: string;
+  /** When true, proactively call eth_requestAccounts. Default false (passive). */
+  autoconnect?: boolean;
 };
 
 export type NavNode =

@@ -2,6 +2,7 @@ import type {
   NavNode,
   NavNodeCashApp,
   NavNodeChooseOption,
+  NavNodeConnectedWallet,
   NavNodeDeeplink,
   NavNodeDepositAddress,
   NavNodeExchange,
@@ -159,7 +160,7 @@ export function DaimoModal(props: DaimoModalProps) {
 }
 
 const CONNECTED_WALLET_NAV: NavNode[] = [
-  { type: "ConnectedWallet", id: "ConnectedWallet", title: "Connected Wallet" },
+  { type: "ConnectedWallet", id: "ConnectedWallet", title: "Connected Wallet", autoconnect: true },
 ];
 
 type DaimoModalInnerProps = DaimoModalProps & {
@@ -196,13 +197,15 @@ function DaimoModalInner({
 
   const depositAddress = useDepositAddress(session);
 
-  const hasConnectedWallet =
-    findNodeByType("ConnectedWallet", session.navTree) != null;
+  const cwNode = findNodeByType("ConnectedWallet", session.navTree) as NavNodeConnectedWallet | null;
+  const connectMode: "auto" | "passive" | "none" = cwNode
+    ? cwNode.autoconnect ? "auto" : "passive"
+    : "none";
   const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,
     depositAddress ?? "",
-    hasConnectedWallet,
+    connectMode,
     session.clientSecret,
     injectedWallets,
   );

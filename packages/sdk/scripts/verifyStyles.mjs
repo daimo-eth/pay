@@ -14,17 +14,7 @@ import ts from "typescript";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(scriptDir, "..");
 const require = createRequire(import.meta.url);
-// Resolve from the package root and let Node walk up through whichever
-// workspace layout installed Tailwind.
-const tailwindPackagePath = require.resolve("tailwindcss/package.json", {
-  paths: [packageRoot],
-});
-const selectorParserModule = require(
-  path.join(
-    path.dirname(tailwindPackagePath),
-    "node_modules/postcss-selector-parser",
-  ),
-);
+const selectorParserModule = loadSelectorParser();
 const selectorParser = selectorParserModule.default ?? selectorParserModule;
 const distStylesCssPath = path.join(packageRoot, "dist/web/styles.css");
 const distThemeCssPath = path.join(packageRoot, "dist/web/theme.css");
@@ -146,6 +136,33 @@ const forbiddenSourcePatterns = [
   /(?<!daimo-)spin 400ms/,
   /@keyframes\s+(?!daimo-)[-\w]+/,
 ];
+
+function loadSelectorParser() {
+  try {
+    return require("postcss-selector-parser");
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !("code" in error) ||
+      error.code !== "MODULE_NOT_FOUND"
+    ) {
+      throw error;
+    }
+  }
+
+  // Keep working in already-installed workspaces until the new direct
+  // devDependency is picked up by the next install.
+  const tailwindPackagePath = require.resolve("tailwindcss/package.json", {
+    paths: [packageRoot],
+  });
+
+  return require(
+    path.join(
+      path.dirname(tailwindPackagePath),
+      "node_modules/postcss-selector-parser",
+    ),
+  );
+}
 const forbiddenRawPatterns = [
   {
     label: "invalid prefixed input type",

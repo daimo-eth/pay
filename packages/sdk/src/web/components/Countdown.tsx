@@ -34,14 +34,14 @@ export function Countdown({
   const s = `${remainingS % 60}`.padStart(2, "0");
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-sm text-[var(--daimo-text)]">
+    <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-1">
+      <span className="daimo-text-sm daimo-text-[var(--daimo-text)]">
         {isExpired ? t.expired : t.expiresIn}
       </span>
-      <div className="flex items-center gap-2">
+      <div className="daimo-flex daimo-items-center daimo-gap-2">
         <CircleTimer remainingS={remainingS} totalS={totalS} />
         <span
-          className="font-semibold tabular-nums"
+          className="daimo-font-semibold daimo-tabular-nums"
           style={{
             color: isExpired ? "var(--daimo-error)" : "var(--daimo-text)",
           }}
@@ -67,7 +67,11 @@ function CircleTimer({
   const offset = circumference * (1 - (totalS > 0 ? remainingS / totalS : 0));
 
   return (
-    <svg width={size} height={size} className="transform -rotate-90">
+    <svg
+      width={size}
+      height={size}
+      className="daimo-transform -daimo-rotate-90"
+    >
       <circle
         cx={size / 2}
         cy={size / 2}

@@ -830,6 +830,7 @@ enum TokenType {
   WRAPPED_NATIVE = "WRAPPED_NATIVE",
   NATIVE_USDC = "NATIVE_USDC",
   BRIDGED_USDC = "BRIDGED_USDC",
+  USDT = "USDT",
   DAI = "DAI",
 }
 
@@ -837,20 +838,137 @@ const tokensByChainAndType: Map<
   number,
   Partial<Record<TokenType, Token>>
 > = new Map([
-  [arbitrum.chainId, { [TokenType.NATIVE]: arbitrumETH, [TokenType.WRAPPED_NATIVE]: arbitrumWETH, [TokenType.NATIVE_USDC]: arbitrumUSDC, [TokenType.BRIDGED_USDC]: arbitrumUSDCe, [TokenType.DAI]: arbitrumDAI }],
-  [base.chainId, { [TokenType.NATIVE]: baseETH, [TokenType.WRAPPED_NATIVE]: baseWETH, [TokenType.NATIVE_USDC]: baseUSDC, [TokenType.BRIDGED_USDC]: baseUSDbC, [TokenType.DAI]: baseDAI }],
-  [bsc.chainId, { [TokenType.NATIVE]: bscBNB, [TokenType.WRAPPED_NATIVE]: bscWBNB, [TokenType.BRIDGED_USDC]: bscUSDC }],
-  [celo.chainId, { [TokenType.NATIVE]: celoCelo, [TokenType.WRAPPED_NATIVE]: celoCelo, [TokenType.NATIVE_USDC]: celoUSDC }],
-  [ethereum.chainId, { [TokenType.NATIVE]: ethereumETH, [TokenType.WRAPPED_NATIVE]: ethereumWETH, [TokenType.NATIVE_USDC]: ethereumUSDC, [TokenType.DAI]: ethereumDAI }],
-  [gnosis.chainId, { [TokenType.NATIVE]: gnosisXDAI, [TokenType.NATIVE_USDC]: gnosisUSDCe }],
-  [hyperEvm.chainId, { [TokenType.NATIVE]: hyperEvmHYPE, [TokenType.WRAPPED_NATIVE]: hyperEvmWHYPE, [TokenType.NATIVE_USDC]: hyperEvmUSDC }],
-  [linea.chainId, { [TokenType.NATIVE]: lineaETH, [TokenType.WRAPPED_NATIVE]: lineaWETH, [TokenType.NATIVE_USDC]: lineaUSDC, [TokenType.DAI]: lineaDAI }],
-  [monad.chainId, { [TokenType.NATIVE]: monadMON, [TokenType.WRAPPED_NATIVE]: monadWMON, [TokenType.NATIVE_USDC]: monadUSDC }],
-  [optimism.chainId, { [TokenType.NATIVE]: optimismETH, [TokenType.WRAPPED_NATIVE]: optimismWETH, [TokenType.NATIVE_USDC]: optimismUSDC, [TokenType.BRIDGED_USDC]: optimismUSDCe, [TokenType.DAI]: optimismDAI }],
-  [polygon.chainId, { [TokenType.NATIVE]: polygonPOL, [TokenType.WRAPPED_NATIVE]: polygonWPOL, [TokenType.NATIVE_USDC]: polygonUSDC, [TokenType.BRIDGED_USDC]: polygonUSDCe, [TokenType.DAI]: polygonDAI }],
-  [scroll.chainId, { [TokenType.NATIVE]: scrollETH, [TokenType.WRAPPED_NATIVE]: scrollWETH, [TokenType.BRIDGED_USDC]: scrollUSDC }],
-  [solana.chainId, { [TokenType.NATIVE]: solanaSOL, [TokenType.WRAPPED_NATIVE]: solanaWSOL, [TokenType.NATIVE_USDC]: solanaUSDC }],
-  [worldchain.chainId, { [TokenType.NATIVE]: worldchainETH, [TokenType.WRAPPED_NATIVE]: worldchainWETH, [TokenType.NATIVE_USDC]: worldchainUSDC }],
+  [
+    arbitrum.chainId,
+    {
+      [TokenType.NATIVE]: arbitrumETH,
+      [TokenType.WRAPPED_NATIVE]: arbitrumWETH,
+      [TokenType.NATIVE_USDC]: arbitrumUSDC,
+      [TokenType.BRIDGED_USDC]: arbitrumUSDCe,
+      [TokenType.USDT]: arbitrumUSDT,
+      [TokenType.DAI]: arbitrumDAI,
+    },
+  ],
+  [
+    base.chainId,
+    {
+      [TokenType.NATIVE]: baseETH,
+      [TokenType.WRAPPED_NATIVE]: baseWETH,
+      [TokenType.NATIVE_USDC]: baseUSDC,
+      [TokenType.BRIDGED_USDC]: baseUSDbC,
+      [TokenType.USDT]: baseUSDT,
+      [TokenType.DAI]: baseDAI,
+    },
+  ],
+  [
+    bsc.chainId,
+    {
+      [TokenType.NATIVE]: bscBNB,
+      [TokenType.WRAPPED_NATIVE]: bscWBNB,
+      [TokenType.BRIDGED_USDC]: bscUSDC,
+      [TokenType.USDT]: bscUSDT,
+    },
+  ],
+  [
+    celo.chainId,
+    {
+      [TokenType.NATIVE]: celoCelo,
+      [TokenType.WRAPPED_NATIVE]: celoCelo,
+      [TokenType.NATIVE_USDC]: celoUSDC,
+      [TokenType.USDT]: celoUSDT,
+    },
+  ],
+  [
+    ethereum.chainId,
+    {
+      [TokenType.NATIVE]: ethereumETH,
+      [TokenType.WRAPPED_NATIVE]: ethereumWETH,
+      [TokenType.NATIVE_USDC]: ethereumUSDC,
+      [TokenType.USDT]: ethereumUSDT,
+      [TokenType.DAI]: ethereumDAI,
+    },
+  ],
+  [
+    gnosis.chainId,
+    {
+      [TokenType.NATIVE]: gnosisXDAI,
+      [TokenType.NATIVE_USDC]: gnosisUSDCe,
+    },
+  ],
+  [
+    hyperEvm.chainId,
+    {
+      [TokenType.NATIVE]: hyperEvmHYPE,
+      [TokenType.WRAPPED_NATIVE]: hyperEvmWHYPE,
+      [TokenType.NATIVE_USDC]: hyperEvmUSDC,
+    },
+  ],
+  [
+    linea.chainId,
+    {
+      [TokenType.NATIVE]: lineaETH,
+      [TokenType.WRAPPED_NATIVE]: lineaWETH,
+      [TokenType.NATIVE_USDC]: lineaUSDC,
+      [TokenType.DAI]: lineaDAI,
+    },
+  ],
+  [
+    monad.chainId,
+    {
+      [TokenType.NATIVE]: monadMON,
+      [TokenType.WRAPPED_NATIVE]: monadWMON,
+      [TokenType.NATIVE_USDC]: monadUSDC,
+      [TokenType.USDT]: monadUSDT,
+    },
+  ],
+  [
+    optimism.chainId,
+    {
+      [TokenType.NATIVE]: optimismETH,
+      [TokenType.WRAPPED_NATIVE]: optimismWETH,
+      [TokenType.NATIVE_USDC]: optimismUSDC,
+      [TokenType.BRIDGED_USDC]: optimismUSDCe,
+      [TokenType.USDT]: optimismUSDT,
+      [TokenType.DAI]: optimismDAI,
+    },
+  ],
+  [
+    polygon.chainId,
+    {
+      [TokenType.NATIVE]: polygonPOL,
+      [TokenType.WRAPPED_NATIVE]: polygonWPOL,
+      [TokenType.NATIVE_USDC]: polygonUSDC,
+      [TokenType.BRIDGED_USDC]: polygonUSDCe,
+      [TokenType.USDT]: polygonUSDT,
+      [TokenType.DAI]: polygonDAI,
+    },
+  ],
+  [
+    scroll.chainId,
+    {
+      [TokenType.NATIVE]: scrollETH,
+      [TokenType.WRAPPED_NATIVE]: scrollWETH,
+      [TokenType.BRIDGED_USDC]: scrollUSDC,
+      [TokenType.USDT]: scrollUSDT,
+    },
+  ],
+  [
+    solana.chainId,
+    {
+      [TokenType.NATIVE]: solanaSOL,
+      [TokenType.WRAPPED_NATIVE]: solanaWSOL,
+      [TokenType.NATIVE_USDC]: solanaUSDC,
+      [TokenType.USDT]: solanaUSDT,
+    },
+  ],
+  [
+    worldchain.chainId,
+    {
+      [TokenType.NATIVE]: worldchainETH,
+      [TokenType.WRAPPED_NATIVE]: worldchainWETH,
+      [TokenType.NATIVE_USDC]: worldchainUSDC,
+    },
+  ],
 ]);
 
 export function isNativeToken(chainId: number, token: Address): boolean {
@@ -867,10 +985,10 @@ export function getChainNativeToken(chainId: number): Token {
 
 export function getChainWrappedNativeToken(chainId: number): Token {
   const token = tokensByChainAndType.get(chainId)?.[TokenType.WRAPPED_NATIVE];
-  if (!token) throw new Error(`missing wrapped native token for chainId ${chainId}`);
+  if (!token)
+    throw new Error(`missing wrapped native token for chainId ${chainId}`);
   return token;
 }
-
 
 export function getChainNativeUSDC(chainId: number): Token | undefined {
   return tokensByChainAndType.get(chainId)?.[TokenType.NATIVE_USDC];
@@ -880,6 +998,10 @@ export function getChainNativeUSDC(chainId: number): Token | undefined {
 export function getChainBestUSDC(chainId: number): Token | undefined {
   const t = tokensByChainAndType.get(chainId);
   return t?.[TokenType.NATIVE_USDC] ?? t?.[TokenType.BRIDGED_USDC];
+}
+
+export function getChainUSDT(chainId: number): Token | undefined {
+  return tokensByChainAndType.get(chainId)?.[TokenType.USDT];
 }
 
 export function getChainDAI(chainId: number): Token | undefined {

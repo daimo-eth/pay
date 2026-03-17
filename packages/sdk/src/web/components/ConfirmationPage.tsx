@@ -50,7 +50,7 @@ type ConfirmationPageProps = {
  * - waiting: Tx submitted, show source token icon
  * - processing: Fulfillment STARTED, show spinner
  * - done: Fulfillment COMPLETED, show green checkmark
- * - refunded: Payment bounced, show checkmark + receipt link
+ * - refunded: Payment bounced, show yellow exclamation + receipt link
  */
 export function ConfirmationPage({
   sessionId,
@@ -117,7 +117,10 @@ export function ConfirmationPage({
 
         {/* Spinner (processing) or checkmark (done/refunded) */}
         {status !== "confirming" && status !== "waiting" && (
-          <ConfirmationSpinner done={status === "done" || status === "refunded"} />
+          <ConfirmationSpinner
+            done={status === "done" || status === "refunded"}
+            bounced={status === "refunded"}
+          />
         )}
 
         {/* Amount and chain info */}

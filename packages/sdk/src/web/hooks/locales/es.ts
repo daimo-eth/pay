@@ -8,7 +8,7 @@ export const es: typeof en = {
   processingYourPayment: "Procesando tu pago...",
   paymentCompleted: "Pago completado",
   refundingYourPayment: "Reembolsando tu pago",
-  paymentRefunded: "Pago reembolsado",
+  paymentRefunded: "Pago rebotado",
   returnToApp: "Volver a la app",
   onChain: "en",
   expired: "Expirado",

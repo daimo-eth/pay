@@ -1,29 +1,39 @@
 type ConfirmationSpinnerProps = {
   done: boolean;
+  bounced?: boolean;
 };
 
-/** Spinner → checkmark transition for payment confirmation. */
-export function ConfirmationSpinner({ done }: ConfirmationSpinnerProps) {
+/** Spinner → checkmark/exclamation transition for payment confirmation. */
+export function ConfirmationSpinner({ done, bounced }: ConfirmationSpinnerProps) {
+  const settled = done || bounced;
   return (
     <div className="daimo-relative daimo-w-[100px] daimo-h-[100px]">
       <div
         className="daimo-absolute daimo-inset-[6px] daimo-rounded-full daimo-flex daimo-items-center daimo-justify-center daimo-overflow-hidden"
         style={{ backgroundColor: "var(--daimo-bg)" }}
       >
-        {/* Spinner - visible when not done */}
+        {/* Spinner - visible when not settled */}
         <LoadingCircle
           className={`daimo-absolute daimo-w-full daimo-h-full daimo-transition-opacity daimo-duration-200 ${
-            done ? "daimo-opacity-0" : "daimo-opacity-100"
+            settled ? "daimo-opacity-0" : "daimo-opacity-100"
           }`}
-          spinning={!done}
+          spinning={!settled}
         />
 
-        {/* Checkmark - visible when done */}
+        {/* Checkmark - visible when done (not bounced) */}
         <TickIcon
           className={`daimo-absolute daimo-w-full daimo-h-full daimo-transition-[opacity,transform] daimo-duration-200 ${
-            done ? "daimo-opacity-100 daimo-scale-100" : "daimo-opacity-0 daimo-scale-50"
+            done && !bounced ? "daimo-opacity-100 daimo-scale-100" : "daimo-opacity-0 daimo-scale-50"
           }`}
           style={{ color: "var(--daimo-checkmark)" }}
+        />
+
+        {/* Exclamation - visible when bounced */}
+        <ExclamationIcon
+          className={`daimo-absolute daimo-w-full daimo-h-full daimo-transition-[opacity,transform] daimo-duration-200 ${
+            bounced ? "daimo-opacity-100 daimo-scale-100" : "daimo-opacity-0 daimo-scale-50"
+          }`}
+          style={{ color: "var(--daimo-warning)" }}
         />
       </div>
     </div>
@@ -64,6 +74,32 @@ function LoadingCircle({
         strokeWidth="16"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ExclamationIcon({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M9 18C13.9706 18 18 13.9706 18 9C18 4.02944 13.9706 0 9 0C4.02944 0 0 4.02944 0 9C0 13.9706 4.02944 18 9 18ZM9 4C9.55228 4 10 4.44772 10 5V9.5C10 10.0523 9.55228 10.5 9 10.5C8.44772 10.5 8 10.0523 8 9.5V5C8 4.44772 8.44772 4 9 4ZM9 14C9.69036 14 10.25 13.4404 10.25 12.75C10.25 12.0596 9.69036 11.5 9 11.5C8.30964 11.5 7.75 12.0596 7.75 12.75C7.75 13.4404 8.30964 14 9 14Z"
+        fill="currentColor"
       />
     </svg>
   );

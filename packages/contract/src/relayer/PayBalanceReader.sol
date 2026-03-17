@@ -6,6 +6,14 @@ import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.s
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "solmate/utils/SSTORE2.sol";
 
+/// @dev On Arbitrum, `block.number` in view calls returns the L1 block number,
+/// NOT the L2 block number.
+/// ArbSys.arbBlockNumber() returns the correct L2 block number.
+/// See https://docs.arbitrum.io/build-decentralized-apps/arbitrum-vs-ethereum/block-numbers-and-time
+interface IArbSys {
+    function arbBlockNumber() external view returns (uint256);
+}
+
 /// Factory to deploy PayBalanceReader contracts at deterministic addresses.
 contract PayBalanceFactory {
     bytes32 private constant SALT = bytes32(0);
@@ -87,6 +95,17 @@ contract PayBalanceReader {
         }
 
         balances[n] = owner.balance;
-        blockNumber = block.number;
+        blockNumber = _getBlockNumber();
+    }
+
+    function _getBlockNumber() internal view returns (uint256) {
+        uint256 cid = block.chainid;
+        // On Arbitrum, `block.number` returns the L1 block, not the Arbitrum
+        // block number.
+        if (cid == 42161 || cid == 42170) {
+            return IArbSys(address(0x64)).arbBlockNumber();
+        } else {
+            return block.number;
+        }
     }
 }

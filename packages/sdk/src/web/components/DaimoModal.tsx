@@ -1,3 +1,12 @@
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { tron } from "../../common/chain.js";
+import { isSessionTerminal } from "../../common/session.js";
 import type {
   NavNode,
   NavNodeCashApp,
@@ -10,27 +19,30 @@ import type {
   SessionWithNav,
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
-import { tron } from "../../common/chain.js";
-import { isSessionTerminal } from "../../common/session.js";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { useDaimoClient } from "../hooks/DaimoClientContext.js";
+import { formatUserError } from "../hooks/formatUserError.js";
 import { t } from "../hooks/locale.js";
 import { createNavLogger, type NavNodeType } from "../hooks/navEvent.js";
+import {
+  findNode,
+  findNodeByType,
+  type DaimoModalEventHandlers,
+  type NavEntry,
+} from "../hooks/types.js";
 import { useDepositAddress } from "../hooks/useDepositAddress.js";
 import { usePaymentCallbacks } from "../hooks/usePaymentCallbacks.js";
 import { useSessionNav } from "../hooks/useSessionNav.js";
 import { useSessionPolling } from "../hooks/useSessionPolling.js";
-import { useDaimoClient } from "../hooks/DaimoClientContext.js";
-import {
-  type DaimoModalEventHandlers,
-  findNode,
-  findNodeByType,
-  type NavEntry,
-} from "../hooks/types.js";
 
+import {
+  useInjectedWallets,
+  type InjectedWallet,
+} from "../hooks/useInjectedWallets.js";
+import { useWalletFlow } from "../hooks/useWalletFlow.js";
 import { PrimaryButton } from "./buttons.js";
-import { ChooseOptionPage } from "./ChooseOptionPage.js";
 import { ChooseChainPage } from "./ChooseChainPage.js";
+import { ChooseOptionPage } from "./ChooseOptionPage.js";
 import { ChooseWalletPage } from "./ChooseWalletPage.js";
 import { ConfirmationPage } from "./ConfirmationPage.js";
 import { EmbeddedContainer, ModalContainer } from "./containers.js";
@@ -42,14 +54,9 @@ import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
   CenteredContent,
   ContactSupportButton,
-  ErrorMessage as SharedErrorMessage,
   PageHeader,
+  ErrorMessage as SharedErrorMessage,
 } from "./shared.js";
-import {
-  useInjectedWallets,
-  type InjectedWallet,
-} from "../hooks/useInjectedWallets.js";
-import { useWalletFlow } from "../hooks/useWalletFlow.js";
 import { WaitingDepositAddressPage } from "./WaitingDepositAddressPage.js";
 import { WalletAmountPage } from "./WalletAmountPage.js";
 
@@ -83,11 +90,17 @@ function useModalCloseHandler(
 
   useEffect(() => {
     if (!isOpen) return;
-    logNavEvent(sessionId, clientSecret, { ...getNodeCtx(), action: "nav_open" });
+    logNavEvent(sessionId, clientSecret, {
+      ...getNodeCtx(),
+      action: "nav_open",
+    });
   }, [isOpen, sessionId, getNodeCtx]);
 
   const handleClose = useCallback(() => {
-    logNavEvent(sessionId, clientSecret, { ...getNodeCtx(), action: "nav_close" });
+    logNavEvent(sessionId, clientSecret, {
+      ...getNodeCtx(),
+      action: "nav_close",
+    });
     setIsOpen(false);
     onClose?.();
   }, [sessionId, clientSecret, getNodeCtx, setIsOpen, onClose]);
@@ -160,7 +173,12 @@ export function DaimoModal(props: DaimoModalProps) {
 }
 
 const CONNECTED_WALLET_NAV: NavNode[] = [
-  { type: "ConnectedWallet", id: "ConnectedWallet", title: "Connected Wallet", autoconnect: true },
+  {
+    type: "ConnectedWallet",
+    id: "ConnectedWallet",
+    title: "Connected Wallet",
+    autoconnect: true,
+  },
 ];
 
 type DaimoModalInnerProps = DaimoModalProps & {
@@ -193,15 +211,25 @@ function DaimoModalInner({
     : initialSession;
 
   const [pendingTxHash, setPendingTxHash] = useState<string | undefined>();
-  const { session, setSession } = useSessionPolling(effectiveInitial, isOpen, pendingTxHash);
+  const { session, setSession } = useSessionPolling(
+    effectiveInitial,
+    isOpen,
+    pendingTxHash,
+  );
 
   const depositAddress = useDepositAddress(session);
 
-  const cwNode = findNodeByType("ConnectedWallet", session.navTree) as NavNodeConnectedWallet | null;
+  const cwNode = findNodeByType(
+    "ConnectedWallet",
+    session.navTree,
+  ) as NavNodeConnectedWallet | null;
   const connectMode: "auto" | "passive" | "none" = cwNode
-    ? cwNode.autoconnect ? "auto" : "passive"
+    ? cwNode.autoconnect
+      ? "auto"
+      : "passive"
     : "none";
-  const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets();
+  const { wallets: injectedWallets, isLoading: isLoadingWallets } =
+    useInjectedWallets();
   const walletFlow = useWalletFlow(
     session.sessionId,
     depositAddress ?? "",
@@ -245,7 +273,9 @@ function DaimoModalInner({
   let showFooterSpacer = true;
 
   if (session.status === "expired") {
-    content = <ExpiredPage sessionId={session.sessionId} onClose={handleClose} />;
+    content = (
+      <ExpiredPage sessionId={session.sessionId} onClose={handleClose} />
+    );
   } else if (
     session.status === "processing" ||
     session.status === "succeeded" ||
@@ -284,7 +314,10 @@ function DaimoModalInner({
   }
 
   useLayoutEffect(() => setPageKey(pageKey), [pageKey, setPageKey]);
-  useLayoutEffect(() => setShowFooterSpacer(showFooterSpacer), [showFooterSpacer, setShowFooterSpacer]);
+  useLayoutEffect(
+    () => setShowFooterSpacer(showFooterSpacer),
+    [showFooterSpacer, setShowFooterSpacer],
+  );
 
   return (
     <div
@@ -299,7 +332,13 @@ function DaimoModalInner({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RenderContext = {
-  session: { sessionId: string; clientSecret: string; navTree: NavNode[]; baseUrl: string; destination: { amountUnits?: string } };
+  session: {
+    sessionId: string;
+    clientSecret: string;
+    navTree: NavNode[];
+    baseUrl: string;
+    destination: { amountUnits?: string };
+  };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -348,7 +387,10 @@ function renderEntry(
 
   switch (entry.type) {
     case "choose-option": {
-      const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeChooseOption | null;
+      const node = findNode(
+        entry.nodeId,
+        ctx.session.navTree,
+      ) as NavNodeChooseOption | null;
       if (!node) return null;
       if (node.id === "SelectWallet") {
         return (
@@ -374,9 +416,18 @@ function renderEntry(
       );
     }
     case "deeplink": {
-      const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeDeeplink | null;
+      const node = findNode(
+        entry.nodeId,
+        ctx.session.navTree,
+      ) as NavNodeDeeplink | null;
       if (!node) return null;
-      return <DeeplinkPage node={node} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
+      return (
+        <DeeplinkPage
+          node={node}
+          onBack={ctx.canGoBack ? ctx.onBack : null}
+          baseUrl={ctx.session.baseUrl}
+        />
+      );
     }
     case "select-amount":
       return renderSelectAmount(entry, ctx);
@@ -419,70 +470,191 @@ function renderSelectAmount(
   if (entry.flowType === "deposit") {
     const depositNode = node as NavNodeDepositAddress;
     return (
-      <SelectAmountPage node={depositNode} minimumUsd={depositNode.minimumUsd} maximumUsd={depositNode.maximumUsd} tokenSuffix={depositNode.tokenSuffix} chainId={depositNode.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
+      <SelectAmountPage
+        node={depositNode}
+        minimumUsd={depositNode.minimumUsd}
+        maximumUsd={depositNode.maximumUsd}
+        tokenSuffix={depositNode.tokenSuffix}
+        chainId={depositNode.chainId}
+        onBack={ctx.canGoBack ? ctx.onBack : undefined}
+        onContinue={ctx.onAmountContinue}
+        baseUrl={ctx.session.baseUrl}
+      />
     );
   }
   if (entry.flowType === "tron") {
     const tronNode = node as NavNodeTronDeposit;
     return (
-      <SelectAmountPage node={{ icon: tronNode.icon, title: tronNode.title }} minimumUsd={tronNode.minimumUsd} maximumUsd={tronNode.maximumUsd} tokenSuffix="USDT" chainId={tron.chainId} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
+      <SelectAmountPage
+        node={{ icon: tronNode.icon, title: tronNode.title }}
+        minimumUsd={tronNode.minimumUsd}
+        maximumUsd={tronNode.maximumUsd}
+        tokenSuffix="USDT"
+        chainId={tron.chainId}
+        onBack={ctx.canGoBack ? ctx.onBack : undefined}
+        onContinue={ctx.onAmountContinue}
+        baseUrl={ctx.session.baseUrl}
+      />
     );
   }
   if (entry.flowType === "exchange") {
     const exchangeNode = node as NavNodeExchange;
     return (
-      <SelectAmountPage node={{ icon: exchangeNode.icon, title: exchangeNode.title }} minimumUsd={exchangeNode.minimumUsd} maximumUsd={exchangeNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
+      <SelectAmountPage
+        node={{ icon: exchangeNode.icon, title: exchangeNode.title }}
+        minimumUsd={exchangeNode.minimumUsd}
+        maximumUsd={exchangeNode.maximumUsd}
+        onBack={ctx.canGoBack ? ctx.onBack : undefined}
+        onContinue={ctx.onAmountContinue}
+        baseUrl={ctx.session.baseUrl}
+      />
     );
   }
   if (entry.flowType === "cashapp") {
     const cashAppNode = node as NavNodeCashApp;
     return (
-      <SelectAmountPage node={{ icon: cashAppNode.icon, title: cashAppNode.title }} minimumUsd={cashAppNode.minimumUsd} maximumUsd={cashAppNode.maximumUsd} onBack={ctx.canGoBack ? ctx.onBack : undefined} onContinue={ctx.onAmountContinue} baseUrl={ctx.session.baseUrl} />
+      <SelectAmountPage
+        node={{ icon: cashAppNode.icon, title: cashAppNode.title }}
+        minimumUsd={cashAppNode.minimumUsd}
+        maximumUsd={cashAppNode.maximumUsd}
+        onBack={ctx.canGoBack ? ctx.onBack : undefined}
+        onContinue={ctx.onAmountContinue}
+        baseUrl={ctx.session.baseUrl}
+      />
     );
   }
   return null;
 }
 
-function renderWaitingDeposit(entry: NavEntry & { type: "waiting-deposit" }, ctx: RenderContext): React.ReactNode {
-  const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeDepositAddress | null;
+function renderWaitingDeposit(
+  entry: NavEntry & { type: "waiting-deposit" },
+  ctx: RenderContext,
+): React.ReactNode {
+  const node = findNode(
+    entry.nodeId,
+    ctx.session.navTree,
+  ) as NavNodeDepositAddress | null;
   if (!node) return null;
-  const selectedToken = node.tokenSuffix === "USDC" || node.tokenSuffix === "USDT" ? node.tokenSuffix : undefined;
-  return <WaitingDepositAddressPage node={node} amountUsd={entry.amountUsd} selectedToken={selectedToken} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRefresh} baseUrl={ctx.session.baseUrl} />;
-}
-
-function renderWaitingTron(entry: NavEntry & { type: "waiting-tron" }, ctx: RenderContext): React.ReactNode {
-  const node = findNode(entry.nodeId, ctx.session.navTree) as NavNodeTronDeposit | null;
-  if (!node) return null;
-  if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onRetry} />;
+  const selectedToken =
+    node.tokenSuffix === "USDC" || node.tokenSuffix === "USDT"
+      ? node.tokenSuffix
+      : undefined;
   return (
     <WaitingDepositAddressPage
-      node={{ type: "DepositAddress", id: entry.nodeId, title: node.title, address: (entry.address as `0x${string}`) ?? ("" as `0x${string}`), chainId: tron.chainId, icon: node.icon, minimumUsd: node.minimumUsd, maximumUsd: node.maximumUsd, expiresAt: entry.expiresAt ?? 0, tokenSuffix: "USDT" }}
-      amountUsd={entry.amountUsd} selectedToken="USDT" loading={!entry.address} sessionId={ctx.session.sessionId} clientSecret={ctx.session.clientSecret} onBack={ctx.onBack} onRefresh={ctx.onRetry} baseUrl={ctx.session.baseUrl}
+      node={node}
+      amountUsd={entry.amountUsd}
+      selectedToken={selectedToken}
+      sessionId={ctx.session.sessionId}
+      clientSecret={ctx.session.clientSecret}
+      onBack={ctx.onBack}
+      onRefresh={ctx.onRefresh}
+      baseUrl={ctx.session.baseUrl}
     />
   );
 }
 
-function renderExchangePage(entry: NavEntry & { type: "exchange-page" }, ctx: RenderContext): React.ReactNode {
-  const node = findNode(entry.nodeId, ctx.session.navTree) as ExchangeLikeNode | null;
+function renderWaitingTron(
+  entry: NavEntry & { type: "waiting-tron" },
+  ctx: RenderContext,
+): React.ReactNode {
+  const node = findNode(
+    entry.nodeId,
+    ctx.session.navTree,
+  ) as NavNodeTronDeposit | null;
   if (!node) return null;
-  if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onRetry} />;
-  return <ExchangePage node={node} exchangeUrl={entry.exchangeUrl} waitingMessage={entry.waitingMessage} expiresAt={entry.expiresAt} isLoading={!entry.exchangeUrl} onBack={ctx.onBack} onRetry={ctx.onRetry} baseUrl={ctx.session.baseUrl} />;
+  if (entry.error)
+    return (
+      <FlowErrorMessage
+        error={entry.error}
+        onBack={ctx.onBack}
+        onRetry={ctx.onRetry}
+      />
+    );
+  return (
+    <WaitingDepositAddressPage
+      node={{
+        type: "DepositAddress",
+        id: entry.nodeId,
+        title: node.title,
+        address: (entry.address as `0x${string}`) ?? ("" as `0x${string}`),
+        chainId: tron.chainId,
+        icon: node.icon,
+        minimumUsd: node.minimumUsd,
+        maximumUsd: node.maximumUsd,
+        expiresAt: entry.expiresAt ?? 0,
+        tokenSuffix: "USDT",
+      }}
+      amountUsd={entry.amountUsd}
+      selectedToken="USDT"
+      loading={!entry.address}
+      sessionId={ctx.session.sessionId}
+      clientSecret={ctx.session.clientSecret}
+      onBack={ctx.onBack}
+      onRefresh={ctx.onRetry}
+      baseUrl={ctx.session.baseUrl}
+    />
+  );
 }
 
-function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: RenderContext): React.ReactNode {
+function renderExchangePage(
+  entry: NavEntry & { type: "exchange-page" },
+  ctx: RenderContext,
+): React.ReactNode {
+  const node = findNode(
+    entry.nodeId,
+    ctx.session.navTree,
+  ) as ExchangeLikeNode | null;
+  if (!node) return null;
+  if (entry.error)
+    return (
+      <FlowErrorMessage
+        error={entry.error}
+        onBack={ctx.onBack}
+        onRetry={ctx.onRetry}
+      />
+    );
+  return (
+    <ExchangePage
+      node={node}
+      exchangeUrl={entry.exchangeUrl}
+      waitingMessage={entry.waitingMessage}
+      expiresAt={entry.expiresAt}
+      isLoading={!entry.exchangeUrl}
+      onBack={ctx.onBack}
+      onRetry={ctx.onRetry}
+      baseUrl={ctx.session.baseUrl}
+    />
+  );
+}
+
+function renderWalletConnect(
+  entry: NavEntry & { type: "wallet-connect" },
+  ctx: RenderContext,
+): React.ReactNode {
   const { walletFlow } = ctx;
-  const title = entry.walletName ? `${t.connect} ${entry.walletName}` : t.connectWallet;
+  const title = entry.walletName
+    ? `${t.connect} ${entry.walletName}`
+    : t.connectWallet;
 
   return (
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-      <PageHeader title={title} onBack={ctx.canGoBack ? ctx.onBack : undefined} />
+      <PageHeader
+        title={title}
+        onBack={ctx.canGoBack ? ctx.onBack : undefined}
+      />
 
       <CenteredContent>
         {entry.walletIcon && (
-          <img src={entry.walletIcon} alt={entry.walletName ?? ""} className="daimo-w-20 daimo-h-20 daimo-object-contain daimo-rounded-[25%]" />
+          <img
+            src={entry.walletIcon}
+            alt={entry.walletName ?? ""}
+            className="daimo-w-20 daimo-h-20 daimo-object-contain daimo-rounded-[25%]"
+          />
         )}
         {walletFlow.isConnecting && (
-          <span className="daimo-text-[var(--daimo-text-muted)]">{t.loading}</span>
+          <span className="daimo-text-[var(--daimo-text-muted)]">
+            {t.loading}
+          </span>
         )}
       </CenteredContent>
 
@@ -491,13 +663,25 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
         {walletFlow.connectError && (
           <>
             <SharedErrorMessage message={walletFlow.connectError} />
-            <PrimaryButton onClick={walletFlow.retryConnect}>{t.tryAgain}</PrimaryButton>
+            <PrimaryButton onClick={walletFlow.retryConnect}>
+              {t.tryAgain}
+            </PrimaryButton>
           </>
         )}
-        {!entry.walletName && !walletFlow.isConnecting && !walletFlow.connectError && (
-          <PrimaryButton onClick={walletFlow.connect}>{t.connectWallet}</PrimaryButton>
-        )}
-        <ContactSupportButton subject="Wallet connection" info={{ sessionId: ctx.session.sessionId, error: walletFlow.connectError ?? t.walletUnavailable }} />
+        {!entry.walletName &&
+          !walletFlow.isConnecting &&
+          !walletFlow.connectError && (
+            <PrimaryButton onClick={walletFlow.connect}>
+              {t.connectWallet}
+            </PrimaryButton>
+          )}
+        <ContactSupportButton
+          subject="Wallet connection"
+          info={{
+            sessionId: ctx.session.sessionId,
+            error: walletFlow.connectError ?? t.walletUnavailable,
+          }}
+        />
       </div>
     </div>
   );
@@ -506,32 +690,85 @@ function renderWalletConnect(entry: NavEntry & { type: "wallet-connect" }, ctx: 
 function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
   const { walletFlow } = ctx;
   // Show error if wallet connection failed (e.g. ConnectedWallet skips wallet-connect page)
-  if (!walletFlow.isLoadingBalances && walletFlow.balances === null && walletFlow.connectError) {
+  if (
+    !walletFlow.isLoadingBalances &&
+    walletFlow.balances === null &&
+    walletFlow.connectError
+  ) {
     return (
       <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-        <PageHeader title={t.selectToken} onBack={ctx.canGoBack ? ctx.onBack : null} borderVisible={false} />
+        <PageHeader
+          title={t.selectToken}
+          onBack={ctx.canGoBack ? ctx.onBack : null}
+          borderVisible={false}
+        />
         <CenteredContent>
           <SharedErrorMessage message={walletFlow.connectError} />
-          <PrimaryButton onClick={walletFlow.retryConnect}>{t.tryAgain}</PrimaryButton>
+          <PrimaryButton onClick={walletFlow.retryConnect}>
+            {t.tryAgain}
+          </PrimaryButton>
         </CenteredContent>
       </div>
     );
   }
-  const isLoading = ctx.isLoadingWallets || walletFlow.isConnecting || walletFlow.isLoadingBalances;
+  const isLoading =
+    ctx.isLoadingWallets ||
+    walletFlow.isConnecting ||
+    walletFlow.isLoadingBalances;
   // Is the amount pre-set in the session? If so, show the required amount the
   // user should pay in the token selection page.
   const showRequired = !!ctx.session.destination.amountUnits;
-  return <SelectTokenPage options={walletFlow.balances} isLoading={isLoading} showRequired={showRequired} onSelect={ctx.onWalletSelectToken} onBack={ctx.canGoBack ? ctx.onBack : null} baseUrl={ctx.session.baseUrl} />;
-}
-
-function renderWalletSelectAmount(entry: NavEntry & { type: "wallet-select-amount" }, ctx: RenderContext): React.ReactNode {
-  return <WalletAmountPage token={entry.token} onBack={ctx.onBack} onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)} baseUrl={ctx.session.baseUrl} />;
-}
-
-function renderWalletSending(entry: NavEntry & { type: "wallet-sending" }, ctx: RenderContext): React.ReactNode {
-  if (entry.error) return <FlowErrorMessage error={entry.error} onBack={ctx.onBack} onRetry={ctx.onBack} />;
   return (
-    <ConfirmationPage sessionId={ctx.session.sessionId} sourceChainId={entry.token.balance.token.chainId} sourceTokenSymbol={entry.token.balance.token.symbol} sourceTokenLogoURI={entry.token.balance.token.logoURI} sourceAmountUsd={entry.amountUsd} pendingTxHash={entry.txHash} rejected={entry.rejected} onRetry={ctx.onRetry} onBack={!entry.txHash ? ctx.onBack : undefined} baseUrl={ctx.session.baseUrl} />
+    <SelectTokenPage
+      options={walletFlow.balances}
+      isLoading={isLoading}
+      showRequired={showRequired}
+      onSelect={ctx.onWalletSelectToken}
+      onBack={ctx.canGoBack ? ctx.onBack : null}
+      baseUrl={ctx.session.baseUrl}
+    />
+  );
+}
+
+function renderWalletSelectAmount(
+  entry: NavEntry & { type: "wallet-select-amount" },
+  ctx: RenderContext,
+): React.ReactNode {
+  return (
+    <WalletAmountPage
+      token={entry.token}
+      onBack={ctx.onBack}
+      onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)}
+      baseUrl={ctx.session.baseUrl}
+    />
+  );
+}
+
+function renderWalletSending(
+  entry: NavEntry & { type: "wallet-sending" },
+  ctx: RenderContext,
+): React.ReactNode {
+  if (entry.error)
+    return (
+      <FlowErrorMessage
+        error={entry.error}
+        onBack={ctx.onBack}
+        onRetry={ctx.onBack}
+      />
+    );
+  return (
+    <ConfirmationPage
+      sessionId={ctx.session.sessionId}
+      sourceChainId={entry.token.balance.token.chainId}
+      sourceTokenSymbol={entry.token.balance.token.symbol}
+      sourceTokenLogoURI={entry.token.balance.token.logoURI}
+      sourceAmountUsd={entry.amountUsd}
+      pendingTxHash={entry.txHash}
+      rejected={entry.rejected}
+      onRetry={ctx.onRetry}
+      onBack={!entry.txHash ? ctx.onBack : undefined}
+      baseUrl={ctx.session.baseUrl}
+    />
   );
 }
 
@@ -543,13 +780,21 @@ function LoadingMessage() {
   );
 }
 
-function FlowErrorMessage({ error, onBack, onRetry }: { error: string; onBack: () => void; onRetry: () => void }) {
+function FlowErrorMessage({
+  error,
+  onBack,
+  onRetry,
+}: {
+  error: string;
+  onBack: () => void;
+  onRetry: () => void;
+}) {
   return (
-    <div className="daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-h-full daimo-gap-4 daimo-text-[var(--daimo-text-muted)]">
-      <p>{error}</p>
-      <div className="daimo-flex daimo-gap-2">
-        <button className="daimo-px-4 daimo-py-2 daimo-rounded-lg daimo-bg-[var(--daimo-surface)] hover:daimo-bg-[var(--daimo-surface-hover)] daimo-transition-colors" onClick={onBack}>{t.back}</button>
-        <button className="daimo-px-4 daimo-py-2 daimo-rounded-lg daimo-bg-[var(--daimo-accent)] daimo-text-white hover:daimo-opacity-90 daimo-transition-opacity" onClick={onRetry}>{t.tryAgain}</button>
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+      <PageHeader title={t.error} onBack={onBack} />
+      <div className="daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-flex-1 daimo-gap-8 daimo-text-[var(--daimo-text-muted)]">
+        <p>{formatUserError(error)}</p>
+        <PrimaryButton onClick={onRetry}>{t.tryAgain}</PrimaryButton>
       </div>
     </div>
   );
@@ -561,15 +806,29 @@ function SkeletonContent({ rowCount = 4 }: { rowCount?: number }) {
   return (
     <div className="daimo-flex daimo-flex-col">
       <div className="daimo-flex daimo-items-center daimo-justify-center daimo-p-6">
-        <div className="daimo-h-5 daimo-w-32 daimo-rounded daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg }} />
+        <div
+          className="daimo-h-5 daimo-w-32 daimo-rounded daimo-animate-daimo-pulse"
+          style={{ backgroundColor: skeletonBg }}
+        />
       </div>
       <div className="daimo-px-6 daimo-pb-4 daimo-flex daimo-flex-col daimo-gap-3">
         {[...Array(rowCount)].map((_, i) => (
-          <div key={i} className="daimo-h-16 daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg, borderRadius: radiusLg, animationDelay: `${i * 100}ms` }} />
+          <div
+            key={i}
+            className="daimo-h-16 daimo-animate-daimo-pulse"
+            style={{
+              backgroundColor: skeletonBg,
+              borderRadius: radiusLg,
+              animationDelay: `${i * 100}ms`,
+            }}
+          />
         ))}
       </div>
       <div className="daimo-py-4 daimo-text-center">
-        <span className="daimo-inline-block daimo-h-4 daimo-w-28 daimo-rounded daimo-animate-daimo-pulse" style={{ backgroundColor: skeletonBg }} />
+        <span
+          className="daimo-inline-block daimo-h-4 daimo-w-28 daimo-rounded daimo-animate-daimo-pulse"
+          style={{ backgroundColor: skeletonBg }}
+        />
       </div>
     </div>
   );

@@ -30,7 +30,7 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "tsc --watch --preserveWatchOutput",
+    "dev": "tsc --watch --preserveWatchOutput & npx tailwindcss -i src/web/theme.css -o dist/web/theme.css --watch & wait",
     "build": "tsc && npx tailwindcss -i src/web/theme.css -o dist/web/theme.css --minify && cp dist/web/theme.css dist/web/styles.css && npm run verify:styles",
     "test": "npm run lint && npm run build",
     "lint": "eslint --max-warnings=0",

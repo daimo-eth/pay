@@ -3,7 +3,7 @@ import { t } from "./locale.js";
 /** Known error patterns mapped to user-friendly messages */
 function getErrorMappings(): [pattern: string | RegExp, message: string][] {
   return [
-    ["Failed to fetch", t.networkErrorOffline],
+    [/^(failed to fetch|fetch failed)$/i, t.networkErrorOffline],
   ];
 }
 

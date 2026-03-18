@@ -11,6 +11,7 @@ export type TransportRequest = {
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
+  headers?: Record<string, string>;
 };
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -49,6 +50,11 @@ export function createTransport(config: TransportConfig) {
       const url = buildUrl(baseUrl, options.path, options.query);
 
       const headers = new Headers();
+      if (options.headers) {
+        for (const [key, value] of Object.entries(options.headers)) {
+          headers.set(key, value);
+        }
+      }
 
       let body: string | undefined;
       if (options.body !== undefined) {

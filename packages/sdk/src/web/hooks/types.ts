@@ -1,3 +1,4 @@
+import type { AccountRegion } from "../../common/account.js";
 import type { NavNode, SessionWithNav } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 
@@ -58,6 +59,21 @@ export type NavEntry =
       txHash?: string;
       error?: string;
       rejected?: boolean;
+      autoNav?: boolean;
+    }
+  | { type: "account-email"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-otp"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-creating-wallet"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-enrollment"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-payment"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-bank-picker"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-deeplink"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | { type: "account-status"; nodeId: string; region: AccountRegion; autoNav?: boolean }
+  | {
+      type: "account-error";
+      nodeId: string;
+      region: AccountRegion;
+      message: string;
       autoNav?: boolean;
     };
 

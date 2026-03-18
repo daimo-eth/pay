@@ -75,6 +75,12 @@ export type NavNodeConnectedWallet = NavNodeCommon & {
   autoconnect?: boolean;
 };
 
+export type NavNodeAccountDeposit = NavNodeCommon & {
+  type: "AccountDeposit";
+  region: "canada" | "us";
+  icon?: string;
+};
+
 export type NavNode =
   | NavNodeChooseOption
   | NavNodeDepositAddress
@@ -82,4 +88,5 @@ export type NavNode =
   | NavNodeExchange
   | NavNodeCashApp
   | NavNodeTronDeposit
-  | NavNodeConnectedWallet;
+  | NavNodeConnectedWallet
+  | NavNodeAccountDeposit;

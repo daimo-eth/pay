@@ -6,6 +6,7 @@ export const en = {
   paymentReceived: "Payment Received",
   processingYourPayment: "Processing Your Payment...",
   paymentCompleted: "Payment Completed",
+  paymentFailed: "Payment Failed",
   refundingYourPayment: "Refunding Your Payment",
   paymentRefunded: "Payment Bounced",
   returnToApp: "Return to App",
@@ -82,6 +83,20 @@ export const en = {
   // embed page
   missingSessionParam: "missing session parameter",
   failedToLoadSession: "failed to load session",
+
+  // account flow
+  accountEmail: "Enter your email",
+  accountEmailPlaceholder: "email@example.com",
+  accountOtp: "Enter verification code",
+  accountOtpSent: "We sent a code to",
+  accountCreatingWallet: "Setting up your account...",
+  accountEnrollment: "Verify your identity",
+  accountEnrollmentPending: "Verifying your identity...",
+  accountEnrollmentError: "Verification failed",
+  accountPayment: "Enter amount",
+  accountResendCode: "Resend code",
+  accountVerify: "Verify",
+  accountSubmit: "Submit",
 
   // session page
   connect: "Connect",

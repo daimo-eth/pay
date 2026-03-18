@@ -32,6 +32,7 @@ import {
   type NavEntry,
 } from "../hooks/types.js";
 import { useDepositAddress } from "../hooks/useDepositAddress.js";
+import { useAccountFlow } from "../hooks/useAccountFlow.js";
 import { usePaymentCallbacks } from "../hooks/usePaymentCallbacks.js";
 import { useSessionNav } from "../hooks/useSessionNav.js";
 import { useSessionPolling } from "../hooks/useSessionPolling.js";
@@ -50,6 +51,14 @@ import { EmbeddedContainer, ModalContainer } from "./containers.js";
 import { DeeplinkPage } from "./DeeplinkPage.js";
 import { ExchangePage } from "./ExchangePage.js";
 import { ExpiredPage } from "./ExpiredPage.js";
+import { AccountBankPickerPage } from "./account/AccountBankPickerPage.js";
+import { AccountCreatingWalletPage } from "./account/AccountCreatingWalletPage.js";
+import { AccountDeeplinkPage } from "./account/AccountDeeplinkPage.js";
+import { AccountEmailPage } from "./account/AccountEmailPage.js";
+import { AccountEnrollmentPage } from "./account/AccountEnrollmentPage.js";
+import { AccountOtpPage } from "./account/AccountOtpPage.js";
+import { AccountPaymentPage } from "./account/AccountPaymentPage.js";
+import { AccountStatusPage } from "./account/AccountStatusPage.js";
 import { SelectAmountPage } from "./SelectAmountPage.js";
 import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
@@ -228,17 +237,14 @@ function DaimoModalInner({
 
   const depositAddress = useDepositAddress(session);
 
-  const cwNode = findNodeByType(
-    "ConnectedWallet",
-    session.navTree,
-  ) as NavNodeConnectedWallet | null;
+  const cwNode = findNodeByType("ConnectedWallet", session.navTree) as NavNodeConnectedWallet | null;
+  const hasWalletNode = !!cwNode || !!findNodeByType("DepositAddress", session.navTree);
   const connectMode: "auto" | "passive" | "none" = cwNode
     ? cwNode.autoconnect
       ? "auto"
       : "passive"
     : "none";
-  const { wallets: injectedWallets, isLoading: isLoadingWallets } =
-    useInjectedWallets();
+  const { wallets: injectedWallets, isLoading: isLoadingWallets } = useInjectedWallets(hasWalletNode);
   const walletFlow = useWalletFlow(
     session.sessionId,
     depositAddress ?? "",
@@ -248,7 +254,8 @@ function DaimoModalInner({
     connectToAddress,
   );
 
-  const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);
+  const accountFlow = useAccountFlow();
+  const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow, accountFlow);
 
   useEffect(() => {
     const top = nav.topEntry;
@@ -320,6 +327,7 @@ function DaimoModalInner({
       walletFlow,
       onWalletSelectToken: nav.handleWalletSelectToken,
       onWalletSending: nav.handleWalletSending,
+      onAccountAdvance: nav.handleAccountAdvance,
     });
   }
 
@@ -371,6 +379,7 @@ type RenderContext = {
   };
   onWalletSelectToken: (token: WalletPaymentOption) => void;
   onWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
+  onAccountAdvance: (nextType: NavEntry["type"]) => void;
 };
 
 function renderEntry(
@@ -465,6 +474,87 @@ function renderEntry(
       return renderWalletSelectAmount(entry, ctx);
     case "wallet-sending":
       return renderWalletSending(entry, ctx);
+    case "account-email":
+      return (
+        <AccountEmailPage
+          onBack={ctx.canGoBack ? ctx.onBack : null}
+          onOtpSent={() => ctx.onAccountAdvance("account-otp")}
+        />
+      );
+    case "account-otp":
+      return (
+        <AccountOtpPage
+          onBack={ctx.onBack}
+          onVerified={() => ctx.onAccountAdvance("account-creating-wallet")}
+        />
+      );
+    case "account-creating-wallet":
+      return (
+        <AccountCreatingWalletPage
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          onDone={() => ctx.onAccountAdvance("account-enrollment")}
+        />
+      );
+    case "account-enrollment":
+      return (
+        <AccountEnrollmentPage
+          region={entry.region}
+          onBack={ctx.onBack}
+          onReady={() => ctx.onAccountAdvance("account-payment")}
+        />
+      );
+    case "account-payment":
+      return (
+        <AccountPaymentPage
+          region={entry.region}
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          onBack={ctx.onBack}
+          onAdvance={() => ctx.onAccountAdvance("account-bank-picker")}
+        />
+      );
+    case "account-bank-picker":
+      return (
+        <AccountBankPickerPage
+          region={entry.region}
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          baseUrl={ctx.session.baseUrl}
+          onBack={ctx.onBack}
+          onSelect={() => ctx.onAccountAdvance("account-deeplink")}
+        />
+      );
+    case "account-deeplink":
+      return (
+        <AccountDeeplinkPage
+          region={entry.region}
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          baseUrl={ctx.session.baseUrl}
+          onBack={ctx.onBack}
+          onAdvance={() => ctx.onAccountAdvance("account-status")}
+        />
+      );
+    case "account-status":
+      return (
+        <AccountStatusPage
+          region={entry.region}
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          baseUrl={ctx.session.baseUrl}
+          onBack={ctx.onBack}
+        />
+      );
+    case "account-error":
+      return (
+        <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+          <PageHeader title={t.error} onBack={ctx.canGoBack ? ctx.onBack : null} />
+          <CenteredContent>
+            <SharedErrorMessage message={entry.message} />
+          </CenteredContent>
+        </div>
+      );
     default:
       return null;
   }

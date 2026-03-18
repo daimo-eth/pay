@@ -85,12 +85,17 @@ export function ChooseOptionPage({
       </ScrollContent>
 
       {isRootPage && (
-        <div className="daimo-mt-auto daimo-py-4 daimo-flex daimo-items-center daimo-justify-center daimo-gap-1.5">
+        <a
+          href="https://daimo.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="daimo-mt-auto daimo-py-4 daimo-flex daimo-items-center daimo-justify-center daimo-gap-1.5 daimo-no-underline"
+        >
           <DaimoLogoIcon size={14} />
           <span className="daimo-text-sm daimo-font-semibold daimo-text-[var(--daimo-text-muted)]">
             {t.poweredByDaimo}
           </span>
-        </div>
+        </a>
       )}
     </div>
   );

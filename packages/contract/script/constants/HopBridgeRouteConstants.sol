@@ -149,8 +149,8 @@ function getHopBridgeRoutes(
 {
     // Source chain 10
     if (sourceChainId == 10) {
-        destChainIds = new uint256[](5);
-        finalChainCoins = new DaimoPayHopBridger.FinalChainCoin[](5);
+        destChainIds = new uint256[](4);
+        finalChainCoins = new DaimoPayHopBridger.FinalChainCoin[](4);
 
         // 10 -> 56
         destChainIds[0] = 56;
@@ -172,19 +172,9 @@ function getHopBridgeRoutes(
             )
         });
 
-        // 10 -> 4217
-        destChainIds[2] = 4217;
-        finalChainCoins[2] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 4217,
-            coinAddr: 0x20C000000000000000000000b9537d11c60E8b50,
-            coinDecimals: getHopCoinDecimals(
-                0x20C000000000000000000000b9537d11c60E8b50
-            )
-        });
-
         // 10 -> 42220
-        destChainIds[3] = 42220;
-        finalChainCoins[3] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[2] = 42220;
+        finalChainCoins[2] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 42220,
             coinAddr: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             coinDecimals: getHopCoinDecimals(
@@ -193,8 +183,8 @@ function getHopBridgeRoutes(
         });
 
         // 10 -> 534352
-        destChainIds[4] = 534352;
-        finalChainCoins[4] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[3] = 534352;
+        finalChainCoins[3] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 534352,
             coinAddr: 0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4,
             coinDecimals: getHopCoinDecimals(
@@ -535,62 +525,12 @@ function getHopBridgeRoutes(
 
     // Source chain 4217
     if (sourceChainId == 4217) {
-        destChainIds = new uint256[](12);
-        finalChainCoins = new DaimoPayHopBridger.FinalChainCoin[](12);
-
-        // 4217 -> 1
-        destChainIds[0] = 1;
-        finalChainCoins[0] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 1,
-            coinAddr: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
-            coinDecimals: getHopCoinDecimals(
-                0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
-            )
-        });
-
-        // 4217 -> 10
-        destChainIds[1] = 10;
-        finalChainCoins[1] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 10,
-            coinAddr: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
-            coinDecimals: getHopCoinDecimals(
-                0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85
-            )
-        });
-
-        // 4217 -> 56
-        destChainIds[2] = 56;
-        finalChainCoins[2] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 56,
-            coinAddr: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d,
-            coinDecimals: getHopCoinDecimals(
-                0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
-            )
-        });
-
-        // 4217 -> 100
-        destChainIds[3] = 100;
-        finalChainCoins[3] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 100,
-            coinAddr: 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0,
-            coinDecimals: getHopCoinDecimals(
-                0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0
-            )
-        });
-
-        // 4217 -> 137
-        destChainIds[4] = 137;
-        finalChainCoins[4] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 137,
-            coinAddr: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
-            coinDecimals: getHopCoinDecimals(
-                0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
-            )
-        });
+        destChainIds = new uint256[](5);
+        finalChainCoins = new DaimoPayHopBridger.FinalChainCoin[](5);
 
         // 4217 -> 143
-        destChainIds[5] = 143;
-        finalChainCoins[5] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[0] = 143;
+        finalChainCoins[0] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 143,
             coinAddr: 0x754704Bc059F8C67012fEd69BC8A327a5aafb603,
             coinDecimals: getHopCoinDecimals(
@@ -599,8 +539,8 @@ function getHopBridgeRoutes(
         });
 
         // 4217 -> 480
-        destChainIds[6] = 480;
-        finalChainCoins[6] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[1] = 480;
+        finalChainCoins[1] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 480,
             coinAddr: 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1,
             coinDecimals: getHopCoinDecimals(
@@ -609,8 +549,8 @@ function getHopBridgeRoutes(
         });
 
         // 4217 -> 999
-        destChainIds[7] = 999;
-        finalChainCoins[7] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[2] = 999;
+        finalChainCoins[2] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 999,
             coinAddr: 0xb88339CB7199b77E23DB6E890353E22632Ba630f,
             coinDecimals: getHopCoinDecimals(
@@ -618,19 +558,9 @@ function getHopBridgeRoutes(
             )
         });
 
-        // 4217 -> 8453
-        destChainIds[8] = 8453;
-        finalChainCoins[8] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 8453,
-            coinAddr: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
-            coinDecimals: getHopCoinDecimals(
-                0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-            )
-        });
-
         // 4217 -> 42220
-        destChainIds[9] = 42220;
-        finalChainCoins[9] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[3] = 42220;
+        finalChainCoins[3] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 42220,
             coinAddr: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e,
             coinDecimals: getHopCoinDecimals(
@@ -639,22 +569,12 @@ function getHopBridgeRoutes(
         });
 
         // 4217 -> 59144
-        destChainIds[10] = 59144;
-        finalChainCoins[10] = DaimoPayHopBridger.FinalChainCoin({
+        destChainIds[4] = 59144;
+        finalChainCoins[4] = DaimoPayHopBridger.FinalChainCoin({
             finalChainId: 59144,
             coinAddr: 0x176211869cA2b568f2A7D4EE941E073a821EE1ff,
             coinDecimals: getHopCoinDecimals(
                 0x176211869cA2b568f2A7D4EE941E073a821EE1ff
-            )
-        });
-
-        // 4217 -> 534352
-        destChainIds[11] = 534352;
-        finalChainCoins[11] = DaimoPayHopBridger.FinalChainCoin({
-            finalChainId: 534352,
-            coinAddr: 0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4,
-            coinDecimals: getHopCoinDecimals(
-                0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4
             )
         });
 

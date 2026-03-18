@@ -61,6 +61,24 @@ function getStargateBridgeRoutes(
         return (chainIds, bridgeRoutes);
     }
 
+    // Source chain 10
+    if (sourceChainId == 10) {
+        chainIds = new uint256[](1);
+        bridgeRoutes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+
+        // 10 -> 4217
+        chainIds[0] = 4217;
+        bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30410,
+            app: 0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0,
+            bridgeTokenIn: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
+            bridgeTokenOut: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOutDecimals: 6
+        });
+
+        return (chainIds, bridgeRoutes);
+    }
+
     // Source chain 56
     if (sourceChainId == 56) {
         chainIds = new uint256[](7);
@@ -252,16 +270,79 @@ function getStargateBridgeRoutes(
 
     // Source chain 4217
     if (sourceChainId == 4217) {
-        chainIds = new uint256[](1);
-        bridgeRoutes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](1);
+        chainIds = new uint256[](8);
+        bridgeRoutes = new DaimoPayLayerZeroBridger.LZBridgeRoute[](8);
 
-        // 4217 -> 42161
-        chainIds[0] = 42161;
+        // 4217 -> 1
+        chainIds[0] = 1;
         bridgeRoutes[0] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30101,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 10
+        chainIds[1] = 10;
+        bridgeRoutes[1] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30111,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 56
+        chainIds[2] = 56;
+        bridgeRoutes[2] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30102,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d,
+            bridgeTokenOutDecimals: 18
+        });
+        // 4217 -> 100
+        chainIds[3] = 100;
+        bridgeRoutes[3] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30145,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 137
+        chainIds[4] = 137;
+        bridgeRoutes[4] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30109,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 8453
+        chainIds[5] = 8453;
+        bridgeRoutes[5] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30184,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 42161
+        chainIds[6] = 42161;
+        bridgeRoutes[6] = DaimoPayLayerZeroBridger.LZBridgeRoute({
             dstEid: 30110,
             app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
             bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
             bridgeTokenOut: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
+            bridgeTokenOutDecimals: 6
+        });
+        // 4217 -> 534352
+        chainIds[7] = 534352;
+        bridgeRoutes[7] = DaimoPayLayerZeroBridger.LZBridgeRoute({
+            dstEid: 30214,
+            app: 0x8c76e2F6C5ceDA9AA7772e7efF30280226c44392,
+            bridgeTokenIn: 0x20C000000000000000000000b9537d11c60E8b50,
+            bridgeTokenOut: 0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4,
             bridgeTokenOutDecimals: 6
         });
 

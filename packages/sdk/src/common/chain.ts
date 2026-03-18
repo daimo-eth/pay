@@ -102,20 +102,20 @@ export const scroll: Chain = {
   lzEid: 30214,
 };
 
-export const worldchain: Chain = {
-  type: "evm",
-  chainId: 480,
-  name: "Worldchain",
-  cctpDomain: 14,
-  lzEid: 30319,
-};
-
 export const tempo: Chain = {
   type: "evm",
   chainId: 4217,
   name: "Tempo",
   cctpDomain: null,
   lzEid: 30410,
+};
+
+export const worldchain: Chain = {
+  type: "evm",
+  chainId: 480,
+  name: "Worldchain",
+  cctpDomain: 14,
+  lzEid: 30319,
 };
 
 //
@@ -151,10 +151,10 @@ export const supportedChains: Chain[] = [
   optimism,
   polygon,
   scroll,
-  worldchain,
-  tempo,
   solana,
+  tempo,
   tron,
+  worldchain,
 ];
 
 /** Given a chainId, return the chain. */
@@ -207,12 +207,12 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://scrollscan.com";
     case solana.chainId:
       return "https://solscan.io";
+    case tempo.chainId:
+      return "https://explorer.tempo.xyz";
     case tron.chainId:
       return "https://tronscan.org";
     case worldchain.chainId:
       return "https://worldscan.org";
-    case tempo.chainId:
-      return "https://explorer.tempo.xyz";
     default:
       return undefined;
   }

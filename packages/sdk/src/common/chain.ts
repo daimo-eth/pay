@@ -110,6 +110,14 @@ export const worldchain: Chain = {
   lzEid: 30319,
 };
 
+export const tempo: Chain = {
+  type: "evm",
+  chainId: 4217,
+  name: "Tempo",
+  cctpDomain: null,
+  lzEid: 30410,
+};
+
 //
 // Non-EVM chains: source only
 //
@@ -144,6 +152,7 @@ export const supportedChains: Chain[] = [
   polygon,
   scroll,
   worldchain,
+  tempo,
   solana,
   tron,
 ];
@@ -202,6 +211,8 @@ export function getChainExplorerByChainId(chainId: number): string | undefined {
       return "https://tronscan.org";
     case worldchain.chainId:
       return "https://worldscan.org";
+    case tempo.chainId:
+      return "https://explorer.tempo.xyz";
     default:
       return undefined;
   }

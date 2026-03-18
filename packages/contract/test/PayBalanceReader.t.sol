@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import "forge-std/Test.sol";
 import {
+    IArbSys,
     PayBalanceFactory,
     PayBalanceReader
 } from "../src/relayer/PayBalanceReader.sol";
@@ -102,6 +103,53 @@ contract PayBalanceReaderTest is Test {
             blockNum2,
             blockNum1 + 10,
             "Block number should increase by 10"
+        );
+    }
+
+    function testArbitrumUsesArbSysBlockNumber() public {
+        // Deploy reader on default chain first (bytecode is chain-agnostic)
+        PayBalanceFactory factory = new PayBalanceFactory();
+        TestToken token = new TestToken("Token");
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = IERC20(address(token));
+
+        address deployedAddr = factory.deployBalanceReader(tokens);
+        PayBalanceReader reader = PayBalanceReader(deployedAddr);
+
+        // Mock ArbSys precompile at 0x64 to return a known L2 block number
+        uint256 mockL2Block = 442_000_000;
+        vm.mockCall(
+            address(0x64),
+            abi.encodeWithSelector(IArbSys.arbBlockNumber.selector),
+            abi.encode(mockL2Block)
+        );
+
+        // Switch to Arbitrum One chain ID
+        vm.chainId(42161);
+
+        (, uint256 blockNum) = reader.getTokenBalances(ALICE);
+        assertEq(
+            blockNum,
+            mockL2Block,
+            "Should use ArbSys.arbBlockNumber() on Arbitrum"
+        );
+
+        // Switch to Arbitrum Nova
+        vm.chainId(42170);
+        (, uint256 blockNumNova) = reader.getTokenBalances(ALICE);
+        assertEq(
+            blockNumNova,
+            mockL2Block,
+            "Should use ArbSys.arbBlockNumber() on Arbitrum Nova"
+        );
+
+        // Switch back to non-Arbitrum chain — should use block.number
+        vm.chainId(1);
+        (, uint256 blockNumEth) = reader.getTokenBalances(ALICE);
+        assertEq(
+            blockNumEth,
+            block.number,
+            "Should use block.number on non-Arbitrum chains"
         );
     }
 }

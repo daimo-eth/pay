@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { Address } from "viem";
 import { tron } from "../../common/chain.js";
 import { isSessionTerminal } from "../../common/session.js";
 import type {
@@ -63,15 +64,23 @@ import { WalletAmountPage } from "./WalletAmountPage.js";
 type ExchangeLikeNode = NavNodeExchange | NavNodeCashApp;
 
 export type DaimoModalProps = DaimoModalEventHandlers & {
+  /** Unique session ID. Sessions are created server-side. */
   sessionId: string;
+  /** Unique client secret, returned at session creation. */
   clientSecret: string;
+  /** Whether the modal starts open. Default: true. */
   defaultOpen?: boolean;
-  connectedWalletOnly?: boolean;
+  /** Skip payment method picker. Auto-connect to injected wallets. */
+  connectToInjectedWallets?: boolean;
+  /** Skip payment method picker. Use already-connected wallet specified. */
+  connectToAddress?: Address;
+  /** Render inline instead of as a floating modal. */
   embedded?: boolean;
-  animate?: boolean;
-  maxHeight?: number;
+  /** Caller's platform. Affects exchange deeplink generation. Auto-detected. */
   platform?: "ios" | "android" | "other";
+  /** URL to navigate to after successful payment. */
   returnUrl?: string;
+  /** Text shown on successful payment. Button label if returnUrl set, otherwise plain text. */
   returnLabel?: string;
 };
 
@@ -113,9 +122,7 @@ export function DaimoModal(props: DaimoModalProps) {
     sessionId,
     clientSecret,
     embedded = false,
-    animate = true,
     defaultOpen = true,
-    maxHeight,
     onClose,
   } = props;
   const client = useDaimoClient();
@@ -161,8 +168,6 @@ export function DaimoModal(props: DaimoModalProps) {
   }
   return (
     <ModalContainer
-      animate={animate}
-      maxHeight={maxHeight}
       onClose={() => closeRef.current()}
       pageKey={pageKey}
       showFooterSpacer={showFooterSpacer}
@@ -172,14 +177,15 @@ export function DaimoModal(props: DaimoModalProps) {
   );
 }
 
-const CONNECTED_WALLET_NAV: NavNode[] = [
-  {
-    type: "ConnectedWallet",
-    id: "ConnectedWallet",
-    title: "Connected Wallet",
-    autoconnect: true,
-  },
+const CONNECTED_WALLET_NODE: NavNode = {
+  type: "ConnectedWallet",
+  id: "ConnectedWallet",
+  title: "Connected Wallet",
+};
+const AUTOCONNECT_NAV: NavNode[] = [
+  { ...CONNECTED_WALLET_NODE, autoconnect: true },
 ];
+const CONNECT_TO_ADDRESS_NAV: NavNode[] = [CONNECTED_WALLET_NODE];
 
 type DaimoModalInnerProps = DaimoModalProps & {
   session: SessionWithNav;
@@ -197,7 +203,8 @@ function DaimoModalInner({
   closeRef,
   setPageKey,
   setShowFooterSpacer,
-  connectedWalletOnly = false,
+  connectToInjectedWallets = false,
+  connectToAddress,
   platform,
   returnUrl,
   returnLabel,
@@ -206,9 +213,11 @@ function DaimoModalInner({
   onOpen,
   onClose,
 }: DaimoModalInnerProps) {
-  const effectiveInitial = connectedWalletOnly
-    ? { ...initialSession, navTree: CONNECTED_WALLET_NAV }
-    : initialSession;
+  const effectiveInitial = connectToAddress
+    ? { ...initialSession, navTree: CONNECT_TO_ADDRESS_NAV }
+    : connectToInjectedWallets
+      ? { ...initialSession, navTree: AUTOCONNECT_NAV }
+      : initialSession;
 
   const [pendingTxHash, setPendingTxHash] = useState<string | undefined>();
   const { session, setSession } = useSessionPolling(
@@ -236,6 +245,7 @@ function DaimoModalInner({
     connectMode,
     session.clientSecret,
     injectedWallets,
+    connectToAddress,
   );
 
   const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow);

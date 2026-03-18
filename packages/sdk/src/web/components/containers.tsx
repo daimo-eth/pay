@@ -11,12 +11,8 @@ type ContainerProps = {
 type ModalContainerProps = ContainerProps & {
   /** Handler for closing the modal (backdrop click + close button) */
   onClose?: () => void;
-  /** Whether to animate the modal entrance. Default: true */
-  animate?: boolean;
   /** Key identifying current page — height morphs on change */
   pageKey?: string;
-  /** Fixed max height in pixels. When set, content may scroll. */
-  maxHeight?: number;
 };
 
 /**
@@ -69,21 +65,13 @@ export function ModalContainer({
   children,
   showFooterSpacer = true,
   onClose,
-  animate = true,
   pageKey,
-  maxHeight,
 }: ModalContainerProps) {
-  const backdropClass = animate
-    ? "daimo-modal-backdrop daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50"
-    : "daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50";
+  const backdropClass =
+    "daimo-modal-backdrop daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50";
 
-  const overflow = maxHeight
-    ? "daimo-overflow-hidden"
-    : "daimo-max-h-[90vh] daimo-overflow-y-auto";
-  const baseContentClass = `daimo-relative daimo-w-full daimo-max-w-[420px] ${overflow} daimo-bg-[var(--daimo-surface)] daimo-rounded-t-[var(--daimo-radius-xl)] sm:daimo-rounded-[var(--daimo-radius-xl)] daimo-shadow-lg daimo-flex daimo-flex-col`;
-  const contentClass = animate
-    ? `daimo-modal-content ${baseContentClass}`
-    : baseContentClass;
+  const contentClass =
+    "daimo-modal-content daimo-relative daimo-w-full daimo-max-w-[420px] daimo-max-h-[90vh] daimo-overflow-y-auto daimo-bg-[var(--daimo-surface)] daimo-rounded-t-[var(--daimo-radius-xl)] sm:daimo-rounded-[var(--daimo-radius-xl)] daimo-shadow-lg daimo-flex daimo-flex-col";
 
   const contentRef = useRef<HTMLDivElement>(null);
   usePageHeightMorph(contentRef, pageKey);
@@ -97,7 +85,6 @@ export function ModalContainer({
         <div
           ref={contentRef}
           className={`daimo-pointer-events-auto ${contentClass}`}
-          style={maxHeight ? { maxHeight } : undefined}
           onClick={(e) => e.stopPropagation()}
         >
           {onClose && (

@@ -66,8 +66,12 @@ export function useWalletFlow(
   connectMode: "auto" | "passive" | "none",
   clientSecret: string,
   injectedWallets: InjectedWallet[],
+  connectToAddress?: Address,
 ): WalletFlowResult {
   const client = useDaimoClient();
+  const unavailableMsg = connectToAddress
+    ? `${t.walletUnavailable}: ${connectToAddress}`
+    : t.walletUnavailable;
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [balances, setBalances] = useState<WalletPaymentOption[] | null>(null);
@@ -159,7 +163,7 @@ export function useWalletFlow(
       ]);
 
       if (!evmAddress && !solAddress) {
-        setConnectError(t.walletUnavailable);
+        setConnectError(unavailableMsg);
         setIsConnecting(false);
         return;
       }
@@ -170,10 +174,10 @@ export function useWalletFlow(
       fetchBalances(walletData, true);
     } catch (err) {
       console.error("failed to connect wallet:", err);
-      setConnectError(err instanceof Error ? err.message : t.walletUnavailable);
+      setConnectError(err instanceof Error ? err.message : unavailableMsg);
       setIsConnecting(false);
     }
-  }, [fetchBalances, injectedWallets]);
+  }, [fetchBalances, injectedWallets, unavailableMsg]);
 
   const connectWithProvider = useCallback(
     async (provider: EthereumProvider) => {
@@ -188,7 +192,7 @@ export function useWalletFlow(
         const evmAddress = accounts?.length ? getAddress(accounts[0]) : null;
 
         if (!evmAddress) {
-          setConnectError(t.walletUnavailable);
+          setConnectError(unavailableMsg);
           setIsConnecting(false);
           return;
         }
@@ -199,13 +203,11 @@ export function useWalletFlow(
         fetchBalances(walletData, true);
       } catch (err) {
         console.error("failed to connect wallet:", err);
-        setConnectError(
-          err instanceof Error ? err.message : t.walletUnavailable,
-        );
+        setConnectError(err instanceof Error ? err.message : unavailableMsg);
         setIsConnecting(false);
       }
     },
-    [fetchBalances],
+    [fetchBalances, unavailableMsg],
   );
 
   const connectWithSolanaProvider = useCallback(
@@ -224,54 +226,72 @@ export function useWalletFlow(
         fetchBalances(walletData, true);
       } catch (err) {
         console.error("failed to connect solana wallet:", err);
-        setConnectError(
-          err instanceof Error ? err.message : t.walletUnavailable,
-        );
+        setConnectError(err instanceof Error ? err.message : unavailableMsg);
         setIsConnecting(false);
       }
     },
-    [fetchBalances],
+    [fetchBalances, unavailableMsg],
   );
 
-  const connectPassive = useCallback(async () => {
-    setConnectError(null);
-    setIsConnecting(true);
+  const connectPassive = useCallback(
+    async (targetAddress?: Address) => {
+      setConnectError(null);
+      setIsConnecting(true);
 
-    try {
-      const evmProvider = injectedWallets.find(
-        (w) => w.evmProvider,
-      )?.evmProvider;
+      try {
+        const target = targetAddress ? getAddress(targetAddress) : null;
 
-      if (!evmProvider) {
-        setConnectError(t.walletUnavailable);
+        // Query eth_accounts on all injected EVM providers in parallel
+        const results = await Promise.all(
+          injectedWallets
+            .filter((w) => w.evmProvider)
+            .map(async (w) => {
+              try {
+                const accts = (await w.evmProvider!.request({
+                  method: "eth_accounts",
+                })) as string[];
+                return { provider: w.evmProvider!, accounts: accts ?? [] };
+              } catch {
+                return null;
+              }
+            }),
+        );
+
+        // Find matching provider: by target address, or first with any account
+        let match: { provider: EthereumProvider; address: Address } | null =
+          null;
+        for (const r of results) {
+          if (!r) continue;
+          if (target) {
+            if (r.accounts.some((a) => getAddress(a) === target)) {
+              match = { provider: r.provider, address: target };
+              break;
+            }
+          } else if (r.accounts.length > 0) {
+            match = { provider: r.provider, address: getAddress(r.accounts[0]) };
+            break;
+          }
+        }
+
+        if (!match) {
+          setConnectError(unavailableMsg);
+          setIsConnecting(false);
+          return;
+        }
+
+        evmProviderRef.current = match.provider;
+        const walletData = { evmAddress: match.address, solAddress: null };
+        setWallet(walletData);
         setIsConnecting(false);
-        return;
-      }
-
-      evmProviderRef.current = evmProvider;
-
-      // Passive: eth_accounts only, no prompt
-      const accounts = (await evmProvider.request({
-        method: "eth_accounts",
-      })) as string[];
-      const evmAddress = accounts?.length ? getAddress(accounts[0]) : null;
-
-      if (!evmAddress) {
-        setConnectError(t.walletUnavailable);
+        fetchBalances(walletData, true);
+      } catch (err) {
+        console.error("failed to passively connect wallet:", err);
+        setConnectError(err instanceof Error ? err.message : unavailableMsg);
         setIsConnecting(false);
-        return;
       }
-
-      const walletData = { evmAddress, solAddress: null };
-      setWallet(walletData);
-      setIsConnecting(false);
-      fetchBalances(walletData, true);
-    } catch (err) {
-      console.error("failed to passively connect wallet:", err);
-      setConnectError(err instanceof Error ? err.message : t.walletUnavailable);
-      setIsConnecting(false);
-    }
-  }, [fetchBalances, injectedWallets]);
+    },
+    [fetchBalances, injectedWallets, unavailableMsg],
+  );
 
   const retryConnect = useCallback(async () => {
     if (solanaProviderRef.current) {
@@ -284,9 +304,9 @@ export function useWalletFlow(
   }, [connectWithSolanaProvider, connectWithProvider, connect]);
 
   // One-shot: test wallet URL params
-  const hasInitialized = useRef(false);
+  const testWalletInitRef = useRef(false);
   useEffect(() => {
-    if (hasInitialized.current) return;
+    if (testWalletInitRef.current) return;
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
@@ -294,7 +314,7 @@ export function useWalletFlow(
     const testSolWallet = params.get("testSolana");
 
     if (testEvmWallet || testSolWallet) {
-      hasInitialized.current = true;
+      testWalletInitRef.current = true;
       const evmAddress = testEvmWallet ? getAddress(testEvmWallet) : null;
       const walletData = { evmAddress, solAddress: testSolWallet };
       setWallet(walletData);
@@ -305,9 +325,18 @@ export function useWalletFlow(
   // Reactive auto-connect: connect when new providers appear
   const triedWalletsRef = useRef<InjectedWallet[] | null>(null);
   useEffect(() => {
-    if (connectMode === "none" || isConnecting || hasInitialized.current) return;
+    if (isConnecting) return;
     if (injectedWallets.length === 0) return;
     if (injectedWallets === triedWalletsRef.current) return;
+
+    if (connectToAddress) {
+      if (wallet) return;
+      triedWalletsRef.current = injectedWallets;
+      connectPassive(connectToAddress);
+      return;
+    }
+
+    if (connectMode === "none") return;
 
     const needsEvm =
       injectedWallets.some((w) => w.evmProvider) && !wallet?.evmAddress;
@@ -321,7 +350,15 @@ export function useWalletFlow(
     } else {
       connectPassive();
     }
-  }, [connectMode, injectedWallets, wallet, isConnecting, connect, connectPassive]);
+  }, [
+    connectToAddress,
+    connectMode,
+    injectedWallets,
+    wallet,
+    isConnecting,
+    connect,
+    connectPassive,
+  ]);
 
   // Passively detect already-authorized address for display (no wallet prompt)
   useEffect(() => {
@@ -431,7 +468,7 @@ export function useWalletFlow(
       token: WalletPaymentOption,
       amountUsd: number,
     ): Promise<{ txHash: string }> => {
-      if (!wallet) throw new Error(t.walletUnavailable);
+      if (!wallet) throw new Error(unavailableMsg);
 
       const tokenInfo = token.balance.token;
       if (tokenInfo.chainId === solana.chainId) {
@@ -456,7 +493,7 @@ export function useWalletFlow(
       );
       return { txHash };
     },
-    [wallet, sessionId, destAddr, clientSecret, client],
+    [wallet, sessionId, destAddr, clientSecret, client, unavailableMsg],
   );
 
   return {

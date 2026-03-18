@@ -32,8 +32,9 @@ type ConfirmationPageProps = {
   sourceAmountUsd?: number;
   /** Pending tx hash - set after wallet confirms but before onchain detection */
   pendingTxHash?: string;
+  /** URL to return to after payment is completed */
   returnUrl?: string;
-  /** Secondary message to show when done (only for session page, not modal) */
+  /** Text for return button (when returnUrl set) or return label (otherwise) */
   returnLabel?: string;
   /** User rejected the wallet transaction */
   rejected?: boolean;
@@ -149,7 +150,7 @@ export function ConfirmationPage({
             href={returnUrl}
             className="daimo-w-full daimo-max-w-xs daimo-min-h-[44px] daimo-py-4 daimo-px-6 daimo-rounded-[var(--daimo-radius-lg)] daimo-font-medium daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-hover)] daimo-touch-action-manipulation daimo-transition-[background-color] daimo-duration-100 daimo-ease daimo-text-center daimo-flex daimo-items-center daimo-justify-center"
           >
-            {t.returnToApp}
+            {returnLabel ?? t.returnToApp}
           </a>
         )}
         {/* Secondary text message (session page only, when no returnUrl) */}
@@ -163,7 +164,9 @@ export function ConfirmationPage({
         {(status === "waiting" ||
           status === "processing" ||
           status === "done" ||
-          status === "refunded") && <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />}
+          status === "refunded") && (
+          <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />
+        )}
       </div>
     </div>
   );

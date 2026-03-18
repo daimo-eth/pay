@@ -4,6 +4,7 @@ import type {
   NavNodeCashApp,
   NavNodeChooseOption,
   NavNodeExchange,
+  NavNodeAccountDeposit,
   SessionWithNav,
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
@@ -15,11 +16,14 @@ import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
 import type { InjectedWallet } from "./useInjectedWallets.js";
+import type { AccountFlowState } from "./useAccountFlow.js";
 import { isUserRejection, type WalletFlowResult } from "./useWalletFlow.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 type ExchangeId = "Coinbase" | "Binance" | "Lemon" | "CashApp";
 type ExchangeNode = NavNodeExchange | NavNodeCashApp;
+
+import type { AccountRegion } from "../../common/account.js";
 
 type SessionNavResult = {
   stack: NavEntry[];
@@ -37,6 +41,9 @@ type SessionNavResult = {
   handleChainSelect: (chain: "evm" | "solana") => void;
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
+
+  /** Advance account flow to the next screen. */
+  handleAccountAdvance: (nextType: NavEntry["type"]) => void;
 };
 
 function isExchangeNode(node: NavNode | null): node is ExchangeNode {
@@ -59,6 +66,7 @@ export function useSessionNav(
   isOpen: boolean,
   platform?: "ios" | "android" | "other",
   walletFlow?: WalletFlowResult,
+  accountFlow?: AccountFlowState | null,
 ): SessionNavResult {
   const effectivePlatform =
     platform ?? (isDesktopBrowser() ? "other" : "android");
@@ -206,6 +214,59 @@ export function useSessionNav(
     [session.sessionId, session.clientSecret, effectivePlatform, client],
   );
 
+  // ─── Account deposit handler ────────────────────────────────────────────────
+
+  const handleAccountNavigate = useCallback(
+    async (nodeId: string, node: NavNodeAccountDeposit, autoNav: boolean) => {
+      const { region } = node;
+
+      if (!accountFlow) {
+        setStack((prev) => [
+          ...prev,
+          {
+            type: "account-error",
+            nodeId,
+            region,
+            autoNav,
+            message:
+              "Account deposit requires DaimoSDKProvider to be configured with privyAppId.",
+          },
+        ]);
+        return;
+      }
+
+      // If user has an active Privy session, check their account status
+      // to skip onboarding steps they've already completed.
+      if (accountFlow.isAuthenticated) {
+        const sessionCtx = { sessionId: session.sessionId, clientSecret: session.clientSecret };
+        const result = await accountFlow.getAccount(client, sessionCtx, region);
+        if (result) {
+          if (result.nextAction === "ready_for_payment") {
+            setStack((prev) => [
+              ...prev,
+              { type: "account-payment", nodeId, region, autoNav },
+            ]);
+            return;
+          }
+          if (result.nextAction === "enrollment") {
+            setStack((prev) => [
+              ...prev,
+              { type: "account-enrollment", nodeId, region, autoNav },
+            ]);
+            return;
+          }
+        }
+      }
+
+      // New user or no session — start from email
+      setStack((prev) => [
+        ...prev,
+        { type: "account-email", nodeId, region, autoNav },
+      ]);
+    },
+    [accountFlow, client, session.clientSecret, session.sessionId],
+  );
+
   // ─── Navigation handlers ────────────────────────────────────────────────
 
   const handleNavigate = useCallback(
@@ -320,6 +381,11 @@ export function useSessionNav(
         ]);
         return;
       }
+
+      if (targetNode.type === "AccountDeposit") {
+        handleAccountNavigate(nodeId, targetNode, autoNav);
+        return;
+      }
     },
     [
       session.navTree,
@@ -327,6 +393,7 @@ export function useSessionNav(
       getNodeCtx,
       fetchTronAddress,
       fetchExchangeUrl,
+      handleAccountNavigate,
     ],
   );
 
@@ -341,6 +408,11 @@ export function useSessionNav(
       const next = prev.slice(0, -1);
       while (next.length > 0) {
         const top = next[next.length - 1];
+        // Skip account-creating-wallet on back (auto-advance causes loop)
+        if (top.type === "account-creating-wallet") {
+          next.pop();
+          continue;
+        }
         if (!top.autoNav) break;
         if (top.type === "select-amount") break;
         if (top.type === "wallet-select-token") break;
@@ -675,6 +747,21 @@ export function useSessionNav(
     ]);
   }, [topEntry, walletFlow?.wallet, walletFlow?.isConnecting]);
 
+  // ─── Account flow handler ────────────────────────────────────────────────
+
+  /** Advance account flow to the next screen, preserving nodeId + region. */
+  const handleAccountAdvance = useCallback(
+    (nextType: NavEntry["type"]) => {
+      if (!topEntry || !("region" in topEntry)) return;
+      const { nodeId, region } = topEntry as NavEntry & { region: AccountRegion };
+      setStack((prev) => [
+        ...prev,
+        { type: nextType, nodeId, region } as NavEntry,
+      ]);
+    },
+    [topEntry],
+  );
+
   return useMemo(
     () => ({
       stack,
@@ -690,6 +777,7 @@ export function useSessionNav(
       handleChainSelect,
       handleWalletSelectToken,
       handleWalletSending,
+      handleAccountAdvance,
     }),
     [
       stack,
@@ -705,6 +793,7 @@ export function useSessionNav(
       handleChainSelect,
       handleWalletSelectToken,
       handleWalletSending,
+      handleAccountAdvance,
     ],
   );
 }

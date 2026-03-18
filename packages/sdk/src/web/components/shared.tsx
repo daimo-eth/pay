@@ -84,69 +84,75 @@ function useCopyToClipboard(resetDelayMs = 1500) {
 // --- Amount Input ---
 
 type AmountInputProps = {
-  minimumUsd: number;
-  maximumUsd: number;
+  minimum: number;
+  maximum: number;
+  /** Currency symbol prefix (e.g., "$", "CA$"). Defaults to "$". */
+  currencySymbol?: string;
   /** Label shown below input (e.g., "Balance: $X.XX" or "Minimum $X.XX") */
   defaultLabel?: string;
-  onSubmit: (amountUsd: number) => void;
+  /** Initial value for the input field. */
+  initialValue?: string;
+  onSubmit: (amount: number) => void;
   /** Called whenever the amount changes */
-  onChange?: (amountUsd: number, isValid: boolean) => void;
+  onChange?: (amount: number, isValid: boolean) => void;
 };
 
 /**
- * USD amount input with dynamic width and min/max validation.
+ * Amount input with dynamic width, currency symbol, and min/max validation.
  * Shows warning messages when amount is outside valid range.
  */
 export function AmountInput({
-  minimumUsd,
-  maximumUsd,
+  minimum,
+  maximum,
+  currencySymbol = "$",
   defaultLabel,
+  initialValue,
   onSubmit,
   onChange,
 }: AmountInputProps) {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialValue ?? "");
 
-  const amountUsd = parseFloat(inputValue) || 0;
-  const isValid = amountUsd >= minimumUsd && amountUsd <= maximumUsd;
-  const showMinWarning = inputValue !== "" && amountUsd < minimumUsd;
-  const showMaxWarning = inputValue !== "" && amountUsd > maximumUsd;
+  const amount = parseFloat(inputValue) || 0;
+  const isValid = amount >= minimum && amount <= maximum;
+  const showMinWarning = inputValue !== "" && amount > 0 && amount < minimum;
+  const showMaxWarning = inputValue !== "" && amount > maximum;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow empty, or digits with up to 2 decimal places
     if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
       setInputValue(value);
       const newAmount = parseFloat(value) || 0;
-      const newIsValid = newAmount >= minimumUsd && newAmount <= maximumUsd;
+      const newIsValid = newAmount >= minimum && newAmount <= maximum;
       onChange?.(newAmount, newIsValid);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && isValid) {
-      onSubmit(amountUsd);
+      onSubmit(amount);
     }
   };
 
-  // Dynamic width: shrink for decimal point, min 1ch, max 10ch
   const inputWidth =
     inputValue.length === 0
       ? "3.55ch"
       : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.55, 10)}ch`;
 
+  const fmtAmount = (n: number) =>
+    new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
   const label = showMinWarning
-    ? `${t.minimum} $${minimumUsd.toFixed(2)}`
+    ? `${t.minimum} ${currencySymbol}${fmtAmount(minimum)}`
     : showMaxWarning
-      ? `${t.maximum} $${maximumUsd.toFixed(0)}`
-      : (defaultLabel ?? `${t.minimum} $${minimumUsd.toFixed(2)}`);
+      ? `${t.maximum} ${currencySymbol}${fmtAmount(maximum)}`
+      : (defaultLabel ?? `${t.minimum} ${currencySymbol}${fmtAmount(minimum)}`);
 
   const labelClass =
     showMinWarning || showMaxWarning
       ? "daimo-text-base daimo-text-[var(--daimo-text)]"
       : "daimo-text-base daimo-text-[var(--daimo-text-secondary)]";
 
-  // $ sign color: placeholder when empty, text color when typed
-  const dollarColor = inputValue
+  const symbolColor = inputValue
     ? "daimo-text-[var(--daimo-text)]"
     : "daimo-text-[var(--daimo-placeholder)]";
 
@@ -154,9 +160,9 @@ export function AmountInput({
     <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3">
       <div className="daimo-flex daimo-items-center daimo-justify-center daimo-gap-1">
         <span
-          className={`daimo-text-[24px] daimo-font-semibold ${dollarColor}`}
+          className={`daimo-text-[24px] daimo-font-semibold ${symbolColor}`}
         >
-          $
+          {currencySymbol}
         </span>
         <input
           type="text"
@@ -170,7 +176,7 @@ export function AmountInput({
             width: inputWidth,
             minWidth: "1ch",
             maxWidth: "10ch",
-            fontSize: "clamp(16px, 30px, 30px)", // 30px with 16px min to prevent iOS zoom
+            fontSize: "clamp(16px, 30px, 30px)",
           }}
           autoFocus
         />
@@ -181,16 +187,27 @@ export function AmountInput({
 }
 
 /** Hook to manage amount input state externally */
-export function useAmountInput(minimumUsd: number, maximumUsd: number) {
-  const [amountUsd, setAmountUsd] = useState(0);
+export function useAmountInput(minimum: number, maximum: number) {
+  const [amount, setAmount] = useState(0);
   const [isValid, setIsValid] = useState(false);
 
-  const handleChange = (amount: number, valid: boolean) => {
-    setAmountUsd(amount);
+  const handleChange = (amt: number, valid: boolean) => {
+    setAmount(amt);
     setIsValid(valid);
   };
 
-  return { amountUsd, isValid, handleChange };
+  return { amount, isValid, handleChange };
+}
+
+/** Standard text input with consistent styling. */
+export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={`daimo-w-full daimo-px-3 daimo-py-2 daimo-text-sm daimo-bg-[var(--daimo-surface-secondary)] daimo-text-[var(--daimo-text)] daimo-placeholder-[var(--daimo-placeholder)] daimo-rounded-[var(--daimo-radius-md)] daimo-border-none daimo-outline-none focus:daimo-ring-2 focus:daimo-ring-[var(--daimo-accent)] daimo-transition-shadow ${className ?? ""}`}
+    />
+  );
 }
 
 /** Resolve relative icon paths to absolute URLs */

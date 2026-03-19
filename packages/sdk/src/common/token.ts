@@ -13,6 +13,7 @@ import {
   polygon,
   scroll,
   solana,
+  tempo,
   tron,
   worldchain,
 } from "./chain.js";
@@ -788,6 +789,42 @@ const worldchainTokens: Token[] = [
   worldchainWLD,
 ];
 
+//
+// Tempo
+//
+
+export const tempoPathUSD: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20c0000000000000000000000000000000000000"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "PathUSD",
+  symbol: "pathUSD",
+  logoURI: TokenLogo.USDC,
+});
+
+export const tempoUSDCe: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20C000000000000000000000b9537d11c60E8b50"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Bridged USDC (Stargate)",
+  symbol: "USDCe",
+  logoURI: TokenLogo.USDC,
+});
+
+export const tempoUSDT0: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20c00000000000000000000014F22cA97301Eb73"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT,
+});
+
+const tempoTokens: Token[] = [tempoPathUSD, tempoUSDCe, tempoUSDT0];
+
 const knownTokensByChain = new Map<number, Token[]>([
   [arbitrum.chainId, arbitrumTokens],
   [base.chainId, baseTokens],
@@ -804,6 +841,7 @@ const knownTokensByChain = new Map<number, Token[]>([
   [solana.chainId, solanaTokens],
   [tron.chainId, tronTokens],
   [worldchain.chainId, worldchainTokens],
+  [tempo.chainId, tempoTokens],
 ]);
 
 export const knownTokens: Token[] = Array.from(
@@ -969,6 +1007,13 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE_USDC]: worldchainUSDC,
     },
   ],
+  [
+    tempo.chainId,
+    {
+      [TokenType.BRIDGED_USDC]: tempoUSDCe,
+      [TokenType.USDT]: tempoUSDT0,
+    },
+  ],
 ]);
 
 export function isNativeToken(chainId: number, token: Address): boolean {
@@ -981,6 +1026,10 @@ export function getChainNativeToken(chainId: number): Token {
   const token = tokensByChainAndType.get(chainId)?.[TokenType.NATIVE];
   if (!token) throw new Error(`missing native token for chainId ${chainId}`);
   return token;
+}
+
+export function getChainNativeTokenOrNull(chainId: number): Token | undefined {
+  return tokensByChainAndType.get(chainId)?.[TokenType.NATIVE];
 }
 
 export function getChainWrappedNativeToken(chainId: number): Token {

@@ -1011,6 +1011,7 @@ const tokensByChainAndType: Map<
     tempo.chainId,
     {
       [TokenType.BRIDGED_USDC]: tempoUSDCe,
+      [TokenType.USDT]: tempoUSDT0,
     },
   ],
 ]);

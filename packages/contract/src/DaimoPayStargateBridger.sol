@@ -122,10 +122,17 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
             _sendParam: sp,
             _payInLzToken: false
         });
-        require(
-            address(this).balance >= fee.nativeFee,
-            "DPSB: insufficient native fee"
-        );
+
+        // On Tempo, LZ fees are auto-deducted from tx.origin as pathUSD
+        // (TIP-20). No msg.value or balance check needed.
+        bool isTempoChain = block.chainid == 4217;
+
+        if (!isTempoChain) {
+            require(
+                address(this).balance >= fee.nativeFee,
+                "DPSB: insufficient native fee"
+            );
+        }
 
         // Custody + approve exactly what the accounting says.
         IERC20(route.bridgeTokenIn).safeTransferFrom({
@@ -139,7 +146,11 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
         });
 
         // Use Stargate's custom sendToken function to send the tokens.
-        IStargate(route.app).sendToken{value: fee.nativeFee}({
+        // On Tempo, send value=0 (native transfers are NOPs) but pass the
+        // real fee so the LZ endpoint knows the amount to auto-deduct.
+        uint256 nativeValueToSend = isTempoChain ? 0 : fee.nativeFee;
+
+        IStargate(route.app).sendToken{value: nativeValueToSend}({
             _sendParam: sp,
             _fee: fee,
             _refundAddress: refundAddress

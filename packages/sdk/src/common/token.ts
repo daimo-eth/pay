@@ -47,6 +47,7 @@ export enum TokenLogo {
   EURe = "https://daimo.com/coin-logos/eure.png",
   HYPE = "https://daimo.com/coin-logos/hype.png",
   MON = "https://daimo.com/coin-logos/mon.png",
+  PATHUSD = "https://daimo.com/coin-logos/pathusd.png",
   POL = "https://daimo.com/coin-logos/pol.png",
   SOL = "https://daimo.com/coin-logos/sol.png",
   USDBc = "https://daimo.com/coin-logos/usdbc.png",
@@ -800,7 +801,7 @@ export const tempoPathUSD: Token = token({
   fiatISO: "USD",
   name: "PathUSD",
   symbol: "pathUSD",
-  logoURI: TokenLogo.USDC,
+  logoURI: TokenLogo.PATHUSD,
 });
 
 export const tempoUSDCe: Token = token({

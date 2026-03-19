@@ -89,6 +89,7 @@ address constant BSC_MAINNET_BRIDGED_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32
 address constant GNOSIS_MAINNET_BRIDGED_USDC = 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0;
 address constant OP_MAINNET_BRIDGED_USDC = 0x7F5c764cBc14f9669B88837ca1490cCa17c31607;
 address constant POLYGON_MAINNET_BRIDGED_USDC = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
+address constant TEMPO_MAINNET_BRIDGED_USDC = 0x20C000000000000000000000b9537d11c60E8b50;
 
 // axlUSDC (Axelar wrapped USDC) addresses
 address constant ARBITRUM_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f405215;
@@ -128,6 +129,7 @@ function getHopCoinDecimals(address token) pure returns (uint256) {
     if (token == GNOSIS_MAINNET_BRIDGED_USDC) return 6;
     if (token == OP_MAINNET_BRIDGED_USDC) return 6;
     if (token == POLYGON_MAINNET_BRIDGED_USDC) return 6;
+    if (token == TEMPO_MAINNET_BRIDGED_USDC) return 6;
 
     // axlUSDC (Axelar wrapped USDC) addresses
     if (token == ARBITRUM_MAINNET_AXLUSDC) return 6;

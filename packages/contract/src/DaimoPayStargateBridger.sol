@@ -5,6 +5,7 @@ import "./DaimoPayLayerZeroBridger.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {
+    IOFT,
     OFTLimit
 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import {
@@ -12,6 +13,14 @@ import {
     MessagingFee,
     OFTReceipt
 } from "@stargatefinance/stg-evm-v2/src/interfaces/IStargate.sol";
+
+address constant TEMPO_PATHUSD = 0x20C0000000000000000000000000000000000000;
+address constant TEMPO_LZ_FEE_ADAPTER = 0x0cEb237E109eE22374a567c6b09F373C73FA4cBb;
+
+interface INativeFeeAdapter {
+    function wrap(address token, address to, uint256 amount) external;
+    function approve(address spender, uint256 amount) external returns (bool);
+}
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
@@ -123,11 +132,23 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
             _payInLzToken: false
         });
 
-        // On Tempo, LZ fees are auto-deducted from tx.origin as pathUSD
-        // (TIP-20). No msg.value or balance check needed.
+        // On Tempo, LZ fees are paid by wrapping PathUSD into the
+        // native fee adapter. The relayer sends PathUSD via preCall.
         bool isTempoChain = block.chainid == 4217;
 
-        if (!isTempoChain) {
+        if (isTempoChain) {
+            require(
+                IERC20(TEMPO_PATHUSD).balanceOf(address(this)) >= fee.nativeFee,
+                "DPSB: insufficient PathUSD for fee"
+            );
+            IERC20(TEMPO_PATHUSD).forceApprove(TEMPO_LZ_FEE_ADAPTER, fee.nativeFee);
+            INativeFeeAdapter(TEMPO_LZ_FEE_ADAPTER).wrap(
+                TEMPO_PATHUSD, address(this), fee.nativeFee
+            );
+            INativeFeeAdapter(TEMPO_LZ_FEE_ADAPTER).approve(
+                route.app, fee.nativeFee
+            );
+        } else {
             require(
                 address(this).balance >= fee.nativeFee,
                 "DPSB: insufficient native fee"
@@ -145,19 +166,26 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
             value: accounting.sendAmountLD
         });
 
-        // Use Stargate's custom sendToken function to send the tokens.
-        // On Tempo, send value=0 (native transfers are NOPs) but pass the
-        // real fee so the LZ endpoint knows the amount to auto-deduct.
-        uint256 nativeValueToSend = isTempoChain ? 0 : fee.nativeFee;
+        if (isTempoChain) {
+            IOFT(route.app).send{value: 0}({
+                _sendParam: sp,
+                _fee: fee,
+                _refundAddress: refundAddress
+            });
+        } else {
+            IStargate(route.app).sendToken{value: fee.nativeFee}({
+                _sendParam: sp,
+                _fee: fee,
+                _refundAddress: refundAddress
+            });
+        }
 
-        IStargate(route.app).sendToken{value: nativeValueToSend}({
-            _sendParam: sp,
-            _fee: fee,
-            _refundAddress: refundAddress
-        });
-
-        if (address(this).balance > 0) {
-            // native coin refund
+        if (isTempoChain) {
+            uint256 leftover = IERC20(TEMPO_PATHUSD).balanceOf(address(this));
+            if (leftover > 0) {
+                IERC20(TEMPO_PATHUSD).safeTransfer(tx.origin, leftover);
+            }
+        } else if (address(this).balance > 0) {
             (bool success, ) = tx.origin.call{value: address(this).balance}("");
             require(success, "DPSB: native refund failed");
         }

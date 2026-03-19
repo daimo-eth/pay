@@ -1010,7 +1010,6 @@ const tokensByChainAndType: Map<
   [
     tempo.chainId,
     {
-      [TokenType.NATIVE_USDC]: tempoPathUSD,
       [TokenType.BRIDGED_USDC]: tempoUSDCe,
     },
   ],

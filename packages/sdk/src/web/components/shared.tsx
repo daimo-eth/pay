@@ -15,6 +15,7 @@ import {
   scroll,
   solana,
   supportedChains,
+  tempo,
   tron,
   worldchain,
 } from "../../common/chain.js";
@@ -41,6 +42,7 @@ const CHAIN_LOGOS: Record<SupportedChainId, string> = {
   [polygon.chainId]: "polygon.svg",
   [scroll.chainId]: "scroll.svg",
   [solana.chainId]: "solana.svg",
+  [tempo.chainId]: "tempo.svg",
   [tron.chainId]: "tron.svg",
   [worldchain.chainId]: "worldchain.svg",
 };
@@ -151,7 +153,11 @@ export function AmountInput({
   return (
     <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3">
       <div className="daimo-flex daimo-items-center daimo-justify-center daimo-gap-1">
-        <span className={`daimo-text-[24px] daimo-font-semibold ${dollarColor}`}>$</span>
+        <span
+          className={`daimo-text-[24px] daimo-font-semibold ${dollarColor}`}
+        >
+          $
+        </span>
         <input
           type="text"
           inputMode="decimal"
@@ -242,7 +248,8 @@ type PageLogoProps = {
 };
 
 export function PageLogo({ icon, alt, size = "lg", baseUrl }: PageLogoProps) {
-  const sizeClass = size === "lg" ? "daimo-w-20 daimo-h-20" : "daimo-w-16 daimo-h-16";
+  const sizeClass =
+    size === "lg" ? "daimo-w-20 daimo-h-20" : "daimo-w-16 daimo-h-16";
   return (
     <img
       src={resolveIconUrl(icon, baseUrl)}
@@ -266,7 +273,9 @@ export function ScrollContent({
   fade?: boolean;
   grow?: boolean;
 }) {
-  const fadeClass = fade ? ` daimo-scroll-fade${atBottom ? " daimo-scroll-end" : ""}` : "";
+  const fadeClass = fade
+    ? ` daimo-scroll-fade${atBottom ? " daimo-scroll-end" : ""}`
+    : "";
   const padClass = fade ? "daimo-pb-0" : "daimo-pb-4";
   const growClass = grow ? "daimo-flex-1" : "";
   return (
@@ -505,7 +514,10 @@ export function getChainLogoFilename(chainId: number): string {
 
 /** Fully resolved chain logo URL, ready to use as an img src. */
 export function getChainLogoUrl(chainId: number, baseUrl: string): string {
-  return resolveIconUrl(`/chain-logos/${getChainLogoFilename(chainId)}`, baseUrl);
+  return resolveIconUrl(
+    `/chain-logos/${getChainLogoFilename(chainId)}`,
+    baseUrl,
+  );
 }
 
 // --- Copyable Info Card ---

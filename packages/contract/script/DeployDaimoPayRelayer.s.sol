@@ -5,8 +5,8 @@ import "forge-std/Script.sol";
 import "forge-std/console2.sol";
 
 import "../src/relayer/DaimoPayRelayer.sol";
-import "./constants/Constants.s.sol";
-import {DEPLOY_SALT_DAIMO_PAY_RELAYER} from "./constants/DeploySalts.sol";
+import "./Constants.s.sol";
+import {DEPLOY_SALT_DAIMO_PAY_RELAYER} from "./DeploySalts.sol";
 
 contract DeployDaimoPayRelayer is Script {
     function run() public {

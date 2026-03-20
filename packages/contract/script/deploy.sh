@@ -7,40 +7,42 @@ set -e
 # ETHERSCAN_API_KEY_... for each target chain
 
 SCRIPTS=(
-    # Bridgers
-    # "script/DeployDaimoPayCCTPBridger.s.sol"
-    # "script/DeployDaimoPayCCTPV2Bridger.s.sol"
-    # "script/DeployDaimoPayAcrossBridger.s.sol"
-    # "script/DeployDaimoPayAxelarBridger.s.sol"
-    # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
-    # "script/DeployDaimoPayStargateBridger.s.sol"
-    # "script/DeployDaimoPayHopBridger.s.sol"
+    # === DA bridgers ===
+    # "script/da/DeployDaimoPayCCTPV2Bridger.s.sol"
+    # "script/da/DeployDaimoPayStargateUSDCBridger.s.sol"
+    # "script/da/DeployDaimoPayStargateUSDTBridger.s.sol"
+    # "script/da/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/da/DeployDaimoPayHopBridger.s.sol"
+    # "script/da/DeployDepositAddressBridger.s.sol"
 
-    # "script/DeployDaimoPayBridger.s.sol"
-    # "script/DeployDepositAddressBridger.s.sol"
-
-    # Daimo Pay
-    # "script/DeployPayIntentFactory.s.sol"
-    # "script/DeployDaimoPay.s.sol"
-
-    # Deposit Address
+    # === DA core ===
     # "script/DeployDaimoPayPricer.s.sol"
-    # "script/DeployDepositAddressFactory.s.sol"
-    # "script/DeployDAExecutor.s.sol"
-    # "script/DeployDepositAddressManager.s.sol"
+    # "script/da/DeployDepositAddressFactory.s.sol"
+    # "script/da/DeployDAExecutor.s.sol"
+    # "script/da/DeployDepositAddressManager.s.sol"
 
-    # Relayer
-    # New relayers can be added via grantRelayerRole.
-    # Stage/dev and production must use different relayer contract deployments.
+    # === Pay-order bridgers ===
+    # "script/pay/DeployDaimoPayCCTPBridger.s.sol"
+    # "script/pay/DeployDaimoPayCCTPV2Bridger.s.sol"
+    # "script/pay/DeployDaimoPayAcrossBridger.s.sol"
+    # "script/pay/DeployDaimoPayAxelarBridger.s.sol"
+    # "script/pay/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/pay/DeployDaimoPayStargateBridger.s.sol"
+    # "script/pay/DeployDaimoPayHopBridger.s.sol"
+    # "script/pay/DeployDaimoPayBridger.s.sol"
+
+    # === Pay-order core ===
+    # "script/pay/DeployPayIntentFactory.s.sol"
+    # "script/pay/DeployDaimoPay.s.sol"
+
+    # === Shared ===
     # "script/DeployDaimoPayRelayer.s.sol"
-
-    # Utils
     # "script/DeployCreate3Factory.s.sol"
     # "script/DeployPayBalanceFactory.s.sol"
 
-    # Final call adapters
-    # "script/DeployHypercoreDepositAdapter.s.sol"
-    # "script/DeployDummyDepositAdapter.s.sol"
+    # === DA final call adapters ===
+    # "script/da/DeployHypercoreDepositAdapter.s.sol"
+    # "script/da/DeployDummyDepositAdapter.s.sol"
 )
 
 CHAINS=(
@@ -70,7 +72,7 @@ CHAINS=(
 for SCRIPT in "${SCRIPTS[@]}"; do
     for RPC_URL in "${CHAINS[@]}"; do
         echo ""
-        echo "======= RUNNING $SCRIPT ========" 
+        echo "======= RUNNING $SCRIPT ========"
         echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
         echo "RPC_URL          : $RPC_URL"
 

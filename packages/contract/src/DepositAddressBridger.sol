@@ -19,26 +19,26 @@ contract DepositAddressBridger is IDepositAddressBridger {
     // Immutable routing data (set once in the constructor)
     // ---------------------------------------------------------------------
 
-    /// Map destination chainId to IDaimoPayBridger bridge-specific adapter.
-    mapping(uint256 chainId => IDaimoPayBridger adapter)
-        public chainIdToBridger;
+    /// Is a given bridging route (destination chainId, stableOut, bridger adapter)
+    /// allowed?
+    mapping(uint256 toChainId => mapping(address stableOut => mapping(address bridgerAdapter => bool isAllowed)))
+        public isRouteAllowed;
 
-    /// Map destination chainId to the stablecoin token bridged to.
-    mapping(uint256 chainId => address stableOut) public chainIdToStableOut;
-
+    /// Set the allowed bridging routes.
     constructor(
         uint256[] memory toChainIds,
-        IDaimoPayBridger[] memory bridgers,
-        address[] memory stableOut
+        address[] memory stableOut,
+        address[] memory bridgerAdapters
     ) {
         uint256 n = toChainIds.length;
         require(
-            n == bridgers.length && n == stableOut.length,
+            n == stableOut.length && n == bridgerAdapters.length,
             "DAB: length mismatch"
         );
         for (uint256 i; i < n; ++i) {
-            chainIdToBridger[toChainIds[i]] = bridgers[i];
-            chainIdToStableOut[toChainIds[i]] = stableOut[i];
+            isRouteAllowed[toChainIds[i]][stableOut[i]][
+                bridgerAdapters[i]
+            ] = true;
         }
     }
 
@@ -50,19 +50,21 @@ contract DepositAddressBridger is IDepositAddressBridger {
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount calldata bridgeTokenOut,
+        TokenAmount calldata stableOut,
+        address bridgerAdapter,
         address refundAddress,
         bytes calldata extraData
     ) external {
+        require(
+            isRouteAllowed[toChainId][address(stableOut.token)][bridgerAdapter],
+            "DAB: route not allowed"
+        );
+
         // Determine the required input asset and quantity for the requested bridge.
-        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
-            toChainId: toChainId,
-            bridgeTokenOut: bridgeTokenOut
-        });
-        (address bridgeTokenIn, uint256 inAmount) = adapter.getBridgeTokenIn({
-            toChainId: toChainId,
-            bridgeTokenOutOptions: opts
-        });
+        TokenAmount[] memory opts = _getSingleBridgeTokenOutOption(stableOut);
+        (address bridgeTokenIn, uint256 inAmount) = IDaimoPayBridger(
+            bridgerAdapter
+        ).getBridgeTokenIn({toChainId: toChainId, bridgeTokenOutOptions: opts});
 
         // Pull tokens from caller into this contract.
         IERC20(bridgeTokenIn).safeTransferFrom({
@@ -71,13 +73,13 @@ contract DepositAddressBridger is IDepositAddressBridger {
             value: inAmount
         });
 
-        // Approve the adapter to spend and forward the call.
+        // Approve the bridger adapter to spend and forward the call.
         IERC20(bridgeTokenIn).forceApprove({
-            spender: address(adapter),
+            spender: bridgerAdapter,
             value: inAmount
         });
 
-        adapter.sendToChain({
+        IDaimoPayBridger(bridgerAdapter).sendToChain({
             toChainId: toChainId,
             toAddress: toAddress,
             bridgeTokenOutOptions: opts,
@@ -93,39 +95,26 @@ contract DepositAddressBridger is IDepositAddressBridger {
     /// @inheritdoc IDepositAddressBridger
     function getBridgeTokenIn(
         uint256 toChainId,
-        TokenAmount calldata bridgeTokenOut
+        TokenAmount calldata stableOut,
+        address bridgerAdapter
     ) public view returns (address bridgeTokenIn, uint256 inAmount) {
-        (IDaimoPayBridger adapter, TokenAmount[] memory opts) = _getAdapter({
-            toChainId: toChainId,
-            bridgeTokenOut: bridgeTokenOut
-        });
-        (bridgeTokenIn, inAmount) = adapter.getBridgeTokenIn({
-            toChainId: toChainId,
-            bridgeTokenOutOptions: opts
-        });
+        require(
+            isRouteAllowed[toChainId][address(stableOut.token)][bridgerAdapter],
+            "DAB: route not allowed"
+        );
+
+        TokenAmount[] memory opts = _getSingleBridgeTokenOutOption(stableOut);
+        (bridgeTokenIn, inAmount) = IDaimoPayBridger(bridgerAdapter)
+            .getBridgeTokenIn({
+                toChainId: toChainId,
+                bridgeTokenOutOptions: opts
+            });
     }
 
-    /// @dev Helper to get the bridge-specific adapter contract and the
-    ///      TokenAmount[] expected by the adapter.
-    function _getAdapter(
-        uint256 toChainId,
-        TokenAmount calldata bridgeTokenOut
-    )
-        private
-        view
-        returns (IDaimoPayBridger adapter, TokenAmount[] memory opts)
-    {
-        require(toChainId != block.chainid, "DAB: same chain");
-
-        adapter = chainIdToBridger[toChainId];
-        require(address(adapter) != address(0), "DAB: unknown chain");
-
-        // Ensure the requested bridgeTokenOut matches configured stablecoin for this chain.
-        address tokOut = chainIdToStableOut[toChainId];
-        require(address(bridgeTokenOut.token) == tokOut, "DAB: token mismatch");
-
-        // Build a single-element TokenAmount[] expected by the adapter
+    function _getSingleBridgeTokenOutOption(
+        TokenAmount calldata stableOut
+    ) private view returns (TokenAmount[] memory opts) {
         opts = new TokenAmount[](1);
-        opts[0] = bridgeTokenOut;
+        opts[0] = stableOut;
     }
 }

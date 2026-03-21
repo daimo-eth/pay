@@ -213,6 +213,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -281,7 +282,8 @@ contract DepositAddressManagerTest is Test {
             paymentToken: address(usdc),
             paymentAmount: PAYMENT_AMOUNT,
             paymentTokenPriceUsd: USDC_PRICE,
-            bridgeTokenInPriceUsd: USDC_PRICE
+            bridgeTokenInPriceUsd: USDC_PRICE,
+            bridgerAdapter: address(bridger)
         });
 
         vm.prank(RELAYER);
@@ -291,6 +293,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -337,6 +340,7 @@ contract DepositAddressManagerTest is Test {
                 bridgeTokenOut: bridgeTokenOut,
                 paymentTokenPrice: paymentTokenPrice,
                 bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
                 relaySalt: salts[i],
                 calls: calls,
                 bridgeExtraData: bridgeExtraData
@@ -396,6 +400,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -437,6 +442,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -483,6 +489,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -526,6 +533,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -572,6 +580,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -611,6 +620,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -628,6 +638,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -670,6 +681,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -712,6 +724,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -752,6 +765,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -791,6 +805,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -934,6 +949,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -4217,6 +4233,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: ""
@@ -4336,6 +4353,7 @@ contract DepositAddressManagerTest is Test {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: bytes32(uint256(1)),
             calls: startCalls,
             bridgeExtraData: bridgeExtraData
@@ -4510,6 +4528,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData
@@ -4577,7 +4596,8 @@ contract DepositAddressManagerTest is Test {
             fulfillment: fulfillment,
             bridgedAmount: BRIDGE_AMOUNT,
             leg1BridgeTokenOutPriceUsd: USDC_PRICE,
-            leg2BridgeTokenInPriceUsd: USDC_PRICE
+            leg2BridgeTokenInPriceUsd: USDC_PRICE,
+            bridgerAdapter: address(bridger)
         });
 
         vm.prank(RELAYER);
@@ -4588,6 +4608,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: ""
@@ -4633,6 +4654,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4674,6 +4696,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4715,6 +4738,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4755,6 +4779,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: keccak256("test-relay-salt"),
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4812,6 +4837,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: leg1RelaySalt,
             calls: calls,
             bridgeExtraData: ""
@@ -4827,6 +4853,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: leg1RelaySalt,
             calls: calls,
             bridgeExtraData: ""
@@ -4883,6 +4910,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: leg1RelaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4941,6 +4969,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: leg1RelaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""
@@ -4999,6 +5028,7 @@ contract DepositAddressManagerTest is Test {
             leg1BridgeTokenOutPrice: leg1Price,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2Price,
+            bridgerAdapter: address(bridger),
             relaySalt: relaySalt,
             calls: new Call[](0),
             bridgeExtraData: ""

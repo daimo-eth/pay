@@ -68,7 +68,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         address paymentToken,
         uint256 paymentAmount,
         uint256 paymentTokenPriceUsd,
-        uint256 bridgeTokenInPriceUsd
+        uint256 bridgeTokenInPriceUsd,
+        address bridgerAdapter
     );
     event FastFinish(
         address indexed depositAddress,
@@ -111,7 +112,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         DAFulfillmentParams fulfillment,
         uint256 bridgedAmount,
         uint256 leg1BridgeTokenOutPriceUsd,
-        uint256 leg2BridgeTokenInPriceUsd
+        uint256 leg2BridgeTokenInPriceUsd,
+        address bridgerAdapter
     );
     event RefundDepositAddress(
         address indexed depositAddress,
@@ -172,6 +174,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     /// @param paymentToken    The token the user paid the deposit address.
     /// @param bridgeTokenOut  The token and amount to be bridged to the
     ///                        destination chain
+    /// @param bridgerAdapter  The bridger adapter to use for the bridge
     /// @param relaySalt       Unique salt provided by the relayer to generate
     ///                        a unique fulfillment address
     /// @param calls           Optional swap calls to convert payment token to
@@ -184,6 +187,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata paymentTokenPrice,
         PriceData calldata bridgeTokenInPrice,
+        address bridgerAdapter,
         bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
@@ -229,7 +233,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             .bridger
             .getBridgeTokenIn({
                 toChainId: params.toChainId,
-                bridgeTokenOut: bridgeTokenOut
+                stableOut: bridgeTokenOut,
+                bridgerAdapter: bridgerAdapter
             });
         require(
             bridgeTokenIn == address(bridgeTokenInPrice.token),
@@ -277,7 +282,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         params.bridger.sendToChain({
             toChainId: params.toChainId,
             toAddress: fulfillmentAddress,
-            bridgeTokenOut: bridgeTokenOut,
+            stableOut: bridgeTokenOut,
+            bridgerAdapter: bridgerAdapter,
             refundAddress: params.refundAddress,
             extraData: bridgeExtraData
         });
@@ -290,7 +296,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             paymentToken: address(paymentToken),
             paymentAmount: paymentAmount,
             paymentTokenPriceUsd: paymentTokenPrice.priceUsd,
-            bridgeTokenInPriceUsd: bridgeTokenInPrice.priceUsd
+            bridgeTokenInPriceUsd: bridgeTokenInPrice.priceUsd,
+            bridgerAdapter: bridgerAdapter
         });
     }
 
@@ -579,6 +586,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     /// @param leg1BridgeTokenOutPrice Price data for leg 1 bridge token out
     /// @param leg2BridgeTokenOut      Token and amount to bridge in leg 2 (hop → dest)
     /// @param leg2BridgeTokenInPrice  Price data for leg 2 bridge token in
+    /// @param bridgerAdapter      The bridger adapter to use for leg 2
     /// @param relaySalt           Unique salt provided by the relayer to generate
     ///                            a unique fulfillment address. Shared between
     ///                            leg 1 and leg 2.
@@ -592,6 +600,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
         PriceData calldata leg2BridgeTokenInPrice,
+        address bridgerAdapter,
         bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData
@@ -651,7 +660,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             .bridger
             .getBridgeTokenIn({
                 toChainId: params.toChainId,
-                bridgeTokenOut: leg2BridgeTokenOut
+                stableOut: leg2BridgeTokenOut,
+                bridgerAdapter: bridgerAdapter
             });
         require(
             bridgeTokenIn == address(leg2BridgeTokenInPrice.token),
@@ -694,7 +704,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         params.bridger.sendToChain({
             toChainId: params.toChainId,
             toAddress: fulfillmentAddress,
-            bridgeTokenOut: leg2BridgeTokenOut,
+            stableOut: leg2BridgeTokenOut,
+            bridgerAdapter: bridgerAdapter,
             refundAddress: params.refundAddress,
             extraData: bridgeExtraData
         });
@@ -706,7 +717,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             fulfillment: fulfillment,
             bridgedAmount: bridgedAmount,
             leg1BridgeTokenOutPriceUsd: leg1BridgeTokenOutPrice.priceUsd,
-            leg2BridgeTokenInPriceUsd: leg2BridgeTokenInPrice.priceUsd
+            leg2BridgeTokenInPriceUsd: leg2BridgeTokenInPrice.priceUsd,
+            bridgerAdapter: bridgerAdapter
         });
     }
 

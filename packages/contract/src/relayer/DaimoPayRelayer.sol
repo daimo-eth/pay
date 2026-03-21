@@ -463,6 +463,7 @@ contract DaimoPayRelayer is AccessControl {
         TokenAmount calldata bridgeTokenOut,
         PriceData calldata paymentTokenPrice,
         PriceData calldata bridgeTokenInPrice,
+        address bridgerAdapter,
         bytes32 relaySalt,
         Call[] calldata startCalls,
         bytes calldata bridgeExtraData,
@@ -485,6 +486,7 @@ contract DaimoPayRelayer is AccessControl {
             bridgeTokenOut: bridgeTokenOut,
             paymentTokenPrice: paymentTokenPrice,
             bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: bridgerAdapter,
             relaySalt: relaySalt,
             calls: startCalls,
             bridgeExtraData: bridgeExtraData
@@ -656,6 +658,7 @@ contract DaimoPayRelayer is AccessControl {
         PriceData calldata leg1BridgeTokenOutPrice,
         TokenAmount calldata leg2BridgeTokenOut,
         PriceData calldata leg2BridgeTokenInPrice,
+        address bridgerAdapter,
         bytes32 relaySalt,
         Call[] calldata calls,
         bytes calldata bridgeExtraData,
@@ -679,6 +682,7 @@ contract DaimoPayRelayer is AccessControl {
             leg1BridgeTokenOutPrice: leg1BridgeTokenOutPrice,
             leg2BridgeTokenOut: leg2BridgeTokenOut,
             leg2BridgeTokenInPrice: leg2BridgeTokenInPrice,
+            bridgerAdapter: bridgerAdapter,
             relaySalt: relaySalt,
             calls: calls,
             bridgeExtraData: bridgeExtraData

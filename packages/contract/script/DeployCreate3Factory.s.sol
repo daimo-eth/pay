@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 
 import {CREATE3Factory} from "../vendor/create3/CREATE3Factory.sol";
-import {DEPLOY_SALT_CREATE3_FACTORY} from "./constants/DeploySalts.sol";
+import {DEPLOY_SALT_CREATE3_FACTORY} from "./DeploySalts.sol";
 
 contract DeployScript is Script {
     function run() public returns (CREATE3Factory factory) {

@@ -9,39 +9,36 @@ import "../TokenUtils.sol";
 ///         that multiplexes between multiple bridge-specific adapters (e.g.
 ///         CCTP, Across, Axelar).
 interface IDepositAddressBridger {
-    /// @notice Returns the bridge output token for the given destination chain ID.
-    /// @param toChainId The destination chain ID
-    /// @return stableOut The bridge output token
-    function chainIdToStableOut(
-        uint256 toChainId
-    ) external view returns (address stableOut);
-
     /// @notice Fetches a quote: what do I have to send in so that $x shows up
     ///         on the destination?
     /// @param toChainId       Destination chain
-    /// @param bridgeTokenOut  The stablecoin token and amount to receive on
+    /// @param stableOut       The stablecoin token and amount to receive on
     ///                        the destination chain
+    /// @param bridgerAdapter  The bridger adapter to use
     /// @return bridgeTokenIn  The asset that must be provided on the source
     ///                        chain
     /// @return inAmount       The exact quantity of bridgeTokenIn that must be
     ///                        provided
     function getBridgeTokenIn(
         uint256 toChainId,
-        TokenAmount calldata bridgeTokenOut
+        TokenAmount calldata stableOut,
+        address bridgerAdapter
     ) external view returns (address bridgeTokenIn, uint256 inAmount);
 
     /// @notice Execute the bridge. Reverts if the adapter can't deliver the
     ///         specified destination amount.
     /// @param toChainId       Destination chain id
     /// @param toAddress       Recipient address on the destination chain
-    /// @param bridgeTokenOut  The stablecoin token and amount to receive on
+    /// @param stableOut       The stablecoin token and amount to receive on
     ///                        the destination chain
+    /// @param bridgerAdapter  The bridger adapter to use
     /// @param refundAddress   Address to send funds to if the bridge fails
     /// @param extraData       Adapter-specific calldata
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount calldata bridgeTokenOut,
+        TokenAmount calldata stableOut,
+        address bridgerAdapter,
         address refundAddress,
         bytes calldata extraData
     ) external;

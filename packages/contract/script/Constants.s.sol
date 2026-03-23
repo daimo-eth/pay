@@ -40,6 +40,7 @@ uint256 constant MONAD_MAINNET = 143;
 uint256 constant OP_MAINNET = 10;
 uint256 constant POLYGON_MAINNET = 137; // PoS
 uint256 constant SCROLL_MAINNET = 534352;
+uint256 constant TEMPO_MAINNET = 4217;
 uint256 constant WORLDCHAIN_MAINNET = 480;
 
 // ----------------- Token Addresses ----------------- //
@@ -121,7 +122,11 @@ function getHopCoinDecimals(address token) pure returns (uint256) {
 
     // USDT addresses
     if (token == ARBITRUM_MAINNET_USDT) return 6;
+    if (token == BSC_MAINNET_USDT) return 18;
     if (token == CELO_MAINNET_USDT) return 6;
+    if (token == ETH_MAINNET_USDT) return 6;
+    if (token == OP_MAINNET_USDT) return 6;
+    if (token == POLYGON_MAINNET_USDT) return 6;
 
     // USDC.e or USDbC (bridged USDC) addresses
     if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;

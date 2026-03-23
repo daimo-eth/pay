@@ -4,22 +4,12 @@ set -e
 # Requirements:
 # ALCHEMY_API_KEY
 # PRIVATE_KEY for the deployer
-# ETHERSCAN_API_KEY_... for each target chain
+# ETHERSCAN_API_KEY for verification on most chains
 
 SCRIPTS=(
-    # === DA bridgers ===
-    # "script/da/DeployDaimoPayCCTPV2Bridger.s.sol"
-    # "script/da/DeployDaimoPayStargateUSDCBridger.s.sol"
-    # "script/da/DeployDaimoPayStargateUSDTBridger.s.sol"
-    # "script/da/DeployDaimoPayLegacyMeshBridger.s.sol"
-    # "script/da/DeployDaimoPayHopBridger.s.sol"
-    # "script/da/DeployDepositAddressBridger.s.sol"
-
-    # === DA core ===
-    # "script/DeployDaimoPayPricer.s.sol"
-    # "script/da/DeployDepositAddressFactory.s.sol"
-    # "script/da/DeployDAExecutor.s.sol"
-    # "script/da/DeployDepositAddressManager.s.sol"
+    # === Hop (flexible4) + DABridger (flexible4) — redeploy all chains ===
+    "script/da/DeployDaimoPayHopBridger.s.sol"
+    "script/da/DeployDepositAddressBridger.s.sol"
 
     # === Pay-order bridgers ===
     # "script/pay/DeployDaimoPayCCTPBridger.s.sol"
@@ -46,51 +36,60 @@ SCRIPTS=(
 )
 
 CHAINS=(
-    # "https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "wss://gnosis-rpc.publicnode.com"
+    "https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://base-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://bnb-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://celo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "wss://gnosis-rpc.publicnode.com"
 
-    # HyperEVM has big blocks (30M gas limit) and small blocks (3M gas limit)
-    # We need to deploy the contracts in big blocks. Ensure the deployer has
-    # USDC deposited to HyperCore and big blocks toggled on.
-    # Non-official big block toggle tool: https://hyperevm-block-toggle.vercel.app/
-    # "https://hyperliquid-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-
-    # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
-    # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # HyperEVM has big blocks (30M gas limit) and small blocks (3M gas limit).
+    # Large contracts (Manager, Relayer) need big blocks. Ensure the deployer
+    # has USDC deposited to HyperCore and big blocks toggled on.
+    # Toggle tool: https://hyperevm-block-toggle.vercel.app/
+    "https://hyperliquid-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://tempo-mainnet.g.alchemy.com/v2/_2A5g_7BNLEHf3tukpYJG-8J9N9mPXIe"
+    "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # Expensive, deploy last
-    # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do
     for RPC_URL in "${CHAINS[@]}"; do
         echo ""
         echo "======= RUNNING $SCRIPT ========"
-        echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
-        echo "RPC_URL          : $RPC_URL"
+        echo "RPC_URL: $RPC_URL"
 
-        # Monad uses Sourcify for verification instead of Etherscan
+        # Chain-specific verification flags
         if [[ "$RPC_URL" == *"monad"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/ --broadcast"
+        elif [[ "$RPC_URL" == *"tempo"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
+        elif [[ "$RPC_URL" == *"hyperliquid"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
 
-        # Override gas price for Gnosis chain to reliably get txs through
+        # Chain-specific gas overrides
         if [[ "$RPC_URL" == *"gnosis"* ]]; then
             FORGE_CMD="$FORGE_CMD --with-gas-price 3000000000 --priority-gas-price 1000000000"
         fi
 
+        # Tempo has higher gas costs for CREATE operations. The default gas
+        # estimate is too low for nested CREATE3 deploys.
+        if [[ "$RPC_URL" == *"tempo"* ]]; then
+            FORGE_CMD="$FORGE_CMD --gas-estimate-multiplier 500"
+        fi
+
         echo $FORGE_CMD
         echo ""
-        $FORGE_CMD || exit 1
+        $FORGE_CMD || echo "WARNING: Script failed for $RPC_URL, continuing..."
     done
 done
 

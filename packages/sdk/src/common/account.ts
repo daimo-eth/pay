@@ -72,12 +72,55 @@ export type EIP712TypedData = Record<string, unknown> & {
   message: Record<string, unknown>;
 };
 
+/** EIP-712 typed data for the delivery consent signature. */
+export interface DeliverySignData {
+  domain: { name: string; version: string; chainId: number };
+  types: {
+    DeliveryConsent: readonly [
+      { name: "sessionId"; type: "string" },
+      { name: "fiatAmount"; type: "string" },
+      { name: "fiatCurrency"; type: "string" },
+    ];
+  };
+  primaryType: "DeliveryConsent";
+  message: { sessionId: string; fiatAmount: string; fiatCurrency: string };
+}
+
+/** EIP-712 typed data for EIP-3009 transferWithAuthorization (routing). */
+export interface RoutingSignData {
+  domain: {
+    name: string;
+    version: string;
+    chainId: number;
+    verifyingContract: string;
+  };
+  types: {
+    TransferWithAuthorization: readonly [
+      { name: "from"; type: "address" },
+      { name: "to"; type: "address" },
+      { name: "value"; type: "uint256" },
+      { name: "validAfter"; type: "uint256" },
+      { name: "validBefore"; type: "uint256" },
+      { name: "nonce"; type: "bytes32" },
+    ];
+  };
+  primaryType: "TransferWithAuthorization";
+  message: {
+    from: string;
+    to: string;
+    value: string;
+    validAfter: string;
+    validBefore: string;
+    nonce: string;
+  };
+}
+
 /** POST /v1/internal/account/deposit/prepare response. */
 export type RoutingSignDataResponse = {
   /** Typed data for the on-chain routing authorization (relayer permission). */
-  routingSignData: EIP712TypedData;
+  routingSignData: RoutingSignData;
   /** Typed data for the delivery commitment (destination chain/token/amount). */
-  deliverySignData: EIP712TypedData;
+  deliverySignData: DeliverySignData;
 };
 
 /**

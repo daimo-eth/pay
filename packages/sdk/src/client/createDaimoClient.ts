@@ -2,7 +2,9 @@ import type {
   AccountRegion,
   CreateAccountResponse,
   CreateDepositResponse,
+  DeliverySignData,
   DepositConstraints,
+  RoutingSignData,
   EnrollmentResponse,
   GetAccountResponse,
   GetDepositResponse,
@@ -74,8 +76,9 @@ export type DaimoClient = {
         region: AccountRegion;
         depositAmount: string;
         deliverySig: string;
+        deliverySigData: DeliverySignData;
         routingSig: string;
-        routingSigData: Record<string, unknown>;
+        routingSigData: RoutingSignData;
       },
       auth: BearerAuth,
     ): Promise<CreateDepositResponse>;

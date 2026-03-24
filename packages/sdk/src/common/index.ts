@@ -1,3 +1,4 @@
+export * from "./account.js";
 export * from "./api.js";
 export * from "./chain.js";
 export * from "./errors.js";

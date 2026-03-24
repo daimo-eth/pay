@@ -1,7 +1,10 @@
+import type { AccountRegion } from "../../common/account.js";
 import type { NavNode, SessionWithNav } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 
 export type { SessionWithNav };
+
+type AccountNavBase = { nodeId: string; region: AccountRegion; autoNav?: boolean };
 
 /**
  * A single entry in the navigation stack. Back = pop.
@@ -59,7 +62,16 @@ export type NavEntry =
       error?: string;
       rejected?: boolean;
       autoNav?: boolean;
-    };
+    }
+  | ({ type: "account-email" } & AccountNavBase)
+  | ({ type: "account-otp" } & AccountNavBase)
+  | ({ type: "account-creating-wallet" } & AccountNavBase)
+  | ({ type: "account-enrollment" } & AccountNavBase)
+  | ({ type: "account-payment" } & AccountNavBase)
+  | ({ type: "account-bank-picker" } & AccountNavBase)
+  | ({ type: "account-deeplink" } & AccountNavBase)
+  | ({ type: "account-status" } & AccountNavBase)
+  | ({ type: "account-error"; message: string } & AccountNavBase);
 
 export type DaimoModalEventHandlers = {
   onPaymentStarted?: () => void;

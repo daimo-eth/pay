@@ -40,7 +40,7 @@ export function SelectAmountPage({
   error,
   baseUrl,
 }: SelectAmountPageProps) {
-  const { amountUsd, isValid, handleChange } = useAmountInput(
+  const { amount: amountUsd, isValid, handleChange } = useAmountInput(
     minimumUsd,
     maximumUsd,
   );
@@ -94,8 +94,8 @@ export function SelectAmountPage({
         {/* Amount input */}
         <div className="daimo-mb-6">
           <AmountInput
-            minimumUsd={minimumUsd}
-            maximumUsd={maximumUsd}
+            minimum={minimumUsd}
+            maximum={maximumUsd}
             onSubmit={onContinue}
             onChange={handleChange}
           />

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { AccountRegion, DepositPaymentInfo } from "../../common/account.js";
 import type { DaimoClient } from "../../client/createDaimoClient.js";
+import type { AccountRegion, DepositPaymentInfo } from "../../common/account.js";
 import type { AccountFlowState } from "./useAccountFlow.js";
 
 export type CreateDepositResult = {
@@ -44,8 +44,8 @@ export function useCreateDeposit(opts: {
           );
 
         // 2. Sign both (sequential — Privy can't handle concurrent signing)
-        const routingSig = await accountFlow.signTypedData(routingSignData);
-        const deliverySig = await accountFlow.signTypedData(deliverySignData);
+        const routingSig = await accountFlow.signTypedData({ ...routingSignData });
+        const deliverySig = await accountFlow.signTypedData({ ...deliverySignData });
 
         // 3. Create deposit with provider
         const { deposit, payment } = await client.account.createDeposit(
@@ -54,6 +54,7 @@ export function useCreateDeposit(opts: {
             region,
             depositAmount,
             deliverySig,
+            deliverySigData: deliverySignData,
             routingSig,
             routingSigData: routingSignData,
           },

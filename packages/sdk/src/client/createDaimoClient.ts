@@ -74,6 +74,7 @@ export type DaimoClient = {
         region: AccountRegion;
         depositAmount: string;
         deliverySig: string;
+        deliverySigData: Record<string, unknown>;
         routingSig: string;
         routingSigData: Record<string, unknown>;
       },

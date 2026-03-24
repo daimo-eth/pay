@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 
-/** Account deposit region. Server resolves to a provider. */
-export type AccountRegion = "canada" | "us";
+/** ISO 3166-1 alpha-2 country codes for supported account deposit regions. */
+export type AccountRegion = "CA" | "US";
 
 /** What the user needs to do next in the account onboarding flow. */
 export type NextAction = "create_account" | "enrollment" | "ready_for_payment";

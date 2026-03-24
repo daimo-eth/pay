@@ -13,8 +13,8 @@ const REGION_DEFAULTS: Record<AccountRegion, {
   minimumAmount: number;
   maximumAmount: number;
 }> = {
-  canada: { currencyCode: "CAD", currencySymbol: "CA$", minimumAmount: 10, maximumAmount: 3000 },
-  us: { currencyCode: "USD", currencySymbol: "$", minimumAmount: 1, maximumAmount: 10000 },
+  CA: { currencyCode: "CAD", currencySymbol: "CA$", minimumAmount: 10, maximumAmount: 3000 },
+  US: { currencyCode: "USD", currencySymbol: "$", minimumAmount: 1, maximumAmount: 10000 },
 };
 
 type AccountPaymentPageProps = {

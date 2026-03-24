@@ -17,8 +17,24 @@ import "./interfaces/IDaimoPayPricer.sol";
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice Central escrow contract that manages the lifecycle of Deposit
-///         Addresses
+/// @notice Enables fast cross-chain transfers with reusable deposit addresses.
+/// WARNING: Never approve tokens directly to this contract. Never transfer
+/// tokens to this contract as a standalone transaction. Such tokens can be
+/// stolen by anyone. Instead:
+/// - Users should only interact by sending funds to a deposit address.
+/// - Relayers should transfer funds and call this contract atomically via their
+///   own contracts.
+///
+/// @dev Allows optimistic fast transfers. Alice sends funds to a deposit
+/// address on chain A. A relayer initiates a transfer by calling
+/// `start` on chain A. After the bridging delay (e.g. 10+ min for CCTP),
+/// funds arrive at the fulfillment address deployed on chain B. A relayer can
+/// call `claim` to finish her transfer.
+///
+/// Alternatively, immediately after the `start` call, a relayer can call
+/// `fastFinish` to finish Alice's transfer immediately. Later, when the
+/// funds arrive from the bridge, the relayer will call `claim` to get
+/// repaid for their fast-finish.
 contract DepositAddressManager is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -502,6 +518,10 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             fulfillment,
             bridgeTokenOut.token
         );
+        require(
+            bridgedAmount >= bridgeTokenOut.amount,
+            "DAM: bridged amount too low"
+        );
 
         uint256 outputAmount = 0;
         if (recipient == address(0)) {
@@ -785,11 +805,20 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             sourceChainId: sourceChainId
         });
 
+        (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
+
+        // Block refund if fast-finished, claimed, or hopped
+        require(
+            fulfillmentToRecipient[fulfillmentAddress] == address(0),
+            "DAM: already finished"
+        );
+        // Mark as done to prevent subsequent claim/hopStart
+        fulfillmentToRecipient[fulfillmentAddress] = ADDR_MAX;
+
         // Pull and transfer each token to the refund address
-        address fulfillmentAddress;
         uint256[] memory amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; ++i) {
-            (fulfillmentAddress, amounts[i]) = _deployAndPullFromFulfillment(
+            (, amounts[i]) = _deployAndPullFromFulfillment(
                 fulfillment,
                 tokens[i]
             );

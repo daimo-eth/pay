@@ -3086,7 +3086,63 @@ contract DepositAddressManagerTest is Test {
 
         Call[] memory calls = new Call[](0);
 
-        vm.expectRevert(bytes("DPCE: output below min"));
+        vm.expectRevert(bytes("DAM: bridged amount too low"));
+        vm.prank(RELAYER);
+        manager.claim({
+            params: params,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+    }
+
+    function test_claim_RevertsInsufficientBridgeAfterFastFinish() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        // Relayer fast finishes
+        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
+        vm.startPrank(RELAYER);
+        usdc.transfer(address(manager), BRIDGE_AMOUNT);
+        manager.fastFinish({
+            params: params,
+            calls: calls,
+            token: usdc,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        vm.stopPrank();
+
+        // Claim immediately without funding the fulfillment (grief attack)
+        vm.expectRevert(bytes("DAM: bridged amount too low"));
         vm.prank(RELAYER);
         manager.claim({
             params: params,
@@ -3794,6 +3850,12 @@ contract DepositAddressManagerTest is Test {
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
         assertEq(usdc.balanceOf(fulfillmentAddress), 0);
+
+        // Verify fulfillment marked as done
+        assertEq(
+            manager.fulfillmentToRecipient(fulfillmentAddress),
+            manager.ADDR_MAX()
+        );
     }
 
     function test_refundFulfillment_EmitsRefundFulfillmentEvent() public {
@@ -4276,6 +4338,264 @@ contract DepositAddressManagerTest is Test {
         // Verify refund address received the funds
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
         assertEq(usdc.balanceOf(destFulfillmentAddress), 0);
+    }
+
+    function test_refundFulfillment_RevertsAfterFastFinish() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+
+        Call[] memory calls = new Call[](0);
+
+        // Relayer fast finishes
+        usdc.transfer(RELAYER, BRIDGE_AMOUNT);
+        vm.startPrank(RELAYER);
+        usdc.transfer(address(manager), BRIDGE_AMOUNT);
+        manager.fastFinish({
+            params: params,
+            calls: calls,
+            token: usdc,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        vm.stopPrank();
+
+        // Simulate bridge arrival
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+
+        // Warp past expiry
+        vm.warp(params.expiresAt + 1);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Refund should revert — relayer already fast-finished
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: already finished");
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_refundFulfillment_RevertsAfterClaim() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+
+        // Fund fulfillment and claim (no fast finish)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        Call[] memory calls = new Call[](0);
+
+        vm.prank(RELAYER);
+        manager.claim({
+            params: params,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+
+        // Warp past expiry
+        vm.warp(params.expiresAt + 1);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Refund should revert — already claimed
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: already finished");
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+    }
+
+    function test_claim_RevertsAfterRefundFulfillment() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+
+        // Fund fulfillment and refund after expiry
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+        vm.warp(params.expiresAt + 1);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        vm.prank(RELAYER);
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Fund fulfillment again (simulating late bridge arrival)
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        Call[] memory calls = new Call[](0);
+
+        // Claim should revert — already refunded
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: already claimed");
+        manager.claim({
+            params: params,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+    }
+
+    function test_refundFulfillment_RevertsDoubleRefund() public {
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+
+        // Fund fulfillment and refund after expiry
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+        vm.warp(params.expiresAt + 1);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        vm.prank(RELAYER);
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Second refund should revert
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: already finished");
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
     }
 
     // ---------------------------------------------------------------------

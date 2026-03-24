@@ -242,6 +242,11 @@ contract DaimoPay is ReentrancyGuard {
     /// If FastFinish happened for this intent, then the recipient is the
     /// relayer who fastFinished the intent. Otherwise, the recipient remains
     /// the original address.
+    ///
+    /// Known limitation: if a relayer fast-finishes an intent, then they must
+    /// claim before the intent expires, otherwise they will not be repaid.
+    /// Relayers must account for this, and should not fast-finish an intent
+    /// that is close to expiry.
     function claimIntent(
         PayIntent calldata intent,
         Call[] calldata calls

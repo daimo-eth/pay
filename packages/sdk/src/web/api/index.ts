@@ -22,6 +22,8 @@ export type {
 
 export type RetrieveSessionWithNavResponse = {
   session: SessionPublicInfo & { navTree: NavNode[]; baseUrl: string };
+  /** Privy app ID, present when the nav tree includes AccountDeposit. */
+  privyAppId?: string;
 };
 
 export type RecreateSessionWithNavResponse = {

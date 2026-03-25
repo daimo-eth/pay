@@ -43,7 +43,7 @@ function PrivyConsumer({
 }: {
   accountFlow: ReturnType<typeof useAccountFlowState>;
 }) {
-  const { authenticated, logout, getAccessToken, createWallet, user } =
+  const { ready, authenticated, logout, getAccessToken, createWallet, user } =
     usePrivy();
   const { sendCode: rawSendCode, loginWithCode: rawLoginWithCode } =
     useLoginWithEmail();
@@ -87,10 +87,11 @@ function PrivyConsumer({
       getAccessToken,
       signTypedData,
       logout,
+      ready,
       authenticated,
       walletAddress,
     }),
-    [authenticated, walletAddress, sendCode, loginWithCode, createWallet, getAccessToken, signTypedData, logout],
+    [ready, authenticated, walletAddress, sendCode, loginWithCode, createWallet, getAccessToken, signTypedData, logout],
   );
 
   useEffect(() => {

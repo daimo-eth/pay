@@ -28,6 +28,8 @@ export type RetrieveSessionWithNavResponse = {
 
 export type RecreateSessionWithNavResponse = {
   session: SessionWithNav;
+  /** Privy app ID, present when the nav tree includes AccountDeposit. */
+  privyAppId?: string;
 };
 
 export type WalletOptionsResponse = WalletPaymentOption[];

@@ -4,7 +4,9 @@ pragma solidity ^0.8.12;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import {IDepositAddressBridger} from "../../src/interfaces/IDepositAddressBridger.sol";
+import {
+    IDepositAddressBridger
+} from "../../src/interfaces/IDepositAddressBridger.sol";
 import {TokenAmount} from "../../src/TokenUtils.sol";
 import {IDaimoPayBridger} from "../../src/interfaces/IDaimoPayBridger.sol";
 
@@ -19,38 +21,38 @@ contract DummyDepositAddressBridger is IDepositAddressBridger {
     // IDepositAddressBridger
     // ---------------------------------------------------------------------
 
-    mapping(uint256 chainId => address stableOut) public chainIdToStableOut;
-
     function getBridgeTokenIn(
         uint256 /*toChainId*/,
-        TokenAmount calldata bridgeTokenOut
+        TokenAmount calldata stableOut,
+        address bridgerAdapter
     ) external pure override returns (address bridgeTokenIn, uint256 inAmount) {
-        bridgeTokenIn = address(bridgeTokenOut.token);
-        inAmount = bridgeTokenOut.amount;
+        bridgeTokenIn = address(stableOut.token);
+        inAmount = stableOut.amount;
     }
 
     function sendToChain(
         uint256 toChainId,
         address toAddress,
-        TokenAmount calldata bridgeTokenOut,
+        TokenAmount calldata stableOut,
+        address bridgerAdapter,
         address refundAddress,
         bytes calldata /* extraData */
     ) external override {
         // Burn the tokens, simulating a slow bridge
-        bridgeTokenOut.token.safeTransferFrom(
+        stableOut.token.safeTransferFrom(
             msg.sender,
             address(0xdead),
-            bridgeTokenOut.amount
+            stableOut.amount
         );
 
         emit IDaimoPayBridger.BridgeInitiated({
             fromAddress: msg.sender,
-            fromToken: address(bridgeTokenOut.token),
-            fromAmount: bridgeTokenOut.amount,
+            fromToken: address(stableOut.token),
+            fromAmount: stableOut.amount,
             toChainId: toChainId,
             toAddress: toAddress,
-            toToken: address(bridgeTokenOut.token),
-            toAmount: bridgeTokenOut.amount,
+            toToken: address(stableOut.token),
+            toAmount: stableOut.amount,
             refundAddress: refundAddress
         });
     }

@@ -4,43 +4,45 @@ set -e
 # Requirements:
 # ALCHEMY_API_KEY
 # PRIVATE_KEY for the deployer
-# ETHERSCAN_API_KEY_... for each target chain
+# ETHERSCAN_API_KEY for verification on most chains
 
 SCRIPTS=(
-    # Bridgers
-    # "script/DeployDaimoPayCCTPBridger.s.sol"
-    # "script/DeployDaimoPayCCTPV2Bridger.s.sol"
-    # "script/DeployDaimoPayAcrossBridger.s.sol"
-    # "script/DeployDaimoPayAxelarBridger.s.sol"
-    # "script/DeployDaimoPayLegacyMeshBridger.s.sol"
-    # "script/DeployDaimoPayStargateBridger.s.sol"
-    # "script/DeployDaimoPayHopBridger.s.sol"
+    # === DA bridgers ===
+    # "script/da/DeployDaimoPayCCTPV2Bridger.s.sol"
+    # "script/da/DeployDaimoPayStargateUSDCBridger.s.sol"
+    # "script/da/DeployDaimoPayStargateUSDTBridger.s.sol"
+    # "script/da/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/da/DeployDaimoPayHopBridger.s.sol"
+    # "script/da/DeployDepositAddressBridger.s.sol"
 
-    # "script/DeployDaimoPayBridger.s.sol"
-    # "script/DeployDepositAddressBridger.s.sol"
-
-    # Daimo Pay
-    # "script/DeployPayIntentFactory.s.sol"
-    # "script/DeployDaimoPay.s.sol"
-
-    # Deposit Address
+    # === DA core ===
     # "script/DeployDaimoPayPricer.s.sol"
-    # "script/DeployDepositAddressFactory.s.sol"
-    # "script/DeployDAExecutor.s.sol"
-    # "script/DeployDepositAddressManager.s.sol"
+    # "script/da/DeployDepositAddressFactory.s.sol"
+    # "script/da/DeployDAExecutor.s.sol"
+    # "script/da/DeployDepositAddressManager.s.sol"
 
-    # Relayer
-    # New relayers can be added via grantRelayerRole.
-    # Stage/dev and production must use different relayer contract deployments.
+    # === Pay-order bridgers ===
+    # "script/pay/DeployDaimoPayCCTPBridger.s.sol"
+    # "script/pay/DeployDaimoPayCCTPV2Bridger.s.sol"
+    # "script/pay/DeployDaimoPayAcrossBridger.s.sol"
+    # "script/pay/DeployDaimoPayAxelarBridger.s.sol"
+    # "script/pay/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/pay/DeployDaimoPayStargateBridger.s.sol"
+    # "script/pay/DeployDaimoPayHopBridger.s.sol"
+    # "script/pay/DeployDaimoPayBridger.s.sol"
+
+    # === Pay-order core ===
+    # "script/pay/DeployPayIntentFactory.s.sol"
+    # "script/pay/DeployDaimoPay.s.sol"
+
+    # === Shared ===
     # "script/DeployDaimoPayRelayer.s.sol"
-
-    # Utils
     # "script/DeployCreate3Factory.s.sol"
     # "script/DeployPayBalanceFactory.s.sol"
 
-    # Final call adapters
-    # "script/DeployHypercoreDepositAdapter.s.sol"
-    # "script/DeployDummyDepositAdapter.s.sol"
+    # === DA final call adapters ===
+    # "script/da/DeployHypercoreDepositAdapter.s.sol"
+    # "script/da/DeployDummyDepositAdapter.s.sol"
 )
 
 CHAINS=(
@@ -61,29 +63,41 @@ CHAINS=(
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://scroll-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://tempo-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://worldchain-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # Expensive, deploy last
     # "https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+
 )
 
 for SCRIPT in "${SCRIPTS[@]}"; do
     for RPC_URL in "${CHAINS[@]}"; do
         echo ""
-        echo "======= RUNNING $SCRIPT ========" 
-        echo "ETHERSCAN_API_KEY: $ETHERSCAN_API_KEY"
-        echo "RPC_URL          : $RPC_URL"
+        echo "======= RUNNING $SCRIPT ========"
+        echo "RPC_URL: $RPC_URL"
 
-        # Monad uses Sourcify for verification instead of Etherscan
+        # Chain-specific verification flags
         if [[ "$RPC_URL" == *"monad"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/ --broadcast"
+        elif [[ "$RPC_URL" == *"tempo"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
+        elif [[ "$RPC_URL" == *"hyperliquid"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=999 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
 
-        # Override gas price for Gnosis chain to reliably get txs through
+        # Chain-specific gas overrides
         if [[ "$RPC_URL" == *"gnosis"* ]]; then
             FORGE_CMD="$FORGE_CMD --with-gas-price 3000000000 --priority-gas-price 1000000000"
+        fi
+
+        # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
+        # txs fail with INITIALIZATION_FAILED). Also needs higher gas estimate
+        # for nested CREATE operations.
+        if [[ "$RPC_URL" == *"tempo"* ]]; then
+            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
         fi
 
         echo $FORGE_CMD

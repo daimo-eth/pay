@@ -49,7 +49,6 @@ export function AccountStatusPage({
       <ErrorPage
         message={t.errorDepositFailed}
         hideRetry
-        hideSupport
       />
     );
   }

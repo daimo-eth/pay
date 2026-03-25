@@ -36,6 +36,7 @@ import { useAccountFlow } from "../hooks/useAccountFlow.js";
 import { usePaymentCallbacks } from "../hooks/usePaymentCallbacks.js";
 import { useSessionNav } from "../hooks/useSessionNav.js";
 import { useSessionPolling } from "../hooks/useSessionPolling.js";
+import { AccountFlowProvider } from "./account/AccountFlowProvider.js";
 
 import {
   useInjectedWallets,
@@ -136,6 +137,7 @@ export function DaimoModal(props: DaimoModalProps) {
   } = props;
   const client = useDaimoClient();
   const [session, setSession] = useState<SessionWithNav | null>(null);
+  const [privyAppId, setPrivyAppId] = useState<string | undefined>();
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [pageKey, setPageKey] = useState<string>();
   const [showFooterSpacer, setShowFooterSpacer] = useState(true);
@@ -148,9 +150,18 @@ export function DaimoModal(props: DaimoModalProps) {
   useEffect(() => {
     client.internal.sessions
       .retrieveWithNav(sessionId, clientSecret)
-      .then(({ session: s }) => setSession({ ...s, clientSecret }))
+      .then((resp) => {
+        setSession({ ...resp.session, clientSecret });
+        if (resp.privyAppId) setPrivyAppId(resp.privyAppId);
+      })
       .catch((err) => console.error("failed to fetch session:", err));
   }, [sessionId, clientSecret]);
+
+  // If the API returned a privyAppId and no AccountFlowProvider exists
+  // upstream (e.g. customer didn't pass privyAppId to DaimoSDKProvider),
+  // lazily wrap modal content so AccountDeposit flow works automatically.
+  const existingAccountFlow = useAccountFlow();
+  const needsAccountProvider = !!privyAppId && !existingAccountFlow;
 
   if (!isOpen) return null;
 
@@ -168,10 +179,18 @@ export function DaimoModal(props: DaimoModalProps) {
     <SkeletonContent />
   );
 
+  const wrapped = needsAccountProvider ? (
+    <AccountFlowProvider privyAppId={privyAppId!}>
+      {content}
+    </AccountFlowProvider>
+  ) : (
+    content
+  );
+
   if (embedded) {
     return (
       <EmbeddedContainer showFooterSpacer={showFooterSpacer}>
-        {content}
+        {wrapped}
       </EmbeddedContainer>
     );
   }
@@ -181,7 +200,7 @@ export function DaimoModal(props: DaimoModalProps) {
       pageKey={pageKey}
       showFooterSpacer={showFooterSpacer}
     >
-      {content}
+      {wrapped}
     </ModalContainer>
   );
 }

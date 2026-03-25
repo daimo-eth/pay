@@ -368,7 +368,7 @@ export function CenteredContent({ children }: { children: ReactNode }) {
 /** Centered error message */
 export function ErrorMessage({ message }: { message: string }) {
   return (
-    <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs daimo-truncate">
+    <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-leading-relaxed daimo-px-4">
       {message}
     </p>
   );

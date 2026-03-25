@@ -229,15 +229,24 @@ export function useSessionNav(
             region,
             autoNav,
             message:
-              "Account deposit requires DaimoSDKProvider to be configured with privyAppId.",
+              "account deposit is not available for this session.",
           },
         ]);
         return;
       }
 
+      // Wait for Privy to finish restoring session from storage before
+      // deciding whether to show login. Without this, auto-nav fires
+      // before Privy is ready and always shows the email screen.
+      await accountFlow.waitForReady();
+
+      // Re-check auth after ready — getAccessToken reads from the ref
+      // which always has the latest Privy state.
+      const token = await accountFlow.getAccessToken();
+
       // If user has an active Privy session, check their account status
       // to skip onboarding steps they've already completed.
-      if (accountFlow.isAuthenticated) {
+      if (token) {
         const sessionCtx = { sessionId: session.sessionId, clientSecret: session.clientSecret };
         const result = await accountFlow.getAccount(client, sessionCtx, region);
         if (result) {

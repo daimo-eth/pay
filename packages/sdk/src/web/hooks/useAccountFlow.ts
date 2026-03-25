@@ -11,6 +11,7 @@ export type PrivyHooks = {
   getAccessToken: () => Promise<string | null>;
   signTypedData: (typedData: Record<string, unknown>) => Promise<string>;
   logout: () => Promise<void>;
+  ready: boolean;
   authenticated: boolean;
   walletAddress: string | null;
 };
@@ -29,6 +30,8 @@ export type AccountFlowState = {
   setEmail: (email: string) => void;
 
   isLoggingIn: boolean;
+  /** Whether Privy has finished restoring the session from storage. */
+  isReady: boolean;
   isAuthenticated: boolean;
   authError: string | null;
   setAuthError: (error: string | null) => void;
@@ -58,6 +61,9 @@ export type AccountFlowState = {
   ) => Promise<EnrollmentResponse | null>;
   logout: () => Promise<void>;
 
+  /** Wait for Privy to finish restoring session. Resolves immediately if ready. */
+  waitForReady: () => Promise<void>;
+
   /** Register Privy hooks (called by AccountFlowProvider). */
   registerPrivy: (hooks: PrivyHooks) => void;
 };
@@ -76,6 +82,7 @@ export function useAccountFlow(): AccountFlowState | null {
 export function useAccountFlowState(): AccountFlowState {
   const [email, setEmail] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
@@ -88,8 +95,20 @@ export function useAccountFlowState(): AccountFlowState {
   // keeping our state in sync without polling.
   const registerPrivy = useCallback((hooks: PrivyHooks) => {
     privyRef.current = hooks;
+    setIsReady(hooks.ready);
     setIsAuthenticated(hooks.authenticated);
     if (hooks.walletAddress) setWalletAddress(hooks.walletAddress);
+  }, []);
+
+  const waitForReady = useCallback((): Promise<void> => {
+    if (privyRef.current?.ready) return Promise.resolve();
+    return new Promise((resolve) => {
+      const check = () => {
+        if (privyRef.current?.ready) resolve();
+        else setTimeout(check, 50);
+      };
+      check();
+    });
   }, []);
 
   const sendOtp = useCallback(async (overrideEmail?: string): Promise<boolean> => {
@@ -224,6 +243,7 @@ export function useAccountFlowState(): AccountFlowState {
     email,
     setEmail,
     isLoggingIn,
+    isReady,
     isAuthenticated,
     authError,
     setAuthError,
@@ -240,6 +260,7 @@ export function useAccountFlowState(): AccountFlowState {
     getAccount,
     startEnrollment,
     logout,
+    waitForReady,
     registerPrivy,
   };
 }

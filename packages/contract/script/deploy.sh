@@ -83,7 +83,7 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         elif [[ "$RPC_URL" == *"tempo"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
         elif [[ "$RPC_URL" == *"hyperliquid"* ]]; then
-            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url 'https://api.etherscan.io/v2/api?chainid=999' --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=999 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
@@ -93,10 +93,11 @@ for SCRIPT in "${SCRIPTS[@]}"; do
             FORGE_CMD="$FORGE_CMD --with-gas-price 3000000000 --priority-gas-price 1000000000"
         fi
 
-        # Tempo has higher gas costs for CREATE operations. The default gas
-        # estimate is too low for nested CREATE3 deploys.
+        # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
+        # txs fail with INITIALIZATION_FAILED). Also needs higher gas estimate
+        # for nested CREATE operations.
         if [[ "$RPC_URL" == *"tempo"* ]]; then
-            FORGE_CMD="$FORGE_CMD --gas-estimate-multiplier 500"
+            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
         fi
 
         echo $FORGE_CMD

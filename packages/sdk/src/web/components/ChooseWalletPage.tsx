@@ -1,6 +1,7 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
+import { OptionIcons } from "./ChooseOptionPage.js";
 import {
   ListRow,
   PageHeader,
@@ -52,7 +53,7 @@ export function ChooseWalletPage({
           ))}
 
           {deeplinkOptions.map((option) => (
-            <DeeplinkWalletRow
+            <WalletOptionRow
               key={option.id}
               option={option}
               onClick={() => onNavigate(option.id)}
@@ -87,7 +88,7 @@ function InjectedWalletRow({
   );
 }
 
-function DeeplinkWalletRow({
+function WalletOptionRow({
   option,
   onClick,
   baseUrl,
@@ -98,6 +99,17 @@ function DeeplinkWalletRow({
 }) {
   const label = option.label ?? option.title;
   const icon = "icon" in option && option.icon ? option.icon : null;
+
+  // For nodes with multiple icons (e.g. OtherWallets), use OptionIcons
+  if (option.icons && option.icons.length > 0) {
+    return (
+      <ListRow
+        label={label}
+        right={<OptionIcons option={option} baseUrl={baseUrl} />}
+        onClick={onClick}
+      />
+    );
+  }
 
   return (
     <ListRow

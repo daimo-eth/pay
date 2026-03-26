@@ -3,7 +3,7 @@
 # Daimo SDK
 
 ```
-npm i @daimo/sdk
+pnpm add @daimo/sdk
 ```
 
 See [docs.daimo.com](https://docs.daimo.com) for more.

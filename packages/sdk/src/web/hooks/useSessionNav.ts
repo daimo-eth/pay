@@ -282,7 +282,7 @@ export function useSessionNav(
     (nodeId: string, options?: { autoNav?: boolean }) => {
       const nodeCtx = getNodeCtx();
       const targetNode = findNode(nodeId, session.navTree);
-      if (!targetNode) return;
+      if (!targetNode || targetNode.disabledReason) return;
 
       const autoNav = options?.autoNav ?? false;
 
@@ -731,8 +731,9 @@ export function useSessionNav(
     let targetId: string | null = null;
     while (node?.type === "ChooseOption") {
       const chooseNode = node as NavNodeChooseOption;
-      if (chooseNode.options?.length !== 1) break;
-      targetId = chooseNode.options[0].id;
+      const enabled = chooseNode.options?.filter((o) => !o.disabledReason);
+      if (enabled?.length !== 1) break;
+      targetId = enabled[0].id;
       node = findNode(targetId, session.navTree);
     }
 

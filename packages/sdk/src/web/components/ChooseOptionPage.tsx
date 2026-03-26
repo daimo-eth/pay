@@ -32,7 +32,7 @@ export function ChooseOptionPage({
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
-  const options = node.options
+  const allOptions = node.options
     .filter(
       (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
     )
@@ -51,6 +51,10 @@ export function ChooseOptionPage({
       }
       return updated;
     });
+
+  const enabledOptions = allOptions.filter((o) => !o.disabledReason);
+  const disabledOptions = allOptions.filter((o) => o.disabledReason);
+
   const useGridLayout = node.layout === "grid";
   const isRootPage = onBack === null;
 
@@ -61,7 +65,7 @@ export function ChooseOptionPage({
       <ScrollContent onScroll={onScroll} grow={false}>
         {useGridLayout ? (
           <div className="daimo-grid daimo-grid-cols-4 daimo-gap-2">
-            {options.map((option) => (
+            {enabledOptions.map((option) => (
               <GridOptionCell
                 key={option.id}
                 option={option}
@@ -69,15 +73,33 @@ export function ChooseOptionPage({
                 baseUrl={baseUrl}
               />
             ))}
+            {disabledOptions.map((option) => (
+              <GridOptionCell
+                key={option.id}
+                option={option}
+                onClick={() => {}}
+                baseUrl={baseUrl}
+                disabled
+              />
+            ))}
           </div>
         ) : (
           <div className="daimo-flex daimo-flex-col daimo-gap-3">
-            {options.map((option) => (
+            {enabledOptions.map((option) => (
               <OptionRow
                 key={option.id}
                 option={option}
                 onClick={() => onNavigate(option.id)}
                 baseUrl={baseUrl}
+              />
+            ))}
+            {disabledOptions.map((option) => (
+              <OptionRow
+                key={option.id}
+                option={option}
+                onClick={() => {}}
+                baseUrl={baseUrl}
+                disabled
               />
             ))}
           </div>
@@ -105,10 +127,12 @@ function GridOptionCell({
   option,
   onClick,
   baseUrl,
+  disabled,
 }: {
   option: NavNode;
   onClick: () => void;
   baseUrl: string;
+  disabled?: boolean;
 }) {
   const icons = getOptionIcons(option);
   const label = option.label ?? option.title;
@@ -116,7 +140,12 @@ function GridOptionCell({
   return (
     <button
       onClick={onClick}
-      className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-2 daimo-p-1 daimo-rounded-[var(--daimo-radius-md)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-secondary)] daimo-transition-colors daimo-min-w-0"
+      disabled={disabled}
+      className={`daimo-flex daimo-flex-col daimo-items-center daimo-gap-2 daimo-p-1 daimo-rounded-[var(--daimo-radius-md)] hover:[@media(hover:hover)]:daimo-bg-[var(--daimo-surface-secondary)] daimo-transition-colors daimo-min-w-0 ${
+        disabled
+          ? "daimo-opacity-50 daimo-cursor-not-allowed hover:[@media(hover:hover)]:!daimo-bg-transparent"
+          : ""
+      }`}
     >
       {icons.length > 0 && (
         <img
@@ -136,24 +165,28 @@ function OptionRow({
   option,
   onClick,
   baseUrl,
+  disabled,
 }: {
   option: NavNode;
   onClick: () => void;
   baseUrl: string;
+  disabled?: boolean;
 }) {
   const label = option.label ?? option.title;
 
   return (
     <ListRow
       label={label}
+      subtitle={disabled ? option.disabledReason : undefined}
       right={<OptionIcons option={option} baseUrl={baseUrl} />}
       onClick={onClick}
+      disabled={disabled}
     />
   );
 }
 
 /** Get icons array for an option: explicit icons[], single icon, or empty */
-function getOptionIcons(option: NavNode): string[] {
+export function getOptionIcons(option: NavNode): string[] {
   if (option.icons && option.icons.length > 0) {
     return option.icons;
   }
@@ -164,7 +197,7 @@ function getOptionIcons(option: NavNode): string[] {
 }
 
 /** Render icons for a list row option */
-function OptionIcons({
+export function OptionIcons({
   option,
   baseUrl,
 }: {

@@ -17,6 +17,8 @@ type NavNodeCommon = {
   title: string;
   label?: string;
   icons?: string[];
+  /** When set, option is shown but not selectable, with this reason displayed. */
+  disabledReason?: string;
 };
 
 export type NavNodeChooseOption = NavNodeCommon & {

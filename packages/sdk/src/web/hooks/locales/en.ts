@@ -102,6 +102,11 @@ export const en = {
   accountOtherInstitutions: "Other institutions",
   accountBankTransfer: "Bank Transfer",
 
+  // account status
+  depositDetected: "Deposit Detected",
+  depositProcessing: "Deposit Processing",
+  depositFinalizing: "Deposit Finalizing",
+
   // error states
   errorGeneric: "Something went wrong. Please try again.",
   errorDepositFailed: "We couldn't process your deposit. Please try again.",

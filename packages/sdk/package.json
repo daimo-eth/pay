@@ -30,8 +30,8 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "tsc --watch --preserveWatchOutput & pnpm exec tailwindcss -i src/web/theme.css -o dist/web/theme.css --watch & wait",
-    "build": "tsc && pnpm exec tailwindcss -i src/web/theme.css -o dist/web/theme.css --minify && cp dist/web/theme.css dist/web/styles.css && pnpm run verify:styles",
+    "dev": "node scripts/genVersion.mjs && tsc --watch --preserveWatchOutput & pnpm exec tailwindcss -i src/web/theme.css -o dist/web/theme.css --watch & wait",
+    "build": "node scripts/genVersion.mjs && tsc && pnpm exec tailwindcss -i src/web/theme.css -o dist/web/theme.css --minify && cp dist/web/theme.css dist/web/styles.css && pnpm run verify:styles",
     "test": "pnpm run lint && pnpm run build",
     "lint": "eslint --max-warnings=0",
     "verify:styles": "node ./scripts/verifyStyles.mjs"

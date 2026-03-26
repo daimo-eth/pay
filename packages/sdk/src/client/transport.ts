@@ -1,4 +1,5 @@
 import { DaimoRequestError, getApiErrorEnvelope } from "../common/errors.js";
+import { SDK_VERSION } from "../version.js";
 
 export type TransportConfig = {
   baseUrl: string;
@@ -49,7 +50,7 @@ export function createTransport(config: TransportConfig) {
     async request<T>(options: TransportRequest): Promise<T> {
       const url = buildUrl(baseUrl, options.path, options.query);
 
-      const headers = new Headers();
+      const headers = new Headers({ "x-sdk-version": SDK_VERSION });
       if (options.headers) {
         for (const [key, value] of Object.entries(options.headers)) {
           headers.set(key, value);

@@ -9,10 +9,14 @@ export type ExistingAccountNextAction = Exclude<NextAction, "create_account">;
 
 /** Enrollment state machine response from startEnrollment. */
 export type EnrollmentResponse =
-  | { action: "active" }
   | { action: "kyc_required"; kycToken: string }
-  | { action: "pending" }
-  | { action: "error"; message: string };
+  | { action: "kyc_retry"; kycToken: string; reason: string }
+  | { action: "kyc_pending_review" }
+  | { action: "kyc_rejected_final"; reason: string }
+  | { action: "provider_pending" }
+  | { action: "active" }
+  | { action: "suspended"; reason: string }
+  | { action: "error"; message: string; retryable: boolean };
 
 /** Account public info returned by the API. */
 export interface AccountInfo {

@@ -12,6 +12,7 @@ SCRIPTS=(
     # "script/da/DeployDaimoPayStargateUSDCBridger.s.sol"
     # "script/da/DeployDaimoPayStargateUSDTBridger.s.sol"
     # "script/da/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/da/DeployDaimoPayUSDT0Bridger.s.sol"
     # "script/da/DeployDaimoPayHopBridger.s.sol"
     # "script/da/DeployDepositAddressBridger.s.sol"
 

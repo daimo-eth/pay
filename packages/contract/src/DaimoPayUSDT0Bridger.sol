@@ -17,7 +17,7 @@ contract DaimoPayUSDT0Bridger is DaimoPayLayerZeroBridger {
     function _computeAccounting(
         uint256 /*toChainId*/,
         address /*toAddress*/,
-        LZBridgeRoute memory /*r*/,
+        LZBridgeRoute memory /*route*/,
         uint256 desiredOutLD,
         bytes memory /*extraData*/
     ) internal pure override returns (Accounting memory a) {

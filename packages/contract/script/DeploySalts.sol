@@ -54,6 +54,9 @@ bytes32 constant DEPLOY_SALT_HOP_BRIDGER = keccak256(
 bytes32 constant DEPLOY_SALT_LEGACY_MESH_BRIDGER = keccak256(
     "DaimoPayLegacyMeshBridger-flexible2"
 );
+bytes32 constant DEPLOY_SALT_USDT0_BRIDGER = keccak256(
+    "DaimoPayUSDT0Bridger-flexible2"
+);
 bytes32 constant DEPLOY_SALT_STARGATE_BRIDGER = keccak256(
     "DaimoPayStargateBridger-deploy8"
 );

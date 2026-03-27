@@ -418,7 +418,22 @@ export const hyperEvmUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-const hyperEvmTokens: Token[] = [hyperEvmHYPE, hyperEvmWHYPE, hyperEvmUSDC];
+export const hyperEvmUSDT0: Token = token({
+  chainId: hyperEvm.chainId,
+  token: getAddress("0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT,
+});
+
+const hyperEvmTokens: Token[] = [
+  hyperEvmHYPE,
+  hyperEvmWHYPE,
+  hyperEvmUSDC,
+  hyperEvmUSDT0,
+];
 
 //
 // Linea
@@ -816,7 +831,7 @@ export const tempoUSDCe: Token = token({
 
 export const tempoUSDT0: Token = token({
   chainId: tempo.chainId,
-  token: getAddress("0x20c00000000000000000000014F22cA97301Eb73"),
+  token: getAddress("0x20C00000000000000000000014f22CA97301EB73"),
   decimals: 6,
   fiatISO: "USD",
   name: "USDT0",
@@ -940,6 +955,7 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE]: hyperEvmHYPE,
       [TokenType.WRAPPED_NATIVE]: hyperEvmWHYPE,
       [TokenType.NATIVE_USDC]: hyperEvmUSDC,
+      [TokenType.USDT]: hyperEvmUSDT0,
     },
   ],
   [

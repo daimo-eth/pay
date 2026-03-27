@@ -12,7 +12,7 @@ interface IUsdtOFT is IOFT {
 
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
-/// @notice USD₮0 Legacy Mesh Bridger
+/// @notice USDT0 Legacy Mesh Bridger
 /// @dev No extraData needed; relies on enforced options on the destination.
 contract DaimoPayLegacyMeshBridger is DaimoPayLayerZeroBridger {
     constructor(

@@ -88,15 +88,13 @@ function getInitialWallets(): InjectedWallet[] {
   return wallets;
 }
 
-export function useInjectedWallets(enabled = true): {
+export function useInjectedWallets(): {
   wallets: InjectedWallet[];
   isLoading: boolean;
 } {
-  const [wallets, setWallets] = useState<InjectedWallet[]>(() =>
-    enabled ? getInitialWallets() : [],
-  );
+  const [wallets, setWallets] = useState<InjectedWallet[]>(getInitialWallets);
   const [isLoading, setIsLoading] = useState(
-    () => enabled && typeof window !== "undefined" && getInitialWallets().length === 0,
+    () => typeof window !== "undefined" && getInitialWallets().length === 0,
   );
   const isLoadingRef = useRef(isLoading);
 
@@ -118,7 +116,7 @@ export function useInjectedWallets(enabled = true): {
 
   // EIP-6963 discovery. Any announcement supersedes the window.ethereum fallback.
   useEffect(() => {
-    if (!enabled || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const handleAnnounce = (event: Event) => {
       const { detail } = event as EIP6963AnnounceEvent;
@@ -160,7 +158,7 @@ export function useInjectedWallets(enabled = true): {
 
   // Wallet Standard discovery for Solana wallets.
   useEffect(() => {
-    if (!enabled || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const { get, on } = getWallets();
 

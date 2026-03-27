@@ -161,6 +161,19 @@
   }
 }
 
+@keyframes daimo-pulse-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* QR placeholder: real QR SVG faded + diagonal shimmer + logo on top */
 .daimo-qr-placeholder-qr {
   opacity: 0.1;
@@ -267,6 +280,11 @@
   .daimo-transition-qr-icon,
   .daimo-transition-qr-spacer {
     transition: none;
+  }
+
+  [style*="daimo-pulse-dot"] {
+    animation: none !important;
+    opacity: 0.6 !important;
   }
 }
 

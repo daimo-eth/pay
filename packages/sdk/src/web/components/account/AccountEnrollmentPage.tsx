@@ -3,14 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AccountRegion, EnrollmentResponse } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
-import { ConfirmationSpinner } from "../ConfirmationSpinner.js";
-import { ErrorPage } from "../ErrorPage.js";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
-import {
-  CenteredContent,
-  PageHeader,
-} from "../shared.js";
+import { ErrorPage } from "../ErrorPage.js";
+import { ErrorIcon } from "../icons.js";
+import { ProgressPulse } from "../ProgressPulse.js";
+import { CenteredContent, ContactSupportButton, PageHeader } from "../shared.js";
 
 type AccountEnrollmentPageProps = {
   region: AccountRegion;
@@ -18,12 +16,37 @@ type AccountEnrollmentPageProps = {
   onReady: () => void;
 };
 
+/** Actions that should trigger polling — the state is still advancing. */
+const POLLING_ACTIONS = new Set([
+  "kyc_required",
+  "kyc_retry",
+  "kyc_pending_review",
+  "provider_pending",
+]);
+
+/** After KYC submission, only these actions represent forward progress.
+ *  Anything else (e.g. stale kyc_required) is suppressed until the
+ *  webhook arrives and the server catches up. */
+const FORWARD_FROM_KYC = new Set([
+  "kyc_pending_review",
+  "provider_pending",
+  "active",
+]);
+
 /**
- * Handles all enrollment sub-states:
- * - kyc_required → launches SumSub widget
- * - pending → polls until status changes
- * - active → advances to payment
- * - error → shows error
+ * Enrollment page — renders the right view for the current enrollment state.
+ * The modal is dumb: it polls `startEnrollment`, reads the response, and
+ * renders. All state transitions are driven by the server.
+ *
+ * States:
+ *   kyc_required       → SumSub widget (first-time docs)
+ *   kyc_retry          → retry banner + SumSub widget
+ *   kyc_pending_review → pulsing dots, "reviewing your documents"
+ *   kyc_rejected_final → terminal error
+ *   provider_pending   → pulsing dots, "setting up your account"
+ *   active             → auto-advance to payment
+ *   suspended          → terminal error
+ *   error              → error with optional retry
  */
 export function AccountEnrollmentPage({
   region,
@@ -36,7 +59,7 @@ export function AccountEnrollmentPage({
   const [isLoading, setIsLoading] = useState(true);
   const started = useRef(false);
   const responseRef = useRef<EnrollmentResponse | null>(null);
-  // After KYC submit, suppress transient errors while waiting for webhook
+  // After KYC submit, suppress stale responses until webhook arrives
   const awaitingWebhook = useRef(false);
 
   const fetchEnrollment = useCallback(async () => {
@@ -49,20 +72,19 @@ export function AccountEnrollmentPage({
       result = await account.startEnrollment(client, region);
     } catch (err) {
       console.error("[enrollment] fetch failed:", err);
-      // While awaiting webhook, swallow errors — backend may be mid-processing
       if (awaitingWebhook.current) return;
-      result = { action: "error", message: t.errorGeneric };
+      result = { action: "error", message: t.errorGeneric, retryable: true };
     }
 
     if (isInitial) setIsLoading(false);
     if (!result) return;
 
-    // While awaiting webhook, only accept forward progress (pending/active)
+    // While awaiting webhook, only accept forward progress
     if (awaitingWebhook.current) {
-      if (result.action === "active" || result.action === "pending") {
+      if (FORWARD_FROM_KYC.has(result.action)) {
         awaitingWebhook.current = false;
       } else {
-        return; // ignore transient kyc_required/error during webhook processing
+        return;
       }
     }
 
@@ -70,84 +92,178 @@ export function AccountEnrollmentPage({
       responseRef.current = result;
       setResponse(result);
       onReady();
-    } else if (!responseRef.current || responseRef.current.action !== result.action) {
+    } else if (
+      !responseRef.current ||
+      responseRef.current.action !== result.action
+    ) {
       responseRef.current = result;
       setResponse(result);
     }
   }, [account, client, region, onReady]);
 
-  /** Called when SumSub reports applicant submitted. */
+  /** Called when SumSub reports docs submitted. Optimistically show review. */
   const handleKycSubmitted = useCallback(() => {
-    // Optimistically show pending spinner while we wait for the webhook
     awaitingWebhook.current = true;
-    responseRef.current = { action: "pending" };
-    setResponse({ action: "pending" });
+    responseRef.current = { action: "kyc_pending_review" };
+    setResponse({ action: "kyc_pending_review" });
   }, []);
 
-  // Initial enrollment check
+  // Initial fetch
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     fetchEnrollment();
   }, [fetchEnrollment]);
 
-  // Poll while waiting for backend approval (both kyc_required and pending)
+  // Poll while the state is still advancing
   useEffect(() => {
-    if (response?.action !== "pending" && response?.action !== "kyc_required") return;
+    if (!response || !POLLING_ACTIONS.has(response.action)) return;
     const interval = setInterval(fetchEnrollment, 2000);
     return () => clearInterval(interval);
   }, [response?.action, fetchEnrollment]);
 
+  // --- Render ---
+
   if (isLoading) {
     return (
-      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-        <PageHeader title={t.accountEnrollment} onBack={onBack} />
-        <CenteredContent>
-          <ConfirmationSpinner done={false} />
-        </CenteredContent>
-      </div>
-    );
-  }
-
-  if (response?.action === "kyc_required") {
-    return (
-      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-        <PageHeader title={t.accountEnrollment} onBack={onBack} />
-        <SumSubWidget
-          kycToken={response.kycToken}
-          onComplete={handleKycSubmitted}
-        />
-      </div>
-    );
-  }
-
-  if (response?.action === "pending") {
-    return (
-      <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-        <PageHeader title={t.accountEnrollment} onBack={onBack} />
-        <CenteredContent>
-          <ConfirmationSpinner done={false} />
-        </CenteredContent>
-      </div>
-    );
-  }
-
-  if (response?.action === "error") {
-    return (
-      <ErrorPage
-        message={t.errorGeneric}
-        retryText={t.tryAgain}
-        onRetry={fetchEnrollment}
-        hideSupport
+      <EnrollmentWaiting
+        title={t.accountEnrollment}
+        label={t.loading}
+        onBack={onBack}
       />
     );
   }
 
-  return null;
+  if (!response) return null;
+
+  switch (response.action) {
+    case "kyc_required":
+      return (
+        <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+          <PageHeader title={t.accountEnrollment} onBack={onBack} />
+          <SumSubWidget
+            kycToken={response.kycToken}
+            onComplete={handleKycSubmitted}
+          />
+        </div>
+      );
+
+    case "kyc_retry":
+      return (
+        <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+          <PageHeader title={t.accountEnrollmentRetry} onBack={onBack} />
+          <p className="daimo-text-xs daimo-text-center daimo-text-[var(--daimo-text-secondary)] daimo-px-6 daimo-pb-3 daimo-leading-relaxed">
+            {response.reason}
+          </p>
+          <SumSubWidget
+            kycToken={response.kycToken}
+            onComplete={handleKycSubmitted}
+          />
+        </div>
+      );
+
+    case "kyc_pending_review":
+      return (
+        <EnrollmentWaiting
+          title={t.accountEnrollmentPending}
+          label={t.accountEnrollmentPendingDesc}
+          onBack={onBack}
+        />
+      );
+
+    case "provider_pending":
+      return (
+        <EnrollmentWaiting
+          title={t.accountProviderPending}
+          label={t.accountProviderPendingDesc}
+        />
+      );
+
+    case "kyc_rejected_final":
+      return (
+        <EnrollmentTerminal
+          title={t.accountEnrollmentRejected}
+          message={response.reason}
+        />
+      );
+
+    case "suspended":
+      return (
+        <EnrollmentTerminal
+          title={t.accountSuspended}
+          message={response.reason}
+        />
+      );
+
+    case "error":
+      return (
+        <ErrorPage
+          message={response.message}
+          retryText={t.tryAgain}
+          onRetry={response.retryable ? fetchEnrollment : undefined}
+          hideRetry={!response.retryable}
+          hideSupport={response.retryable}
+        />
+      );
+
+    case "active":
+      return null;
+  }
 }
 
-// --- SumSub Widget ---
+// --- Sub-components ---
 
+/** Terminal error — specific title, error icon, message, and support link. */
+function EnrollmentTerminal({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+  return (
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+      <PageHeader title={title} />
+      <div className="daimo-flex-1 daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-p-6 daimo-gap-6">
+        <div
+          className="daimo-w-16 daimo-h-16 daimo-rounded-full daimo-flex daimo-items-center daimo-justify-center"
+          style={{ backgroundColor: "var(--daimo-error-light)" }}
+        >
+          <ErrorIcon size={32} />
+        </div>
+        <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-leading-relaxed daimo-px-4">
+          {message}
+        </p>
+        <ContactSupportButton
+          subject={title}
+          info={{ error: message }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Waiting view — pulsing dots with title and optional description. */
+function EnrollmentWaiting({
+  title,
+  label,
+  onBack,
+}: {
+  title: string;
+  label?: string;
+  onBack?: () => void;
+}) {
+  return (
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+      <PageHeader title={title} onBack={onBack} />
+      <CenteredContent>
+        <ProgressPulse label={label} />
+      </CenteredContent>
+    </div>
+  );
+}
+
+/** SumSub identity verification widget. */
 function SumSubWidget({
   kycToken,
   onComplete,
@@ -158,7 +274,6 @@ function SumSubWidget({
   const handleMessage = useCallback(
     (type: string) => {
       console.log("[sumsub] event:", type);
-      // User finished submitting — start polling backend for approval
       if (type === "idCheck.onApplicantSubmitted") {
         onComplete();
       }

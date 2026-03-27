@@ -4,8 +4,8 @@ import type { AccountRegion, AccountDepositStatus } from "../../../common/accoun
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
-import { ConfirmationSpinner } from "../ConfirmationSpinner.js";
 import { ErrorPage } from "../ErrorPage.js";
+import { ProgressPulse } from "../ProgressPulse.js";
 import { CenteredContent, PageHeader, ShowReceiptButton } from "../shared.js";
 
 type AccountStatusPageProps = {
@@ -22,7 +22,26 @@ const TERMINAL_STATUSES: AccountDepositStatus[] = [
   "expired",
 ];
 
-/** Deposit status — spinner while processing, checkmark when done. */
+function getDepositTitle(status: AccountDepositStatus): string {
+  switch (status) {
+    case "completed":
+      return t.depositFinalizing;
+    case "token_delivered":
+      return t.depositProcessing;
+    default:
+      return t.depositDetected;
+  }
+}
+
+/**
+ * Deposit status page — pulsing dots with progressive status text:
+ *   payment_received → "Deposit Detected"
+ *   token_delivered  → "Deposit Processing"
+ *   completed        → "Deposit Finalizing"
+ *
+ * ConfirmationPage (spinner → checkmark) takes over when the session
+ * reaches "processing"/"succeeded".
+ */
 export function AccountStatusPage({
   sessionId,
   clientSecret,
@@ -40,8 +59,6 @@ export function AccountStatusPage({
     shouldStop: (deposit) => TERMINAL_STATUSES.includes(deposit.status),
   });
 
-  const isComplete = status === "completed";
-  const isProcessing = status === "payment_received" || status === "token_delivered";
   const isFailed = status === "failed" || status === "expired";
 
   if (isFailed) {
@@ -53,20 +70,18 @@ export function AccountStatusPage({
     );
   }
 
-  const title = isComplete ? t.paymentCompleted : t.processingYourPayment;
+  const title = getDepositTitle(status);
+  const showBack = status === "payment_received";
 
   return (
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-      <PageHeader title={title} onBack={onBack} />
+      <PageHeader title={title} onBack={showBack ? onBack : undefined} />
       <CenteredContent>
-        <ConfirmationSpinner done={isComplete} />
+        <ProgressPulse />
       </CenteredContent>
-
-      {(isComplete || isProcessing) && (
-        <div className="daimo-px-6 daimo-pb-6 daimo-flex daimo-justify-center">
-          <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />
-        </div>
-      )}
+      <div className="daimo-px-6 daimo-pb-6 daimo-flex daimo-justify-center">
+        <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />
+      </div>
     </div>
   );
 }

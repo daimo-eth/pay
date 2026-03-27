@@ -417,8 +417,12 @@ export function useSessionNav(
       const next = prev.slice(0, -1);
       while (next.length > 0) {
         const top = next[next.length - 1];
-        // Skip account-creating-wallet on back (auto-advance causes loop)
-        if (top.type === "account-creating-wallet") {
+        // Skip auto-advancing account gates on back — these re-poll and
+        // jump forward when revisited, creating a loop.
+        if (
+          top.type === "account-creating-wallet" ||
+          top.type === "account-enrollment"
+        ) {
           next.pop();
           continue;
         }

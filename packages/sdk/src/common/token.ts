@@ -53,6 +53,7 @@ export enum TokenLogo {
   USDBc = "https://daimo.com/coin-logos/usdbc.png",
   USDC = "https://daimo.com/coin-logos/usdc.png",
   USDT = "https://daimo.com/coin-logos/usdt.png",
+  USDT0 = "https://daimo.com/coin-logos/usdt0.png",
   WBTC = "https://daimo.com/coin-logos/wbtc.png",
   WETH = "https://daimo.com/coin-logos/weth.png",
   WLD = "https://daimo.com/coin-logos/wld.jpeg",
@@ -98,14 +99,14 @@ export const arbitrumDAI: Token = token({
   logoURI: TokenLogo.DAI,
 });
 
-export const arbitrumUSDT: Token = token({
+export const arbitrumUSDT0: Token = token({
   chainId: arbitrum.chainId,
   token: getAddress("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"),
   decimals: 6,
   fiatISO: "USD",
-  name: "Tether USD",
-  symbol: "USDT",
-  logoURI: TokenLogo.USDT,
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
 });
 
 export const arbitrumUSDCe: Token = token({
@@ -123,7 +124,7 @@ const arbitrumTokens: Token[] = [
   arbitrumWETH,
   arbitrumUSDC,
   arbitrumDAI,
-  arbitrumUSDT,
+  arbitrumUSDT0,
   arbitrumUSDCe,
 ];
 
@@ -334,6 +335,16 @@ export const ethereumUSDT: Token = token({
   logoURI: TokenLogo.USDT,
 });
 
+export const ethereumUSDT0: Token = token({
+  chainId: ethereum.chainId,
+  token: getAddress("0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
+});
+
 export const ethereumEURC: Token = token({
   chainId: ethereum.chainId,
   token: getAddress("0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c"),
@@ -351,6 +362,7 @@ const ethereumTokens: Token[] = [
   ethereumEURC,
   ethereumDAI,
   ethereumUSDT,
+  ethereumUSDT0,
 ];
 
 //
@@ -425,7 +437,7 @@ export const hyperEvmUSDT0: Token = token({
   fiatISO: "USD",
   name: "USDT0",
   symbol: "USDT0",
-  logoURI: TokenLogo.USDT,
+  logoURI: TokenLogo.USDT0,
 });
 
 const hyperEvmTokens: Token[] = [
@@ -502,17 +514,17 @@ export const monadUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
-export const monadUSDT: Token = token({
+export const monadUSDT0: Token = token({
   chainId: monad.chainId,
   token: getAddress("0xe7cd86e13AC4309349F30B3435a9d337750fC82D"),
   decimals: 6,
   fiatISO: "USD",
-  name: "Tether USD",
-  symbol: "USDT",
-  logoURI: TokenLogo.USDT,
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
 });
 
-const monadTokens: Token[] = [monadMON, monadWMON, monadUSDC, monadUSDT];
+const monadTokens: Token[] = [monadMON, monadWMON, monadUSDC, monadUSDT0];
 
 //
 // Optimism
@@ -559,6 +571,16 @@ export const optimismUSDT: Token = token({
   logoURI: TokenLogo.USDT,
 });
 
+export const optimismUSDT0: Token = token({
+  chainId: optimism.chainId,
+  token: getAddress("0x01bFF41798a0BcF287b996046Ca68b395DbC1071"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
+});
+
 export const optimismUSDCe: Token = token({
   chainId: optimism.chainId,
   token: getAddress("0x7F5c764cBc14f9669B88837ca1490cCa17c31607"),
@@ -575,6 +597,7 @@ const optimismTokens = [
   optimismUSDC,
   optimismDAI,
   optimismUSDT,
+  optimismUSDT0,
   optimismUSDCe,
 ];
 
@@ -627,14 +650,14 @@ export const polygonDAI: Token = token({
   logoURI: TokenLogo.DAI,
 });
 
-export const polygonUSDT: Token = token({
+export const polygonUSDT0: Token = token({
   chainId: polygon.chainId,
   token: getAddress("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
   decimals: 6,
   fiatISO: "USD",
-  name: "Tether USD",
-  symbol: "USDT",
-  logoURI: TokenLogo.USDT,
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
 });
 
 export const polygonUSDCe: Token = token({
@@ -653,7 +676,7 @@ const polygonTokens: Token[] = [
   polygonWETH,
   polygonUSDC,
   polygonDAI,
-  polygonUSDT,
+  polygonUSDT0,
   polygonUSDCe,
 ];
 
@@ -739,6 +762,42 @@ export const solanaUSDT: Token = token({
 const solanaTokens: Token[] = [solanaUSDC, solanaUSDT, solanaWSOL, solanaSOL];
 
 //
+// Tempo
+//
+
+export const tempoPathUSD: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20c0000000000000000000000000000000000000"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "PathUSD",
+  symbol: "pathUSD",
+  logoURI: TokenLogo.PATHUSD,
+});
+
+export const tempoUSDCe: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20C000000000000000000000b9537d11c60E8b50"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "Bridged USDC (Stargate)",
+  symbol: "USDCe",
+  logoURI: TokenLogo.USDC,
+});
+
+export const tempoUSDT0: Token = token({
+  chainId: tempo.chainId,
+  token: getAddress("0x20C00000000000000000000014f22CA97301EB73"),
+  decimals: 6,
+  fiatISO: "USD",
+  name: "USDT0",
+  symbol: "USDT0",
+  logoURI: TokenLogo.USDT0,
+});
+
+const tempoTokens: Token[] = [tempoPathUSD, tempoUSDCe, tempoUSDT0];
+
+//
 // Tron
 //
 
@@ -805,42 +864,6 @@ const worldchainTokens: Token[] = [
   worldchainWLD,
 ];
 
-//
-// Tempo
-//
-
-export const tempoPathUSD: Token = token({
-  chainId: tempo.chainId,
-  token: getAddress("0x20c0000000000000000000000000000000000000"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "PathUSD",
-  symbol: "pathUSD",
-  logoURI: TokenLogo.PATHUSD,
-});
-
-export const tempoUSDCe: Token = token({
-  chainId: tempo.chainId,
-  token: getAddress("0x20C000000000000000000000b9537d11c60E8b50"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "Bridged USDC (Stargate)",
-  symbol: "USDCe",
-  logoURI: TokenLogo.USDC,
-});
-
-export const tempoUSDT0: Token = token({
-  chainId: tempo.chainId,
-  token: getAddress("0x20C00000000000000000000014f22CA97301EB73"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "USDT0",
-  symbol: "USDT0",
-  logoURI: TokenLogo.USDT,
-});
-
-const tempoTokens: Token[] = [tempoPathUSD, tempoUSDCe, tempoUSDT0];
-
 const knownTokensByChain = new Map<number, Token[]>([
   [arbitrum.chainId, arbitrumTokens],
   [base.chainId, baseTokens],
@@ -885,6 +908,7 @@ enum TokenType {
   NATIVE_USDC = "NATIVE_USDC",
   BRIDGED_USDC = "BRIDGED_USDC",
   USDT = "USDT",
+  USDT0 = "USDT0",
   DAI = "DAI",
 }
 
@@ -899,7 +923,8 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: arbitrumWETH,
       [TokenType.NATIVE_USDC]: arbitrumUSDC,
       [TokenType.BRIDGED_USDC]: arbitrumUSDCe,
-      [TokenType.USDT]: arbitrumUSDT,
+      [TokenType.USDT]: arbitrumUSDT0,
+      [TokenType.USDT0]: arbitrumUSDT0,
       [TokenType.DAI]: arbitrumDAI,
     },
   ],
@@ -939,6 +964,7 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: ethereumWETH,
       [TokenType.NATIVE_USDC]: ethereumUSDC,
       [TokenType.USDT]: ethereumUSDT,
+      [TokenType.USDT0]: ethereumUSDT0,
       [TokenType.DAI]: ethereumDAI,
     },
   ],
@@ -956,6 +982,7 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: hyperEvmWHYPE,
       [TokenType.NATIVE_USDC]: hyperEvmUSDC,
       [TokenType.USDT]: hyperEvmUSDT0,
+      [TokenType.USDT0]: hyperEvmUSDT0,
     },
   ],
   [
@@ -973,7 +1000,8 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE]: monadMON,
       [TokenType.WRAPPED_NATIVE]: monadWMON,
       [TokenType.NATIVE_USDC]: monadUSDC,
-      [TokenType.USDT]: monadUSDT,
+      [TokenType.USDT]: monadUSDT0,
+      [TokenType.USDT0]: monadUSDT0,
     },
   ],
   [
@@ -984,6 +1012,7 @@ const tokensByChainAndType: Map<
       [TokenType.NATIVE_USDC]: optimismUSDC,
       [TokenType.BRIDGED_USDC]: optimismUSDCe,
       [TokenType.USDT]: optimismUSDT,
+      [TokenType.USDT0]: optimismUSDT0,
       [TokenType.DAI]: optimismDAI,
     },
   ],
@@ -994,7 +1023,8 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: polygonWPOL,
       [TokenType.NATIVE_USDC]: polygonUSDC,
       [TokenType.BRIDGED_USDC]: polygonUSDCe,
-      [TokenType.USDT]: polygonUSDT,
+      [TokenType.USDT]: polygonUSDT0,
+      [TokenType.USDT0]: polygonUSDT0,
       [TokenType.DAI]: polygonDAI,
     },
   ],
@@ -1017,18 +1047,19 @@ const tokensByChainAndType: Map<
     },
   ],
   [
+    tempo.chainId,
+    {
+      [TokenType.BRIDGED_USDC]: tempoUSDCe,
+      [TokenType.USDT]: tempoUSDT0,
+      [TokenType.USDT0]: tempoUSDT0,
+    },
+  ],
+  [
     worldchain.chainId,
     {
       [TokenType.NATIVE]: worldchainETH,
       [TokenType.WRAPPED_NATIVE]: worldchainWETH,
       [TokenType.NATIVE_USDC]: worldchainUSDC,
-    },
-  ],
-  [
-    tempo.chainId,
-    {
-      [TokenType.BRIDGED_USDC]: tempoUSDCe,
-      [TokenType.USDT]: tempoUSDT0,
     },
   ],
 ]);
@@ -1068,6 +1099,10 @@ export function getChainBestUSDC(chainId: number): Token | undefined {
 
 export function getChainUSDT(chainId: number): Token | undefined {
   return tokensByChainAndType.get(chainId)?.[TokenType.USDT];
+}
+
+export function getChainUSDT0(chainId: number): Token | undefined {
+  return tokensByChainAndType.get(chainId)?.[TokenType.USDT0];
 }
 
 export function getChainDAI(chainId: number): Token | undefined {

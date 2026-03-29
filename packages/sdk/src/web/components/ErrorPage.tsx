@@ -34,8 +34,6 @@ type ErrorPageProps = {
   nodeType?: NavNodeType | null;
   /** Hide retry button */
   hideRetry?: boolean;
-  /** Hide support button */
-  hideSupport?: boolean;
 };
 
 /**
@@ -53,7 +51,6 @@ export function ErrorPage({
   nodeId = null,
   nodeType = null,
   hideRetry = false,
-  hideSupport = false,
 }: ErrorPageProps) {
   const displayMessage = extractMessage(message);
   const client = useDaimoClient();
@@ -98,13 +95,15 @@ export function ErrorPage({
           <SecondaryButton onClick={handleRetry}>{retryText}</SecondaryButton>
         )}
 
-        {/* Support link */}
-        {!hideSupport && (
-          <ContactSupportButton
-            subject={supportSubject}
-            info={{ error: displayMessage, ...supportInfo }}
-          />
-        )}
+        {/* Support link — always visible */}
+        <ContactSupportButton
+          subject={supportSubject}
+          info={{
+            ...(sessionId ? { sessionId } : {}),
+            error: displayMessage,
+            ...supportInfo,
+          }}
+        />
       </div>
     </div>
   );

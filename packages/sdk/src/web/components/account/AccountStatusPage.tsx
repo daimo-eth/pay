@@ -65,6 +65,7 @@ export function AccountStatusPage({
     return (
       <ErrorPage
         message={t.errorDepositFailed}
+        sessionId={sessionId}
         hideRetry
       />
     );

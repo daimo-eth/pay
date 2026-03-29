@@ -518,6 +518,7 @@ function renderEntry(
       return (
         <AccountEnrollmentPage
           region={entry.region}
+          sessionId={ctx.session.sessionId}
           onBack={ctx.onBack}
           onReady={() => ctx.onAccountAdvance("account-payment")}
         />
@@ -684,6 +685,7 @@ function renderWaitingTron(
     return (
       <FlowErrorMessage
         error={entry.error}
+        sessionId={ctx.session.sessionId}
         onBack={ctx.onBack}
         onRetry={ctx.onRetry}
       />
@@ -727,6 +729,7 @@ function renderExchangePage(
     return (
       <FlowErrorMessage
         error={entry.error}
+        sessionId={ctx.session.sessionId}
         onBack={ctx.onBack}
         onRetry={ctx.onRetry}
       />
@@ -844,6 +847,7 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
       onSelect={ctx.onWalletSelectToken}
       onBack={ctx.canGoBack ? ctx.onBack : null}
       baseUrl={ctx.session.baseUrl}
+      sessionId={ctx.session.sessionId}
     />
   );
 }
@@ -870,6 +874,7 @@ function renderWalletSending(
     return (
       <FlowErrorMessage
         error={entry.error}
+        sessionId={ctx.session.sessionId}
         onBack={ctx.onBack}
         onRetry={ctx.onBack}
       />
@@ -900,10 +905,12 @@ function LoadingMessage() {
 
 function FlowErrorMessage({
   error,
+  sessionId,
   onBack,
   onRetry,
 }: {
   error: string;
+  sessionId?: string;
   onBack: () => void;
   onRetry: () => void;
 }) {
@@ -913,6 +920,13 @@ function FlowErrorMessage({
       <div className="daimo-flex daimo-flex-col daimo-items-center daimo-justify-center daimo-flex-1 daimo-gap-8 daimo-text-[var(--daimo-text-muted)]">
         <p>{formatUserError(error)}</p>
         <PrimaryButton onClick={onRetry}>{t.tryAgain}</PrimaryButton>
+        <ContactSupportButton
+          subject={t.error}
+          info={{
+            ...(sessionId ? { sessionId } : {}),
+            error,
+          }}
+        />
       </div>
     </div>
   );

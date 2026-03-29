@@ -81,7 +81,6 @@ export function AccountBankPickerPage({
         message={t.errorDepositFailed}
         retryText={t.tryAgain}
         onRetry={() => window.location.reload()}
-        hideSupport
       />
     );
   }

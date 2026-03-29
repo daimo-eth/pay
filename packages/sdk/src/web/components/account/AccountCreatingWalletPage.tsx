@@ -53,7 +53,6 @@ export function AccountCreatingWalletPage({
         message={t.errorAccountSetup}
         retryText={t.tryAgain}
         onRetry={run}
-        hideSupport
       />
     );
   }

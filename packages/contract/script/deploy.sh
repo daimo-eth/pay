@@ -12,6 +12,7 @@ SCRIPTS=(
     # "script/da/DeployDaimoPayStargateUSDCBridger.s.sol"
     # "script/da/DeployDaimoPayStargateUSDTBridger.s.sol"
     # "script/da/DeployDaimoPayLegacyMeshBridger.s.sol"
+    # "script/da/DeployDaimoPayUSDT0Bridger.s.sol"
     # "script/da/DeployDaimoPayHopBridger.s.sol"
     # "script/da/DeployDepositAddressBridger.s.sol"
 
@@ -95,9 +96,9 @@ for SCRIPT in "${SCRIPTS[@]}"; do
 
         # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
         # txs fail with INITIALIZATION_FAILED). Also needs higher gas estimate
-        # for nested CREATE operations.
+        # for nested CREATE operations (800 minimum; 500 is insufficient).
         if [[ "$RPC_URL" == *"tempo"* ]]; then
-            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
+            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 800"
         fi
 
         echo $FORGE_CMD

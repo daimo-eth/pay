@@ -12,6 +12,7 @@ import { CenteredContent, ContactSupportButton, PageHeader } from "../shared.js"
 
 type AccountEnrollmentPageProps = {
   region: AccountRegion;
+  sessionId: string;
   onBack: () => void;
   onReady: () => void;
 };
@@ -50,6 +51,7 @@ const FORWARD_FROM_KYC = new Set([
  */
 export function AccountEnrollmentPage({
   region,
+  sessionId,
   onBack,
   onReady,
 }: AccountEnrollmentPageProps) {
@@ -184,6 +186,7 @@ export function AccountEnrollmentPage({
         <EnrollmentTerminal
           title={t.accountEnrollmentRejected}
           message={response.reason}
+          sessionId={sessionId}
         />
       );
 
@@ -192,6 +195,7 @@ export function AccountEnrollmentPage({
         <EnrollmentTerminal
           title={t.accountSuspended}
           message={response.reason}
+          sessionId={sessionId}
         />
       );
 
@@ -199,6 +203,7 @@ export function AccountEnrollmentPage({
       return (
         <ErrorPage
           message={response.message}
+          sessionId={sessionId}
           retryText={t.tryAgain}
           onRetry={response.retryable ? fetchEnrollment : undefined}
           hideRetry={!response.retryable}
@@ -217,9 +222,11 @@ export function AccountEnrollmentPage({
 function EnrollmentTerminal({
   title,
   message,
+  sessionId,
 }: {
   title: string;
   message: string;
+  sessionId: string;
 }) {
   return (
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
@@ -236,7 +243,7 @@ function EnrollmentTerminal({
         </p>
         <ContactSupportButton
           subject={title}
-          info={{ error: message }}
+          info={{ sessionId, error: message }}
         />
       </div>
     </div>

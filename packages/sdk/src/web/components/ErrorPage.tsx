@@ -102,7 +102,11 @@ export function ErrorPage({
         {!hideSupport && (
           <ContactSupportButton
             subject={supportSubject}
-            info={{ error: displayMessage, ...supportInfo }}
+            info={{
+              ...(sessionId ? { sessionId } : {}),
+              error: displayMessage,
+              ...supportInfo,
+            }}
           />
         )}
       </div>

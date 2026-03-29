@@ -3,6 +3,7 @@ import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
 import {
+  ContactSupportButton,
   LIST_ROW_CLASS,
   ListRow,
   PageHeader,
@@ -26,6 +27,7 @@ type SelectTokenPageProps = {
   onSelect: (option: WalletPaymentOption) => void;
   onBack?: (() => void) | null;
   baseUrl: string;
+  sessionId: string;
 };
 
 /** Token selection page for wallet payment flow */
@@ -37,6 +39,7 @@ export function SelectTokenPage({
   onSelect,
   onBack,
   baseUrl,
+  sessionId,
 }: SelectTokenPageProps) {
   const { scrolled, atBottom, onScroll } = useScrollBorder();
 
@@ -80,6 +83,10 @@ export function SelectTokenPage({
             <p className="daimo-text-[var(--daimo-text-secondary)]">
               {t.noTokensFound}
             </p>
+            <ContactSupportButton
+              subject="No tokens found"
+              info={{ sessionId }}
+            />
           </div>
         ) : (
           <div className="daimo-flex daimo-flex-col daimo-gap-3">

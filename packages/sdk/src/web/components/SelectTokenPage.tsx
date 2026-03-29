@@ -3,6 +3,7 @@ import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
 import {
+  ContactSupportButton,
   LIST_ROW_CLASS,
   ListRow,
   PageHeader,
@@ -80,6 +81,10 @@ export function SelectTokenPage({
             <p className="daimo-text-[var(--daimo-text-secondary)]">
               {t.noTokensFound}
             </p>
+            <ContactSupportButton
+              subject="No tokens found"
+              info={{}}
+            />
           </div>
         ) : (
           <div className="daimo-flex daimo-flex-col daimo-gap-3">

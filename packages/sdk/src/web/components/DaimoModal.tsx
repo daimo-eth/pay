@@ -518,6 +518,7 @@ function renderEntry(
       return (
         <AccountEnrollmentPage
           region={entry.region}
+          sessionId={ctx.session.sessionId}
           onBack={ctx.onBack}
           onReady={() => ctx.onAccountAdvance("account-payment")}
         />
@@ -844,6 +845,7 @@ function renderWalletSelectToken(ctx: RenderContext): React.ReactNode {
       onSelect={ctx.onWalletSelectToken}
       onBack={ctx.canGoBack ? ctx.onBack : null}
       baseUrl={ctx.session.baseUrl}
+      sessionId={ctx.session.sessionId}
     />
   );
 }

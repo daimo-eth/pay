@@ -27,6 +27,7 @@ type SelectTokenPageProps = {
   onSelect: (option: WalletPaymentOption) => void;
   onBack?: (() => void) | null;
   baseUrl: string;
+  sessionId: string;
 };
 
 /** Token selection page for wallet payment flow */
@@ -38,6 +39,7 @@ export function SelectTokenPage({
   onSelect,
   onBack,
   baseUrl,
+  sessionId,
 }: SelectTokenPageProps) {
   const { scrolled, atBottom, onScroll } = useScrollBorder();
 
@@ -83,7 +85,7 @@ export function SelectTokenPage({
             </p>
             <ContactSupportButton
               subject="No tokens found"
-              info={{}}
+              info={{ sessionId }}
             />
           </div>
         ) : (

@@ -23,11 +23,15 @@ import {
     getDAStargateUSDTBridgeRoutes
 } from "./constants/DAStargateBridgeRouteConstants.sol";
 import {
+    getDAUSDT0BridgeRoutes
+} from "./constants/DAUSDT0BridgeRouteConstants.sol";
+import {
     DEPLOY_SALT_CCTP_V2_BRIDGER,
     DEPLOY_SALT_HOP_BRIDGER,
     DEPLOY_SALT_LEGACY_MESH_BRIDGER,
     DEPLOY_SALT_STARGATE_USDC_BRIDGER,
     DEPLOY_SALT_STARGATE_USDT_BRIDGER,
+    DEPLOY_SALT_USDT0_BRIDGER,
     DEPLOY_SALT_DA_BRIDGER
 } from "../DeploySalts.sol";
 
@@ -92,12 +96,17 @@ contract DeployDepositAddressBridger is Script {
             msg.sender,
             DEPLOY_SALT_HOP_BRIDGER
         );
+        address usdt0Bridger = CREATE3.getDeployed(
+            msg.sender,
+            DEPLOY_SALT_USDT0_BRIDGER
+        );
 
         console.log("cctpV2Bridger address:", cctpV2Bridger);
         console.log("stargateUSDCBridger address:", stargateUSDCBridger);
         console.log("stargateUSDTBridger address:", stargateUSDTBridger);
         console.log("legacyMeshBridger address:", legacyMeshBridger);
         console.log("hopBridger address:", hopBridger);
+        console.log("usdt0Bridger address:", usdt0Bridger);
 
         // Get all supported destination chains from the DA constants
         // CCTP V2
@@ -130,12 +139,19 @@ contract DeployDepositAddressBridger is Script {
             DaimoPayHopBridger.FinalChainCoin[] memory finalChainCoins
         ) = getDAHopBridgeRoutes(block.chainid);
 
+        // USDT0
+        (
+            uint256[] memory usdt0ChainIds,
+            DaimoPayLayerZeroBridger.LZBridgeRoute[] memory usdt0BridgeRoutes
+        ) = getDAUSDT0BridgeRoutes(block.chainid);
+
         // Count total number of supported chains
         uint256 totalChains = cctpV2ChainIds.length +
             stargateUSDCChainIds.length +
             stargateUSDTChainIds.length +
             legacyMeshChainIds.length +
-            hopDestChainIds.length;
+            hopDestChainIds.length +
+            usdt0ChainIds.length;
 
         // Initialize arrays for the combined result
         chainIds = new uint256[](totalChains);
@@ -181,6 +197,14 @@ contract DeployDepositAddressBridger is Script {
             chainIds[index] = hopDestChainIds[i];
             stableOuts[index] = finalChainCoins[i].coinAddr;
             bridgers[index] = hopBridger;
+            index++;
+        }
+
+        // Add USDT0 routes
+        for (uint256 i = 0; i < usdt0ChainIds.length; ++i) {
+            chainIds[index] = usdt0ChainIds[i];
+            stableOuts[index] = usdt0BridgeRoutes[i].bridgeTokenOut;
+            bridgers[index] = usdt0Bridger;
             index++;
         }
 

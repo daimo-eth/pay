@@ -335,16 +335,6 @@ export const ethereumUSDT: Token = token({
   logoURI: TokenLogo.USDT,
 });
 
-export const ethereumUSDT0: Token = token({
-  chainId: ethereum.chainId,
-  token: getAddress("0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee"),
-  decimals: 6,
-  fiatISO: "USD",
-  name: "USDT0",
-  symbol: "USDT0",
-  logoURI: TokenLogo.USDT0,
-});
-
 export const ethereumEURC: Token = token({
   chainId: ethereum.chainId,
   token: getAddress("0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c"),
@@ -362,7 +352,6 @@ const ethereumTokens: Token[] = [
   ethereumEURC,
   ethereumDAI,
   ethereumUSDT,
-  ethereumUSDT0,
 ];
 
 //
@@ -964,7 +953,7 @@ const tokensByChainAndType: Map<
       [TokenType.WRAPPED_NATIVE]: ethereumWETH,
       [TokenType.NATIVE_USDC]: ethereumUSDC,
       [TokenType.USDT]: ethereumUSDT,
-      [TokenType.USDT0]: ethereumUSDT0,
+      [TokenType.USDT0]: ethereumUSDT, // USDT on Ethereum is compatible with USDT0 bridges
       [TokenType.DAI]: ethereumDAI,
     },
   ],

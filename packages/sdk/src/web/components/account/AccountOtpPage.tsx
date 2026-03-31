@@ -39,13 +39,22 @@ export function AccountOtpPage({ onBack, onVerified }: AccountOtpPageProps) {
     [digits, account],
   );
 
+  const handleVerify = useCallback(async () => {
+    if (!account || !isComplete) return;
+    const success = await account.verifyOtp(code);
+    if (success) onVerified();
+  }, [account, code, isComplete, onVerified]);
+
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Backspace" && !digits[index] && index > 0) {
         inputsRef.current[index - 1]?.focus();
+      } else if (e.key === "Enter" && isComplete) {
+        e.preventDefault();
+        handleVerify();
       }
     },
-    [digits],
+    [digits, isComplete, handleVerify],
   );
 
   const handlePaste = useCallback(
@@ -62,12 +71,6 @@ export function AccountOtpPage({ onBack, onVerified }: AccountOtpPageProps) {
     },
     [digits],
   );
-
-  const handleVerify = useCallback(async () => {
-    if (!account || !isComplete) return;
-    const success = await account.verifyOtp(code);
-    if (success) onVerified();
-  }, [account, code, isComplete, onVerified]);
 
   const handleResend = useCallback(async () => {
     if (!account) return;

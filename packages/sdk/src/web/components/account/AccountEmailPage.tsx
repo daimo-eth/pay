@@ -48,6 +48,10 @@ export function AccountEmailPage({ onBack, onOtpSent }: AccountEmailPageProps) {
       <PageHeader title={t.accountEmail} onBack={onBack} />
 
       <CenteredContent>
+        <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center">
+          {t.accountEmailDesc}
+        </p>
+
         <TextInput
           type="email"
           value={localEmail}

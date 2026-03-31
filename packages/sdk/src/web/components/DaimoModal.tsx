@@ -141,6 +141,7 @@ export function DaimoModal(props: DaimoModalProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [pageKey, setPageKey] = useState<string>();
   const [showFooterSpacer, setShowFooterSpacer] = useState(true);
+  const [showCloseButton, setShowCloseButton] = useState(true);
 
   const closeRef = useRef(() => {
     setIsOpen(false);
@@ -174,6 +175,7 @@ export function DaimoModal(props: DaimoModalProps) {
       closeRef={closeRef}
       setPageKey={setPageKey}
       setShowFooterSpacer={setShowFooterSpacer}
+      setShowCloseButton={setShowCloseButton}
     />
   ) : (
     <SkeletonContent />
@@ -196,7 +198,7 @@ export function DaimoModal(props: DaimoModalProps) {
   }
   return (
     <ModalContainer
-      onClose={() => closeRef.current()}
+      onClose={showCloseButton ? () => closeRef.current() : undefined}
       pageKey={pageKey}
       showFooterSpacer={showFooterSpacer}
     >
@@ -222,6 +224,7 @@ type DaimoModalInnerProps = DaimoModalProps & {
   closeRef: { current: () => void };
   setPageKey: (key: string | undefined) => void;
   setShowFooterSpacer: (show: boolean) => void;
+  setShowCloseButton: (show: boolean) => void;
 };
 
 function DaimoModalInner({
@@ -231,6 +234,7 @@ function DaimoModalInner({
   closeRef,
   setPageKey,
   setShowFooterSpacer,
+  setShowCloseButton,
   connectToInjectedWallets = false,
   connectToAddress,
   platform,
@@ -306,6 +310,7 @@ function DaimoModalInner({
 
   let content: React.ReactNode;
   let showFooterSpacer = true;
+  let showClose = true;
 
   if (session.status === "expired") {
     content = (
@@ -349,15 +354,32 @@ function DaimoModalInner({
     });
   }
 
-  useLayoutEffect(() => setPageKey(pageKey), [pageKey, setPageKey]);
+  // Re-trigger page-enter animation without unmounting the wrapper.
+  // Removing and re-adding the class in a rAF avoids a zero-height frame
+  // that `key={pageKey}` would cause via full remount.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const prevPageKey = useRef(pageKey);
+  useLayoutEffect(() => {
+    setPageKey(pageKey);
+    if (prevPageKey.current === pageKey) return;
+    prevPageKey.current = pageKey;
+    const el = pageRef.current;
+    if (!el) return;
+    el.classList.remove("daimo-page-enter");
+    requestAnimationFrame(() => el.classList.add("daimo-page-enter"));
+  }, [pageKey, setPageKey]);
   useLayoutEffect(
     () => setShowFooterSpacer(showFooterSpacer),
     [showFooterSpacer, setShowFooterSpacer],
   );
+  useLayoutEffect(
+    () => setShowCloseButton(showClose),
+    [showClose, setShowCloseButton],
+  );
 
   return (
     <div
-      key={pageKey}
+      ref={pageRef}
       className="daimo-page-enter daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col"
     >
       {content}
@@ -562,7 +584,6 @@ function renderEntry(
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}
-          onBack={ctx.onBack}
         />
       );
     case "account-error":

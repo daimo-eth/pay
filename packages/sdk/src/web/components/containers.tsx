@@ -27,42 +27,37 @@ function usePageHeightMorph(
   const prevKey = useRef(pageKey);
 
   useEffect(() => {
-    const isFirst = prevKey.current === undefined;
     if (prevKey.current === pageKey) return;
     prevKey.current = pageKey;
-
-    // Skip morph on initial render — no previous height to animate from
-    if (isFirst) return;
 
     const el = ref.current;
     if (!el) return;
 
-    // Snapshot current rendered height before React paints new content
+    // Snapshot current rendered height
     const from = el.offsetHeight;
 
-    // Use rAF to batch measurement + FLIP in one frame, avoiding a
-    // visible flash when height is temporarily set to auto.
-    requestAnimationFrame(() => {
-      el.style.transition = "none";
-      el.style.height = "auto";
+    // Remove any leftover explicit height so we can measure natural size
+    el.style.transition = "none";
+    el.style.height = "auto";
 
-      const to = el.scrollHeight;
-      if (from === to) return;
+    // Read new natural height
+    const to = el.scrollHeight;
+    if (from === to) return;
 
-      // FLIP: set to old height, then animate to new
-      el.style.height = `${from}px`;
-      void el.offsetHeight;
+    // FLIP: set to old height, then animate to new
+    el.style.height = `${from}px`;
+    // Force reflow so the browser registers the start value
+    void el.offsetHeight;
 
-      el.style.transition = "height 200ms cubic-bezier(0.19, 1, 0.22, 1)";
-      el.style.height = `${to}px`;
+    el.style.transition = "height 180ms cubic-bezier(0.23, 1, 0.32, 1)";
+    el.style.height = `${to}px`;
 
-      const cleanup = () => {
-        el.style.transition = "";
-        el.style.height = "";
-        el.removeEventListener("transitionend", cleanup);
-      };
-      el.addEventListener("transitionend", cleanup);
-    });
+    const cleanup = () => {
+      el.style.transition = "";
+      el.style.height = "";
+      el.removeEventListener("transitionend", cleanup);
+    };
+    el.addEventListener("transitionend", cleanup);
   }, [ref, pageKey]);
 }
 

@@ -358,20 +358,7 @@ function DaimoModalInner({
     });
   }
 
-  // Re-trigger page-enter animation without unmounting the wrapper.
-  // Removing and re-adding the class in a rAF avoids a zero-height frame
-  // that `key={pageKey}` would cause via full remount.
-  const pageRef = useRef<HTMLDivElement>(null);
-  const prevPageKey = useRef(pageKey);
-  useLayoutEffect(() => {
-    setPageKey(pageKey);
-    if (prevPageKey.current === pageKey) return;
-    prevPageKey.current = pageKey;
-    const el = pageRef.current;
-    if (!el) return;
-    el.classList.remove("daimo-page-enter");
-    requestAnimationFrame(() => el.classList.add("daimo-page-enter"));
-  }, [pageKey, setPageKey]);
+  useLayoutEffect(() => setPageKey(pageKey), [pageKey, setPageKey]);
   useLayoutEffect(
     () => setShowFooterSpacer(showFooterSpacer),
     [showFooterSpacer, setShowFooterSpacer],
@@ -383,7 +370,7 @@ function DaimoModalInner({
 
   return (
     <div
-      ref={pageRef}
+      key={pageKey}
       className="daimo-page-enter daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col"
     >
       {content}

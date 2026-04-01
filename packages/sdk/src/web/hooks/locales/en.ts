@@ -111,10 +111,7 @@ export const en = {
   accountKycIntroTitle: "Verify your identity",
   accountKycIntroDesc: "Regulations require identity verification for bank transfers. Your data is encrypted and never shared.",
   accountKycIntroCta: "Continue",
-  accountWaitingCanClose: "You can safely close this window",
   accountDepositReceived: "Deposit received",
-  accountDepositReceivedDesc: "Your funds are on the way",
-  accountDepositArrival: (eta: string) => `Estimated arrival: ${eta}`,
   accountDepositComplete: "Deposit complete",
   accountViewAccount: "View in Account",
 

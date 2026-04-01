@@ -116,7 +116,7 @@ export const en = {
   accountDepositReceivedDesc: "Your funds are on the way",
   accountDepositArrival: (eta: string) => `Estimated arrival: ${eta}`,
   accountDepositComplete: "Deposit complete",
-  accountViewAccount: "View Account",
+  accountViewAccount: "View in Account",
 
   // account status
   depositDetected: "Deposit Detected",

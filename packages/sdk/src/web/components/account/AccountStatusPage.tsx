@@ -52,7 +52,7 @@ export function AccountStatusPage({
   const isComplete = status === "completed";
   const title = isComplete ? t.accountDepositComplete : t.accountDepositReceived;
   const receiptUrl = `${baseUrl}/receipt?id=${sessionId}`;
-  const accountUrl = `${baseUrl}/account`;
+  const accountUrl = `${baseUrl}/account?session=${sessionId}`;
 
   return (
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">

@@ -87,7 +87,7 @@ export const es: typeof en = {
   accountDepositReceivedDesc: "Tus fondos están en camino",
   accountDepositArrival: (eta: string) => `Llegada estimada: ${eta}`,
   accountDepositComplete: "Depósito completado",
-  accountViewAccount: "Ver cuenta",
+  accountViewAccount: "Ver en cuenta",
   depositDetected: "Depósito detectado",
   depositProcessing: "Procesando depósito",
   depositFinalizing: "Finalizando depósito",

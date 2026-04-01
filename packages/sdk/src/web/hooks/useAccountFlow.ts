@@ -124,6 +124,7 @@ export function useAccountFlowState(): AccountFlowState {
     setIsLoggingIn(true);
     setAuthError(null);
     try {
+      await waitForReady();
       await privyRef.current.sendCode(target);
       return true;
     } catch (err) {
@@ -139,6 +140,7 @@ export function useAccountFlowState(): AccountFlowState {
     setIsLoggingIn(true);
     setAuthError(null);
     try {
+      await waitForReady();
       await privyRef.current.loginWithCode(code);
       setIsAuthenticated(true);
       return true;

@@ -74,11 +74,9 @@ export function AccountStatusPage({
       <PageHeader title={title} />
 
       <CenteredContent>
-        <ConfirmationSpinner done={isComplete} />
-
-        {!isComplete && (
-          <div className="daimo-flex daimo-flex-col daimo-items-center daimo-mt-4 daimo-gap-3">
-            <DepositProgress step={step} />
+        <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3">
+          <DepositProgress step={step} />
+          {!isComplete && (
             <span
               className="daimo-text-[10px] daimo-px-2.5 daimo-py-1 daimo-rounded-full"
               style={{
@@ -89,8 +87,8 @@ export function AccountStatusPage({
             >
               ETA {REGION_ETA[region]}
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </CenteredContent>
 
       <div className="daimo-px-8 daimo-pb-4 daimo-flex daimo-flex-col daimo-gap-1">

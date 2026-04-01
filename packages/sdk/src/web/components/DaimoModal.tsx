@@ -141,6 +141,7 @@ export function DaimoModal(props: DaimoModalProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [pageKey, setPageKey] = useState<string>();
   const [showFooterSpacer, setShowFooterSpacer] = useState(true);
+  const [showCloseButton, setShowCloseButton] = useState(true);
 
   const closeRef = useRef(() => {
     setIsOpen(false);
@@ -174,6 +175,7 @@ export function DaimoModal(props: DaimoModalProps) {
       closeRef={closeRef}
       setPageKey={setPageKey}
       setShowFooterSpacer={setShowFooterSpacer}
+      setShowCloseButton={setShowCloseButton}
     />
   ) : (
     <SkeletonContent />
@@ -196,7 +198,7 @@ export function DaimoModal(props: DaimoModalProps) {
   }
   return (
     <ModalContainer
-      onClose={() => closeRef.current()}
+      onClose={showCloseButton ? () => closeRef.current() : undefined}
       pageKey={pageKey}
       showFooterSpacer={showFooterSpacer}
     >
@@ -222,6 +224,7 @@ type DaimoModalInnerProps = DaimoModalProps & {
   closeRef: { current: () => void };
   setPageKey: (key: string | undefined) => void;
   setShowFooterSpacer: (show: boolean) => void;
+  setShowCloseButton: (show: boolean) => void;
 };
 
 function DaimoModalInner({
@@ -231,6 +234,7 @@ function DaimoModalInner({
   closeRef,
   setPageKey,
   setShowFooterSpacer,
+  setShowCloseButton,
   connectToInjectedWallets = false,
   connectToAddress,
   platform,
@@ -306,15 +310,20 @@ function DaimoModalInner({
 
   let content: React.ReactNode;
   let showFooterSpacer = true;
+  let showClose = true;
+
+  // Account deposit flow has its own status page — don't override with ConfirmationPage
+  const isAccountFlow = nav.topEntry?.type?.startsWith("account-") ?? false;
 
   if (session.status === "expired") {
     content = (
       <ExpiredPage sessionId={session.sessionId} onClose={handleClose} />
     );
   } else if (
-    session.status === "processing" ||
+    !isAccountFlow &&
+    (session.status === "processing" ||
     session.status === "succeeded" ||
-    session.status === "bounced"
+    session.status === "bounced")
   ) {
     content = (
       <ConfirmationPage
@@ -353,6 +362,10 @@ function DaimoModalInner({
   useLayoutEffect(
     () => setShowFooterSpacer(showFooterSpacer),
     [showFooterSpacer, setShowFooterSpacer],
+  );
+  useLayoutEffect(
+    () => setShowCloseButton(showClose),
+    [showClose, setShowCloseButton],
   );
 
   return (
@@ -562,7 +575,6 @@ function renderEntry(
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}
-          onBack={ctx.onBack}
         />
       );
     case "account-error":

@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
-import { ConfirmationSpinner } from "../ConfirmationSpinner.js";
 import { ErrorPage } from "../ErrorPage.js";
+import { ProgressPulse } from "../ProgressPulse.js";
 import { CenteredContent, PageHeader } from "../shared.js";
 
 type AccountCreatingWalletPageProps = {
@@ -61,7 +61,7 @@ export function AccountCreatingWalletPage({
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={t.accountCreatingWallet} />
       <CenteredContent>
-        <ConfirmationSpinner done={false} />
+        <ProgressPulse />
       </CenteredContent>
     </div>
   );

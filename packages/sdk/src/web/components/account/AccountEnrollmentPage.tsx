@@ -31,6 +31,8 @@ const POLLING_ACTIONS = new Set([
  *  webhook arrives and the server catches up. */
 const FORWARD_FROM_KYC = new Set([
   "kyc_pending_review",
+  "kyc_retry",
+  "kyc_rejected_final",
   "provider_pending",
   "active",
 ]);
@@ -250,7 +252,7 @@ function KycIntro({
         </div>
 
         <p
-          className="daimo-text-xs daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed daimo-mt-4"
+          className="daimo-text-xs daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed daimo-mt-4 daimo-max-w-[240px]"
           style={{ animation: "daimo-fade-up 300ms cubic-bezier(0.19, 1, 0.22, 1) 100ms both" }}
         >
           {t.accountKycIntroDesc}

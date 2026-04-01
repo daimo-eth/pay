@@ -304,16 +304,16 @@ function DaimoModalInner({
   });
 
   const isTerminal = isSessionTerminal(session.status);
-  const pageKey = isTerminal
+  const isAccountFlow = nav.topEntry?.type?.startsWith("account-") ?? false;
+  const navKey = `${nav.topEntry?.type ?? "root"}-${nav.topEntry?.nodeId ?? ""}`;
+  // Account flows manage their own terminal states — don't remount on session status change
+  const pageKey = isTerminal && !isAccountFlow
     ? session.status
-    : `${nav.topEntry?.type ?? "root"}-${nav.topEntry?.nodeId ?? ""}`;
+    : navKey;
 
   let content: React.ReactNode;
   let showFooterSpacer = true;
   let showClose = true;
-
-  // Account deposit flow has its own status page — don't override with ConfirmationPage
-  const isAccountFlow = nav.topEntry?.type?.startsWith("account-") ?? false;
 
   if (session.status === "expired") {
     content = (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import type { AccountRegion, AccountDepositStatus } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
@@ -49,9 +49,6 @@ export function AccountStatusPage({
 }: AccountStatusPageProps) {
   const client = useDaimoClient();
   const [status, setStatus] = useState<AccountDepositStatus>("payment_received");
-  // Delay the "done" visual so the progress bar fills before the checkmark appears
-  const [showDone, setShowDone] = useState(false);
-  const doneTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useDepositPoller({
     client,
@@ -63,19 +60,12 @@ export function AccountStatusPage({
 
   const isComplete = status === "completed";
 
-  useEffect(() => {
-    if (!isComplete) return;
-    // Show progress bar at step 3 first, then transition spinner → checkmark
-    doneTimer.current = setTimeout(() => setShowDone(true), 800);
-    return () => clearTimeout(doneTimer.current);
-  }, [isComplete]);
-
   if (status === "failed" || status === "expired") {
     return <ErrorPage message={t.errorDepositFailed} sessionId={sessionId} hideRetry />;
   }
 
   const step = getStep(status);
-  const title = showDone ? t.accountDepositComplete : t.accountDepositReceived;
+  const title = isComplete ? t.accountDepositComplete : t.accountDepositReceived;
   const receiptUrl = `${baseUrl}/receipt?id=${sessionId}`;
   const accountUrl = `${baseUrl}/account?session=${sessionId}`;
 
@@ -84,9 +74,9 @@ export function AccountStatusPage({
       <PageHeader title={title} />
 
       <CenteredContent>
-        <ConfirmationSpinner done={showDone} />
+        <ConfirmationSpinner done={isComplete} />
 
-        {!showDone && (
+        {!isComplete && (
           <div className="daimo-flex daimo-flex-col daimo-items-center daimo-mt-4 daimo-gap-3">
             <DepositProgress step={step} />
             <span

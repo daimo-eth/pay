@@ -312,14 +312,18 @@ function DaimoModalInner({
   let showFooterSpacer = true;
   let showClose = true;
 
+  // Account deposit flow has its own status page — don't override with ConfirmationPage
+  const isAccountFlow = nav.topEntry?.type?.startsWith("account-") ?? false;
+
   if (session.status === "expired") {
     content = (
       <ExpiredPage sessionId={session.sessionId} onClose={handleClose} />
     );
   } else if (
-    session.status === "processing" ||
+    !isAccountFlow &&
+    (session.status === "processing" ||
     session.status === "succeeded" ||
-    session.status === "bounced"
+    session.status === "bounced")
   ) {
     content = (
       <ConfirmationPage

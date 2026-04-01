@@ -161,15 +161,6 @@
   }
 }
 
-@keyframes daimo-check-draw {
-  from {
-    stroke-dashoffset: 24;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 @keyframes daimo-scale-in {
   from {
     transform: scale(0.8);

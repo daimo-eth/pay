@@ -67,7 +67,7 @@ function calcDAParamsHash(DAParams calldata params) pure returns (bytes32) {
 ///         enabling deterministic address across chains.
 /// @dev Stateless design with only a fixed param hash allows cheap deployment
 ///      via proxy clones and reuse across multiple chains. Funds are held
-///      securely until the Universal Address Manager orchestrates their release
+///      securely until the Deposit Address Manager orchestrates their release
 ///      for swaps, bridging, or refunds. Each deposit address is uniquely tied
 ///      to a specific set of DAParams and can only be controlled by its
 ///      designated escrow.
@@ -98,7 +98,7 @@ contract DepositAddress is Initializable, ReentrancyGuard {
     function initialize(bytes32 _paramHash) public initializer {
         paramHash = _paramHash;
 
-        // Emit event for any ETH that arrived before deployment
+        // Emit event for any native token that arrived before deployment
         if (address(this).balance > 0) {
             emit NativeTransfer(
                 address(0),

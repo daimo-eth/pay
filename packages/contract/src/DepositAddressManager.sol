@@ -39,12 +39,16 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
-    // Constants & Immutables
+    // Constants
     // ---------------------------------------------------------------------
 
     /// Sentinel value used to mark a transfer claimed.
     address public constant ADDR_MAX =
         0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+
+    // ---------------------------------------------------------------------
+    // Linked contracts
+    // ---------------------------------------------------------------------
 
     /// Factory responsible for deploying deterministic Deposit Addresses.
     DepositAddressFactory public depositAddressFactory;

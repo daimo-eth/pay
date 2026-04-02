@@ -46,9 +46,9 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     address public constant ADDR_MAX =
         0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
-    /// --------------------------------------------------------------------
-    /// Linked contracts
-    /// --------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // Linked contracts
+    // ---------------------------------------------------------------------
 
     /// Factory responsible for deploying deterministic Deposit Addresses.
     DepositAddressFactory public depositAddressFactory;

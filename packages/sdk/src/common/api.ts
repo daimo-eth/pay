@@ -87,6 +87,11 @@ export type CreatePaymentMethodResponse = {
     /** Invoice expiry time (unix seconds). Present for Lightning invoices. */
     expiresAt?: number;
   };
+  /** Account deposit details, present when payment method is account_deposit. */
+  accountDeposit?: {
+    /** Hosted URL where the user completes KYC and bank transfer. */
+    hostedUrl: string;
+  };
 };
 
 export type CheckSessionResponse = {

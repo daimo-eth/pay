@@ -18,7 +18,7 @@ bytes32 constant DEPLOY_SALT_DA_EXECUTOR = keccak256(
     "DaimoPayExecutor-flexible4"
 );
 bytes32 constant DEPLOY_SALT_DA_MANAGER = keccak256(
-    "DepositAddressManager-flexible4"
+    "DepositAddressManager-flexible5"
 );
 
 bytes32 constant DEPLOY_SALT_DAIMO_PAY_PRICER = keccak256(

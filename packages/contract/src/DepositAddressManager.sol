@@ -746,13 +746,18 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     ///         refund address after the deposit address has expired.
     /// @param params The Deposit Address params containing the refund address
     /// @param tokens The tokens to refund from the deposit address
-    /// @dev Refunds are only allowed after the deposit address expires
+    /// @dev Non-relayers can only refund after the deposit address expires.
+    ///      Authorized relayers can refund at any time.
     function refundDepositAddress(
         DAParams calldata params,
         IERC20[] calldata tokens
     ) external nonReentrant {
         require(params.escrow == address(this), "DAM: wrong escrow");
-        require(isDAExpired(params), "DAM: not expired");
+        // Relayers can refund before expiry (e.g. emergency recovery).
+        // Non-relayers must wait for expiry.
+        if (!relayerAuthorized[msg.sender]) {
+            require(isDAExpired(params), "DAM: not expired");
+        }
 
         // Deploy (or fetch) the Deposit Address for this params
         DepositAddress da = depositAddressFactory.createDepositAddress(params);

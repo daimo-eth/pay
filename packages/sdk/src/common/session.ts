@@ -67,7 +67,16 @@ export type SessionDestinationEvm = {
 export type PaymentMethod =
   | PaymentMethodEvm
   | PaymentMethodTron
-  | PaymentMethodSolana;
+  | PaymentMethodSolana
+  | PaymentMethodAccountDeposit;
+
+export type PaymentMethodAccountDeposit = {
+  type: "account_deposit";
+  /** Hosted URL where the user completes KYC and bank transfer. */
+  hostedUrl: string;
+  /** When this payment method was created (unix seconds). */
+  createdAt: number;
+};
 
 export type PaymentMethodEvm = {
   type: "evm";

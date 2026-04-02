@@ -25,6 +25,7 @@ export const zCreatePaymentMethodRequest = z.object({
       amountUsd: z.number().positive(),
       platform: z.enum(["ios", "android", "other"]).optional(),
     }),
+    z.object({ type: z.literal("account_deposit") }),
   ]),
 });
 

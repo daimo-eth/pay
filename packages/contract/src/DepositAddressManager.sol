@@ -120,6 +120,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         address indexed depositAddress,
         address indexed target,
         bool success,
+        address token,
         uint256 refundAmount
     );
     event HopStart(
@@ -946,6 +947,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
                 depositAddress,
                 params.toAddress,
                 success,
+                address(params.toToken),
                 refundAmount
             );
         } else {

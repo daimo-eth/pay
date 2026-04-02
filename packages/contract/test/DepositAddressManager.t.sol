@@ -5686,6 +5686,7 @@ contract DepositAddressManagerTest is Test {
             depositAddress,
             address(adapter),
             true,
+            address(usdc),
             0
         );
 
@@ -5751,6 +5752,7 @@ contract DepositAddressManagerTest is Test {
             depositAddress,
             address(partialAdapter),
             true,
+            address(usdc),
             PAYMENT_AMOUNT - PAYMENT_AMOUNT / 2
         );
 

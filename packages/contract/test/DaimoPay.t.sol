@@ -1287,12 +1287,13 @@ contract DaimoPayTest is Test {
         // approve finalCall.to before executing the call, so the transferFrom
         // should succeed.
         vm.startPrank(address(dp));
-        bool success = executor.executeFinalCall({
+        (bool success, uint256 refundAmount) = executor.executeFinalCall({
             finalCall: finalCall,
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             refundAddr: payable(_alice)
         });
         assertEq(success, true);
+        assertEq(refundAmount, 0);
         vm.stopPrank();
 
         // Bob should have the tokens
@@ -1324,13 +1325,14 @@ contract DaimoPayTest is Test {
         });
 
         vm.prank(address(dp));
-        bool success = executor.executeFinalCall({
+        (bool success, uint256 refundAmount) = executor.executeFinalCall({
             finalCall: finalCall,
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             refundAddr: payable(_alice)
         });
 
         assertEq(success, true);
+        assertEq(refundAmount, 3);
         // Bob should have the partial amount
         assertEq(_toToken.balanceOf(_bob), _toAmount - 3);
         // Alice should get the refund
@@ -1359,13 +1361,14 @@ contract DaimoPayTest is Test {
         });
 
         vm.prank(address(dp));
-        bool success = executor.executeFinalCall({
+        (bool success, uint256 refundAmount) = executor.executeFinalCall({
             finalCall: finalCall,
             finalCallToken: TokenAmount({token: _toToken, amount: _toAmount}),
             refundAddr: payable(_alice)
         });
 
         assertEq(success, false);
+        assertEq(refundAmount, _toAmount);
         // Bob should have nothing
         assertEq(_toToken.balanceOf(_bob), 0);
         // Alice should get the full refund

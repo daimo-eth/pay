@@ -119,7 +119,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     event FinalCallExecuted(
         address indexed depositAddress,
         address indexed target,
-        bool success
+        bool success,
+        uint256 refundAmount
     );
     event HopStart(
         address indexed depositAddress,
@@ -928,7 +929,7 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
             });
 
             // Execute final call - approves token to toAddress and calls it
-            bool success = executor.executeFinalCall({
+            (bool success, uint256 refundAmount) = executor.executeFinalCall({
                 finalCall: Call({
                     to: params.toAddress,
                     value: 0,
@@ -941,7 +942,12 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
                 refundAddr: payable(params.refundAddress)
             });
 
-            emit FinalCallExecuted(depositAddress, params.toAddress, success);
+            emit FinalCallExecuted(
+                depositAddress,
+                params.toAddress,
+                success,
+                refundAmount
+            );
         } else {
             // No final call - send directly to recipient
             outputAmount = executor.executeAndSendBalance({

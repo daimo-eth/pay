@@ -340,7 +340,7 @@ contract DepositAddressManagerTest is Test {
                 bridgeTokenOut: bridgeTokenOut,
                 paymentTokenPrice: paymentTokenPrice,
                 bridgeTokenInPrice: bridgeTokenInPrice,
-            bridgerAdapter: address(bridger),
+                bridgerAdapter: address(bridger),
                 relaySalt: salts[i],
                 calls: calls,
                 bridgeExtraData: bridgeExtraData
@@ -5685,7 +5685,8 @@ contract DepositAddressManagerTest is Test {
         emit DepositAddressManager.FinalCallExecuted(
             depositAddress,
             address(adapter),
-            true
+            true,
+            0
         );
 
         vm.prank(RELAYER);
@@ -5749,7 +5750,8 @@ contract DepositAddressManagerTest is Test {
         emit DepositAddressManager.FinalCallExecuted(
             depositAddress,
             address(partialAdapter),
-            true
+            true,
+            PAYMENT_AMOUNT - PAYMENT_AMOUNT / 2
         );
 
         vm.prank(RELAYER);

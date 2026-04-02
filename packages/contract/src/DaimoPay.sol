@@ -374,7 +374,7 @@ contract DaimoPay is ReentrancyGuard {
                 amount: intent.finalCallToken.amount
             });
             if (success) {
-                success = executor.executeFinalCall({
+                (success, ) = executor.executeFinalCall({
                     finalCall: intent.finalCall,
                     finalCallToken: intent.finalCallToken,
                     refundAddr: payable(intent.refundAddress)

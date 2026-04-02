@@ -1,15 +1,25 @@
 import type { DepositDeeplink } from "../../../common/account.js";
+import { isDesktopBrowser } from "../../isDesktopBrowser.js";
 
 /** Execute a provider deeplink in the user's browser. */
 export function openDeeplink(deeplink: DepositDeeplink): void {
+  const desktop = isDesktopBrowser();
+
+  if (!desktop) {
+    const url =
+      deeplink.type === "form-post" ? deeplink.warmUrl : deeplink.url;
+    // In a native WKWebView, use the bridge to open in Safari directly.
+    if (postNativeOpenUrl(url)) return;
+    // Fallback: trigger navigation for the native delegate to intercept.
+    window.location.href = url;
+    return;
+  }
+
   switch (deeplink.type) {
     case "redirect":
       window.open(deeplink.url, "_blank");
       break;
     case "form-post":
-      // No browser API can open a new tab + POST form data in one step.
-      // We open warmUrl first (GET, sets cookies), then replace with a
-      // self-submitting form targeting formAction.
       openFormPost(deeplink);
       break;
   }
@@ -47,4 +57,17 @@ function escAttr(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** Post an openUrl message to the native WKWebView bridge. Returns true if sent. */
+function postNativeOpenUrl(url: string): boolean {
+  const w = window as {
+    webkit?: {
+      messageHandlers?: { daimoPay?: { postMessage(m: unknown): void } };
+    };
+  };
+  const handler = w.webkit?.messageHandlers?.daimoPay;
+  if (!handler) return false;
+  handler.postMessage({ type: "openUrl", url });
+  return true;
 }

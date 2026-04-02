@@ -3800,6 +3800,222 @@ contract DepositAddressManagerTest is Test {
     }
 
     // ---------------------------------------------------------------------
+    // relayer refundDepositAddress (early refund) - Success cases
+    // ---------------------------------------------------------------------
+
+    function test_relayerRefundDepositAddress_BeforeExpiry() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Fund the vault
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Do NOT warp past expiration — relayer can refund early
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund as relayer before expiry
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
+        assertEq(usdc.balanceOf(address(vault)), 0);
+    }
+
+    function test_relayerRefundDepositAddress_EmitsRefundEvent() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Fund the vault
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Prepare expected amounts
+        uint256[] memory expectedAmounts = new uint256[](1);
+        expectedAmounts[0] = PAYMENT_AMOUNT;
+
+        // Expect the RefundDepositAddress event
+        vm.expectEmit(true, false, false, true, address(manager));
+        emit DepositAddressManager.RefundDepositAddress({
+            depositAddress: address(vault),
+            params: params,
+            refundAddress: REFUND_ADDRESS,
+            tokens: tokens,
+            amounts: expectedAmounts
+        });
+
+        // Execute refund as relayer before expiry
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+    }
+
+    function test_relayerRefundDepositAddress_MultipleTokens() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Deploy a second token
+        TestUSDC usdc2 = new TestUSDC();
+
+        // Fund the vault with both tokens
+        uint256 amount1 = PAYMENT_AMOUNT;
+        uint256 amount2 = 50e6;
+        usdc.transfer(address(vault), amount1);
+        usdc2.transfer(address(vault), amount2);
+
+        // Create tokens array with both tokens
+        IERC20[] memory tokens = new IERC20[](2);
+        tokens[0] = usdc;
+        tokens[1] = IERC20(address(usdc2));
+
+        // Execute refund as relayer before expiry
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+
+        // Verify refund address received both tokens
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), amount1);
+        assertEq(usdc2.balanceOf(REFUND_ADDRESS), amount2);
+        assertEq(usdc.balanceOf(address(vault)), 0);
+        assertEq(usdc2.balanceOf(address(vault)), 0);
+    }
+
+    function test_relayerRefundDepositAddress_ZeroBalance() public {
+        DAParams memory params = _createDAParams();
+        factory.createDepositAddress(params);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Execute refund as relayer on empty vault — should succeed with zero
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+
+        // Verify no funds transferred (no revert)
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), 0);
+    }
+
+    function test_relayerRefundDepositAddress_AlsoWorksAfterExpiry() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Fund the vault
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Warp past expiration
+        vm.warp(params.expiresAt + 1);
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Relayer can also refund after expiry
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), PAYMENT_AMOUNT);
+        assertEq(usdc.balanceOf(address(vault)), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // relayer refundDepositAddress (early refund) - Revert cases
+    // ---------------------------------------------------------------------
+
+    function test_relayerRefundDepositAddress_NonRelayerRevertsBeforeExpiry()
+        public
+    {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Fund the vault
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Do NOT warp past expiration
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Non-relayer calling before expiry should revert
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("DAM: not expired");
+        manager.refundDepositAddress({params: params, tokens: tokens});
+    }
+
+    function test_relayerRefundDepositAddress_RevertsWrongEscrow() public {
+        DAParams memory params = _createDAParams();
+        params.escrow = address(0x1234); // Wrong escrow
+
+        // Create tokens array
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Relayer calling with wrong escrow should revert
+        vm.prank(RELAYER);
+        vm.expectRevert("DAM: wrong escrow");
+        manager.refundDepositAddress({params: params, tokens: tokens});
+    }
+
+    // ---------------------------------------------------------------------
+    // relayer refundDepositAddress (early refund) - Safety cases
+    // ---------------------------------------------------------------------
+
+    function test_relayerRefundDepositAddress_AfterStartIsNoop() public {
+        DAParams memory params = _createDAParams();
+        DepositAddress vault = factory.createDepositAddress(params);
+
+        // Fund the vault
+        _fundDepositAddress(vault, PAYMENT_AMOUNT);
+
+        // Execute start (drains the vault)
+        PriceData memory paymentTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory bridgeTokenInPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+        bytes32 relaySalt = keccak256("test-salt");
+        Call[] memory calls = new Call[](0);
+
+        vm.prank(RELAYER);
+        manager.start({
+            params: params,
+            paymentToken: usdc,
+            bridgeTokenOut: bridgeTokenOut,
+            paymentTokenPrice: paymentTokenPrice,
+            bridgeTokenInPrice: bridgeTokenInPrice,
+            bridgerAdapter: address(bridger),
+            relaySalt: relaySalt,
+            calls: calls,
+            bridgeExtraData: ""
+        });
+
+        // Vault is now empty — early refund should succeed with 0 amounts
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        vm.prank(RELAYER);
+        manager.refundDepositAddress({params: params, tokens: tokens});
+
+        // No funds sent to refund address (vault was already empty)
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), 0);
+    }
+
+    // ---------------------------------------------------------------------
     // refundFulfillment - Success cases
     // ---------------------------------------------------------------------
 

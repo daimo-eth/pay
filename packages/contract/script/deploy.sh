@@ -60,6 +60,7 @@ CHAINS=(
     # "https://hyperliquid-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://megaeth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"

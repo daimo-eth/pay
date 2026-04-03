@@ -101,53 +101,6 @@ address constant LINEA_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f405
 address constant OP_MAINNET_AXLUSDC = 0xEB466342C4d449BC9f53A865D5Cb90586f405215;
 address constant POLYGON_MAINNET_AXLUSDC = 0x750e4C4984a9e0f12978eA6742Bc1c5D248f40ed;
 
-// ----------------- Hop ----------------- //
-
-function getHopCoinDecimals(address token) pure returns (uint256) {
-    // Special case:
-    if (token == BSC_MAINNET_BRIDGED_USDC) return 18;
-
-    // USDC addresses
-    if (token == ARBITRUM_MAINNET_USDC) return 6;
-    if (token == BASE_MAINNET_USDC) return 6;
-    if (token == CELO_MAINNET_USDC) return 6;
-    if (token == ETH_MAINNET_USDC) return 6;
-    if (token == HYPEREVM_MAINNET_USDC) return 6;
-    if (token == LINEA_MAINNET_USDC) return 6;
-    if (token == MONAD_MAINNET_USDC) return 6;
-    if (token == OP_MAINNET_USDC) return 6;
-    if (token == POLYGON_MAINNET_USDC) return 6;
-    if (token == SCROLL_MAINNET_USDC) return 6;
-    if (token == WORLDCHAIN_MAINNET_USDC) return 6;
-
-    // USDT addresses
-    if (token == ARBITRUM_MAINNET_USDT) return 6;
-    if (token == BSC_MAINNET_USDT) return 18;
-    if (token == CELO_MAINNET_USDT) return 6;
-    if (token == ETH_MAINNET_USDT) return 6;
-    if (token == OP_MAINNET_USDT) return 6;
-    if (token == POLYGON_MAINNET_USDT) return 6;
-
-    // USDC.e or USDbC (bridged USDC) addresses
-    if (token == ARBITRUM_MAINNET_BRIDGED_USDC) return 6;
-    if (token == BASE_MAINNET_BRIDGED_USDC) return 6;
-    if (token == GNOSIS_MAINNET_BRIDGED_USDC) return 6;
-    if (token == OP_MAINNET_BRIDGED_USDC) return 6;
-    if (token == POLYGON_MAINNET_BRIDGED_USDC) return 6;
-    if (token == TEMPO_MAINNET_BRIDGED_USDC) return 6;
-
-    // axlUSDC (Axelar wrapped USDC) addresses
-    if (token == ARBITRUM_MAINNET_AXLUSDC) return 6;
-    if (token == BASE_MAINNET_AXLUSDC) return 6;
-    if (token == BSC_MAINNET_AXLUSDC) return 6;
-    if (token == ETH_MAINNET_AXLUSDC) return 6;
-    if (token == LINEA_MAINNET_AXLUSDC) return 6;
-    if (token == OP_MAINNET_AXLUSDC) return 6;
-    if (token == POLYGON_MAINNET_AXLUSDC) return 6;
-
-    revert("Unsupported token for getHopCoinDecimals");
-}
-
 // ----------------- CCTP V1 ----------------- //
 
 address constant ARBITRUM_MAINNET_TOKEN_MESSENGER = 0x19330d10D9Cc8751218eaf51E8885D058642E08A;

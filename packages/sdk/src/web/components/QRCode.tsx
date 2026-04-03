@@ -26,9 +26,9 @@ const centerLogoStyle = {
 
 /** Dummy values of varying length to produce different QR densities */
 const PLACEHOLDER_VALUES: Record<QRDensity, string> = {
-  short: "https://pay.daimo.com/x",
-  medium: "https://pay.daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx",
-  long: "https://pay.daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx234yza567bcd890efg123hij456klm789nop012qrs345tuv678wxy901zab234cde567fgh890ijk123lmn456opq789rst012uvw345xyz",
+  short: "https://daimo.com/x",
+  medium: "https://daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx",
+  long: "https://daimo.com/deposit?session=abc123def456ghi789jkl012mno345pqr678stu901vwx234yza567bcd890efg123hij456klm789nop012qrs345tuv678wxy901zab234cde567fgh890ijk123lmn456opq789rst012uvw345xyz",
 };
 
 function QRCodeShell({ children }: { children: React.ReactNode }) {

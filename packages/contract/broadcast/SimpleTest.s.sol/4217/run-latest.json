@@ -1,0 +1,31 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CREATE",
+      "contractName": "SimpleOwnable",
+      "contractAddress": "0xd49a458b8f5a96e7aa4ae7892a9b36023b98b5d0",
+      "function": null,
+      "arguments": [
+        "0x723A63fb50dA50A26997Fb99A2Eb151E4F8c5227"
+      ],
+      "transaction": {
+        "from": "0x723a63fb50da50a26997fb99a2eb151e4f8c5227",
+        "gas": "0x54a14",
+        "value": "0x0",
+        "input": "0x608034607457601f61013e38819003918201601f19168301916001600160401b03831184841017607957808492602094604052833981010312607457516001600160a01b038116908190036074578015607457600080546001600160a01b03191691909117905560405160ae90816100908239f35b600080fd5b634e487b7160e01b600052604160045260246000fdfe6080806040526004361015601257600080fd5b60003560e01c638da5cb5b14602657600080fd5b3460735760007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc36011260735760209073ffffffffffffffffffffffffffffffffffffffff600054168152f35b600080fdfea2646970667358221220fc7437b36a4f963a8f99d17d9ee6a8229cde8485e78fc415f1720ba7cbe67b0a64736f6c634300081a0033000000000000000000000000723a63fb50da50a26997fb99a2eb151e4f8c5227",
+        "nonce": "0x10b",
+        "chainId": "0x1079"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "returns": {},
+  "timestamp": 1775174152389,
+  "chain": 4217,
+  "commit": "88c5621b"
+}

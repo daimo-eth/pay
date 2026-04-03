@@ -9,6 +9,7 @@ import {
   gnosis,
   hyperEvm,
   linea,
+  megaEth,
   monad,
   optimism,
   polygon,
@@ -37,6 +38,7 @@ const CHAIN_LOGOS: Record<SupportedChainId, string> = {
   [gnosis.chainId]: "gnosis.svg",
   [hyperEvm.chainId]: "hyperevm.svg",
   [linea.chainId]: "linea.svg",
+  [megaEth.chainId]: "megaeth.svg",
   [monad.chainId]: "monad.svg",
   [optimism.chainId]: "optimism.svg",
   [polygon.chainId]: "polygon.svg",
@@ -139,7 +141,10 @@ export function AmountInput({
       : `${Math.min(inputValue.length - (inputValue.match(/\./g) || []).length * 0.55, 10)}ch`;
 
   const fmtAmount = (n: number) =>
-    new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
 
   const label = showMinWarning
     ? `${t.minimum} ${currencySymbol}${fmtAmount(minimum)}`

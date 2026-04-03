@@ -788,15 +788,13 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
     }
 
     /// @notice Refunds tokens from a fulfillment address to the designated
-    ///         refund address after the params has expired.
+    ///         refund address.
     /// @param params The Deposit Address params containing the refund address
     /// @param bridgeTokenOut The token and amount that was bridged (used to
     ///        compute fulfillment address)
     /// @param relaySalt Unique salt from the original bridge transfer
     /// @param sourceChainId The chain ID where the bridge transfer originated
     /// @param tokens The tokens to refund from the fulfillment
-    /// @dev Refunds are only allowed after the params expires. This allows
-    ///      recovery of bridged funds that were never claimed or fast-finished.
     function refundFulfillment(
         DAParams calldata params,
         TokenAmount calldata bridgeTokenOut,

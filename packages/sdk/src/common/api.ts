@@ -25,6 +25,7 @@ export const zCreatePaymentMethodRequest = z.object({
       amountUsd: z.number().positive(),
       platform: z.enum(["ios", "android", "other"]).optional(),
     }),
+    z.object({ type: z.literal("account_deposit") }),
   ]),
 });
 
@@ -85,6 +86,11 @@ export type CreatePaymentMethodResponse = {
     waitingMessage: string;
     /** Invoice expiry time (unix seconds). Present for Lightning invoices. */
     expiresAt?: number;
+  };
+  /** Account deposit details, present when payment method is account_deposit. */
+  accountDeposit?: {
+    /** Hosted URL where the user completes KYC and bank transfer. */
+    hostedUrl: string;
   };
 };
 

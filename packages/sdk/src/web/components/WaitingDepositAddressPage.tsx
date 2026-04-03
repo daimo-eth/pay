@@ -12,8 +12,8 @@ import { createNavLogger } from "../hooks/navEvent.js";
 import { QRCode } from "./QRCode.js";
 import {
   CopyableInfoCard,
+  IconImage,
   PageHeader,
-  resolveIconUrl,
   TokenIconWithChainBadge,
 } from "./shared.js";
 
@@ -227,8 +227,9 @@ function TokenIcon({
   if (node.icon) {
     const iconSize = size === "qr" ? "daimo-w-12 daimo-h-12" : "daimo-w-20 daimo-h-20";
     return (
-      <img
-        src={resolveIconUrl(node.icon, baseUrl)}
+      <IconImage
+        icon={node.icon}
+        baseUrl={baseUrl}
         alt={node.title}
         className={`${iconSize} daimo-rounded-full`}
       />

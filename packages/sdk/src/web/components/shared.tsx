@@ -215,6 +215,11 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+/** Returns true if the icon string is an emoji rather than a URL or path. */
+export function isEmojiIcon(icon: string): boolean {
+  return !icon.startsWith("/") && !icon.startsWith("http") && !icon.startsWith("data:");
+}
+
 /** Resolve relative icon paths to absolute URLs */
 export function resolveIconUrl(icon: string, baseUrl: string): string {
   if (
@@ -225,6 +230,49 @@ export function resolveIconUrl(icon: string, baseUrl: string): string {
     return icon;
   }
   return `${baseUrl}${icon}`;
+}
+
+/** Renders an icon as either an emoji span or an image. */
+export function IconImage({
+  icon,
+  baseUrl,
+  alt,
+  className,
+  style,
+}: {
+  icon: string;
+  baseUrl: string;
+  alt?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  if (isEmojiIcon(icon)) {
+    return (
+      <span
+        className={className}
+        style={{
+          ...style,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "1.5em",
+          lineHeight: 1,
+        }}
+        role="img"
+        aria-label={alt}
+      >
+        {icon}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={resolveIconUrl(icon, baseUrl)}
+      alt={alt ?? ""}
+      className={className}
+      style={style}
+    />
+  );
 }
 
 /** Standard page header with optional back button and centered title */

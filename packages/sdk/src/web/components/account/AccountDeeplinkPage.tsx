@@ -7,7 +7,7 @@ import { isDesktop, type DaimoPlatform } from "../../platform.js";
 import { PrimaryButton } from "../buttons.js";
 import { ExternalLinkIcon } from "../icons.js";
 import { QRCode } from "../QRCode.js";
-import { CenteredContent, PageHeader, resolveIconUrl } from "../shared.js";
+import { CenteredContent, IconImage, PageHeader } from "../shared.js";
 import { openDeeplink } from "./openDeeplink.js";
 
 type AccountDeeplinkPageProps = {
@@ -68,8 +68,9 @@ export function AccountDeeplinkPage({
                 value={bankUrl}
                 image={
                   icon ? (
-                    <img
-                      src={resolveIconUrl(icon, baseUrl)}
+                    <IconImage
+                      icon={icon}
+                      baseUrl={baseUrl}
                       alt=""
                       className="daimo-w-full daimo-h-full daimo-object-contain"
                     />

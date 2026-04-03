@@ -4,10 +4,10 @@ import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 import { t } from "../hooks/locale.js";
 import { ChooseOptionPage, OptionIcons, getOptionIcons } from "./ChooseOptionPage.js";
 import {
+  IconImage,
   ListRow,
   PageHeader,
   ScrollContent,
-  resolveIconUrl,
   useScrollBorder,
 } from "./shared.js";
 
@@ -268,10 +268,10 @@ function MobileWalletsRow({
         icons.length >= 4 ? (
           <div className="daimo-w-8 daimo-h-8 daimo-grid daimo-grid-cols-2 daimo-gap-0.5">
             {icons.slice(0, 4).map((icon, i) => (
-              <img
+              <IconImage
                 key={i}
-                src={resolveIconUrl(icon, baseUrl)}
-                alt=""
+                icon={icon}
+                baseUrl={baseUrl}
                 className="daimo-w-[15px] daimo-h-[15px] daimo-object-contain daimo-rounded-[25%]"
               />
             ))}
@@ -279,10 +279,10 @@ function MobileWalletsRow({
         ) : icons.length > 0 ? (
           <div className="daimo-flex daimo-items-center">
             {icons.map((icon, i) => (
-              <img
+              <IconImage
                 key={i}
-                src={resolveIconUrl(icon, baseUrl)}
-                alt=""
+                icon={icon}
+                baseUrl={baseUrl}
                 className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%] daimo-relative"
                 style={{
                   marginLeft: i > 0 ? -10 : 0,
@@ -325,8 +325,9 @@ function WalletOptionRow({
       label={label}
       right={
         icon ? (
-          <img
-            src={resolveIconUrl(icon, baseUrl)}
+          <IconImage
+            icon={icon}
+            baseUrl={baseUrl}
             alt={label}
             className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%]"
           />

@@ -5,9 +5,9 @@ import { t } from "../hooks/locale.js";
 import { isDesktop, type DaimoPlatform } from "../platform.js";
 import {
   CenteredContent,
+  IconImage,
   PageHeader,
   PageLogo,
-  resolveIconUrl,
 } from "./shared.js";
 import { QRCode } from "./QRCode.js";
 
@@ -60,8 +60,9 @@ export function ExchangePage({
               placeholderDensity={placeholderDensity}
               image={
                 node.icon ? (
-                  <img
-                    src={resolveIconUrl(node.icon, baseUrl)}
+                  <IconImage
+                    icon={node.icon}
+                    baseUrl={baseUrl}
                     alt={node.title}
                     className="daimo-w-full daimo-h-full daimo-object-contain daimo-rounded-[25%]"
                   />

@@ -3,7 +3,7 @@ import type { NavNodeDeeplink } from "../api/navTree.js";
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
 import { isDesktop, type DaimoPlatform } from "../platform.js";
-import { CenteredContent, PageHeader, PageLogo, resolveIconUrl } from "./shared.js";
+import { CenteredContent, IconImage, PageHeader, PageLogo } from "./shared.js";
 import { QRCode } from "./QRCode.js";
 
 type DeeplinkPageProps = {
@@ -32,8 +32,9 @@ export function DeeplinkPage({
               value={node.url}
               image={
                 node.icon ? (
-                  <img
-                    src={resolveIconUrl(node.icon, baseUrl)}
+                  <IconImage
+                    icon={node.icon}
+                    baseUrl={baseUrl}
                     alt={node.title}
                     className="daimo-w-full daimo-h-full daimo-object-contain daimo-rounded-[25%]"
                   />

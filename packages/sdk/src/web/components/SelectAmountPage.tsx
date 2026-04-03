@@ -6,9 +6,9 @@ import { t } from "../hooks/locale.js";
 import { PrimaryButton } from "./buttons.js";
 import {
   AmountInput,
+  IconImage,
   PageHeader,
   TokenIconWithChainBadge,
-  resolveIconUrl,
   useAmountInput,
 } from "./shared.js";
 
@@ -82,8 +82,9 @@ export function SelectAmountPage({
             />
           ) : (
             node.icon && (
-              <img
-                src={resolveIconUrl(node.icon, baseUrl)}
+              <IconImage
+                icon={node.icon}
+                baseUrl={baseUrl}
                 alt={node.title}
                 className="daimo-w-20 daimo-h-20 daimo-rounded-[25%]"
               />

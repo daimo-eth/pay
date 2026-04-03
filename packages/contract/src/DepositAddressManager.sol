@@ -805,7 +805,8 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
         IERC20[] calldata tokens
     ) external nonReentrant onlyRelayer {
         require(params.escrow == address(this), "DAM: wrong escrow");
-        require(isDAExpired(params), "DAM: not expired");
+        // Can be refunded before expiry (e.g. emergency recovery). This is safe
+        // because the function is only callable by relayers.
 
         // Compute the fulfillment address for this fulfillment
         address da = depositAddressFactory.getDepositAddress(params);

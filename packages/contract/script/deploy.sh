@@ -95,10 +95,13 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         fi
 
         # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
-        # txs fail with INITIALIZATION_FAILED). Also needs higher gas estimate
-        # for nested CREATE operations (800 minimum; 500 is insufficient).
+        # txs fail with INITIALIZATION_FAILED). Gas multiplier must balance:
+        #   - Too low (<500): out-of-gas on large contracts (e.g. Manager)
+        #   - Too high (>600): exceeds 30M block gas limit for large contracts
+        # 500 works for all current contracts. Small contracts (bridgers,
+        # executor, factory) work at 800 too, but 500 is safe for everything.
         if [[ "$RPC_URL" == *"tempo"* ]]; then
-            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 800"
+            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
         fi
 
         echo $FORGE_CMD

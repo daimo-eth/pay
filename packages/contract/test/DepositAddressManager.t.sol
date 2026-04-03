@@ -4046,14 +4046,64 @@ contract DepositAddressManagerTest is Test {
         // Fund the fulfillment address (simulating bridged tokens that were never claimed)
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
-
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
         // Execute refund as relayer
+        vm.prank(RELAYER);
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+
+        // Verify refund address received the funds
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+        assertEq(usdc.balanceOf(fulfillmentAddress), 0);
+
+        // Verify fulfillment marked as done
+        assertEq(
+            manager.fulfillmentToRecipient(fulfillmentAddress),
+            manager.ADDR_MAX()
+        );
+    }
+
+    function test_refundFulfillment_SuccessBeforeExpiry() public {
+        // Verify refund works before expiry (no expiry check required)
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        bytes32 relaySalt = keccak256("test-refund-salt");
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+
+        // Fund the fulfillment address
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+
+        // Explicitly verify we are before expiry
+        assertFalse(manager.isDAExpired(params));
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // Refund should succeed even before expiry
         vm.prank(RELAYER);
         manager.refundFulfillment({
             params: params,
@@ -4100,9 +4150,6 @@ contract DepositAddressManagerTest is Test {
 
         // Fund the fulfillment address
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4168,9 +4215,6 @@ contract DepositAddressManagerTest is Test {
         usdc.transfer(fulfillmentAddress, amount1);
         usdc2.transfer(fulfillmentAddress, amount2);
 
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
-
         // Create tokens array with both tokens
         IERC20[] memory tokens = new IERC20[](2);
         tokens[0] = usdc;
@@ -4193,54 +4237,6 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc2.balanceOf(fulfillmentAddress), 0);
     }
 
-    function test_refundFulfillment_AtExactExpiration() public {
-        // Switch to destination chain
-        vm.chainId(DEST_CHAIN_ID);
-
-        DAParams memory params = _createDAParams();
-        address depositAddress = factory.getDepositAddress(params);
-
-        bytes32 relaySalt = keccak256("test-refund-salt");
-        TokenAmount memory bridgeTokenOut = TokenAmount({
-            token: usdc,
-            amount: BRIDGE_AMOUNT
-        });
-
-        // Compute fulfillment address
-        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
-            fulfillment
-        );
-
-        // Fund the fulfillment address
-        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-
-        // Warp to exact expiration timestamp
-        vm.warp(params.expiresAt);
-
-        // Create tokens array
-        IERC20[] memory tokens = new IERC20[](1);
-        tokens[0] = usdc;
-
-        // Execute refund as relayer - should succeed at exact expiration
-        vm.prank(RELAYER);
-        manager.refundFulfillment({
-            params: params,
-            bridgeTokenOut: bridgeTokenOut,
-            relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID,
-            tokens: tokens
-        });
-
-        // Verify refund address received the funds
-        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
-    }
-
     function test_refundFulfillment_ZeroBalance() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
@@ -4254,9 +4250,6 @@ contract DepositAddressManagerTest is Test {
         });
 
         // Don't fund the fulfillment - it has zero balance
-
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4280,51 +4273,6 @@ contract DepositAddressManagerTest is Test {
     // refundFulfillment - Revert cases
     // ---------------------------------------------------------------------
 
-    function test_refundFulfillment_RevertsNotExpired() public {
-        // Switch to destination chain
-        vm.chainId(DEST_CHAIN_ID);
-
-        DAParams memory params = _createDAParams();
-        address depositAddress = factory.getDepositAddress(params);
-
-        bytes32 relaySalt = keccak256("test-refund-salt");
-        TokenAmount memory bridgeTokenOut = TokenAmount({
-            token: usdc,
-            amount: BRIDGE_AMOUNT
-        });
-
-        // Compute fulfillment address
-        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
-            depositAddress: depositAddress,
-            relaySalt: relaySalt,
-            bridgeTokenOut: bridgeTokenOut,
-            sourceChainId: SOURCE_CHAIN_ID
-        });
-        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
-            fulfillment
-        );
-
-        // Fund the fulfillment address
-        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-
-        // Don't warp past expiration
-
-        // Create tokens array
-        IERC20[] memory tokens = new IERC20[](1);
-        tokens[0] = usdc;
-
-        // Expect revert
-        vm.prank(RELAYER);
-        vm.expectRevert("DAM: not expired");
-        manager.refundFulfillment({
-            params: params,
-            bridgeTokenOut: bridgeTokenOut,
-            relaySalt: relaySalt,
-            sourceChainId: SOURCE_CHAIN_ID,
-            tokens: tokens
-        });
-    }
-
     function test_refundFulfillment_RevertsWrongEscrow() public {
         // Switch to destination chain
         vm.chainId(DEST_CHAIN_ID);
@@ -4337,9 +4285,6 @@ contract DepositAddressManagerTest is Test {
             token: usdc,
             amount: BRIDGE_AMOUNT
         });
-
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4383,9 +4328,6 @@ contract DepositAddressManagerTest is Test {
 
         // Fund the fulfillment address
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4432,9 +4374,6 @@ contract DepositAddressManagerTest is Test {
 
         // Fund the hop fulfillment (simulating leg1 bridge arrival that was never hopped)
         usdc.transfer(hopFulfillmentAddress, BRIDGE_AMOUNT);
-
-        // Warp past expiration - the hop never happened
-        vm.warp(params.expiresAt + 1);
 
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
@@ -4534,9 +4473,6 @@ contract DepositAddressManagerTest is Test {
         // Simulate leg2 bridge arrival (tokens land on dest chain but never claimed)
         usdc.transfer(destFulfillmentAddress, BRIDGE_AMOUNT);
 
-        // Warp past expiration
-        vm.warp(params.expiresAt + 1);
-
         // Create tokens array
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
@@ -4610,9 +4546,6 @@ contract DepositAddressManagerTest is Test {
         );
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
 
-        // Warp past expiry
-        vm.warp(params.expiresAt + 1);
-
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
@@ -4677,9 +4610,6 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID
         });
 
-        // Warp past expiry
-        vm.warp(params.expiresAt + 1);
-
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
@@ -4718,9 +4648,8 @@ contract DepositAddressManagerTest is Test {
             fulfillment
         );
 
-        // Fund fulfillment and refund after expiry
+        // Fund fulfillment and refund
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-        vm.warp(params.expiresAt + 1);
 
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
@@ -4786,9 +4715,8 @@ contract DepositAddressManagerTest is Test {
             fulfillment
         );
 
-        // Fund fulfillment and refund after expiry
+        // Fund fulfillment and refund
         usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
-        vm.warp(params.expiresAt + 1);
 
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;

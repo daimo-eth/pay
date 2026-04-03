@@ -86,6 +86,8 @@ for SCRIPT in "${SCRIPTS[@]}"; do
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
         elif [[ "$RPC_URL" == *"hyperliquid"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=999 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+        elif [[ "$RPC_URL" == *"megaeth"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=4326 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
@@ -103,6 +105,22 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         # executor, factory) work at 800 too, but 500 is safe for everything.
         if [[ "$RPC_URL" == *"tempo"* ]]; then
             FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
+        fi
+
+        # MegaETH has a dual gas model: compute gas (standard) + storage gas
+        # (10,000 per byte for code deposit, 50x standard EVM's 200/byte).
+        # Foundry simulates with standard EVM costs, so gas estimates are
+        # far too low for CREATE3 deploys. The inner CREATE in the CREATE3
+        # proxy silently fails (returns address(0)), surfacing as
+        # INITIALIZATION_FAILED. Direct deploys (forge create) work fine
+        # because the node's RPC estimator accounts for storage gas.
+        # Fix: skip Foundry's simulation, use legacy txs, set a high fixed
+        # gas limit. 200M is safe — MegaETH's block gas limit is 10B.
+        # NOTE: --skip-simulation also skips auto-verification. Contracts
+        # must be verified manually after deploy using forge verify-contract
+        # with --verifier-url "https://api.etherscan.io/v2/api?chainid=4326".
+        if [[ "$RPC_URL" == *"megaeth"* ]]; then
+            FORGE_CMD="$FORGE_CMD --legacy --skip-simulation --gas-limit 200000000"
         fi
 
         echo $FORGE_CMD

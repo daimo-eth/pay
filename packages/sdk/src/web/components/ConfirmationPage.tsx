@@ -6,6 +6,7 @@ import { t } from "../hooks/locale.js";
 import { PrimaryButton } from "./buttons.js";
 import { ConfirmationSpinner } from "./ConfirmationSpinner.js";
 import {
+  ContactSupportButton,
   PageHeader,
   ShowReceiptButton,
   TokenIconWithChainBadge,
@@ -139,8 +140,8 @@ export function ConfirmationPage({
           </div>
         )}
 
-        {/* Retry button when user rejected wallet transaction */}
-        {rejected && onRetry && (
+        {/* Retry button for confirming state (wallet popup may have closed) */}
+        {status === "confirming" && onRetry && (
           <PrimaryButton onClick={onRetry}>{t.retryPayment}</PrimaryButton>
         )}
 
@@ -160,11 +161,13 @@ export function ConfirmationPage({
           </p>
         )}
 
-        {/* Show receipt button for waiting/processing/done/refunded states */}
-        {(status === "waiting" ||
-          status === "processing" ||
-          status === "done" ||
-          status === "refunded") && (
+        {/* Receipt link (post-tx states) or contact support (pre-tx states) */}
+        {status === "confirming" ? (
+          <ContactSupportButton
+            subject="Payment help"
+            info={{ sessionId }}
+          />
+        ) : (
           <ShowReceiptButton sessionId={sessionId} baseUrl={baseUrl} />
         )}
       </div>

@@ -178,7 +178,7 @@ export function DaimoModal(props: DaimoModalProps) {
       setShowCloseButton={setShowCloseButton}
     />
   ) : (
-    <SkeletonContent />
+    <SkeletonContent rowCount={3} />
   );
 
   const wrapped = needsAccountProvider ? (
@@ -358,6 +358,7 @@ function DaimoModalInner({
     });
   }
 
+  const isFirstPage = useRef(true);
   useLayoutEffect(() => setPageKey(pageKey), [pageKey, setPageKey]);
   useLayoutEffect(
     () => setShowFooterSpacer(showFooterSpacer),
@@ -368,10 +369,14 @@ function DaimoModalInner({
     [showClose, setShowCloseButton],
   );
 
+  // Skip page-enter animation on first render — container animation handles it
+  const animate = !isFirstPage.current;
+  useEffect(() => { isFirstPage.current = false; }, []);
+
   return (
     <div
       key={pageKey}
-      className="daimo-page-enter daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col"
+      className={`${animate ? "daimo-page-enter " : ""}daimo-flex-1 daimo-min-h-0 daimo-flex daimo-flex-col`}
     >
       {content}
     </div>

@@ -14,14 +14,6 @@ import {
     OFTReceipt
 } from "@stargatefinance/stg-evm-v2/src/interfaces/IStargate.sol";
 
-address constant TEMPO_PATHUSD = 0x20C0000000000000000000000000000000000000;
-address constant TEMPO_LZ_FEE_ADAPTER = 0x0cEb237E109eE22374a567c6b09F373C73FA4cBb;
-
-interface INativeFeeAdapter {
-    function wrap(address token, address to, uint256 amount) external;
-    function approve(address spender, uint256 amount) external returns (bool);
-}
-
 /// @author Daimo, Inc
 /// @custom:security-contact security@daimo.com
 /// @notice Stargate V2 bridger for same-asset cross-chain transfers.
@@ -141,12 +133,18 @@ contract DaimoPayStargateBridger is DaimoPayLayerZeroBridger {
                 IERC20(TEMPO_PATHUSD).balanceOf(address(this)) >= fee.nativeFee,
                 "DPSB: insufficient PathUSD for fee"
             );
-            IERC20(TEMPO_PATHUSD).forceApprove(TEMPO_LZ_FEE_ADAPTER, fee.nativeFee);
+            IERC20(TEMPO_PATHUSD).forceApprove(
+                TEMPO_LZ_FEE_ADAPTER,
+                fee.nativeFee
+            );
             INativeFeeAdapter(TEMPO_LZ_FEE_ADAPTER).wrap(
-                TEMPO_PATHUSD, address(this), fee.nativeFee
+                TEMPO_PATHUSD,
+                address(this),
+                fee.nativeFee
             );
             INativeFeeAdapter(TEMPO_LZ_FEE_ADAPTER).approve(
-                route.app, fee.nativeFee
+                route.app,
+                fee.nativeFee
             );
         } else {
             require(

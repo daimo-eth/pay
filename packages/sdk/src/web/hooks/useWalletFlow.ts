@@ -555,11 +555,9 @@ async function sendEvmTransaction(
   const tokenInfo = token.balance.token;
   const chainId = tokenInfo.chainId;
 
-  const currentChainId = (await ethereum.request({
-    method: "eth_chainId",
-  })) as string;
+  const currentChainId = await ethereum.request({ method: "eth_chainId" });
 
-  if (parseInt(currentChainId, 16) !== chainId) {
+  if (Number(currentChainId) !== chainId) {
     try {
       await ethereum.request({
         method: "wallet_switchEthereumChain",

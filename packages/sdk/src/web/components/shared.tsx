@@ -170,6 +170,7 @@ export function AmountInput({
           {currencySymbol}
         </span>
         <input
+          ref={(el) => { if (el) requestAnimationFrame(() => el.focus()); }}
           type="text"
           inputMode="decimal"
           value={inputValue}
@@ -183,7 +184,6 @@ export function AmountInput({
             maxWidth: "10ch",
             fontSize: "clamp(16px, 30px, 30px)",
           }}
-          autoFocus
         />
       </div>
       <p className={labelClass}>{label}</p>
@@ -303,6 +303,7 @@ export function ScrollContent({
   return (
     <div
       className={`${growClass} daimo-min-h-0 daimo-overflow-y-auto daimo-px-6 ${padClass}${fadeClass}`}
+      style={{ maxHeight: "var(--daimo-scroll-max-height)" }}
       onScroll={onScroll}
     >
       {children}

@@ -19,7 +19,7 @@ import {
     DEPLOY_SALT_AXELAR_BRIDGER,
     DEPLOY_SALT_CCTP_BRIDGER,
     DEPLOY_SALT_CCTP_V2_BRIDGER,
-    DEPLOY_SALT_HOP_BRIDGER,
+    DEPLOY_SALT_PAY_ORDER_HOP_BRIDGER,
     DEPLOY_SALT_LEGACY_MESH_BRIDGER,
     DEPLOY_SALT_STARGATE_BRIDGER
 } from "../DeploySalts.sol";
@@ -76,7 +76,7 @@ contract DeployDaimoPayBridger is Script {
         );
         address hopBridger = CREATE3.getDeployed(
             msg.sender,
-            DEPLOY_SALT_HOP_BRIDGER
+            DEPLOY_SALT_PAY_ORDER_HOP_BRIDGER
         );
         address legacyMeshBridger = CREATE3.getDeployed(
             msg.sender,

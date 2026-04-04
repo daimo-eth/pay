@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "../../src/DaimoPayHopBridger.sol";
 import "../Constants.s.sol";
-import {DEPLOY_SALT_HOP_BRIDGER} from "../DeploySalts.sol";
+import {DEPLOY_SALT_PAY_ORDER_HOP_BRIDGER} from "../DeploySalts.sol";
 import {
     getHopChain,
     getHopBridgeRoutes
@@ -55,7 +55,7 @@ contract DeployDaimoPayHopBridger is Script {
 
         vm.startBroadcast();
         address deployedHopBridger = CREATE3.deploy(
-            DEPLOY_SALT_HOP_BRIDGER,
+            DEPLOY_SALT_PAY_ORDER_HOP_BRIDGER,
             abi.encodePacked(
                 type(DaimoPayHopBridger).creationCode,
                 abi.encode(

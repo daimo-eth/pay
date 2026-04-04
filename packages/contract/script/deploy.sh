@@ -98,13 +98,17 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         fi
 
         # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
-        # txs fail with INITIALIZATION_FAILED). Gas multiplier must balance:
-        #   - Too low (<500): out-of-gas on large contracts (e.g. Manager)
-        #   - Too high (>600): exceeds 30M block gas limit for large contracts
-        # 500 works for all current contracts. Small contracts (bridgers,
-        # executor, factory) work at 800 too, but 500 is safe for everything.
+        # txs fail with INITIALIZATION_FAILED). Tempo charges ~25x normal
+        # gas for contract creation, so Foundry's gas estimates are too low.
+        # Previously used --gas-estimate-multiplier 500, but this breaks for
+        # large contracts (e.g. DaimoPayBridger with many routes). Using
+        # --skip-simulation with a fixed gas limit is more robust. 29M is
+        # safe — Tempo's block gas limit is 30M.
+        # NOTE: --skip-simulation skips auto-verification. Tempo uses
+        # sourcify, so verify manually with:
+        #   forge verify-contract <addr> src/Contract.sol:Name --verifier sourcify --watch
         if [[ "$RPC_URL" == *"tempo"* ]]; then
-            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
+            FORGE_CMD="$FORGE_CMD --legacy --skip-simulation --gas-limit 29000000"
         fi
 
         # MegaETH has a dual gas model: compute gas (standard) + storage gas

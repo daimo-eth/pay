@@ -20,6 +20,7 @@ export const en = {
   continueIn: "Continue in",
   toCompleteYourPayment: "to complete your payment",
   openIn: "Open in",
+  mobileWallets: "Mobile Wallets",
   scanWithPhone: "Scan with your phone to open wallet",
 
   // ExchangePage

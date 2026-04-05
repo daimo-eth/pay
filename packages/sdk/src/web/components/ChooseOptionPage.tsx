@@ -14,7 +14,10 @@ import {
 type ChooseOptionPageProps = {
   node: NavNodeChooseOption;
   injectedWallets?: InjectedWallet[];
+  isLoadingWallets?: boolean;
+  isDesktop: boolean;
   connectedAddress?: string | null;
+  onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
   baseUrl: string;
@@ -23,7 +26,10 @@ type ChooseOptionPageProps = {
 export function ChooseOptionPage({
   node,
   injectedWallets = [],
+  isLoadingWallets = false,
+  isDesktop,
   connectedAddress,
+  onInjectedWalletSelect,
   onNavigate,
   onBack,
   baseUrl,
@@ -86,9 +92,13 @@ export function ChooseOptionPage({
         ) : (
           <div className="daimo-flex daimo-flex-col daimo-gap-3">
             {enabledOptions.map((option) => (
-              <OptionRow
+              <DesktopOptionRow
                 key={option.id}
                 option={option}
+                injectedWallets={injectedWallets}
+                isLoadingWallets={isLoadingWallets}
+                isDesktop={isDesktop}
+                onInjectedWalletSelect={onInjectedWalletSelect}
                 onClick={() => onNavigate(option.id)}
                 baseUrl={baseUrl}
               />
@@ -96,7 +106,12 @@ export function ChooseOptionPage({
             {disabledOptions.map((option) => (
               <OptionRow
                 key={option.id}
-                option={option}
+                option={getDisplayOption(
+                  option,
+                  injectedWallets,
+                  isLoadingWallets,
+                  isDesktop,
+                )}
                 onClick={() => {}}
                 baseUrl={baseUrl}
                 disabled
@@ -120,6 +135,77 @@ export function ChooseOptionPage({
         </a>
       )}
     </div>
+  );
+}
+
+function DesktopOptionRow({
+  option,
+  injectedWallets,
+  isLoadingWallets,
+  isDesktop,
+  onInjectedWalletSelect,
+  onClick,
+  baseUrl,
+}: {
+  option: NavNode;
+  injectedWallets: InjectedWallet[];
+  isLoadingWallets: boolean;
+  isDesktop: boolean;
+  onInjectedWalletSelect: (wallet: InjectedWallet) => void;
+  onClick: () => void;
+  baseUrl: string;
+}) {
+  if (
+    !isDesktopWalletOption(option, isDesktop) ||
+    isLoadingWallets ||
+    injectedWallets.length === 0
+  ) {
+    return (
+      <OptionRow
+        option={getDisplayOption(option, injectedWallets, isLoadingWallets, isDesktop)}
+        onClick={onClick}
+        baseUrl={baseUrl}
+      />
+    );
+  }
+
+  return (
+    <>
+      {injectedWallets.map((wallet) => (
+        <InjectedWalletRow
+          key={wallet.info.rdns}
+          wallet={wallet}
+          onClick={() => onInjectedWalletSelect(wallet)}
+        />
+      ))}
+      <OptionRow
+        option={getMobileWalletsOption(option)}
+        onClick={onClick}
+        baseUrl={baseUrl}
+      />
+    </>
+  );
+}
+
+function InjectedWalletRow({
+  wallet,
+  onClick,
+}: {
+  wallet: InjectedWallet;
+  onClick: () => void;
+}) {
+  return (
+    <ListRow
+      label={wallet.info.name}
+      right={
+        <img
+          src={wallet.info.icon}
+          alt={wallet.info.name}
+          className="daimo-w-8 daimo-h-8 daimo-object-contain daimo-rounded-[25%]"
+        />
+      }
+      onClick={onClick}
+    />
   );
 }
 
@@ -159,6 +245,56 @@ function GridOptionCell({
       </span>
     </button>
   );
+}
+
+function isDesktopWalletOption(
+  option: NavNode,
+  isDesktop: boolean,
+): option is NavNodeChooseOption {
+  return isDesktop && option.type === "ChooseOption" && option.id === "SelectWallet";
+}
+
+function getDisplayOption(
+  option: NavNode,
+  injectedWallets: InjectedWallet[],
+  isLoadingWallets: boolean,
+  isDesktop: boolean,
+): NavNode {
+  if (
+    !isDesktopWalletOption(option, isDesktop) ||
+    isLoadingWallets ||
+    injectedWallets.length > 0
+  ) {
+    return option;
+  }
+  return getMobileWalletsOption(option);
+}
+
+function getMobileWalletsOption(option: NavNodeChooseOption): NavNodeChooseOption {
+  const icons = getNestedOptionIcons(option.options);
+  return {
+    ...option,
+    label: t.mobileWallets,
+    icons: icons.length > 0 ? icons : option.icons,
+  };
+}
+
+function getNestedOptionIcons(options: NavNode[], maxIcons = 4): string[] {
+  const icons: string[] = [];
+
+  for (const option of options) {
+    const nextIcons =
+      option.type === "ChooseOption"
+        ? getNestedOptionIcons(option.options, maxIcons - icons.length)
+        : getOptionIcons(option);
+
+    for (const icon of nextIcons) {
+      icons.push(icon);
+      if (icons.length === maxIcons) return icons;
+    }
+  }
+
+  return icons;
 }
 
 function OptionRow({

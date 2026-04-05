@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatUnits } from "viem";
 import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
+import { isDesktop, type DaimoPlatform } from "../platform.js";
 import { PrimaryButton } from "./buttons.js";
 import { PageHeader, TokenIconWithChainBadge } from "./shared.js";
 
-/** Check if device supports touch (to avoid autofocus on mobile) */
-function isTouchDevice(): boolean {
-  if (typeof window === "undefined") return false;
-  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
-}
-
 type WalletAmountPageProps = {
   token: WalletPaymentOption;
+  platform: DaimoPlatform;
   onBack: () => void;
   onContinue: (amountUsd: number) => void;
   baseUrl: string;
@@ -22,6 +18,7 @@ type WalletAmountPageProps = {
 /** Amount entry page for wallet payment flow */
 export function WalletAmountPage({
   token,
+  platform,
   onBack,
   onContinue,
   baseUrl,
@@ -134,11 +131,7 @@ export function WalletAmountPage({
     updateValues(usdStr, tokenStr, !isEditingUsd);
   };
 
-  // Autofocus only on non-touch devices to avoid keyboard popup
-  const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
-  useEffect(() => {
-    setShouldAutoFocus(!isTouchDevice());
-  }, []);
+  const shouldAutoFocus = isDesktop(platform);
 
   // Dynamic input width
   const currentValue = isEditingUsd ? usdStr : tokenStr;

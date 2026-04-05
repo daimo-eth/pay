@@ -1,6 +1,7 @@
 import type { NavNode, NavNodeChooseOption } from "../api/navTree.js";
 import type { InjectedWallet } from "../hooks/useInjectedWallets.js";
 
+import { t } from "../hooks/locale.js";
 import { OptionIcons } from "./ChooseOptionPage.js";
 import {
   ListRow,
@@ -13,6 +14,7 @@ import {
 type ChooseWalletPageProps = {
   node: NavNodeChooseOption;
   injectedWallets: InjectedWallet[];
+  isDesktop?: boolean;
   onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onNavigate: (nodeId: string) => void;
   onBack: (() => void) | null;
@@ -23,6 +25,7 @@ type ChooseWalletPageProps = {
 export function ChooseWalletPage({
   node,
   injectedWallets,
+  isDesktop = false,
   onInjectedWalletSelect,
   onNavigate,
   onBack,
@@ -32,25 +35,29 @@ export function ChooseWalletPage({
   const injectedNames = new Set(
     injectedWallets.map((w) => w.info.name.toLowerCase()),
   );
-  const deeplinkOptions = node.options.filter(
-    (option) =>
-      option.type !== "Deeplink" ||
-      !injectedNames.has(option.title.toLowerCase()),
-  );
+  const deeplinkOptions = isDesktop
+    ? flattenWalletOptions(node.options)
+    : node.options.filter(
+        (option) =>
+          option.type !== "Deeplink" ||
+          !injectedNames.has(option.title.toLowerCase()),
+      );
+  const title = isDesktop ? t.mobileWallets : node.title;
 
   return (
     <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-      <PageHeader title={node.title} onBack={onBack} borderVisible={scrolled} />
+      <PageHeader title={title} onBack={onBack} borderVisible={scrolled} />
 
       <ScrollContent onScroll={onScroll} grow={false}>
         <div className="daimo-flex daimo-flex-col daimo-gap-3">
-          {injectedWallets.map((w) => (
-            <InjectedWalletRow
-              key={w.info.rdns}
-              wallet={w}
-              onClick={() => onInjectedWalletSelect(w)}
-            />
-          ))}
+          {!isDesktop &&
+            injectedWallets.map((w) => (
+              <InjectedWalletRow
+                key={w.info.rdns}
+                wallet={w}
+                onClick={() => onInjectedWalletSelect(w)}
+              />
+            ))}
 
           {deeplinkOptions.map((option) => (
             <WalletOptionRow
@@ -63,6 +70,14 @@ export function ChooseWalletPage({
         </div>
       </ScrollContent>
     </div>
+  );
+}
+
+function flattenWalletOptions(options: NavNode[]): NavNode[] {
+  return options.flatMap((option) =>
+    option.type === "ChooseOption"
+      ? flattenWalletOptions(option.options)
+      : [option],
   );
 }
 

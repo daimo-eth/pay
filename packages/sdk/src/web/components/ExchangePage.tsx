@@ -1,8 +1,8 @@
 import type { NavNodeCashApp, NavNodeExchange } from "../api/navTree.js";
 
-import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
+import { isDesktop, type DaimoPlatform } from "../platform.js";
 import {
   CenteredContent,
   PageHeader,
@@ -13,6 +13,7 @@ import { QRCode } from "./QRCode.js";
 
 type ExchangePageProps = {
   node: NavNodeExchange | NavNodeCashApp;
+  platform: DaimoPlatform;
   exchangeUrl?: string;
   waitingMessage?: string;
   expiresAt?: number;
@@ -24,13 +25,14 @@ type ExchangePageProps = {
 
 export function ExchangePage({
   node,
+  platform,
   exchangeUrl,
   waitingMessage,
   isLoading,
   onBack,
   baseUrl,
 }: ExchangePageProps) {
-  const desktop = isDesktopBrowser();
+  const desktop = isDesktop(platform);
   const exchangeId = node.type === "CashApp" ? "CashApp" : node.exchangeId;
   const showQR = desktop && exchangeId !== "Coinbase";
 

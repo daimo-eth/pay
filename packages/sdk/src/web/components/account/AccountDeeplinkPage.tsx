@@ -3,7 +3,7 @@ import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
-import { isDesktopBrowser } from "../../isDesktopBrowser.js";
+import { isDesktop, type DaimoPlatform } from "../../platform.js";
 import { PrimaryButton } from "../buttons.js";
 import { ExternalLinkIcon } from "../icons.js";
 import { QRCode } from "../QRCode.js";
@@ -15,6 +15,7 @@ type AccountDeeplinkPageProps = {
   sessionId: string;
   clientSecret: string;
   baseUrl: string;
+  platform: DaimoPlatform;
   icon?: string;
   onBack: () => void;
   onAdvance: () => void;
@@ -25,6 +26,7 @@ export function AccountDeeplinkPage({
   sessionId,
   clientSecret,
   baseUrl,
+  platform,
   icon,
   onBack,
   onAdvance,
@@ -34,7 +36,7 @@ export function AccountDeeplinkPage({
 
   const depositState = accountFlow?.depositState;
   const bankUrl = depositState?.payment?.qrUrl;
-  const desktop = isDesktopBrowser();
+  const desktop = isDesktop(platform);
 
   // Find the selected institution's deeplink for the "Open" button
   const selectedInstitution = depositState?.payment?.institutions.find(
@@ -81,7 +83,7 @@ export function AccountDeeplinkPage({
           </p>
           {selectedInstitution && (
             <PrimaryButton
-              onClick={() => openDeeplink(selectedInstitution.deeplink)}
+              onClick={() => openDeeplink(selectedInstitution.deeplink, platform)}
               icon={<ExternalLinkIcon size={14} />}
             >
               {t.open} {selectedInstitution.name}

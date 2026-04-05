@@ -1,9 +1,12 @@
 import type { DepositDeeplink } from "../../../common/account.js";
-import { isDesktopBrowser } from "../../isDesktopBrowser.js";
+import { isDesktop, type DaimoPlatform } from "../../platform.js";
 
 /** Execute a provider deeplink in the user's browser. */
-export function openDeeplink(deeplink: DepositDeeplink): void {
-  const desktop = isDesktopBrowser();
+export function openDeeplink(
+  deeplink: DepositDeeplink,
+  platform: DaimoPlatform,
+): void {
+  const desktop = isDesktop(platform);
 
   if (!desktop) {
     const url =

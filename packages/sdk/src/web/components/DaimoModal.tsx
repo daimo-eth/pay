@@ -42,6 +42,7 @@ import {
   useInjectedWallets,
   type InjectedWallet,
 } from "../hooks/useInjectedWallets.js";
+import { detectPlatform, isDesktop, type DaimoPlatform } from "../platform.js";
 import { useWalletFlow } from "../hooks/useWalletFlow.js";
 import { PrimaryButton } from "./buttons.js";
 import { ChooseChainPage } from "./ChooseChainPage.js";
@@ -86,8 +87,8 @@ export type DaimoModalProps = DaimoModalEventHandlers & {
   connectToAddress?: Address;
   /** Render inline instead of as a floating modal. */
   embedded?: boolean;
-  /** Caller's platform. Affects exchange deeplink generation. Auto-detected. */
-  platform?: "ios" | "android" | "other";
+  /** Caller's platform. Prefer "desktop" or "mobile"; legacy values still work. Auto-detected. */
+  platform?: DaimoPlatform;
   /** URL to navigate to after successful payment. */
   returnUrl?: string;
   /** Text shown on successful payment. Button label if returnUrl set, otherwise plain text. */
@@ -277,7 +278,16 @@ function DaimoModalInner({
   );
 
   const accountFlow = useAccountFlow();
-  const nav = useSessionNav(session, setSession, isOpen, platform, walletFlow, accountFlow);
+  const resolvedPlatform = platform ?? detectPlatform();
+  const desktop = isDesktop(resolvedPlatform);
+  const nav = useSessionNav(
+    session,
+    setSession,
+    isOpen,
+    resolvedPlatform,
+    walletFlow,
+    accountFlow,
+  );
 
   useEffect(() => {
     const top = nav.topEntry;
@@ -349,6 +359,8 @@ function DaimoModalInner({
       onRefresh: nav.handleRefresh,
       injectedWallets,
       isLoadingWallets,
+      platform: resolvedPlatform,
+      isDesktop: desktop,
       onInjectedWalletSelect: nav.handleInjectedWalletSelect,
       onChainSelect: nav.handleChainSelect,
       walletFlow,
@@ -396,6 +408,8 @@ type RenderContext = {
   onRefresh: () => Promise<void>;
   injectedWallets: InjectedWallet[];
   isLoadingWallets: boolean;
+  platform: DaimoPlatform;
+  isDesktop: boolean;
   onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onChainSelect: (chain: "evm" | "solana") => void;
   walletFlow: {
@@ -425,7 +439,10 @@ function renderEntry(
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
           injectedWallets={ctx.injectedWallets}
+          isLoadingWallets={ctx.isLoadingWallets}
           connectedAddress={ctx.walletFlow.connectedAddress}
+          isDesktop={ctx.isDesktop}
+          onInjectedWalletSelect={ctx.onInjectedWalletSelect}
           onNavigate={ctx.onNavigate}
           onBack={null}
           baseUrl={ctx.session.baseUrl}
@@ -447,6 +464,7 @@ function renderEntry(
           <ChooseWalletPage
             node={node}
             injectedWallets={ctx.injectedWallets}
+            isDesktop={ctx.isDesktop}
             onInjectedWalletSelect={ctx.onInjectedWalletSelect}
             onNavigate={ctx.onNavigate}
             onBack={ctx.canGoBack ? ctx.onBack : null}
@@ -458,7 +476,10 @@ function renderEntry(
         <ChooseOptionPage
           node={node}
           injectedWallets={ctx.injectedWallets}
+          isLoadingWallets={ctx.isLoadingWallets}
           connectedAddress={ctx.walletFlow.connectedAddress}
+          isDesktop={ctx.isDesktop}
+          onInjectedWalletSelect={ctx.onInjectedWalletSelect}
           onNavigate={ctx.onNavigate}
           onBack={ctx.canGoBack ? ctx.onBack : null}
           baseUrl={ctx.session.baseUrl}
@@ -474,6 +495,7 @@ function renderEntry(
       return (
         <DeeplinkPage
           node={node}
+          platform={ctx.platform}
           onBack={ctx.canGoBack ? ctx.onBack : null}
           baseUrl={ctx.session.baseUrl}
         />
@@ -550,6 +572,7 @@ function renderEntry(
         <AccountBankPickerPage
           region={entry.region}
           sessionId={ctx.session.sessionId}
+          platform={ctx.platform}
           onBack={ctx.onBack}
           onSelect={() => ctx.onAccountAdvance("account-deeplink")}
         />
@@ -562,6 +585,7 @@ function renderEntry(
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}
+          platform={ctx.platform}
           icon={accountNode?.type === "AccountDeposit" ? accountNode.icon : undefined}
           onBack={ctx.onBack}
           onAdvance={() => ctx.onAccountAdvance("account-status")}
@@ -749,6 +773,7 @@ function renderExchangePage(
   return (
     <ExchangePage
       node={node}
+      platform={ctx.platform}
       exchangeUrl={entry.exchangeUrl}
       waitingMessage={entry.waitingMessage}
       expiresAt={entry.expiresAt}
@@ -871,6 +896,7 @@ function renderWalletSelectAmount(
   return (
     <WalletAmountPage
       token={entry.token}
+      platform={ctx.platform}
       onBack={ctx.onBack}
       onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)}
       baseUrl={ctx.session.baseUrl}

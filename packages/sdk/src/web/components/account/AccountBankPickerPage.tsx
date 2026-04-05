@@ -5,6 +5,7 @@ import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
 import { useCreateDeposit } from "../../hooks/useCreateDeposit.js";
+import type { DaimoPlatform } from "../../platform.js";
 import { ErrorPage } from "../ErrorPage.js";
 import { PageHeader, ScrollContent, TextInput } from "../shared.js";
 import { openDeeplink } from "./openDeeplink.js";
@@ -12,6 +13,7 @@ import { openDeeplink } from "./openDeeplink.js";
 type AccountBankPickerPageProps = {
   region: AccountRegion;
   sessionId: string;
+  platform: DaimoPlatform;
   onBack: () => void;
   onSelect: () => void;
 };
@@ -24,6 +26,7 @@ type AccountBankPickerPageProps = {
 export function AccountBankPickerPage({
   region,
   sessionId,
+  platform,
   onBack,
   onSelect,
 }: AccountBankPickerPageProps) {
@@ -67,10 +70,10 @@ export function AccountBankPickerPage({
         selectedInstitutionId: institution.id,
       });
 
-      openDeeplink(institution.deeplink);
+      openDeeplink(institution.deeplink, platform);
       onSelect();
     },
-    [accountFlow, onSelect],
+    [accountFlow, onSelect, platform],
   );
 
   const skeletonBg = "var(--daimo-skeleton, #e5e7eb)";

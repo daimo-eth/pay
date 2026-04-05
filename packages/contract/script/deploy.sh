@@ -60,6 +60,7 @@ CHAINS=(
     # "https://hyperliquid-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
 
     # "https://linea-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+    # "https://megaeth-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://monad-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://opt-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
     # "https://polygon-mainnet.g.alchemy.com/v2/$ALCHEMY_API_KEY"
@@ -85,6 +86,8 @@ for SCRIPT in "${SCRIPTS[@]}"; do
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier sourcify --broadcast"
         elif [[ "$RPC_URL" == *"hyperliquid"* ]]; then
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=999 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
+        elif [[ "$RPC_URL" == *"megaeth"* ]]; then
+            FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --verifier etherscan --verifier-url https://api.etherscan.io/v2/api?chainid=4326 --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         else
             FORGE_CMD="forge script $SCRIPT --sig run --fork-url $RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --broadcast"
         fi
@@ -95,13 +98,33 @@ for SCRIPT in "${SCRIPTS[@]}"; do
         fi
 
         # Tempo requires legacy transactions for CREATE3 deploys (EIP-1559
-        # txs fail with INITIALIZATION_FAILED). Gas multiplier must balance:
-        #   - Too low (<500): out-of-gas on large contracts (e.g. Manager)
-        #   - Too high (>600): exceeds 30M block gas limit for large contracts
-        # 500 works for all current contracts. Small contracts (bridgers,
-        # executor, factory) work at 800 too, but 500 is safe for everything.
+        # txs fail with INITIALIZATION_FAILED). Tempo charges ~25x normal
+        # gas for contract creation, so Foundry's gas estimates are too low.
+        # Previously used --gas-estimate-multiplier 500, but this breaks for
+        # large contracts (e.g. DaimoPayBridger with many routes). Using
+        # --skip-simulation with a fixed gas limit is more robust. 29M is
+        # safe — Tempo's block gas limit is 30M.
+        # NOTE: --skip-simulation skips auto-verification. Tempo uses
+        # sourcify, so verify manually with:
+        #   forge verify-contract <addr> src/Contract.sol:Name --verifier sourcify --watch
         if [[ "$RPC_URL" == *"tempo"* ]]; then
-            FORGE_CMD="$FORGE_CMD --legacy --gas-estimate-multiplier 500"
+            FORGE_CMD="$FORGE_CMD --legacy --skip-simulation --gas-limit 29000000"
+        fi
+
+        # MegaETH has a dual gas model: compute gas (standard) + storage gas
+        # (10,000 per byte for code deposit, 50x standard EVM's 200/byte).
+        # Foundry simulates with standard EVM costs, so gas estimates are
+        # far too low for CREATE3 deploys. The inner CREATE in the CREATE3
+        # proxy silently fails (returns address(0)), surfacing as
+        # INITIALIZATION_FAILED. Direct deploys (forge create) work fine
+        # because the node's RPC estimator accounts for storage gas.
+        # Fix: skip Foundry's simulation, use legacy txs, set a high fixed
+        # gas limit. 200M is safe — MegaETH's block gas limit is 10B.
+        # NOTE: --skip-simulation also skips auto-verification. Contracts
+        # must be verified manually after deploy using forge verify-contract
+        # with --verifier-url "https://api.etherscan.io/v2/api?chainid=4326".
+        if [[ "$RPC_URL" == *"megaeth"* ]]; then
+            FORGE_CMD="$FORGE_CMD --legacy --skip-simulation --gas-limit 200000000"
         fi
 
         echo $FORGE_CMD

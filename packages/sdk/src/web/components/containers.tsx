@@ -25,10 +25,17 @@ function usePageHeightMorph(
   pageKey: string | undefined,
 ) {
   const prevKey = useRef(pageKey);
+  const isFirst = useRef(true);
 
   useEffect(() => {
     if (prevKey.current === pageKey) return;
     prevKey.current = pageKey;
+
+    // Skip height morph on first render — container animation handles it
+    if (isFirst.current) {
+      isFirst.current = false;
+      return;
+    }
 
     const el = ref.current;
     if (!el) return;
@@ -71,7 +78,7 @@ export function ModalContainer({
     "daimo-modal-backdrop daimo-fixed daimo-inset-0 daimo-z-50 daimo-bg-black/50";
 
   const contentClass =
-    "daimo-modal-content daimo-relative daimo-w-full daimo-max-w-[420px] daimo-max-h-[90vh] daimo-overflow-y-auto daimo-bg-[var(--daimo-surface)] daimo-rounded-t-[var(--daimo-radius-xl)] sm:daimo-rounded-[var(--daimo-radius-xl)] daimo-shadow-lg daimo-flex daimo-flex-col";
+    "daimo-modal-content daimo-relative daimo-w-full daimo-max-w-[420px] daimo-max-h-[90vh] daimo-overflow-hidden daimo-bg-[var(--daimo-surface)] daimo-rounded-t-[var(--daimo-radius-xl)] sm:daimo-rounded-[var(--daimo-radius-xl)] daimo-shadow-lg daimo-flex daimo-flex-col";
 
   const contentRef = useRef<HTMLDivElement>(null);
   usePageHeightMorph(contentRef, pageKey);
@@ -80,8 +87,8 @@ export function ModalContainer({
     <>
       {/* Backdrop with fade-in - click to close */}
       <div className={backdropClass} onClick={onClose} />
-      {/* Modal container - bottom aligned for thumb reachability */}
-      <div className="daimo-fixed daimo-inset-x-0 daimo-bottom-0 daimo-z-50 daimo-flex daimo-justify-center daimo-pointer-events-none daimo-px-0 sm:daimo-px-4 sm:daimo-pb-4">
+      {/* Modal container - bottom on mobile, centered on desktop */}
+      <div className="daimo-fixed daimo-inset-0 daimo-z-50 daimo-flex daimo-justify-center daimo-items-end sm:daimo-items-center daimo-pointer-events-none daimo-px-0 sm:daimo-px-4">
         <div
           ref={contentRef}
           className={`daimo-pointer-events-auto ${contentClass}`}

@@ -38,6 +38,9 @@
   --daimo-qr-bg: #ffffff;
   --daimo-qr-dot: #373737;
 
+  /* Layout */
+  --daimo-scroll-max-height: 20rem; /* 4 list rows + gaps + padding */
+
   /* Radius */
   --daimo-radius-sm: 0.5rem;
   --daimo-radius-md: 0.75rem;
@@ -139,6 +142,23 @@
 
 .daimo-modal-content {
   animation: daimo-modal-slide-up 200ms ease-out forwards;
+}
+
+@media (min-width: 640px) {
+  .daimo-modal-content {
+    animation: daimo-modal-fade-in 200ms ease-out forwards;
+  }
+}
+
+@keyframes daimo-modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes daimo-modal-slide-up {

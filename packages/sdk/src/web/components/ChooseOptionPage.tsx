@@ -106,12 +106,7 @@ export function ChooseOptionPage({
             {disabledOptions.map((option) => (
               <OptionRow
                 key={option.id}
-                option={getDisplayOption(
-                  option,
-                  injectedWallets,
-                  isLoadingWallets,
-                  isDesktop,
-                )}
+                option={option}
                 onClick={() => {}}
                 baseUrl={baseUrl}
                 disabled
@@ -162,7 +157,7 @@ function DesktopOptionRow({
   ) {
     return (
       <OptionRow
-        option={getDisplayOption(option, injectedWallets, isLoadingWallets, isDesktop)}
+        option={option}
         onClick={onClick}
         baseUrl={baseUrl}
       />
@@ -252,22 +247,6 @@ function isDesktopWalletOption(
   isDesktop: boolean,
 ): option is NavNodeChooseOption {
   return isDesktop && option.type === "ChooseOption" && option.id === "SelectWallet";
-}
-
-function getDisplayOption(
-  option: NavNode,
-  injectedWallets: InjectedWallet[],
-  isLoadingWallets: boolean,
-  isDesktop: boolean,
-): NavNode {
-  if (
-    !isDesktopWalletOption(option, isDesktop) ||
-    isLoadingWallets ||
-    injectedWallets.length > 0
-  ) {
-    return option;
-  }
-  return getMobileWalletsOption(option);
 }
 
 function getMobileWalletsOption(option: NavNodeChooseOption): NavNodeChooseOption {

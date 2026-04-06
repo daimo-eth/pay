@@ -363,6 +363,7 @@ function DaimoModalInner({
       isDesktop: desktop,
       onInjectedWalletSelect: nav.handleInjectedWalletSelect,
       onChainSelect: nav.handleChainSelect,
+      onShowMobileWallets: nav.handleShowMobileWallets,
       walletFlow,
       onWalletSelectToken: nav.handleWalletSelectToken,
       onWalletSending: nav.handleWalletSending,
@@ -417,6 +418,7 @@ type RenderContext = {
   isDesktop: boolean;
   onInjectedWalletSelect: (wallet: InjectedWallet) => void;
   onChainSelect: (chain: "evm" | "solana") => void;
+  onShowMobileWallets: (nodeId: string) => void;
   walletFlow: {
     wallet: { evmAddress: string | null; solAddress: string | null } | null;
     connectedAddress: string | null;
@@ -444,10 +446,7 @@ function renderEntry(
         <ChooseOptionPage
           node={rootNode as NavNodeChooseOption}
           injectedWallets={ctx.injectedWallets}
-          isLoadingWallets={ctx.isLoadingWallets}
           connectedAddress={ctx.walletFlow.connectedAddress}
-          isDesktop={ctx.isDesktop}
-          onInjectedWalletSelect={ctx.onInjectedWalletSelect}
           onNavigate={ctx.onNavigate}
           onBack={null}
           baseUrl={ctx.session.baseUrl}
@@ -468,9 +467,11 @@ function renderEntry(
         return (
           <ChooseWalletPage
             node={node}
+            variant="wallet-list"
             injectedWallets={ctx.injectedWallets}
             isDesktop={ctx.isDesktop}
             onInjectedWalletSelect={ctx.onInjectedWalletSelect}
+            onShowMobileWallets={() => ctx.onShowMobileWallets(node.id)}
             onNavigate={ctx.onNavigate}
             onBack={ctx.canGoBack ? ctx.onBack : null}
             baseUrl={ctx.session.baseUrl}
@@ -481,8 +482,24 @@ function renderEntry(
         <ChooseOptionPage
           node={node}
           injectedWallets={ctx.injectedWallets}
-          isLoadingWallets={ctx.isLoadingWallets}
           connectedAddress={ctx.walletFlow.connectedAddress}
+          onNavigate={ctx.onNavigate}
+          onBack={ctx.canGoBack ? ctx.onBack : null}
+          baseUrl={ctx.session.baseUrl}
+        />
+      );
+    }
+    case "wallet-mobile-grid": {
+      const node = findNode(
+        entry.nodeId,
+        ctx.session.navTree,
+      ) as NavNodeChooseOption | null;
+      if (!node) return null;
+      return (
+        <ChooseWalletPage
+          node={node}
+          variant="mobile-wallet-grid"
+          injectedWallets={ctx.injectedWallets}
           isDesktop={ctx.isDesktop}
           onInjectedWalletSelect={ctx.onInjectedWalletSelect}
           onNavigate={ctx.onNavigate}
@@ -814,7 +831,7 @@ function renderWalletConnect(
             className="daimo-w-20 daimo-h-20 daimo-object-contain daimo-rounded-[25%]"
           />
         )}
-        {walletFlow.isConnecting && (
+        {walletFlow.isConnecting && !entry.walletName && (
           <span className="daimo-text-[var(--daimo-text-muted)]">
             {t.loading}
           </span>

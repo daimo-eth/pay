@@ -47,6 +47,8 @@ type SessionNavResult = {
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
 
+  handleShowMobileWallets: (nodeId: string) => void;
+
   /** Advance account flow to the next screen. */
   handleAccountAdvance: (nextType: NavEntry["type"]) => void;
 };
@@ -720,6 +722,16 @@ export function useSessionNav(
     [topEntry, fireWalletSend],
   );
 
+  const handleShowMobileWallets = useCallback(
+    (nodeId: string) => {
+      setStack((prev) => [
+        ...prev,
+        { type: "wallet-mobile-grid", nodeId },
+      ]);
+    },
+    [],
+  );
+
   // ─── Internal effects ──────────────────────────────────────────────────
 
   // Auto-navigate through single-option ChooseOption chains
@@ -793,6 +805,7 @@ export function useSessionNav(
       handleRefresh,
       handleInjectedWalletSelect,
       handleChainSelect,
+      handleShowMobileWallets,
       handleWalletSelectToken,
       handleWalletSending,
       handleAccountAdvance,
@@ -809,6 +822,7 @@ export function useSessionNav(
       handleRefresh,
       handleInjectedWalletSelect,
       handleChainSelect,
+      handleShowMobileWallets,
       handleWalletSelectToken,
       handleWalletSending,
       handleAccountAdvance,

@@ -224,18 +224,9 @@ function flattenWalletOptions(options: NavNode[]): NavNode[] {
 }
 
 function getNestedOptionIcons(options: NavNode[], maxIcons = 4): string[] {
-  const icons: string[] = [];
-  for (const option of options) {
-    const nextIcons =
-      option.type === "ChooseOption"
-        ? getNestedOptionIcons(option.options, maxIcons - icons.length)
-        : getOptionIcons(option);
-    for (const icon of nextIcons) {
-      icons.push(icon);
-      if (icons.length === maxIcons) return icons;
-    }
-  }
-  return icons;
+  return flattenWalletOptions(options)
+    .flatMap(getOptionIcons)
+    .slice(0, maxIcons);
 }
 
 function InjectedWalletRow({

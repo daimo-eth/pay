@@ -12,7 +12,6 @@ import type { WalletPaymentOption } from "../api/walletTypes.js";
 import {
   detectPlatform,
   isDesktop,
-  toServerPlatform,
   type DaimoPlatform,
 } from "../platform.js";
 import { useDaimoClient } from "./DaimoClientContext.js";
@@ -169,7 +168,7 @@ export function useSessionNav(
               type: "exchange",
               exchangeId,
               amountUsd,
-              platform: toServerPlatform(effectivePlatform),
+              platform: effectivePlatform,
             },
           },
         );

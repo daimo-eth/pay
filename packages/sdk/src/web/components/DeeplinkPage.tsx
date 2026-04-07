@@ -1,20 +1,26 @@
 import type { NavNodeDeeplink } from "../api/navTree.js";
 
-import { isDesktopBrowser } from "../isDesktopBrowser.js";
 import { ExternalLinkIcon, PrimaryButton } from "./buttons.js";
 import { t } from "../hooks/locale.js";
+import { isDesktop, type DaimoPlatform } from "../platform.js";
 import { CenteredContent, PageHeader, PageLogo, resolveIconUrl } from "./shared.js";
 import { QRCode } from "./QRCode.js";
 
 type DeeplinkPageProps = {
   node: NavNodeDeeplink;
+  platform: DaimoPlatform;
   onBack: (() => void) | null;
   baseUrl: string;
 };
 
 /** Mobile wallet deeplink page. Opens directly on mobile; shows as QR code on desktop. */
-export function DeeplinkPage({ node, onBack, baseUrl }: DeeplinkPageProps) {
-  const desktop = isDesktopBrowser();
+export function DeeplinkPage({
+  node,
+  platform,
+  onBack,
+  baseUrl,
+}: DeeplinkPageProps) {
+  const desktop = isDesktop(platform);
 
   if (desktop) {
     return (

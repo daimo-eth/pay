@@ -4,6 +4,8 @@ import type { TronAddress, UUID } from "./primitives.js";
 import { zAddress, zSolanaAddress } from "./primitives.js";
 import type { SessionPublicInfo } from "./session.js";
 
+const zPlatform = z.enum(["ios", "android", "other", "desktop", "mobile"]);
+
 export const zSessionId = z
   .string()
   .describe("Session ID");
@@ -23,7 +25,7 @@ export const zCreatePaymentMethodRequest = z.object({
       type: z.literal("exchange"),
       exchangeId: z.enum(["Coinbase", "Binance", "Lemon", "CashApp"]),
       amountUsd: z.number().positive(),
-      platform: z.enum(["ios", "android", "other"]).optional(),
+      platform: zPlatform.optional(),
     }),
     z.object({ type: z.literal("account_deposit") }),
   ]),

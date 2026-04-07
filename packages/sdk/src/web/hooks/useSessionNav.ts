@@ -9,7 +9,11 @@ import type {
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 
-import { isDesktopBrowser } from "../isDesktopBrowser.js";
+import {
+  detectPlatform,
+  isDesktop,
+  type DaimoPlatform,
+} from "../platform.js";
 import { useDaimoClient } from "./DaimoClientContext.js";
 import { formatUserError } from "./formatUserError.js";
 import { t } from "./locale.js";
@@ -42,6 +46,8 @@ type SessionNavResult = {
   handleWalletSelectToken: (token: WalletPaymentOption) => void;
   handleWalletSending: (token: WalletPaymentOption, amountUsd: number) => void;
 
+  handleShowMobileWallets: (nodeId: string) => void;
+
   /** Advance account flow to the next screen. */
   handleAccountAdvance: (nextType: NavEntry["type"]) => void;
 };
@@ -64,12 +70,11 @@ export function useSessionNav(
   session: SessionWithNav,
   setSession: React.Dispatch<React.SetStateAction<SessionWithNav>>,
   isOpen: boolean,
-  platform?: "ios" | "android" | "other",
+  platform?: DaimoPlatform,
   walletFlow?: WalletFlowResult,
   accountFlow?: AccountFlowState | null,
 ): SessionNavResult {
-  const effectivePlatform =
-    platform ?? (isDesktopBrowser() ? "other" : "android");
+  const effectivePlatform = platform ?? detectPlatform();
   const client = useDaimoClient();
   const logNavEvent = createNavLogger(client);
 
@@ -292,7 +297,7 @@ export function useSessionNav(
           action: "nav_deeplink",
           url: targetNode.url,
         });
-        if (!isDesktopBrowser()) {
+        if (!isDesktop(effectivePlatform)) {
           window.open(targetNode.url, "_blank");
         }
       }
@@ -716,6 +721,16 @@ export function useSessionNav(
     [topEntry, fireWalletSend],
   );
 
+  const handleShowMobileWallets = useCallback(
+    (nodeId: string) => {
+      setStack((prev) => [
+        ...prev,
+        { type: "wallet-mobile-grid", nodeId },
+      ]);
+    },
+    [],
+  );
+
   // ─── Internal effects ──────────────────────────────────────────────────
 
   // Auto-navigate through single-option ChooseOption chains
@@ -789,6 +804,7 @@ export function useSessionNav(
       handleRefresh,
       handleInjectedWalletSelect,
       handleChainSelect,
+      handleShowMobileWallets,
       handleWalletSelectToken,
       handleWalletSending,
       handleAccountAdvance,
@@ -805,6 +821,7 @@ export function useSessionNav(
       handleRefresh,
       handleInjectedWalletSelect,
       handleChainSelect,
+      handleShowMobileWallets,
       handleWalletSelectToken,
       handleWalletSending,
       handleAccountAdvance,

@@ -17,6 +17,7 @@ export const es: typeof en = {
   continueIn: "Continuar en",
   toCompleteYourPayment: "para completar tu pago",
   openIn: "Abrir en",
+  mobileWallets: "Billeteras móviles",
   scanWithPhone: "Escanea con tu teléfono para abrir la billetera",
   continueTo: "Continuar a",
   toCompleteYourDeposit: "para completar tu depósito",

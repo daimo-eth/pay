@@ -29,13 +29,7 @@ export function ChooseOptionPage({
   baseUrl,
 }: ChooseOptionPageProps) {
   const { scrolled, onScroll } = useScrollBorder();
-  const injectedNames = new Set(
-    injectedWallets.map((w) => w.info.name.toLowerCase()),
-  );
   const allOptions = node.options
-    .filter(
-      (o) => o.type !== "Deeplink" || !injectedNames.has(o.title.toLowerCase()),
-    )
     // Replace generic ConnectedWallet icon/label with actual wallet info
     .map((o) => {
       if (o.type !== "ConnectedWallet") return o;

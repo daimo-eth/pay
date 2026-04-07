@@ -41,6 +41,8 @@ export const es: typeof en = {
   enterAmount: "Ingresar monto",
   max: "Máx",
   balance: "Saldo:",
+  recipientGets: "El destinatario recibe",
+  recipientReceives: "El destinatario recibe",
   error: "Error",
   reload: "Recargar",
   unknownError: "error desconocido",

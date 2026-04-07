@@ -405,6 +405,7 @@ type RenderContext = {
     navTree: NavNode[];
     baseUrl: string;
     destination: { amountUnits?: string };
+    fees?: SessionWithNav["fees"];
   };
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
@@ -716,10 +717,14 @@ function renderWaitingDeposit(
     node.tokenSuffix === "USDC" || node.tokenSuffix === "USDT"
       ? node.tokenSuffix
       : undefined;
+  // For fixed-amount sessions with a user fee, the server's quote tells us
+  // the net dest amount the recipient will receive.
+  const recipientUsd = ctx.session.fees?.user.quote?.destUsd;
   return (
     <WaitingDepositAddressPage
       node={node}
       amountUsd={entry.amountUsd}
+      recipientUsd={recipientUsd}
       selectedToken={selectedToken}
       sessionId={ctx.session.sessionId}
       clientSecret={ctx.session.clientSecret}
@@ -919,6 +924,7 @@ function renderWalletSelectAmount(
     <WalletAmountPage
       token={entry.token}
       platform={ctx.platform}
+      userFeeRule={ctx.session.fees?.user.rule}
       onBack={ctx.onBack}
       onContinue={(amountUsd) => ctx.onWalletSending(entry.token, amountUsd)}
       baseUrl={ctx.session.baseUrl}

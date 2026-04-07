@@ -30,6 +30,11 @@ const DA_LIFETIME_S = 3600;
 type WaitingDepositAddressPageProps = {
   node: NavNodeDepositAddress;
   amountUsd: number;
+  /**
+   * Net dest USD shown as a "Recipient receives" subtitle when a user fee
+   * applies. Omitted when there is no fee — page is byte-identical to today.
+   */
+  recipientUsd?: number;
   selectedToken?: DepositToken;
   sessionId: string;
   clientSecret?: string;
@@ -42,6 +47,7 @@ type WaitingDepositAddressPageProps = {
 export function WaitingDepositAddressPage({
   node,
   amountUsd,
+  recipientUsd,
   selectedToken,
   sessionId,
   clientSecret = "",
@@ -129,6 +135,11 @@ export function WaitingDepositAddressPage({
             suffix={tokenSuffix}
             disabled={isExpired}
           />
+          {recipientUsd != null && recipientUsd > 0 && (
+            <p className="daimo-text-xs daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-tabular-nums">
+              {t.recipientReceives} ${recipientUsd.toFixed(2)}
+            </p>
+          )}
         </div>
 
         <Countdown remainingS={remainingS} isExpired={isExpired} totalS={DA_LIFETIME_S} />

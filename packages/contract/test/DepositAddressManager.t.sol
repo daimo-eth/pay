@@ -4064,10 +4064,10 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
         assertEq(usdc.balanceOf(fulfillmentAddress), 0);
 
-        // Verify fulfillment marked as done
+        // Verify fulfillment state unchanged (no ADDR_MAX marking)
         assertEq(
             manager.fulfillmentToRecipient(fulfillmentAddress),
-            manager.ADDR_MAX()
+            address(0)
         );
     }
 
@@ -4117,10 +4117,10 @@ contract DepositAddressManagerTest is Test {
         assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
         assertEq(usdc.balanceOf(fulfillmentAddress), 0);
 
-        // Verify fulfillment marked as done
+        // Verify fulfillment state unchanged (no ADDR_MAX marking)
         assertEq(
             manager.fulfillmentToRecipient(fulfillmentAddress),
-            manager.ADDR_MAX()
+            address(0)
         );
     }
 
@@ -4551,7 +4551,7 @@ contract DepositAddressManagerTest is Test {
 
         // Refund should revert — relayer already fast-finished
         vm.prank(RELAYER);
-        vm.expectRevert("DAM: already finished");
+        vm.expectRevert("DAM: pending fast-finish");
         manager.refundFulfillment({
             params: params,
             bridgeTokenOut: bridgeTokenOut,
@@ -4561,7 +4561,7 @@ contract DepositAddressManagerTest is Test {
         });
     }
 
-    function test_refundFulfillment_RevertsAfterClaim() public {
+    function test_refundFulfillment_SweepAfterClaim() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DAParams memory params = _createDAParams();
@@ -4613,9 +4613,8 @@ contract DepositAddressManagerTest is Test {
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = usdc;
 
-        // Refund should revert — already claimed
+        // Refund succeeds after claim (sweep any stray tokens)
         vm.prank(RELAYER);
-        vm.expectRevert("DAM: already finished");
         manager.refundFulfillment({
             params: params,
             bridgeTokenOut: bridgeTokenOut,
@@ -4623,9 +4622,12 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID,
             tokens: tokens
         });
+
+        // Nothing to sweep — fulfillment was already drained by claim
+        assertEq(usdc.balanceOf(fulfillmentAddress), 0);
     }
 
-    function test_claim_RevertsAfterRefundFulfillment() public {
+    function test_claim_SucceedsAfterRefundFulfillment() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DAParams memory params = _createDAParams();
@@ -4678,9 +4680,8 @@ contract DepositAddressManagerTest is Test {
         );
         Call[] memory calls = new Call[](0);
 
-        // Claim should revert — already refunded
+        // Claim succeeds after refund — this is the core dust attack fix
         vm.prank(RELAYER);
-        vm.expectRevert("DAM: already claimed");
         manager.claim({
             params: params,
             calls: calls,
@@ -4690,9 +4691,12 @@ contract DepositAddressManagerTest is Test {
             relaySalt: relaySalt,
             sourceChainId: SOURCE_CHAIN_ID
         });
+
+        // Verify recipient received the funds
+        assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
     }
 
-    function test_refundFulfillment_RevertsDoubleRefund() public {
+    function test_refundFulfillment_DoubleRefundSucceeds() public {
         vm.chainId(DEST_CHAIN_ID);
 
         DAParams memory params = _createDAParams();
@@ -4730,9 +4734,8 @@ contract DepositAddressManagerTest is Test {
             tokens: tokens
         });
 
-        // Second refund should revert
+        // Second refund succeeds (harmless no-op, sweeps 0)
         vm.prank(RELAYER);
-        vm.expectRevert("DAM: already finished");
         manager.refundFulfillment({
             params: params,
             bridgeTokenOut: bridgeTokenOut,
@@ -4740,6 +4743,81 @@ contract DepositAddressManagerTest is Test {
             sourceChainId: SOURCE_CHAIN_ID,
             tokens: tokens
         });
+
+        // All funds went to refund address from first refund
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), BRIDGE_AMOUNT);
+    }
+
+    function test_refundFulfillment_DustThenClaimSucceeds() public {
+        // Core regression test: dust attack should not lock bridge funds
+        vm.chainId(DEST_CHAIN_ID);
+
+        DAParams memory params = _createDAParams();
+        address depositAddress = factory.getDepositAddress(params);
+
+        TokenAmount memory bridgeTokenOut = TokenAmount({
+            token: usdc,
+            amount: BRIDGE_AMOUNT
+        });
+
+        bytes32 relaySalt = keccak256("test-salt");
+
+        DAFulfillmentParams memory fulfillment = DAFulfillmentParams({
+            depositAddress: depositAddress,
+            relaySalt: relaySalt,
+            bridgeTokenOut: bridgeTokenOut,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+        (address fulfillmentAddress, ) = manager.computeFulfillmentAddress(
+            fulfillment
+        );
+
+        // 1. Attacker sends dust to the fulfillment address
+        usdc.transfer(fulfillmentAddress, 1);
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = usdc;
+
+        // 2. Relayer calls refundFulfillment (pulls dust)
+        vm.prank(RELAYER);
+        manager.refundFulfillment({
+            params: params,
+            bridgeTokenOut: bridgeTokenOut,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID,
+            tokens: tokens
+        });
+        assertEq(usdc.balanceOf(REFUND_ADDRESS), 1);
+
+        // 3. Real bridge funds arrive
+        usdc.transfer(fulfillmentAddress, BRIDGE_AMOUNT);
+
+        // 4. Claim succeeds — funds are NOT stuck
+        PriceData memory bridgeTokenOutPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        PriceData memory toTokenPrice = _createSignedPriceData(
+            address(usdc),
+            USDC_PRICE,
+            block.timestamp
+        );
+        Call[] memory calls = new Call[](0);
+
+        vm.prank(RELAYER);
+        manager.claim({
+            params: params,
+            calls: calls,
+            bridgeTokenOut: bridgeTokenOut,
+            bridgeTokenOutPrice: bridgeTokenOutPrice,
+            toTokenPrice: toTokenPrice,
+            relaySalt: relaySalt,
+            sourceChainId: SOURCE_CHAIN_ID
+        });
+
+        // Recipient received bridge funds
+        assertEq(usdc.balanceOf(RECIPIENT), BRIDGE_AMOUNT);
     }
 
     // ---------------------------------------------------------------------

@@ -5,7 +5,7 @@ import type { AccountRegion, EnrollmentResponse } from "../../../common/account.
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
-import { PrimaryButton } from "../buttons.js";
+import { PrimaryButton, SecondaryButton } from "../buttons.js";
 import { ErrorPage } from "../ErrorPage.js";
 import { ErrorIcon } from "../icons.js";
 import { ProgressPulse } from "../ProgressPulse.js";
@@ -23,6 +23,7 @@ const POLLING_ACTIONS = new Set([
   "kyc_required",
   "kyc_retry",
   "kyc_pending_review",
+  "hosted_agreement_required",
   "provider_pending",
 ]);
 
@@ -33,8 +34,12 @@ const FORWARD_FROM_KYC = new Set([
   "kyc_pending_review",
   "kyc_retry",
   "kyc_rejected_final",
+  "not_eligible",
+  "hosted_agreement_required",
   "provider_pending",
   "active",
+  "suspended",
+  "error",
 ]);
 
 /**
@@ -47,6 +52,8 @@ const FORWARD_FROM_KYC = new Set([
  *   kyc_retry          → retry banner + SumSub widget
  *   kyc_pending_review → pulsing dots, "reviewing your documents"
  *   kyc_rejected_final → terminal error
+ *   not_eligible       → terminal error
+ *   hosted_agreement_required → hosted provider agreement page, poll until signed
  *   provider_pending   → pulsing dots, "setting up your account"
  *   active             → auto-advance to payment
  *   suspended          → terminal error
@@ -63,14 +70,17 @@ export function AccountEnrollmentPage({
   const [response, setResponse] = useState<EnrollmentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [kycAccepted, setKycAccepted] = useState(false);
+  const [isCheckingTos, setIsCheckingTos] = useState(false);
   const started = useRef(false);
   const responseRef = useRef<EnrollmentResponse | null>(null);
+  const readyTimeoutRef = useRef<number | null>(null);
   // After KYC submit, suppress stale responses until webhook arrives
   const awaitingWebhook = useRef(false);
 
   const fetchEnrollment = useCallback(async () => {
     if (!account) return;
     const isInitial = responseRef.current == null;
+    const previousAction = responseRef.current?.action;
     if (isInitial) setIsLoading(true);
 
     let result: EnrollmentResponse | null;
@@ -83,6 +93,7 @@ export function AccountEnrollmentPage({
     }
 
     if (isInitial) setIsLoading(false);
+    setIsCheckingTos(false);
     if (!result) return;
 
     // While awaiting webhook, only accept forward progress
@@ -92,6 +103,24 @@ export function AccountEnrollmentPage({
       } else {
         return;
       }
+    }
+
+    if (
+      previousAction === "hosted_agreement_required"
+      && result.action === "active"
+    ) {
+      const pending: EnrollmentResponse = { action: "provider_pending" };
+      responseRef.current = pending;
+      setResponse(pending);
+      if (readyTimeoutRef.current != null) {
+        window.clearTimeout(readyTimeoutRef.current);
+      }
+      readyTimeoutRef.current = window.setTimeout(() => {
+        responseRef.current = result;
+        setResponse(result);
+        onReady();
+      }, 900);
+      return;
     }
 
     if (result.action === "active") {
@@ -127,6 +156,14 @@ export function AccountEnrollmentPage({
     const interval = setInterval(fetchEnrollment, 2000);
     return () => clearInterval(interval);
   }, [response?.action, fetchEnrollment]);
+
+  useEffect(() => {
+    return () => {
+      if (readyTimeoutRef.current != null) {
+        window.clearTimeout(readyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // --- Render ---
 
@@ -180,6 +217,19 @@ export function AccountEnrollmentPage({
         />
       );
 
+    case "hosted_agreement_required":
+      return (
+        <HostedAgreementPage
+          step={response}
+          isChecking={isCheckingTos}
+          onRefresh={async () => {
+            setIsCheckingTos(true);
+            await fetchEnrollment();
+          }}
+          onBack={onBack}
+        />
+      );
+
     case "provider_pending":
       return (
         <EnrollmentWaiting
@@ -194,6 +244,15 @@ export function AccountEnrollmentPage({
           title={t.accountEnrollmentRejected}
           message={response.reason}
           sessionId={sessionId}
+        />
+      );
+
+    case "not_eligible":
+      return (
+        <EnrollmentIneligible
+          message={response.reason}
+          sessionId={sessionId}
+          onBack={onBack}
         />
       );
 
@@ -315,6 +374,64 @@ function TrustSignal({ icon, label }: { icon: "lock" | "eye-off" | "clock"; labe
   );
 }
 
+function EnrollmentIneligible({
+  message,
+  sessionId,
+  onBack,
+}: {
+  message: string;
+  sessionId: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+      <PageHeader title={t.accountRegionUnavailableTitle} onBack={onBack} />
+      <CenteredContent>
+        <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-4 daimo-px-6 daimo-text-center">
+          <div
+            className="daimo-flex daimo-h-16 daimo-w-16 daimo-items-center daimo-justify-center daimo-rounded-full"
+            style={{ backgroundColor: "var(--daimo-warning-light, var(--daimo-surface-secondary))" }}
+          >
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: "var(--daimo-warning, #f59e0b)" }}
+              aria-hidden="true"
+            >
+              <path d="M12 3 2.8 19a1 1 0 0 0 .87 1.5h16.66A1 1 0 0 0 21.2 19z" />
+              <path d="M12 9v4.5" />
+              <path d="M12 17h.01" />
+            </svg>
+          </div>
+          <div className="daimo-flex daimo-flex-col daimo-gap-2">
+            <h2 className="daimo-text-xl daimo-font-semibold daimo-text-[var(--daimo-text)]">
+              {t.accountRegionUnavailableHeading}
+            </h2>
+            <p className="daimo-text-sm daimo-leading-relaxed daimo-text-[var(--daimo-text-secondary)]">
+              {t.accountRegionUnavailableDescription}
+            </p>
+          </div>
+        </div>
+      </CenteredContent>
+      <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-3 daimo-px-6 daimo-pb-6">
+        <SecondaryButton onClick={onBack}>
+          {t.accountRegionUnavailableCta}
+        </SecondaryButton>
+        <ContactSupportButton
+          subject={t.accountRegionUnavailableTitle}
+          info={{ sessionId, error: message }}
+        />
+      </div>
+    </div>
+  );
+}
+
 /** Terminal error — specific title, error icon, message, and support link. */
 function EnrollmentTerminal({
   title,
@@ -365,6 +482,97 @@ function EnrollmentWaiting({
       </CenteredContent>
     </div>
   );
+}
+
+/** Hosted provider agreement iframe. Polling drives completion. */
+function HostedAgreementPage({
+  step,
+  isChecking,
+  onRefresh,
+  onBack,
+}: {
+  step: Extract<EnrollmentResponse, { action: "hosted_agreement_required" }>;
+  isChecking: boolean;
+  onRefresh: () => Promise<void>;
+  onBack: () => void;
+}) {
+  const openTos = useCallback(() => {
+    if (postNativeOpenUrl(step.url)) return;
+    window.open(step.url, "_blank", "noopener,noreferrer");
+  }, [step.url]);
+
+  return (
+    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+      <PageHeader title={step.title} onBack={onBack} />
+
+      <div className="daimo-flex-1 daimo-min-h-0 daimo-overflow-y-auto daimo-px-6 daimo-pb-4">
+        <div className="daimo-mx-auto daimo-flex daimo-w-full daimo-max-w-[420px] daimo-flex-col daimo-gap-4">
+          <p className="daimo-px-2 daimo-text-xs daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed">
+            {step.description}
+          </p>
+
+          <div
+            className="daimo-w-full daimo-overflow-hidden daimo-rounded-[20px] daimo-border daimo-bg-white"
+            style={{
+              height: "clamp(400px, 58vh, 600px)",
+              borderColor: "var(--daimo-border)",
+              boxShadow: "0 12px 40px rgba(15, 23, 42, 0.08)",
+            }}
+          >
+            <iframe
+              src={step.url}
+              title={step.title}
+              className="daimo-block daimo-h-full daimo-w-full daimo-border-0"
+            />
+          </div>
+
+          <p className="daimo-mx-auto daimo-max-w-[320px] daimo-text-[11px] daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed">
+            {step.fallbackDescription}
+          </p>
+        </div>
+      </div>
+
+      <div className="daimo-mx-auto daimo-w-full daimo-max-w-[420px] daimo-shrink-0 daimo-px-6 daimo-pb-6 daimo-flex daimo-flex-col daimo-gap-3">
+        <button
+          type="button"
+          onClick={openTos}
+          disabled={isChecking}
+          className="daimo-w-full daimo-min-h-[44px] daimo-rounded-[var(--daimo-radius-lg)] daimo-px-4 daimo-text-sm daimo-font-medium daimo-transition-[background-color] daimo-duration-100 daimo-ease"
+          style={{
+            color: "var(--daimo-text)",
+            backgroundColor: "var(--daimo-surface-secondary)",
+            touchAction: "manipulation",
+          }}
+        >
+          {step.openExternalLabel}
+        </button>
+        <PrimaryButton
+          onClick={() => void onRefresh()}
+          disabled={isChecking}
+          className="daimo-max-w-none"
+        >
+          {isChecking ? t.accountProviderPending : step.continueLabel}
+        </PrimaryButton>
+        <p className="daimo-text-[11px] daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed daimo-px-4">
+          {isChecking
+            ? step.checkingDescription
+            : step.autoContinueDescription}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function postNativeOpenUrl(url: string): boolean {
+  const w = window as {
+    webkit?: {
+      messageHandlers?: { daimoPay?: { postMessage(m: unknown): void } };
+    };
+  };
+  const handler = w.webkit?.messageHandlers?.daimoPay;
+  if (!handler) return false;
+  handler.postMessage({ type: "openUrl", url });
+  return true;
 }
 
 /** SumSub identity verification widget. */

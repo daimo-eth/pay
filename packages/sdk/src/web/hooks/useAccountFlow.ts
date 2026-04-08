@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 
-import type { AccountRegion, DepositPaymentInfo, EnrollmentResponse } from "../../common/account.js";
+import type {
+  AccountRegion,
+  DepositPaymentInfo,
+  EnrollmentResponse,
+  GetAccountResponse,
+} from "../../common/account.js";
 import type { DaimoClient } from "../../client/createDaimoClient.js";
 
 /** Privy hooks registered by AccountFlowProvider's PrivyConsumer. */
@@ -54,7 +59,7 @@ export type AccountFlowState = {
     client: DaimoClient,
     session: SessionContext,
     region: AccountRegion,
-  ) => Promise<{ nextAction: string } | null>;
+  ) => Promise<GetAccountResponse | null>;
   startEnrollment: (
     client: DaimoClient,
     region: AccountRegion,
@@ -199,7 +204,7 @@ export function useAccountFlowState(): AccountFlowState {
       client: DaimoClient,
       session: SessionContext,
       region: AccountRegion,
-    ): Promise<{ nextAction: string } | null> => {
+    ): Promise<GetAccountResponse | null> => {
       const token = await getAccessToken();
       if (!token) return null;
       try {
@@ -220,10 +225,7 @@ export function useAccountFlowState(): AccountFlowState {
     ): Promise<EnrollmentResponse | null> => {
       const token = await getAccessToken();
       if (!token) return null;
-      return client.account.startEnrollment(
-        { region },
-        { bearerToken: token },
-      );
+      return client.account.startEnrollment({ region }, { bearerToken: token });
     },
     [getAccessToken],
   );

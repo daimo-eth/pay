@@ -258,7 +258,14 @@ export function useSessionNav(
           if (result.nextAction === "ready_for_payment") {
             setStack((prev) => [
               ...prev,
-              { type: "account-payment", nodeId, region, autoNav },
+              {
+                type: result.depositsEnabled
+                  ? "account-payment"
+                  : "account-ready",
+                nodeId,
+                region,
+                autoNav,
+              },
             ]);
             return;
           }

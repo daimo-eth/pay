@@ -53,14 +53,17 @@ import { EmbeddedContainer, ModalContainer } from "./containers.js";
 import { DeeplinkPage } from "./DeeplinkPage.js";
 import { ExchangePage } from "./ExchangePage.js";
 import { ExpiredPage } from "./ExpiredPage.js";
-import { AccountBankPickerPage } from "./account/AccountBankPickerPage.js";
+import { AccountUsAchDetailsPage } from "./account/AccountBankDetailsPage.js";
+import { AccountCanadaBankPickerPage } from "./account/AccountBankPickerPage.js";
 import { AccountCreatingWalletPage } from "./account/AccountCreatingWalletPage.js";
 import { AccountDeeplinkPage } from "./account/AccountDeeplinkPage.js";
 import { AccountEmailPage } from "./account/AccountEmailPage.js";
 import { AccountEnrollmentPage } from "./account/AccountEnrollmentPage.js";
 import { AccountOtpPage } from "./account/AccountOtpPage.js";
 import { AccountPaymentPage } from "./account/AccountPaymentPage.js";
+import { AccountReadyPage } from "./account/AccountReadyPage.js";
 import { AccountStatusPage } from "./account/AccountStatusPage.js";
+import { getAccountPaymentAdvanceTarget } from "./account/accountNav.js";
 import { SelectAmountPage } from "./SelectAmountPage.js";
 import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
@@ -586,17 +589,30 @@ function renderEntry(
           region={entry.region}
           sessionId={ctx.session.sessionId}
           onBack={ctx.onBack}
-          onAdvance={() => ctx.onAccountAdvance("account-bank-picker")}
+          onAdvance={() => ctx.onAccountAdvance(
+            getAccountPaymentAdvanceTarget(entry.region),
+          )}
         />
       );
-    case "account-bank-picker":
+    case "account-ready":
+      return <AccountReadyPage />;
+    case "account-canada-bank-picker":
       return (
-        <AccountBankPickerPage
+        <AccountCanadaBankPickerPage
           region={entry.region}
           sessionId={ctx.session.sessionId}
           platform={ctx.platform}
           onBack={ctx.onBack}
           onSelect={() => ctx.onAccountAdvance("account-deeplink")}
+        />
+      );
+    case "account-us-ach-details":
+      return (
+        <AccountUsAchDetailsPage
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          onBack={ctx.onBack}
+          onAdvance={() => ctx.onAccountAdvance("account-status")}
         />
       );
     case "account-deeplink": {

@@ -10,7 +10,7 @@ import { ErrorPage } from "../ErrorPage.js";
 import { PageHeader, ScrollContent, TextInput } from "../shared.js";
 import { openDeeplink } from "./openDeeplink.js";
 
-type AccountBankPickerPageProps = {
+type AccountCanadaBankPickerPageProps = {
   region: AccountRegion;
   sessionId: string;
   platform: DaimoPlatform;
@@ -19,17 +19,17 @@ type AccountBankPickerPageProps = {
 };
 
 /**
- * Bank picker with background deposit creation.
+ * Canada bank picker with background deposit creation.
  * Shows skeleton tiles while signing + createDeposit runs.
- * On bank click: opens deeplink in new tab + advances to waiting screen.
+ * On bank click: opens the institution deeplink and advances to the waiting screen.
  */
-export function AccountBankPickerPage({
+export function AccountCanadaBankPickerPage({
   region,
   sessionId,
   platform,
   onBack,
   onSelect,
-}: AccountBankPickerPageProps) {
+}: AccountCanadaBankPickerPageProps) {
   const client = useDaimoClient();
   const accountFlow = useAccountFlow();
   const [search, setSearch] = useState("");

@@ -7,12 +7,28 @@ export type AccountRegion = "CA" | "US";
 export type NextAction = "create_account" | "enrollment" | "ready_for_payment";
 export type ExistingAccountNextAction = Exclude<NextAction, "create_account">;
 
+export type AccountDepositAvailability = {
+  depositsEnabled: boolean;
+};
+
 /** Enrollment state machine response from startEnrollment. */
 export type EnrollmentResponse =
   | { action: "kyc_required"; kycToken: string }
   | { action: "kyc_retry"; kycToken: string; reason: string }
   | { action: "kyc_pending_review" }
   | { action: "kyc_rejected_final"; reason: string }
+  | { action: "not_eligible"; reason: string }
+  | {
+      action: "hosted_agreement_required";
+      title: string;
+      description: string;
+      url: string;
+      openExternalLabel: string;
+      continueLabel: string;
+      fallbackDescription: string;
+      autoContinueDescription: string;
+      checkingDescription: string;
+    }
   | { action: "provider_pending" }
   | { action: "active" }
   | { action: "suspended"; reason: string }
@@ -31,10 +47,10 @@ export type GetAccountResponse =
       account: null;
       nextAction: "create_account";
     }
-  | {
+  | ({
       account: AccountInfo;
       nextAction: ExistingAccountNextAction;
-    };
+    } & AccountDepositAvailability);
 
 /** POST /v1/internal/account response. */
 export type CreateAccountResponse = {

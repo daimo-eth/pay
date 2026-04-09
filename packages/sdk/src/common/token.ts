@@ -40,6 +40,7 @@ export type Token = {
 
 export enum TokenLogo {
   BNB = "https://daimo.com/coin-logos/bnb.png",
+  CADC = "https://loon.finance/assets/cadc-3d-0z3reSiq.png",
   CELO = "https://daimo.com/coin-logos/celo.png",
   cUSD = "https://daimo.com/coin-logos/cusd.png",
   DAI = "https://daimo.com/coin-logos/dai.png",
@@ -161,7 +162,7 @@ export const baseCADC: Token = token({
   symbol: "CADC",
   fiatISO: "CAD",
   decimals: 18,
-  logoURI: TokenLogo.USDC,
+  logoURI: TokenLogo.CADC,
 });
 
 export const baseEURC: Token = token({

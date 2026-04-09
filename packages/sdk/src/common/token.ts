@@ -40,7 +40,7 @@ export type Token = {
 
 export enum TokenLogo {
   BNB = "https://daimo.com/coin-logos/bnb.png",
-  CADC = "https://loon.finance/assets/cadc-3d-0z3reSiq.png",
+  CADC = "https://daimo.com/coin-logos/cadc.png",
   CELO = "https://daimo.com/coin-logos/celo.png",
   cUSD = "https://daimo.com/coin-logos/cusd.png",
   DAI = "https://daimo.com/coin-logos/dai.png",

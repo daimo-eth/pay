@@ -40,6 +40,7 @@ export type Token = {
 
 export enum TokenLogo {
   BNB = "https://daimo.com/coin-logos/bnb.png",
+  CADC = "https://daimo.com/coin-logos/cadc.png",
   CELO = "https://daimo.com/coin-logos/celo.png",
   cUSD = "https://daimo.com/coin-logos/cusd.png",
   DAI = "https://daimo.com/coin-logos/dai.png",
@@ -154,6 +155,16 @@ export const baseUSDC: Token = token({
   logoURI: TokenLogo.USDC,
 });
 
+export const baseCADC: Token = token({
+  chainId: base.chainId,
+  token: getAddress("0x043eB4B75d0805c43D7C834902E335621983Cf03"),
+  name: "CAD Coin",
+  symbol: "CADC",
+  fiatISO: "CAD",
+  decimals: 18,
+  logoURI: TokenLogo.CADC,
+});
+
 export const baseEURC: Token = token({
   chainId: base.chainId,
   token: getAddress("0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"),
@@ -198,6 +209,7 @@ const baseTokens: Token[] = [
   baseETH,
   baseWETH,
   baseUSDC,
+  baseCADC,
   baseEURC,
   baseUSDbC,
   baseDAI,

@@ -78,10 +78,6 @@ export const es: typeof en = {
     "Esta cuenta no puede usar esta región.",
   accountRegionUnavailableCta: "Volver",
   accountPayment: "Ingresa el monto",
-  accountReadyTitle: "Cuenta lista",
-  accountReadyHeading: "Tu cuenta está lista",
-  accountReadyDescription:
-    "Tu cuenta ya está configurada y lista para recibir depósitos. Enviar fondos desde este flujo estará disponible pronto.",
   accountResendCode: "Reenviar código",
   accountVerify: "Verificar",
   accountSubmit: "Enviar",

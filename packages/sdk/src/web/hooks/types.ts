@@ -69,7 +69,6 @@ export type NavEntry =
   | ({ type: "account-creating-wallet" } & AccountNavBase)
   | ({ type: "account-enrollment" } & AccountNavBase)
   | ({ type: "account-payment" } & AccountNavBase)
-  | ({ type: "account-ready" } & AccountNavBase)
   | ({ type: "account-canada-bank-picker" } & AccountNavBase)
   | ({ type: "account-us-ach-details" } & AccountNavBase)
   | ({ type: "account-deeplink" } & AccountNavBase)

@@ -107,10 +107,6 @@ export const en = {
     "This account cannot use this region.",
   accountRegionUnavailableCta: "Go back",
   accountPayment: "Enter amount",
-  accountReadyTitle: "Account ready",
-  accountReadyHeading: "Your account is ready",
-  accountReadyDescription:
-    "Your account is set up and ready to receive deposits. Sending funds from this flow will be enabled soon.",
   accountResendCode: "Resend code",
   accountVerify: "Verify",
   accountSubmit: "Submit",

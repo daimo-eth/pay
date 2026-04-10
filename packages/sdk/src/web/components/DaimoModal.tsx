@@ -61,7 +61,6 @@ import { AccountEmailPage } from "./account/AccountEmailPage.js";
 import { AccountEnrollmentPage } from "./account/AccountEnrollmentPage.js";
 import { AccountOtpPage } from "./account/AccountOtpPage.js";
 import { AccountPaymentPage } from "./account/AccountPaymentPage.js";
-import { AccountReadyPage } from "./account/AccountReadyPage.js";
 import { AccountStatusPage } from "./account/AccountStatusPage.js";
 import { getAccountPaymentAdvanceTarget } from "./account/accountNav.js";
 import { SelectAmountPage } from "./SelectAmountPage.js";
@@ -594,8 +593,6 @@ function renderEntry(
           )}
         />
       );
-    case "account-ready":
-      return <AccountReadyPage />;
     case "account-canada-bank-picker":
       return (
         <AccountCanadaBankPickerPage

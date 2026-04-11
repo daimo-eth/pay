@@ -33,24 +33,42 @@ function openFormPost(deeplink: DepositDeeplink & { type: "form-post" }) {
   if (!popup) return;
 
   setTimeout(() => {
+    if (popup.closed) return;
     popup.location.href = "about:blank";
-    setTimeout(() => {
-      popup.document.open();
-      const fields = Object.entries(deeplink.formFields)
-        .map(([k, v]) => `<input type="hidden" name="${escAttr(k)}" value="${escAttr(v)}"/>`)
-        .join("\n");
-      popup.document.write(
-        `<html><body>` +
-        `<p style="font-family:system-ui;color:#666;text-align:center;margin-top:40vh">` +
-        `Connecting to your bank\u2026</p>` +
-        `<form id="f" method="POST" action="${escAttr(deeplink.formAction)}">` +
-        `${fields}</form>` +
-        `<script>document.getElementById('f').submit();</script>` +
-        `</body></html>`,
-      );
-      popup.document.close();
-    }, 500);
+    writeFormPostPage(popup, deeplink);
   }, deeplink.warmDelayMs);
+}
+
+function writeFormPostPage(
+  popup: Window,
+  deeplink: DepositDeeplink & { type: "form-post" },
+  attempt = 0,
+) {
+  if (popup.closed) return;
+  try {
+    popup.document.open();
+    const fields = Object.entries(deeplink.formFields)
+      .map(([k, v]) => `<input type="hidden" name="${escAttr(k)}" value="${escAttr(v)}"/>`)
+      .join("\n");
+    popup.document.write(
+      `<html><body>` +
+      `<p style="font-family:system-ui;color:#666;text-align:center;margin-top:40vh">` +
+      `Connecting to your bank\u2026</p>` +
+      `<form id="f" method="POST" action="${escAttr(deeplink.formAction)}">` +
+      `${fields}</form>` +
+      `<script>document.getElementById('f').submit();</script>` +
+      `</body></html>`,
+    );
+    popup.document.close();
+  } catch (error) {
+    if (attempt >= 20) {
+      console.error("[openDeeplink] failed to prepare form-post popup:", error);
+      return;
+    }
+    setTimeout(() => {
+      writeFormPostPage(popup, deeplink, attempt + 1);
+    }, 100);
+  }
 }
 
 /** Escape a string for safe embedding in an HTML attribute (double-quoted). */

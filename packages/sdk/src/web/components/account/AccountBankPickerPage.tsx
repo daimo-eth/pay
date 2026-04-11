@@ -3,7 +3,10 @@ import { useCallback, useMemo, useState } from "react";
 import type { AccountRegion, DepositInstitution } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
-import { useAccountFlow } from "../../hooks/useAccountFlow.js";
+import {
+  useAccountFlow,
+  useSessionDepositState,
+} from "../../hooks/useAccountFlow.js";
 import { useCreateDeposit } from "../../hooks/useCreateDeposit.js";
 import type { DaimoPlatform } from "../../platform.js";
 import { ErrorPage } from "../ErrorPage.js";
@@ -14,12 +17,14 @@ type AccountCanadaBankPickerPageProps = {
   region: AccountRegion;
   sessionId: string;
   platform: DaimoPlatform;
-  onBack: () => void;
+  onBack?: (() => void) | null;
   onSelect: () => void;
 };
 
 /**
- * Canada bank picker with background deposit creation.
+ * Canada bank picker with background deposit creation. This screen is the
+ * point of no return for the current session: once it loads, the signed
+ * deposit request is being created and the amount is no longer editable.
  * Shows skeleton tiles while signing + createDeposit runs.
  * On bank click: opens the institution deeplink and advances to the waiting screen.
  */
@@ -31,10 +36,11 @@ export function AccountCanadaBankPickerPage({
   onSelect,
 }: AccountCanadaBankPickerPageProps) {
   const client = useDaimoClient();
-  const accountFlow = useAccountFlow();
+  const { accountFlow, depositState, setDepositState } =
+    useSessionDepositState(sessionId);
   const [search, setSearch] = useState("");
 
-  const depositAmount = accountFlow?.depositState?.depositAmount ?? "";
+  const depositAmount = depositState?.depositAmount ?? "";
 
   const { isCreating, error } = useCreateDeposit({
     client,
@@ -44,7 +50,7 @@ export function AccountCanadaBankPickerPage({
     region,
   });
 
-  const institutions = accountFlow?.depositState?.payment?.institutions ?? [];
+  const institutions = depositState?.payment?.institutions ?? [];
   const query = search.toLowerCase();
 
   const filteredFeatured = useMemo(() => {
@@ -63,17 +69,17 @@ export function AccountCanadaBankPickerPage({
 
   const handleSelect = useCallback(
     (institution: DepositInstitution) => {
-      if (!accountFlow?.depositState) return;
+      if (!depositState || !accountFlow) return;
 
-      accountFlow.setDepositState({
-        ...accountFlow.depositState,
+      setDepositState({
+        ...depositState,
         selectedInstitutionId: institution.id,
       });
 
       openDeeplink(institution.deeplink, platform);
       onSelect();
     },
-    [accountFlow, onSelect, platform],
+    [accountFlow, depositState, onSelect, platform, setDepositState],
   );
 
   const skeletonBg = "var(--daimo-skeleton, #e5e7eb)";

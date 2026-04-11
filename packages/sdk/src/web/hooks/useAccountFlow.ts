@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useRef, useState } from "react"
 
 import type {
   AccountRegion,
+  EIP712TypedData,
   DepositPaymentInfo,
   EnrollmentResponse,
   GetAccountResponse,
@@ -21,13 +22,26 @@ export type PrivyHooks = {
   walletAddress: string | null;
 };
 
+export type DepositCreateRequest = {
+  region: AccountRegion;
+  depositAmount: string;
+  deliverySig: string;
+  deliverySigData: EIP712TypedData;
+  routingSig: string;
+  routingSigData: EIP712TypedData;
+};
+
 export type DepositState = {
+  sessionId: string;
   depositAmount: string;
   depositId: string;
   payment: DepositPaymentInfo | null;
+  createStatus: "draft" | "creating" | "failed" | "created";
+  createRequest: DepositCreateRequest | null;
   selectedInstitutionId?: string;
 };
 
+type DepositStateInput = Omit<DepositState, "sessionId">;
 type SessionContext = { sessionId: string; clientSecret: string };
 
 export type AccountFlowState = {
@@ -51,8 +65,12 @@ export type AccountFlowState = {
   getAccessToken: () => Promise<string | null>;
   signTypedData: (typedData: Record<string, unknown>) => Promise<string>;
 
-  depositState: DepositState | null;
-  setDepositState: (state: DepositState) => void;
+  getDepositState: (sessionId: string) => DepositState | null;
+  setDepositState: (
+    sessionId: string,
+    state: DepositStateInput,
+  ) => void;
+  clearDepositState: (sessionId: string) => void;
 
   createAccount: (client: DaimoClient, session: SessionContext, walletAddress: string) => Promise<void>;
   getAccount: (
@@ -83,6 +101,24 @@ export function useAccountFlow(): AccountFlowState | null {
   return useContext(AccountFlowContext);
 }
 
+export function useSessionDepositState(sessionId: string) {
+  const accountFlow = useAccountFlow();
+  const depositState = accountFlow?.getDepositState(sessionId) ?? null;
+
+  const setDepositState = useCallback(
+    (state: DepositStateInput) => {
+      accountFlow?.setDepositState(sessionId, state);
+    },
+    [accountFlow, sessionId],
+  );
+
+  const clearDepositState = useCallback(() => {
+    accountFlow?.clearDepositState(sessionId);
+  }, [accountFlow, sessionId]);
+
+  return { accountFlow, depositState, setDepositState, clearDepositState };
+}
+
 /** Create the account flow state object. Used by the AccountFlowProvider. */
 export function useAccountFlowState(): AccountFlowState {
   const [email, setEmail] = useState("");
@@ -92,7 +128,8 @@ export function useAccountFlowState(): AccountFlowState {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [depositState, setDepositState] = useState<DepositState | null>(null);
+  const [storedDepositState, setStoredDepositState] =
+    useState<DepositState | null>(null);
 
   const privyRef = useRef<PrivyHooks | null>(null);
 
@@ -186,6 +223,27 @@ export function useAccountFlowState(): AccountFlowState {
     [],
   );
 
+  const getDepositState = useCallback(
+    (sessionId: string): DepositState | null => {
+      if (storedDepositState?.sessionId !== sessionId) return null;
+      return storedDepositState;
+    },
+    [storedDepositState],
+  );
+
+  const setDepositState = useCallback(
+    (sessionId: string, state: DepositStateInput) => {
+      setStoredDepositState({ sessionId, ...state });
+    },
+    [],
+  );
+
+  const clearDepositState = useCallback((sessionId: string) => {
+    setStoredDepositState((current) =>
+      current?.sessionId === sessionId ? null : current,
+    );
+  }, []);
+
   const createAccount = useCallback(
     async (client: DaimoClient, session: SessionContext, addr: string) => {
       const token = await getAccessToken();
@@ -240,7 +298,7 @@ export function useAccountFlowState(): AccountFlowState {
     setWalletAddress(null);
     setEmail("");
     setAuthError(null);
-    setDepositState(null);
+    setStoredDepositState(null);
   }, []);
 
   return {
@@ -258,8 +316,9 @@ export function useAccountFlowState(): AccountFlowState {
     createWallet,
     getAccessToken,
     signTypedData,
-    depositState,
+    getDepositState,
     setDepositState,
+    clearDepositState,
     createAccount,
     getAccount,
     startEnrollment,

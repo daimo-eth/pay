@@ -1,7 +1,7 @@
 import type { AccountRegion } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
-import { useAccountFlow } from "../../hooks/useAccountFlow.js";
+import { useSessionDepositState } from "../../hooks/useAccountFlow.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
 import { isDesktop, type DaimoPlatform } from "../../platform.js";
 import { PrimaryButton } from "../buttons.js";
@@ -32,9 +32,7 @@ export function AccountDeeplinkPage({
   onAdvance,
 }: AccountDeeplinkPageProps) {
   const client = useDaimoClient();
-  const accountFlow = useAccountFlow();
-
-  const depositState = accountFlow?.depositState;
+  const { depositState } = useSessionDepositState(sessionId);
   const bankUrl = depositState?.payment?.qrUrl;
   const desktop = isDesktop(platform);
 

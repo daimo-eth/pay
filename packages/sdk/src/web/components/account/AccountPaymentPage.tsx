@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AccountRegion, DepositConstraints } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
-import { useAccountFlow } from "../../hooks/useAccountFlow.js";
+import {
+  useAccountFlow,
+  useSessionDepositState,
+} from "../../hooks/useAccountFlow.js";
 import { t } from "../../hooks/locale.js";
 import { PrimaryButton } from "../buttons.js";
 import { AmountInput, CenteredContent, PageHeader, useAmountInput } from "../shared.js";
@@ -33,7 +36,8 @@ export function AccountPaymentPage({
 }: AccountPaymentPageProps) {
   const client = useDaimoClient();
   const accountFlow = useAccountFlow();
-  const paymentInfo = accountFlow?.depositState?.payment;
+  const { depositState, setDepositState } = useSessionDepositState(sessionId);
+  const paymentInfo = depositState?.payment;
   const [constraints, setConstraints] = useState<DepositConstraints | null>(null);
   const constraintsFetched = useRef(false);
 
@@ -69,14 +73,16 @@ export function AccountPaymentPage({
   const handleSubmit = useCallback(
     (amt: number) => {
       if (!accountFlow) return;
-      accountFlow.setDepositState({
+      setDepositState({
         depositAmount: amt.toFixed(2),
         depositId: "",
         payment: null,
+        createStatus: "draft",
+        createRequest: null,
       });
       onAdvance();
     },
-    [accountFlow, onAdvance],
+    [accountFlow, onAdvance, setDepositState],
   );
 
   return (
@@ -87,7 +93,7 @@ export function AccountPaymentPage({
           minimum={minimum}
           maximum={maximum}
           currencySymbol={currencySymbol}
-          initialValue={accountFlow?.depositState?.depositAmount}
+          initialValue={depositState?.depositAmount}
           onSubmit={handleSubmit}
           onChange={handleChange}
         />

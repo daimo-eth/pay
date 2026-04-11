@@ -599,7 +599,7 @@ function renderEntry(
           region={entry.region}
           sessionId={ctx.session.sessionId}
           platform={ctx.platform}
-          onBack={ctx.onBack}
+          onBack={null}
           onSelect={() => ctx.onAccountAdvance("account-deeplink")}
         />
       );
@@ -608,7 +608,7 @@ function renderEntry(
         <AccountUsAchDetailsPage
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
-          onBack={ctx.onBack}
+          onBack={null}
           onAdvance={() => ctx.onAccountAdvance("account-status")}
         />
       );

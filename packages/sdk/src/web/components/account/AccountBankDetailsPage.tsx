@@ -1,7 +1,7 @@
 
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
-import { useAccountFlow } from "../../hooks/useAccountFlow.js";
+import { useSessionDepositState } from "../../hooks/useAccountFlow.js";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
 import { CopyIcon } from "../icons.js";
@@ -11,7 +11,7 @@ import { PageHeader, ScrollContent } from "../shared.js";
 type AccountUsAchDetailsPageProps = {
   sessionId: string;
   clientSecret: string;
-  onBack: () => void;
+  onBack?: (() => void) | null;
   onAdvance: () => void;
 };
 
@@ -54,8 +54,7 @@ export function AccountUsAchDetailsPage({
   onAdvance,
 }: AccountUsAchDetailsPageProps) {
   const client = useDaimoClient();
-  const accountFlow = useAccountFlow();
-  const depositState = accountFlow?.depositState;
+  const { depositState } = useSessionDepositState(sessionId);
   const instructions = depositState?.payment?.instructions ?? "";
   const fields = parseInstructions(instructions);
 

@@ -59,11 +59,15 @@ export function useDraftDeposit({
       return;
     }
     if (matchesAmount && depositState?.kind !== "idle") return;
+    // Hold the failed amount in-place until the user edits it or explicitly
+    // retries. Otherwise the hook re-enters drafting immediately and the UI
+    // flashes between loading and error states.
+    if (matchesAmount && error != null) return;
     if (!accountFlow || !depositAmount) return;
 
+    setError(null);
     const timeout = window.setTimeout(() => {
       const seq = ++requestSeqRef.current;
-      setError(null);
       setDepositState({ depositAmount, kind: "drafting" });
 
       void (async () => {
@@ -98,6 +102,7 @@ export function useDraftDeposit({
     depositAmount,
     depositState,
     enabled,
+    error,
     isCommitted,
     matchesAmount,
     rail,

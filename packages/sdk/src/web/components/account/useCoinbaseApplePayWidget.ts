@@ -25,7 +25,6 @@ type UseCoinbaseApplePayWidgetArgs = {
 };
 
 type UseCoinbaseApplePayWidgetResult = {
-  expandIframe: () => void;
   iframeExpanded: boolean;
   iframeReady: boolean;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
@@ -66,11 +65,6 @@ export function useCoinbaseApplePayWidget({
   useEffect(() => {
     resetWidget();
   }, [paymentLinkUrl, resetWidget]);
-
-  const expandIframe = useCallback(() => {
-    if (!iframeReady || iframeExpanded) return;
-    setIframeExpanded(true);
-  }, [iframeExpanded, iframeReady]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -143,7 +137,6 @@ export function useCoinbaseApplePayWidget({
   }, []);
 
   return {
-    expandIframe,
     iframeExpanded,
     iframeReady,
     iframeRef,

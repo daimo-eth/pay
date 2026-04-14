@@ -34,8 +34,6 @@ const APPLE_PAY_SHELL_MAX_WIDTH = 344;
 const APPLE_PAY_EXPANDED_WIDTH = 576;
 const APPLE_PAY_EXPANDED_HEIGHT = 576;
 const APPLE_PAY_COLLAPSED_SCALE_MAX = 1.18;
-const APPLE_PAY_COLLAPSED_CROP_X = 22;
-const APPLE_PAY_COLLAPSED_CROP_Y = 6;
 
 /**
  * Coinbase Headless payment page — amount entry + Apple Pay in a single
@@ -142,7 +140,6 @@ export function AccountApplePayPage({
     }
   }, [client, sessionId, clientSecret]);
   const {
-    expandIframe,
     iframeExpanded,
     iframeReady,
     iframeRef,
@@ -278,22 +275,32 @@ export function AccountApplePayPage({
     Math.round(APPLE_PAY_BUTTON_HEIGHT * buttonScale),
   );
   const collapsedShellRadius = Math.round(collapsedShellHeight / 2);
-  const collapsedViewportWidth = Math.max(
-    0,
-    buttonShellWidth - APPLE_PAY_COLLAPSED_CROP_X * 2,
-  );
-  const collapsedViewportHeight = Math.max(
-    0,
-    collapsedShellHeight - APPLE_PAY_COLLAPSED_CROP_Y * 2,
-  );
-  const iframeShellHeight =
-    isExpanded ? APPLE_PAY_EXPANDED_HEIGHT : collapsedShellHeight;
   const shellMaxWidth = isExpanded
-    ? APPLE_PAY_EXPANDED_WIDTH
-    : APPLE_PAY_SHELL_MAX_WIDTH;
+    ? `${APPLE_PAY_EXPANDED_WIDTH}px`
+    : `${APPLE_PAY_SHELL_MAX_WIDTH}px`;
+  const iframeShellHeight = isExpanded
+    ? `${APPLE_PAY_EXPANDED_HEIGHT}px`
+    : `${collapsedShellHeight}px`;
+  const iframeStyle = isExpanded
+    ? {
+        left: 0,
+        top: 0,
+        width: "100%",
+        height: APPLE_PAY_EXPANDED_HEIGHT,
+        transform: "none",
+        transformOrigin: "center center",
+      }
+    : {
+        left: "50%",
+        top: "50%",
+        width: APPLE_PAY_BUTTON_WIDTH,
+        height: APPLE_PAY_BUTTON_HEIGHT,
+        transform: `translate(-50%, -50%) scale(${buttonScale})`,
+        transformOrigin: "center center",
+      };
 
   return (
-    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
+    <div className="daimo-relative daimo-isolate daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
       <PageHeader title={`${actionVerb} with Apple Pay`} onBack={onBack} />
 
       <div className="daimo-flex daimo-flex-col daimo-items-center daimo-gap-5 daimo-px-6 daimo-pt-2 daimo-pb-4">
@@ -355,20 +362,17 @@ export function AccountApplePayPage({
         <div
           ref={buttonShellRef}
           className="daimo-relative daimo-w-full daimo-overflow-hidden"
-          onPointerDown={paymentLinkUrl ? expandIframe : undefined}
-          onTouchStart={paymentLinkUrl ? expandIframe : undefined}
           style={{
-            maxWidth: `${shellMaxWidth}px`,
+            maxWidth: shellMaxWidth,
             height: iframeShellHeight,
-            borderRadius: isExpanded
-              ? "var(--daimo-radius-lg)"
-              : `${collapsedShellRadius}px`,
-            transition: "max-width 160ms ease, height 160ms ease",
+            borderRadius: isExpanded ? "24px" : `${collapsedShellRadius}px`,
+            transition:
+              "opacity 160ms ease, max-width 160ms ease, height 160ms ease",
           }}
         >
           {paymentLinkUrl ? (
             <>
-              {!iframeReady && !isExpanded && (
+              {!iframeReady && (
                 <div
                   className="daimo-absolute daimo-inset-0 daimo-flex daimo-items-center daimo-justify-center daimo-transition-opacity"
                   style={{
@@ -385,52 +389,21 @@ export function AccountApplePayPage({
                   />
                 </div>
               )}
-              {isExpanded ? (
-                <iframe
-                  key={paymentLinkUrl}
-                  ref={iframeRef}
-                  src={paymentLinkUrl}
-                  title="Apple Pay Checkout"
-                  allow="payment"
-                  sandbox="allow-scripts allow-same-origin"
-                  referrerPolicy="no-referrer"
-                  className="daimo-absolute daimo-left-0 daimo-top-0 daimo-w-full daimo-border-0 daimo-overflow-hidden daimo-transition-opacity"
-                  style={{
-                    height: APPLE_PAY_EXPANDED_HEIGHT,
-                    opacity: iframeReady ? 1 : 0,
-                    pointerEvents: iframeReady ? "auto" : "none",
-                  }}
-                />
-              ) : (
-                <div
-                  className="daimo-absolute daimo-left-1/2 daimo-top-1/2 daimo-overflow-hidden"
-                  style={{
-                    width: collapsedViewportWidth,
-                    height: collapsedViewportHeight,
-                    borderRadius: `${Math.max(0, collapsedShellRadius - APPLE_PAY_COLLAPSED_CROP_Y)}px`,
-                    transform: "translate(-50%, -50%)",
-                    opacity: iframeReady ? 1 : 0,
-                    pointerEvents: iframeReady ? "auto" : "none",
-                  }}
-                >
-                  <iframe
-                    key={paymentLinkUrl}
-                    ref={iframeRef}
-                    src={paymentLinkUrl}
-                    title="Apple Pay Checkout"
-                    allow="payment"
-                    sandbox="allow-scripts allow-same-origin"
-                    referrerPolicy="no-referrer"
-                    className="daimo-absolute daimo-left-1/2 daimo-top-1/2 daimo-border-0 daimo-overflow-hidden daimo-transition-opacity"
-                    style={{
-                      width: APPLE_PAY_BUTTON_WIDTH,
-                      height: APPLE_PAY_BUTTON_HEIGHT,
-                      transform: `translate(-50%, -50%) scale(${buttonScale})`,
-                      transformOrigin: "center center",
-                    }}
-                  />
-                </div>
-              )}
+              <iframe
+                key={paymentLinkUrl}
+                ref={iframeRef}
+                src={paymentLinkUrl}
+                title="Apple Pay Checkout"
+                allow="payment"
+                sandbox="allow-scripts allow-same-origin"
+                referrerPolicy="no-referrer"
+                className="daimo-absolute daimo-border-0 daimo-overflow-hidden daimo-transition-opacity"
+                style={{
+                  ...iframeStyle,
+                  opacity: iframeReady ? 1 : 0,
+                  pointerEvents: iframeReady ? "auto" : "none",
+                }}
+              />
             </>
           ) : (
             <ApplePayPlaceholderButton

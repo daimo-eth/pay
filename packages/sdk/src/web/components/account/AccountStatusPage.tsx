@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { AccountRegion, AccountDepositStatus } from "../../../common/account.js";
+import type { AccountRail, AccountDepositStatus } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
@@ -9,7 +9,7 @@ import { ErrorPage } from "../ErrorPage.js";
 import { CenteredContent, PageHeader } from "../shared.js";
 
 type AccountStatusPageProps = {
-  region: AccountRegion;
+  rail: AccountRail;
   sessionId: string;
   clientSecret: string;
   baseUrl: string;
@@ -21,9 +21,10 @@ const TERMINAL_STATUSES: AccountDepositStatus[] = [
   "expired",
 ];
 
-const REGION_ETA: Record<AccountRegion, string> = {
-  CA: "5–30 min",
-  US: "1–3 days",
+const RAIL_ETA: Record<AccountRail, string> = {
+  interac: "5–30 min",
+  ach: "1–3 days",
+  apple_pay: "5–30 min",
 };
 
 /** Map status to a 0-2 step index for the progress indicator. */
@@ -42,7 +43,7 @@ const STEP_LABELS = ["Received", "Processing", "Complete"];
  * Async deposit status — ConfirmationSpinner + progress steps + action rows.
  */
 export function AccountStatusPage({
-  region,
+  rail,
   sessionId,
   clientSecret,
   baseUrl,
@@ -85,7 +86,7 @@ export function AccountStatusPage({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              ETA {REGION_ETA[region]}
+              ETA {RAIL_ETA[rail]}
             </span>
           )}
         </div>

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   NavNode,
+  NavNodeAccountDeposit,
   NavNodeCashApp,
   NavNodeChooseOption,
   NavNodeExchange,
-  NavNodeAccountDeposit,
   SessionWithNav,
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
 
+import { getAccountPaymentEntryTarget } from "../components/account/accountNav.js";
 import {
   detectPlatform,
   isDesktop,
@@ -19,15 +20,15 @@ import { formatUserError } from "./formatUserError.js";
 import { t } from "./locale.js";
 import { createNavLogger, type NavNodeType } from "./navEvent.js";
 import { findNode, type NavEntry } from "./types.js";
-import type { InjectedWallet } from "./useInjectedWallets.js";
 import type { AccountFlowState } from "./useAccountFlow.js";
+import type { InjectedWallet } from "./useInjectedWallets.js";
 import { isUserRejection, type WalletFlowResult } from "./useWalletFlow.js";
 
 type NodeContext = { nodeId: string | null; nodeType: NavNodeType | null };
 type ExchangeId = "Coinbase" | "Binance" | "Lemon" | "CashApp";
 type ExchangeNode = NavNodeExchange | NavNodeCashApp;
 
-import type { AccountRegion } from "../../common/account.js";
+import type { AccountRail } from "../../common/account.js";
 
 type SessionNavResult = {
   stack: NavEntry[];
@@ -223,7 +224,7 @@ export function useSessionNav(
 
   const handleAccountNavigate = useCallback(
     async (nodeId: string, node: NavNodeAccountDeposit, autoNav: boolean) => {
-      const { region } = node;
+      const { rail } = node;
 
       if (!accountFlow) {
         setStack((prev) => [
@@ -231,7 +232,7 @@ export function useSessionNav(
           {
             type: "account-error",
             nodeId,
-            region,
+            rail,
             autoNav,
             message:
               "account deposit is not available for this session.",
@@ -253,24 +254,24 @@ export function useSessionNav(
       // to skip onboarding steps they've already completed.
       if (token) {
         const sessionCtx = { sessionId: session.sessionId, clientSecret: session.clientSecret };
-        const result = await accountFlow.getAccount(client, sessionCtx, region);
+        const result = await accountFlow.getAccount(client, sessionCtx, {
+          rail,
+        });
         if (result) {
           if (result.nextAction === "ready_for_payment") {
+            // Some rails skip the amount-first step and go straight to a
+            // unified payment page.
+            const entryType = getAccountPaymentEntryTarget(rail);
             setStack((prev) => [
               ...prev,
-              {
-                type: "account-payment",
-                nodeId,
-                region,
-                autoNav,
-              },
+              { type: entryType, nodeId, rail, autoNav },
             ]);
             return;
           }
           if (result.nextAction === "enrollment") {
             setStack((prev) => [
               ...prev,
-              { type: "account-enrollment", nodeId, region, autoNav },
+              { type: "account-enrollment", nodeId, rail, autoNav },
             ]);
             return;
           }
@@ -280,7 +281,7 @@ export function useSessionNav(
       // New user or no session — start from email
       setStack((prev) => [
         ...prev,
-        { type: "account-email", nodeId, region, autoNav },
+        { type: "account-email", nodeId, rail, autoNav },
       ]);
     },
     [accountFlow, client, session.clientSecret, session.sessionId],
@@ -783,14 +784,14 @@ export function useSessionNav(
 
   // ─── Account flow handler ────────────────────────────────────────────────
 
-  /** Advance account flow to the next screen, preserving nodeId + region. */
+  /** Advance account flow to the next screen, preserving nodeId + rail. */
   const handleAccountAdvance = useCallback(
     (nextType: NavEntry["type"]) => {
-      if (!topEntry || !("region" in topEntry)) return;
-      const { nodeId, region } = topEntry as NavEntry & { region: AccountRegion };
+      if (!topEntry || !("rail" in topEntry)) return;
+      const { nodeId, rail } = topEntry as NavEntry & { rail: AccountRail };
       setStack((prev) => [
         ...prev,
-        { type: nextType, nodeId, region } as NavEntry,
+        { type: nextType, nodeId, rail } as NavEntry,
       ]);
     },
     [topEntry],

@@ -4,7 +4,13 @@
  * Renders PrivyProvider with the given appId. Inside, PrivyConsumer
  * reads Privy hooks and registers them with the account flow state.
  */
-import { PrivyProvider, useLoginWithEmail, usePrivy, useWallets } from "@privy-io/react-auth";
+import {
+  PrivyProvider,
+  useLoginWithEmail,
+  useLoginWithSms,
+  usePrivy,
+  useWallets,
+} from "@privy-io/react-auth";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
 import {
@@ -47,6 +53,10 @@ function PrivyConsumer({
     usePrivy();
   const { sendCode: rawSendCode, loginWithCode: rawLoginWithCode } =
     useLoginWithEmail();
+  const {
+    sendCode: rawSendPhoneCode,
+    loginWithCode: rawLoginWithPhoneCode,
+  } = useLoginWithSms();
   const { wallets } = useWallets();
 
   const sendCode = useCallback(
@@ -61,6 +71,20 @@ function PrivyConsumer({
       await rawLoginWithCode({ code });
     },
     [rawLoginWithCode],
+  );
+
+  const sendPhoneCode = useCallback(
+    async (phoneNumber: string) => {
+      await rawSendPhoneCode({ phoneNumber });
+    },
+    [rawSendPhoneCode],
+  );
+
+  const loginWithPhoneCode = useCallback(
+    async (code: string) => {
+      await rawLoginWithPhoneCode({ code });
+    },
+    [rawLoginWithPhoneCode],
   );
 
   const walletAddress = user?.wallet?.address ?? null;
@@ -83,6 +107,8 @@ function PrivyConsumer({
     () => ({
       sendCode,
       loginWithCode,
+      sendPhoneCode,
+      loginWithPhoneCode,
       createWallet,
       getAccessToken,
       signTypedData,
@@ -91,7 +117,19 @@ function PrivyConsumer({
       authenticated,
       walletAddress,
     }),
-    [ready, authenticated, walletAddress, sendCode, loginWithCode, createWallet, getAccessToken, signTypedData, logout],
+    [
+      ready,
+      authenticated,
+      walletAddress,
+      sendCode,
+      loginWithCode,
+      sendPhoneCode,
+      loginWithPhoneCode,
+      createWallet,
+      getAccessToken,
+      signTypedData,
+      logout,
+    ],
   );
 
   useEffect(() => {

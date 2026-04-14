@@ -1,5 +1,5 @@
 import type {
-  AccountRegion,
+  AccountRail,
   CreateAccountResponse,
   CreateDepositResponse,
   DepositConstraints,
@@ -34,11 +34,32 @@ function authHeaders(auth: BearerAuth): Record<string, string> {
 
 type SessionContext = { sessionId: string; clientSecret: string };
 
+type AccountRailTarget = { rail: AccountRail };
+
+/** Request shape for `account.upsertDeposit`. Draft mode skips sigs. */
+export type UpsertDepositRequest =
+  | {
+      mode: "draft";
+      sessionId: string;
+      depositAmount: string;
+      rail: AccountRail;
+    }
+  | {
+      mode: "commit";
+      sessionId: string;
+      depositAmount: string;
+      rail: AccountRail;
+      deliverySig: string;
+      deliverySigData: Record<string, unknown>;
+      routingSig: string;
+      routingSigData: Record<string, unknown>;
+    };
+
 export type DaimoClient = {
   account: {
-    /** Look up account by Privy auth. Returns nextAction for flow routing. */
+    /** Look up account state for the current authenticated user. */
     get(
-      region: AccountRegion,
+      target: AccountRailTarget,
       session: SessionContext,
       auth: BearerAuth,
     ): Promise<GetAccountResponse>;
@@ -48,41 +69,42 @@ export type DaimoClient = {
       session: SessionContext,
       auth: BearerAuth,
     ): Promise<CreateAccountResponse>;
-    /** Advance the enrollment state machine (KYC, provider registration). */
+    /**
+     * Advance the account enrollment state machine. Each call also lets the
+     * provider adapter pull any external auth state it cares about — e.g.
+     * Coinbase copies a just-verified Privy phone into the enrollment — so
+     * the client can call this after an auth event to refresh as well.
+     */
     startEnrollment(
-      input: { region: AccountRegion },
+      input: AccountRailTarget,
       auth: BearerAuth,
     ): Promise<EnrollmentResponse>;
     /** Get currency, min/max amount constraints for a deposit. */
     getDepositConstraints(
-      params: { sessionId: string; region: AccountRegion },
+      params: { sessionId: string } & AccountRailTarget,
       auth: BearerAuth,
     ): Promise<DepositConstraints>;
+    /**
+     * Upsert the deposit for this session. `draft` mode maintains the
+     * mutable preview (provider payment link, institutions, etc.) as the
+     * user edits the amount. `commit` mode attaches signatures and locks
+     * the row in. Both modes return the same response shape.
+     */
+    upsertDeposit(
+      input: UpsertDepositRequest,
+      auth: BearerAuth,
+    ): Promise<CreateDepositResponse>;
     /** Get EIP-712 typed data for routing + delivery signatures. */
     prepareDeposit(
       params: {
         sessionId: string;
         depositAmount: string;
-        region: AccountRegion;
-      },
+      } & AccountRailTarget,
       auth: BearerAuth,
     ): Promise<RoutingSignDataResponse>;
-    /** Submit signed deposit to the provider. Returns payment instructions. */
-    createDeposit(
-      input: {
-        sessionId: string;
-        region: AccountRegion;
-        depositAmount: string;
-        deliverySig: string;
-        deliverySigData: Record<string, unknown>;
-        routingSig: string;
-        routingSigData: Record<string, unknown>;
-      },
-      auth: BearerAuth,
-    ): Promise<CreateDepositResponse>;
     /** Poll deposit status. No auth required — uses clientSecret. */
     getDeposit(
-      params: { sessionId: string; clientSecret: string },
+      params: { sessionId: string; clientSecret: string; refresh?: boolean },
     ): Promise<GetDepositResponse>;
   };
   sessions: {
@@ -135,11 +157,11 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
 
   return {
     account: {
-      get(region, session, auth) {
+      get(target, session, auth) {
         return transport.request<GetAccountResponse>({
           method: "GET",
           path: "/v1/internal/account",
-          query: { region, ...session },
+          query: { ...target, ...session },
           headers: authHeaders(auth),
         });
       },
@@ -163,7 +185,18 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
         return transport.request<DepositConstraints>({
           method: "GET",
           path: "/v1/internal/account/deposit/constraints",
-          query: { sessionId: params.sessionId, region: params.region },
+          query: {
+            sessionId: params.sessionId,
+            rail: params.rail,
+          },
+          headers: authHeaders(auth),
+        });
+      },
+      upsertDeposit(input, auth) {
+        return transport.request<CreateDepositResponse>({
+          method: "POST",
+          path: "/v1/internal/account/deposit",
+          body: input,
           headers: authHeaders(auth),
         });
       },
@@ -174,16 +207,8 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
           body: {
             sessionId: params.sessionId,
             depositAmount: params.depositAmount,
-            region: params.region,
+            rail: params.rail,
           },
-          headers: authHeaders(auth),
-        });
-      },
-      createDeposit(input, auth) {
-        return transport.request<CreateDepositResponse>({
-          method: "POST",
-          path: "/v1/internal/account/deposit",
-          body: input,
           headers: authHeaders(auth),
         });
       },
@@ -191,7 +216,11 @@ export function createDaimoClient(config: TransportConfig): DaimoClient {
         return transport.request<GetDepositResponse>({
           method: "GET",
           path: "/v1/internal/account/deposit",
-          query: { sessionId: params.sessionId, clientSecret: params.clientSecret },
+          query: {
+            sessionId: params.sessionId,
+            clientSecret: params.clientSecret,
+            refresh: params.refresh ? "1" : undefined,
+          },
         });
       },
     },

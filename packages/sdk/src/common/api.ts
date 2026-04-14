@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { zAccountRail } from "./account.js";
 import type { TronAddress, UUID } from "./primitives.js";
 import { zAddress, zSolanaAddress } from "./primitives.js";
 import type { SessionPublicInfo } from "./session.js";
@@ -27,7 +28,10 @@ export const zCreatePaymentMethodRequest = z.object({
       amountUsd: z.number().positive(),
       platform: zPlatform.optional(),
     }),
-    z.object({ type: z.literal("account_deposit") }),
+    z.object({
+      type: z.literal("account_deposit"),
+      rail: zAccountRail.optional(),
+    }),
   ]),
 });
 
@@ -91,8 +95,10 @@ export type CreatePaymentMethodResponse = {
   };
   /** Account deposit details, present when payment method is account_deposit. */
   accountDeposit?: {
-    /** Hosted URL where the user completes KYC and bank transfer. */
+    /** Hosted URL where the user completes KYC and the selected rail flow. */
     hostedUrl: string;
+    /** Selected fiat rail for this hosted flow, when pinned to one rail. */
+    rail?: z.infer<typeof zAccountRail>;
   };
 };
 

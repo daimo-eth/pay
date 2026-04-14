@@ -1,18 +1,19 @@
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 
 import type {
-  AccountRegion,
-  EIP712TypedData,
+  AccountRail,
   DepositPaymentInfo,
   EnrollmentResponse,
   GetAccountResponse,
 } from "../../common/account.js";
 import type { DaimoClient } from "../../client/createDaimoClient.js";
 
-/** Privy hooks registered by AccountFlowProvider's PrivyConsumer. */
+/** Auth-provider hooks registered by AccountFlowProvider. */
 export type PrivyHooks = {
   sendCode: (email: string) => Promise<void>;
   loginWithCode: (code: string) => Promise<void>;
+  sendPhoneCode: (phoneNumber: string) => Promise<void>;
+  loginWithPhoneCode: (code: string) => Promise<void>;
   createWallet: () => Promise<{ address: string }>;
   getAccessToken: () => Promise<string | null>;
   signTypedData: (typedData: Record<string, unknown>) => Promise<string>;
@@ -22,34 +23,38 @@ export type PrivyHooks = {
   walletAddress: string | null;
 };
 
-export type DepositCreateRequest = {
-  region: AccountRegion;
-  depositAmount: string;
-  deliverySig: string;
-  deliverySigData: EIP712TypedData;
-  routingSig: string;
-  routingSigData: EIP712TypedData;
-};
+/**
+ * Per-session deposit state. Identity is `sessionId`, current user intent is
+ * `depositAmount`. `kind` tracks where we are in the draft → commit lifecycle.
+ */
+export type DepositStateInput =
+  | { depositAmount: string; kind: "idle" }
+  | { depositAmount: string; kind: "drafting" }
+  | {
+      depositAmount: string;
+      kind: "drafted";
+      depositId: string;
+      payment: DepositPaymentInfo;
+    }
+  | {
+      depositAmount: string;
+      kind: "committed";
+      depositId: string;
+      payment: DepositPaymentInfo;
+      selectedInstitutionId?: string;
+    };
 
-export type DepositState = {
-  sessionId: string;
-  depositAmount: string;
-  depositId: string;
-  payment: DepositPaymentInfo | null;
-  createStatus: "draft" | "creating" | "failed" | "created";
-  createRequest: DepositCreateRequest | null;
-  selectedInstitutionId?: string;
-};
-
-type DepositStateInput = Omit<DepositState, "sessionId">;
+export type DepositState = DepositStateInput & { sessionId: string };
 type SessionContext = { sessionId: string; clientSecret: string };
 
 export type AccountFlowState = {
   email: string;
   setEmail: (email: string) => void;
+  phoneNumber: string;
+  setPhoneNumber: (phone: string) => void;
 
   isLoggingIn: boolean;
-  /** Whether Privy has finished restoring the session from storage. */
+  /** Whether the auth provider has finished restoring the session from storage. */
   isReady: boolean;
   isAuthenticated: boolean;
   authError: string | null;
@@ -58,6 +63,10 @@ export type AccountFlowState = {
   sendOtp: (email?: string) => Promise<boolean>;
   verifyOtp: (code: string) => Promise<boolean>;
 
+  /** Send a phone OTP. Links the phone if the user is signed in. */
+  sendPhoneOtp: (phoneNumber?: string) => Promise<boolean>;
+  /** Verify a phone OTP code. On success, the phone is linked to the current user. */
+  verifyPhoneOtp: (code: string) => Promise<boolean>;
   isCreatingWallet: boolean;
   walletAddress: string | null;
   createWallet: () => Promise<string | null>;
@@ -76,24 +85,24 @@ export type AccountFlowState = {
   getAccount: (
     client: DaimoClient,
     session: SessionContext,
-    region: AccountRegion,
+    target: { rail: AccountRail },
   ) => Promise<GetAccountResponse | null>;
   startEnrollment: (
     client: DaimoClient,
-    region: AccountRegion,
+    target: { rail: AccountRail },
   ) => Promise<EnrollmentResponse | null>;
   logout: () => Promise<void>;
 
-  /** Wait for Privy to finish restoring session. Resolves immediately if ready. */
+  /** Wait for auth state to finish restoring. Resolves immediately if ready. */
   waitForReady: () => Promise<void>;
 
-  /** Register Privy hooks (called by AccountFlowProvider). */
+  /** Register auth-provider hooks (called by AccountFlowProvider). */
   registerPrivy: (hooks: PrivyHooks) => void;
 };
 
-// Context (not a plain hook like useWalletFlow) because PrivyProvider must wrap
-// the components that use Privy hooks. The account flow state lives above
-// PrivyProvider so PrivyConsumer can bridge Privy hooks into it.
+// Context (not a plain hook like useWalletFlow) because the auth provider must
+// wrap the components that use these hooks. The account flow state lives above
+// the provider so the consumer can bridge auth hooks into it.
 // Limitation: one AccountFlowProvider per page = one shared auth session.
 export const AccountFlowContext = createContext<AccountFlowState | null>(null);
 
@@ -122,6 +131,7 @@ export function useSessionDepositState(sessionId: string) {
 /** Create the account flow state object. Used by the AccountFlowProvider. */
 export function useAccountFlowState(): AccountFlowState {
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -175,7 +185,7 @@ export function useAccountFlowState(): AccountFlowState {
     } finally {
       setIsLoggingIn(false);
     }
-  }, [email]);
+  }, [email, waitForReady]);
 
   const verifyOtp = useCallback(async (code: string): Promise<boolean> => {
     if (!privyRef.current) return false;
@@ -194,7 +204,54 @@ export function useAccountFlowState(): AccountFlowState {
     } finally {
       setIsLoggingIn(false);
     }
-  }, []);
+  }, [waitForReady]);
+
+  const sendPhoneOtp = useCallback(
+    async (overridePhone?: string): Promise<boolean> => {
+      const target = overridePhone ?? phoneNumber;
+      if (!privyRef.current) {
+        setAuthError("privy not initialized");
+        return false;
+      }
+      if (!target) {
+        setAuthError("phone number is required");
+        return false;
+      }
+      setIsLoggingIn(true);
+      setAuthError(null);
+      try {
+        await waitForReady();
+        await privyRef.current.sendPhoneCode(target);
+        return true;
+      } catch (err) {
+        setAuthError(
+          err instanceof Error ? err.message : "failed to send code",
+        );
+        return false;
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    [phoneNumber, waitForReady],
+  );
+
+  const verifyPhoneOtp = useCallback(async (code: string): Promise<boolean> => {
+    if (!privyRef.current) return false;
+    setIsLoggingIn(true);
+    setAuthError(null);
+    try {
+      await waitForReady();
+      await privyRef.current.loginWithPhoneCode(code);
+      return true;
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err.message : "failed to verify code",
+      );
+      return false;
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }, [waitForReady]);
 
   const createWallet = useCallback(async (): Promise<string | null> => {
     if (!privyRef.current) return null;
@@ -261,12 +318,12 @@ export function useAccountFlowState(): AccountFlowState {
     async (
       client: DaimoClient,
       session: SessionContext,
-      region: AccountRegion,
+      target: { rail: AccountRail },
     ): Promise<GetAccountResponse | null> => {
       const token = await getAccessToken();
       if (!token) return null;
       try {
-        return await client.account.get(region, session, {
+        return await client.account.get(target, session, {
           bearerToken: token,
         });
       } catch {
@@ -279,11 +336,11 @@ export function useAccountFlowState(): AccountFlowState {
   const startEnrollment = useCallback(
     async (
       client: DaimoClient,
-      region: AccountRegion,
+      target: { rail: AccountRail },
     ): Promise<EnrollmentResponse | null> => {
       const token = await getAccessToken();
       if (!token) return null;
-      return client.account.startEnrollment({ region }, { bearerToken: token });
+      return client.account.startEnrollment(target, { bearerToken: token });
     },
     [getAccessToken],
   );
@@ -297,6 +354,7 @@ export function useAccountFlowState(): AccountFlowState {
     setIsAuthenticated(false);
     setWalletAddress(null);
     setEmail("");
+    setPhoneNumber("");
     setAuthError(null);
     setStoredDepositState(null);
   }, []);
@@ -304,6 +362,8 @@ export function useAccountFlowState(): AccountFlowState {
   return {
     email,
     setEmail,
+    phoneNumber,
+    setPhoneNumber,
     isLoggingIn,
     isReady,
     isAuthenticated,
@@ -311,6 +371,8 @@ export function useAccountFlowState(): AccountFlowState {
     setAuthError,
     sendOtp,
     verifyOtp,
+    sendPhoneOtp,
+    verifyPhoneOtp,
     isCreatingWallet,
     walletAddress,
     createWallet,

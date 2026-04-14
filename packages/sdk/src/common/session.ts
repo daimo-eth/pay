@@ -1,6 +1,7 @@
 import { Address, Hex } from "viem";
 import { z } from "zod";
 
+import type { AccountRail } from "./account.js";
 import type {
   SolanaAddress,
   SolanaTxHash,
@@ -72,6 +73,8 @@ export type PaymentMethod =
 
 export type PaymentMethodAccountDeposit = {
   type: "account_deposit";
+  /** Selected fiat rail, when known. */
+  rail?: AccountRail;
   /** When this payment method was created (unix seconds). */
   createdAt: number;
 };

@@ -1,4 +1,3 @@
-import type { AccountRegion } from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useSessionDepositState } from "../../hooks/useAccountFlow.js";
@@ -11,7 +10,6 @@ import { CenteredContent, PageHeader, resolveIconUrl } from "../shared.js";
 import { openDeeplink } from "./openDeeplink.js";
 
 type AccountDeeplinkPageProps = {
-  region: AccountRegion;
   sessionId: string;
   clientSecret: string;
   baseUrl: string;
@@ -33,12 +31,16 @@ export function AccountDeeplinkPage({
 }: AccountDeeplinkPageProps) {
   const client = useDaimoClient();
   const { depositState } = useSessionDepositState(sessionId);
-  const bankUrl = depositState?.payment?.qrUrl;
+  const committed =
+    depositState?.kind === "committed" ? depositState : null;
+  const payment =
+    committed?.payment.flow === "bank-picker" ? committed.payment : null;
+  const bankUrl = payment?.qrUrl;
   const desktop = isDesktop(platform);
 
   // Find the selected institution's deeplink for the "Open" button
-  const selectedInstitution = depositState?.payment?.institutions.find(
-    (inst) => inst.id === depositState?.selectedInstitutionId,
+  const selectedInstitution = payment?.institutions.find(
+    (inst) => inst.id === committed?.selectedInstitutionId,
   );
 
   useDepositPoller({
@@ -77,7 +79,7 @@ export function AccountDeeplinkPage({
             </div>
           )}
           <p className="daimo-text-sm daimo-text-[var(--daimo-text-secondary)] daimo-text-center daimo-max-w-xs">
-            {depositState?.payment?.instructions}
+            {payment?.instructions}
           </p>
           {selectedInstitution && (
             <PrimaryButton

@@ -60,8 +60,13 @@ export function AccountCanadaBankPickerPage({
     enabled: depositAmount !== "",
   });
 
+  const committedPayment =
+    depositState?.kind === "committed" && depositState.payment.flow === "bank-picker"
+      ? depositState.payment
+      : null;
   const payment =
-    draftPayment?.flow === "bank-picker" ? draftPayment : null;
+    committedPayment
+    ?? (draftPayment?.flow === "bank-picker" ? draftPayment : null);
   const institutions: DepositInstitution[] = payment?.institutions ?? [];
   const query = search.toLowerCase();
 
@@ -81,7 +86,22 @@ export function AccountCanadaBankPickerPage({
 
   const handleSelect = useCallback(
     async (institution: DepositInstitution) => {
+      if (
+        depositState?.kind === "committed"
+        && depositState.depositAmount === depositAmount
+        && depositState.payment.flow === "bank-picker"
+      ) {
+        setDepositState({
+          ...depositState,
+          selectedInstitutionId: institution.id,
+        });
+        openDeeplink(institution.deeplink, platform);
+        onSelect();
+        return;
+      }
+
       if (!accountFlow) return;
+
       setCommitError(null);
       try {
         const result = await createSignedDeposit({
@@ -107,6 +127,7 @@ export function AccountCanadaBankPickerPage({
       }
     },
     [
+      depositState,
       accountFlow,
       client,
       depositAmount,

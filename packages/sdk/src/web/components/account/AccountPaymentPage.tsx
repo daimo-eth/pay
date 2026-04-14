@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { AccountRegion, DepositConstraints } from "../../../common/account.js";
+import type {
+  AccountRail,
+  DepositConstraints,
+} from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import {
   useAccountFlow,
@@ -10,26 +13,29 @@ import { t } from "../../hooks/locale.js";
 import { PrimaryButton } from "../buttons.js";
 import { AmountInput, CenteredContent, PageHeader, useAmountInput } from "../shared.js";
 
-const REGION_DEFAULTS: Record<AccountRegion, {
-  currencyCode: string;
-  currencySymbol: string;
-  minimumAmount: number;
-  maximumAmount: number;
-}> = {
-  CA: { currencyCode: "CAD", currencySymbol: "CA$", minimumAmount: 10, maximumAmount: 3000 },
-  US: { currencyCode: "USD", currencySymbol: "$", minimumAmount: 1, maximumAmount: 10000 },
-};
+/** Per-rail fallback constraints used until the server response arrives. */
+function railDefaults(rail: AccountRail) {
+  switch (rail) {
+    case "interac":
+      return { currencySymbol: "CA$", minimumAmount: 10, maximumAmount: 3000 };
+    case "ach":
+      return { currencySymbol: "$", minimumAmount: 1, maximumAmount: 10000 };
+    case "apple_pay":
+      // apple_pay never routes here (see accountNav). Fall through to USD.
+      return { currencySymbol: "$", minimumAmount: 5, maximumAmount: 500 };
+  }
+}
 
 type AccountPaymentPageProps = {
-  region: AccountRegion;
+  rail: AccountRail;
   sessionId: string;
   onBack: () => void;
   onAdvance: () => void;
 };
 
-/** Amount entry. Stores depositAmount and advances to bank picker. */
+/** Amount entry for bank-transfer rails. Stores depositAmount and advances. */
 export function AccountPaymentPage({
-  region,
+  rail,
   sessionId,
   onBack,
   onAdvance,
@@ -37,21 +43,19 @@ export function AccountPaymentPage({
   const client = useDaimoClient();
   const accountFlow = useAccountFlow();
   const { depositState, setDepositState } = useSessionDepositState(sessionId);
-  const paymentInfo = depositState?.payment;
   const [constraints, setConstraints] = useState<DepositConstraints | null>(null);
   const constraintsFetched = useRef(false);
 
-  const defaults = REGION_DEFAULTS[region];
-  const amountInfo = paymentInfo ?? constraints;
-  const currencySymbol = amountInfo?.currency.symbol ?? defaults.currencySymbol;
-  const minimum = parseAmountBound(amountInfo?.minAmount) ?? defaults.minimumAmount;
-  const maximum = parseAmountBound(amountInfo?.maxAmount) ?? defaults.maximumAmount;
+  const defaults = railDefaults(rail);
+  const currencySymbol = constraints?.currency.symbol ?? defaults.currencySymbol;
+  const minimum = parseAmountBound(constraints?.minAmount) ?? defaults.minimumAmount;
+  const maximum = parseAmountBound(constraints?.maxAmount) ?? defaults.maximumAmount;
 
   const { amount, isValid, handleChange } = useAmountInput(minimum, maximum);
 
   // Fetch constraints from server (one-shot)
   useEffect(() => {
-    if (constraintsFetched.current || paymentInfo || !accountFlow?.isAuthenticated) return;
+    if (constraintsFetched.current || !accountFlow?.isAuthenticated) return;
     constraintsFetched.current = true;
 
     void (async () => {
@@ -59,7 +63,7 @@ export function AccountPaymentPage({
         const token = await accountFlow.getAccessToken();
         if (!token) { constraintsFetched.current = false; return; }
         const result = await client.account.getDepositConstraints(
-          { sessionId, region },
+          { sessionId, rail },
           { bearerToken: token },
         );
         setConstraints(result);
@@ -68,18 +72,12 @@ export function AccountPaymentPage({
         console.error("failed to load deposit constraints:", error);
       }
     })();
-  }, [accountFlow, client, paymentInfo, region, sessionId]);
+  }, [accountFlow, client, rail, sessionId]);
 
   const handleSubmit = useCallback(
     (amt: number) => {
       if (!accountFlow) return;
-      setDepositState({
-        depositAmount: amt.toFixed(2),
-        depositId: "",
-        payment: null,
-        createStatus: "draft",
-        createRequest: null,
-      });
+      setDepositState({ depositAmount: amt.toFixed(2), kind: "idle" });
       onAdvance();
     },
     [accountFlow, onAdvance, setDepositState],

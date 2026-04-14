@@ -55,7 +55,11 @@ export function AccountUsAchDetailsPage({
 }: AccountUsAchDetailsPageProps) {
   const client = useDaimoClient();
   const { depositState } = useSessionDepositState(sessionId);
-  const instructions = depositState?.payment?.instructions ?? "";
+  const payment =
+    depositState?.kind === "drafted" || depositState?.kind === "committed"
+      ? depositState.payment
+      : null;
+  const instructions = payment?.instructions ?? "";
   const fields = parseInstructions(instructions);
 
   useDepositPoller({

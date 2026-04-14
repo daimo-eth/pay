@@ -80,6 +80,8 @@ export const es: typeof en = {
   accountPayment: "Ingresa el monto",
   accountResendCode: "Reenviar código",
   accountVerify: "Verificar",
+  accountPhone: "Verifica tu teléfono",
+  accountPhoneDesc: "Te enviaremos un código de 6 dígitos para verificar tu número.",
   accountSubmit: "Enviar",
   accountSelectBank: "Seleccionar banco",
   accountSearchInstitutions: "Buscar instituciones...",

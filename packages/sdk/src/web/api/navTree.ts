@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import type { AccountRegion } from "../../common/account.js";
+import type { AccountRail } from "../../common/account.js";
 import type { SessionPublicInfo } from "../../common/session.js";
 
 /** Session with navigation tree for the modal UI. */
@@ -80,7 +80,7 @@ export type NavNodeConnectedWallet = NavNodeCommon & {
 
 export type NavNodeAccountDeposit = NavNodeCommon & {
   type: "AccountDeposit";
-  region: AccountRegion;
+  rail: AccountRail;
   icon?: string;
 };
 

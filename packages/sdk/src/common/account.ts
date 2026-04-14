@@ -1,15 +1,13 @@
 import type { Address } from "viem";
+import { z } from "zod";
 
-/** ISO 3166-1 alpha-2 country codes for supported account deposit regions. */
-export type AccountRegion = "CA" | "US";
+/** User-visible payment rail. This is the canonical account deposit identifier. */
+export const zAccountRail = z.enum(["interac", "ach", "apple_pay"]);
+export type AccountRail = z.infer<typeof zAccountRail>;
 
 /** What the user needs to do next in the account onboarding flow. */
 export type NextAction = "create_account" | "enrollment" | "ready_for_payment";
 export type ExistingAccountNextAction = Exclude<NextAction, "create_account">;
-
-export type AccountDepositAvailability = {
-  depositsEnabled: boolean;
-};
 
 /** Enrollment state machine response from startEnrollment. */
 export type EnrollmentResponse =
@@ -18,18 +16,9 @@ export type EnrollmentResponse =
   | { action: "kyc_pending_review" }
   | { action: "kyc_rejected_final"; reason: string }
   | { action: "not_eligible"; reason: string }
-  | {
-      action: "hosted_agreement_required";
-      title: string;
-      description: string;
-      url: string;
-      openExternalLabel: string;
-      continueLabel: string;
-      fallbackDescription: string;
-      autoContinueDescription: string;
-      checkingDescription: string;
-    }
   | { action: "provider_pending" }
+  /** User must verify a phone number before continuing. */
+  | { action: "phone_required"; reason?: string }
   | { action: "active" }
   | { action: "suspended"; reason: string }
   | { action: "error"; message: string; retryable: boolean };
@@ -47,10 +36,10 @@ export type GetAccountResponse =
       account: null;
       nextAction: "create_account";
     }
-  | ({
+  | {
       account: AccountInfo;
       nextAction: ExistingAccountNextAction;
-    } & AccountDepositAvailability);
+    };
 
 /** POST /v1/internal/account response. */
 export type CreateAccountResponse = {
@@ -101,9 +90,9 @@ export type RoutingSignDataResponse = {
 };
 
 /**
- * Discriminated union for provider-specific deeplink strategies.
- * - "redirect": simple URL open (new tab).
- * - "form-post": warm a URL first (e.g. WAF JS challenge), then POST a form.
+ * Discriminated union for deposit deeplink strategies.
+ * - `redirect`: open a URL directly.
+ * - `form-post`: warm a URL first, then POST a form.
  */
 export type DepositDeeplink =
   | { type: "redirect"; url: string }
@@ -131,12 +120,30 @@ export type DepositInstitution = {
   deeplink: DepositDeeplink;
 };
 
-/** Server-provided payment UI configuration. */
-export type DepositPaymentInfo = DepositConstraints & {
-  instructions: string;
-  institutions: DepositInstitution[];
-  qrUrl: string | null;
-};
+/**
+ * Server-provided payment flow configuration.
+ * - `bank-picker`: user picks an institution, then continues in their bank flow
+ * - `wallet-pay-widget`: user completes payment in an embedded wallet-pay widget
+ */
+export type DepositPaymentInfo =
+  | (DepositConstraints & {
+      flow: "bank-picker";
+      instructions: string;
+      institutions: DepositInstitution[];
+      qrUrl: string | null;
+    })
+  | (DepositConstraints & {
+      flow: "wallet-pay-widget";
+      instructions: string;
+      paymentLinkUrl: string;
+      paymentLinkKind: "apple_pay" | "google_pay";
+      /** Total fee in fiat units (e.g. "0.12"). */
+      totalFeeUnits: string;
+      /** Amount charged to card, inclusive of fees. */
+      paymentTotal: string;
+      /** Amount of crypto delivered to the destination. */
+      purchaseAmount: string;
+    });
 
 /** POST /v1/internal/account/deposit response. */
 export type CreateDepositResponse = {

@@ -1,20 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { AccountRegion, DepositInstitution } from "../../../common/account.js";
+import type {
+  AccountRail,
+  DepositInstitution,
+} from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import {
   useAccountFlow,
   useSessionDepositState,
 } from "../../hooks/useAccountFlow.js";
-import { useCreateDeposit } from "../../hooks/useCreateDeposit.js";
+import {
+  createSignedDeposit,
+  useDraftDeposit,
+} from "../../hooks/useDraftDeposit.js";
 import type { DaimoPlatform } from "../../platform.js";
 import { ErrorPage } from "../ErrorPage.js";
 import { PageHeader, ScrollContent, TextInput } from "../shared.js";
 import { openDeeplink } from "./openDeeplink.js";
 
 type AccountCanadaBankPickerPageProps = {
-  region: AccountRegion;
+  rail: AccountRail;
   sessionId: string;
   platform: DaimoPlatform;
   onBack?: (() => void) | null;
@@ -22,35 +28,46 @@ type AccountCanadaBankPickerPageProps = {
 };
 
 /**
- * Canada bank picker with background deposit creation. This screen is the
- * point of no return for the current session: once it loads, the signed
- * deposit request is being created and the amount is no longer editable.
- * Shows skeleton tiles while signing + createDeposit runs.
- * On bank click: opens the institution deeplink and advances to the waiting screen.
+ * Canada bank picker. Loads institutions via the draft-deposit endpoint.
+ * On bank click: signs + commits the deposit, opens the institution deeplink,
+ * advances to the deeplink page.
  */
 export function AccountCanadaBankPickerPage({
-  region,
+  rail,
   sessionId,
   platform,
   onBack,
   onSelect,
 }: AccountCanadaBankPickerPageProps) {
   const client = useDaimoClient();
-  const { accountFlow, depositState, setDepositState } =
-    useSessionDepositState(sessionId);
+  const accountFlow = useAccountFlow();
+  const { depositState, setDepositState } = useSessionDepositState(sessionId);
   const [search, setSearch] = useState("");
+  const [commitError, setCommitError] = useState<string | null>(null);
 
   const depositAmount = depositState?.depositAmount ?? "";
 
-  const { isCreating, error } = useCreateDeposit({
+  const {
+    payment: draftPayment,
+    isCreating,
+    error: draftError,
+  } = useDraftDeposit({
     client,
     accountFlow,
     sessionId,
+    rail,
     depositAmount,
-    region,
+    enabled: depositAmount !== "",
   });
 
-  const institutions = depositState?.payment?.institutions ?? [];
+  const committedPayment =
+    depositState?.kind === "committed" && depositState.payment.flow === "bank-picker"
+      ? depositState.payment
+      : null;
+  const payment =
+    committedPayment
+    ?? (draftPayment?.flow === "bank-picker" ? draftPayment : null);
+  const institutions: DepositInstitution[] = payment?.institutions ?? [];
   const query = search.toLowerCase();
 
   const filteredFeatured = useMemo(() => {
@@ -68,21 +85,62 @@ export function AccountCanadaBankPickerPage({
   }, [institutions, query]);
 
   const handleSelect = useCallback(
-    (institution: DepositInstitution) => {
-      if (!depositState || !accountFlow) return;
+    async (institution: DepositInstitution) => {
+      if (
+        depositState?.kind === "committed"
+        && depositState.depositAmount === depositAmount
+        && depositState.payment.flow === "bank-picker"
+      ) {
+        setDepositState({
+          ...depositState,
+          selectedInstitutionId: institution.id,
+        });
+        openDeeplink(institution.deeplink, platform);
+        onSelect();
+        return;
+      }
 
-      setDepositState({
-        ...depositState,
-        selectedInstitutionId: institution.id,
-      });
+      if (!accountFlow) return;
 
-      openDeeplink(institution.deeplink, platform);
-      onSelect();
+      setCommitError(null);
+      try {
+        const result = await createSignedDeposit({
+          client,
+          accountFlow,
+          sessionId,
+          rail,
+          depositAmount,
+        });
+        setDepositState({
+          depositAmount,
+          kind: "committed",
+          depositId: result.deposit.id,
+          payment: result.payment,
+          selectedInstitutionId: institution.id,
+        });
+        openDeeplink(institution.deeplink, platform);
+        onSelect();
+      } catch (err) {
+        setCommitError(
+          err instanceof Error ? err.message : "failed to create deposit",
+        );
+      }
     },
-    [accountFlow, depositState, onSelect, platform, setDepositState],
+    [
+      depositState,
+      accountFlow,
+      client,
+      depositAmount,
+      onSelect,
+      platform,
+      rail,
+      sessionId,
+      setDepositState,
+    ],
   );
 
   const skeletonBg = "var(--daimo-skeleton, #e5e7eb)";
+  const error = commitError ?? draftError;
 
   if (error) {
     return (

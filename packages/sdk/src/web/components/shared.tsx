@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   arbitrum,
   base,
@@ -97,6 +97,7 @@ type AmountInputProps = {
   onSubmit: (amount: number) => void;
   /** Called whenever the amount changes */
   onChange?: (amount: number, isValid: boolean) => void;
+  disabled?: boolean;
 };
 
 /**
@@ -111,8 +112,20 @@ export function AmountInput({
   initialValue,
   onSubmit,
   onChange,
+  disabled = false,
 }: AmountInputProps) {
   const [inputValue, setInputValue] = useState(initialValue ?? "");
+  const lastSyncedInitialValueRef = useRef<string | undefined>(initialValue);
+
+  useEffect(() => {
+    if (lastSyncedInitialValueRef.current === initialValue) return;
+    lastSyncedInitialValueRef.current = initialValue;
+    const nextValue = initialValue ?? "";
+    setInputValue(nextValue);
+    const nextAmount = parseFloat(nextValue) || 0;
+    const nextIsValid = nextAmount >= minimum && nextAmount <= maximum;
+    onChange?.(nextAmount, nextIsValid);
+  }, [initialValue, minimum, maximum]);
 
   const amount = parseFloat(inputValue) || 0;
   const isValid = amount >= minimum && amount <= maximum;
@@ -174,6 +187,7 @@ export function AmountInput({
           type="text"
           inputMode="decimal"
           value={inputValue}
+          disabled={disabled}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="0.00"
@@ -192,9 +206,31 @@ export function AmountInput({
 }
 
 /** Hook to manage amount input state externally */
-export function useAmountInput(minimum: number, maximum: number) {
-  const [amount, setAmount] = useState(0);
-  const [isValid, setIsValid] = useState(false);
+export function useAmountInput(
+  minimum: number,
+  maximum: number,
+  initialValue?: string,
+) {
+  const initialAmount = Number(initialValue ?? "");
+  const [amount, setAmount] = useState(
+    Number.isFinite(initialAmount) ? initialAmount : 0,
+  );
+  const [isValid, setIsValid] = useState(
+    Number.isFinite(initialAmount)
+      ? initialAmount >= minimum && initialAmount <= maximum
+      : false,
+  );
+
+  useEffect(() => {
+    const nextAmount = Number(initialValue ?? "");
+    if (!Number.isFinite(nextAmount)) {
+      setAmount(0);
+      setIsValid(false);
+      return;
+    }
+    setAmount(nextAmount);
+    setIsValid(nextAmount >= minimum && nextAmount <= maximum);
+  }, [initialValue, minimum, maximum]);
 
   const handleChange = (amt: number, valid: boolean) => {
     setAmount(amt);

@@ -109,6 +109,8 @@ export const en = {
   accountPayment: "Enter amount",
   accountResendCode: "Resend code",
   accountVerify: "Verify",
+  accountPhone: "Verify your phone",
+  accountPhoneDesc: "We'll text you a 6-digit code to verify your number.",
   accountSubmit: "Submit",
   accountSelectBank: "Select Bank",
   accountSearchInstitutions: "Search institutions...",

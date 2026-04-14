@@ -22,13 +22,13 @@ export type {
 
 export type RetrieveSessionWithNavResponse = {
   session: SessionPublicInfo & { navTree: NavNode[]; baseUrl: string };
-  /** Privy app ID, present when the nav tree includes AccountDeposit. */
+  /** Embedded auth app ID, present when the nav tree includes AccountDeposit. */
   privyAppId?: string;
 };
 
 export type RecreateSessionWithNavResponse = {
   session: SessionWithNav;
-  /** Privy app ID, present when the nav tree includes AccountDeposit. */
+  /** Embedded auth app ID, present when the nav tree includes AccountDeposit. */
   privyAppId?: string;
 };
 

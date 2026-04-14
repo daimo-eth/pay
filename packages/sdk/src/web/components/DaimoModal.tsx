@@ -57,12 +57,18 @@ import { AccountUsAchDetailsPage } from "./account/AccountBankDetailsPage.js";
 import { AccountCanadaBankPickerPage } from "./account/AccountBankPickerPage.js";
 import { AccountCreatingWalletPage } from "./account/AccountCreatingWalletPage.js";
 import { AccountDeeplinkPage } from "./account/AccountDeeplinkPage.js";
+import { AccountApplePayPage } from "./account/AccountApplePayPage.js";
 import { AccountEmailPage } from "./account/AccountEmailPage.js";
 import { AccountEnrollmentPage } from "./account/AccountEnrollmentPage.js";
 import { AccountOtpPage } from "./account/AccountOtpPage.js";
+import { AccountPhonePage } from "./account/AccountPhonePage.js";
+import { AccountPhoneOtpPage } from "./account/AccountPhoneOtpPage.js";
 import { AccountPaymentPage } from "./account/AccountPaymentPage.js";
 import { AccountStatusPage } from "./account/AccountStatusPage.js";
-import { getAccountPaymentAdvanceTarget } from "./account/accountNav.js";
+import {
+  getAccountPaymentAdvanceTarget,
+  getAccountPaymentEntryTarget,
+} from "./account/accountNav.js";
 import { SelectAmountPage } from "./SelectAmountPage.js";
 import { SelectTokenPage } from "./SelectTokenPage.js";
 import {
@@ -353,6 +359,7 @@ function DaimoModalInner({
     );
     content = renderEntry(nav.topEntry, {
       session,
+      displayVerb: session.display.verb,
       canGoBack: nav.canGoBack,
       onNavigate: nav.handleNavigate,
       onBack: nav.handleBack,
@@ -408,6 +415,7 @@ type RenderContext = {
     baseUrl: string;
     destination: { amountUnits?: string };
   };
+  displayVerb: string;
   canGoBack: boolean;
   onNavigate: (nodeId: string) => void;
   onBack: () => void;
@@ -576,31 +584,59 @@ function renderEntry(
     case "account-enrollment":
       return (
         <AccountEnrollmentPage
-          region={entry.region}
+          rail={entry.rail}
           sessionId={ctx.session.sessionId}
           onBack={ctx.onBack}
-          onReady={() => ctx.onAccountAdvance("account-payment")}
+          onReady={() =>
+            ctx.onAccountAdvance(getAccountPaymentEntryTarget(entry.rail))
+          }
+          onPhoneRequired={() => ctx.onAccountAdvance("account-phone")}
+        />
+      );
+    case "account-phone":
+      return (
+        <AccountPhonePage
+          onBack={ctx.onBack}
+          onOtpSent={() => ctx.onAccountAdvance("account-phone-otp")}
+        />
+      );
+    case "account-phone-otp":
+      return (
+        <AccountPhoneOtpPage
+          rail={entry.rail}
+          onBack={ctx.onBack}
+          onVerified={() => ctx.onAccountAdvance("account-enrollment")}
         />
       );
     case "account-payment":
       return (
         <AccountPaymentPage
-          region={entry.region}
+          rail={entry.rail}
           sessionId={ctx.session.sessionId}
           onBack={ctx.onBack}
-          onAdvance={() => ctx.onAccountAdvance(
-            getAccountPaymentAdvanceTarget(entry.region),
-          )}
+          onAdvance={() => ctx.onAccountAdvance(getAccountPaymentAdvanceTarget(entry.rail))}
         />
       );
     case "account-canada-bank-picker":
       return (
         <AccountCanadaBankPickerPage
-          region={entry.region}
+          rail={entry.rail}
           sessionId={ctx.session.sessionId}
           platform={ctx.platform}
           onBack={null}
           onSelect={() => ctx.onAccountAdvance("account-deeplink")}
+        />
+      );
+    case "account-apple-pay":
+      return (
+        <AccountApplePayPage
+          rail={entry.rail}
+          sessionId={ctx.session.sessionId}
+          clientSecret={ctx.session.clientSecret}
+          actionVerb={ctx.displayVerb}
+          initialAmount={ctx.session.destination.amountUnits}
+          onBack={ctx.onBack}
+          onAdvance={() => ctx.onAccountAdvance("account-status")}
         />
       );
     case "account-us-ach-details":
@@ -616,7 +652,6 @@ function renderEntry(
       const accountNode = findNode(entry.nodeId, ctx.session.navTree);
       return (
         <AccountDeeplinkPage
-          region={entry.region}
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}
@@ -630,7 +665,7 @@ function renderEntry(
     case "account-status":
       return (
         <AccountStatusPage
-          region={entry.region}
+          rail={entry.rail}
           sessionId={ctx.session.sessionId}
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}

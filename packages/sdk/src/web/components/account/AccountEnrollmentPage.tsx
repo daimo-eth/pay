@@ -1,7 +1,10 @@
 import SumsubWebSdk from "@sumsub/websdk-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { AccountRegion, EnrollmentResponse } from "../../../common/account.js";
+import type {
+  AccountRail,
+  EnrollmentResponse,
+} from "../../../common/account.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useAccountFlow } from "../../hooks/useAccountFlow.js";
@@ -12,10 +15,12 @@ import { ProgressPulse } from "../ProgressPulse.js";
 import { CenteredContent, ContactSupportButton, PageHeader } from "../shared.js";
 
 type AccountEnrollmentPageProps = {
-  region: AccountRegion;
+  rail: AccountRail;
   sessionId: string;
   onBack: () => void;
   onReady: () => void;
+  /** Called when enrollment requires a phone OTP (e.g. Coinbase Headless). */
+  onPhoneRequired: () => void;
 };
 
 /** Actions that should trigger polling — the state is still advancing. */
@@ -23,7 +28,6 @@ const POLLING_ACTIONS = new Set([
   "kyc_required",
   "kyc_retry",
   "kyc_pending_review",
-  "hosted_agreement_required",
   "provider_pending",
 ]);
 
@@ -35,57 +39,36 @@ const FORWARD_FROM_KYC = new Set([
   "kyc_retry",
   "kyc_rejected_final",
   "not_eligible",
-  "hosted_agreement_required",
   "provider_pending",
   "active",
   "suspended",
   "error",
 ]);
-
-/**
- * Enrollment page — renders the right view for the current enrollment state.
- * The modal is dumb: it polls `startEnrollment`, reads the response, and
- * renders. All state transitions are driven by the server.
- *
- * States:
- *   kyc_required       → SumSub widget (first-time docs)
- *   kyc_retry          → retry banner + SumSub widget
- *   kyc_pending_review → pulsing dots, "reviewing your documents"
- *   kyc_rejected_final → terminal error
- *   not_eligible       → terminal error
- *   hosted_agreement_required → hosted provider agreement page, poll until signed
- *   provider_pending   → pulsing dots, "setting up your account"
- *   active             → auto-advance to payment
- *   suspended          → terminal error
- *   error              → error with optional retry
- */
 export function AccountEnrollmentPage({
-  region,
+  rail,
   sessionId,
   onBack,
   onReady,
+  onPhoneRequired,
 }: AccountEnrollmentPageProps) {
   const account = useAccountFlow();
   const client = useDaimoClient();
   const [response, setResponse] = useState<EnrollmentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [kycAccepted, setKycAccepted] = useState(false);
-  const [isCheckingTos, setIsCheckingTos] = useState(false);
   const started = useRef(false);
   const responseRef = useRef<EnrollmentResponse | null>(null);
-  const readyTimeoutRef = useRef<number | null>(null);
   // After KYC submit, suppress stale responses until webhook arrives
   const awaitingWebhook = useRef(false);
 
   const fetchEnrollment = useCallback(async () => {
     if (!account) return;
     const isInitial = responseRef.current == null;
-    const previousAction = responseRef.current?.action;
     if (isInitial) setIsLoading(true);
 
     let result: EnrollmentResponse | null;
     try {
-      result = await account.startEnrollment(client, region);
+      result = await account.startEnrollment(client, { rail });
     } catch (err) {
       console.error("[enrollment] fetch failed:", err);
       if (awaitingWebhook.current) return;
@@ -93,7 +76,6 @@ export function AccountEnrollmentPage({
     }
 
     if (isInitial) setIsLoading(false);
-    setIsCheckingTos(false);
     if (!result) return;
 
     // While awaiting webhook, only accept forward progress
@@ -105,28 +87,17 @@ export function AccountEnrollmentPage({
       }
     }
 
-    if (
-      previousAction === "hosted_agreement_required"
-      && result.action === "active"
-    ) {
-      const pending: EnrollmentResponse = { action: "provider_pending" };
-      responseRef.current = pending;
-      setResponse(pending);
-      if (readyTimeoutRef.current != null) {
-        window.clearTimeout(readyTimeoutRef.current);
-      }
-      readyTimeoutRef.current = window.setTimeout(() => {
-        responseRef.current = result;
-        setResponse(result);
-        onReady();
-      }, 900);
-      return;
-    }
-
     if (result.action === "active") {
       responseRef.current = result;
       setResponse(result);
       onReady();
+    } else if (result.action === "phone_required") {
+      // Coinbase Headless has no KYC — phone OTP is the only step.
+      // Navigate to the phone entry screen; the server will flip to "active"
+      // once we return from phone verification.
+      responseRef.current = result;
+      setResponse(result);
+      onPhoneRequired();
     } else if (
       !responseRef.current ||
       responseRef.current.action !== result.action
@@ -134,7 +105,7 @@ export function AccountEnrollmentPage({
       responseRef.current = result;
       setResponse(result);
     }
-  }, [account, client, region, onReady]);
+  }, [account, client, rail, onReady, onPhoneRequired]);
 
   /** Called when SumSub reports docs submitted. Optimistically show review. */
   const handleKycSubmitted = useCallback(() => {
@@ -156,14 +127,6 @@ export function AccountEnrollmentPage({
     const interval = setInterval(fetchEnrollment, 2000);
     return () => clearInterval(interval);
   }, [response?.action, fetchEnrollment]);
-
-  useEffect(() => {
-    return () => {
-      if (readyTimeoutRef.current != null) {
-        window.clearTimeout(readyTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // --- Render ---
 
@@ -217,19 +180,6 @@ export function AccountEnrollmentPage({
         />
       );
 
-    case "hosted_agreement_required":
-      return (
-        <HostedAgreementPage
-          step={response}
-          isChecking={isCheckingTos}
-          onRefresh={async () => {
-            setIsCheckingTos(true);
-            await fetchEnrollment();
-          }}
-          onBack={onBack}
-        />
-      );
-
     case "provider_pending":
       return (
         <EnrollmentWaiting
@@ -273,6 +223,17 @@ export function AccountEnrollmentPage({
           retryText={t.tryAgain}
           onRetry={response.retryable ? fetchEnrollment : undefined}
           hideRetry={!response.retryable}
+        />
+      );
+
+    case "phone_required":
+      // Navigation is triggered in fetchEnrollment; render a waiting state
+      // here to avoid flicker until the modal pushes the phone screen.
+      return (
+        <EnrollmentWaiting
+          title={t.accountEnrollment}
+          label={t.loading}
+          onBack={onBack}
         />
       );
 
@@ -482,97 +443,6 @@ function EnrollmentWaiting({
       </CenteredContent>
     </div>
   );
-}
-
-/** Hosted provider agreement iframe. Polling drives completion. */
-function HostedAgreementPage({
-  step,
-  isChecking,
-  onRefresh,
-  onBack,
-}: {
-  step: Extract<EnrollmentResponse, { action: "hosted_agreement_required" }>;
-  isChecking: boolean;
-  onRefresh: () => Promise<void>;
-  onBack: () => void;
-}) {
-  const openTos = useCallback(() => {
-    if (postNativeOpenUrl(step.url)) return;
-    window.open(step.url, "_blank", "noopener,noreferrer");
-  }, [step.url]);
-
-  return (
-    <div className="daimo-flex daimo-flex-col daimo-flex-1 daimo-min-h-0">
-      <PageHeader title={step.title} onBack={onBack} />
-
-      <div className="daimo-flex-1 daimo-min-h-0 daimo-overflow-y-auto daimo-px-6 daimo-pb-4">
-        <div className="daimo-mx-auto daimo-flex daimo-w-full daimo-max-w-[420px] daimo-flex-col daimo-gap-4">
-          <p className="daimo-px-2 daimo-text-xs daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed">
-            {step.description}
-          </p>
-
-          <div
-            className="daimo-w-full daimo-overflow-hidden daimo-rounded-[20px] daimo-border daimo-bg-white"
-            style={{
-              height: "clamp(400px, 58vh, 600px)",
-              borderColor: "var(--daimo-border)",
-              boxShadow: "0 12px 40px rgba(15, 23, 42, 0.08)",
-            }}
-          >
-            <iframe
-              src={step.url}
-              title={step.title}
-              className="daimo-block daimo-h-full daimo-w-full daimo-border-0"
-            />
-          </div>
-
-          <p className="daimo-mx-auto daimo-max-w-[320px] daimo-text-[11px] daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed">
-            {step.fallbackDescription}
-          </p>
-        </div>
-      </div>
-
-      <div className="daimo-mx-auto daimo-w-full daimo-max-w-[420px] daimo-shrink-0 daimo-px-6 daimo-pb-6 daimo-flex daimo-flex-col daimo-gap-3">
-        <button
-          type="button"
-          onClick={openTos}
-          disabled={isChecking}
-          className="daimo-w-full daimo-min-h-[44px] daimo-rounded-[var(--daimo-radius-lg)] daimo-px-4 daimo-text-sm daimo-font-medium daimo-transition-[background-color] daimo-duration-100 daimo-ease"
-          style={{
-            color: "var(--daimo-text)",
-            backgroundColor: "var(--daimo-surface-secondary)",
-            touchAction: "manipulation",
-          }}
-        >
-          {step.openExternalLabel}
-        </button>
-        <PrimaryButton
-          onClick={() => void onRefresh()}
-          disabled={isChecking}
-          className="daimo-max-w-none"
-        >
-          {isChecking ? t.accountProviderPending : step.continueLabel}
-        </PrimaryButton>
-        <p className="daimo-text-[11px] daimo-text-[var(--daimo-text-muted)] daimo-text-center daimo-leading-relaxed daimo-px-4">
-          {isChecking
-            ? step.checkingDescription
-            : step.autoContinueDescription}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function postNativeOpenUrl(url: string): boolean {
-  const w = window as {
-    webkit?: {
-      messageHandlers?: { daimoPay?: { postMessage(m: unknown): void } };
-    };
-  };
-  const handler = w.webkit?.messageHandlers?.daimoPay;
-  if (!handler) return false;
-  handler.postMessage({ type: "openUrl", url });
-  return true;
 }
 
 /** SumSub identity verification widget. */

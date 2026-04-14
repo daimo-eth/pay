@@ -54,6 +54,10 @@ export const en = {
   enterAmount: "Enter Amount",
   max: "Max",
   balance: "Balance:",
+  recipientGets: "Recipient gets",
+
+  // WaitingDepositAddressPage — fee subtitle
+  recipientReceives: "Recipient receives",
 
   // ErrorPage
   error: "Error",

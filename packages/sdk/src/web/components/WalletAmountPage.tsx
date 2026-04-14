@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { formatUnits } from "viem";
+import type { UserFeeRule } from "../../common/session.js";
 import type { DaimoPayToken, WalletPaymentOption } from "../api/walletTypes.js";
 
 import { t } from "../hooks/locale.js";
@@ -10,21 +11,37 @@ import { PageHeader, TokenIconWithChainBadge } from "./shared.js";
 type WalletAmountPageProps = {
   token: WalletPaymentOption;
   platform: DaimoPlatform;
+  /**
+   * Optional org→user fee rule. When set, the page shows a live "Recipient
+   * gets $X" line below the input and bumps the minimum so the recipient
+   * still clears the chain floor.
+   */
+  userFeeRule?: UserFeeRule;
   onBack: () => void;
   onContinue: (amountUsd: number) => void;
   baseUrl: string;
 };
 
+function computeUserFeeUsd(rule: UserFeeRule | undefined, sourceUsd: number) {
+  if (!rule || (rule.fixedUsd === 0 && rule.bps === 0)) return 0;
+  return rule.fixedUsd + (sourceUsd * rule.bps) / 10000;
+}
+
 /** Amount entry page for wallet payment flow */
 export function WalletAmountPage({
   token,
   platform,
+  userFeeRule,
   onBack,
   onContinue,
   baseUrl,
 }: WalletAmountPageProps) {
   const balanceToken = token.balance.token;
-  const minimumUsd = token.minimumRequired.usd;
+  const hasUserFee =
+    !!userFeeRule && (userFeeRule.fixedUsd > 0 || userFeeRule.bps > 0);
+  // Bump the floor so the recipient still clears the chain minimum after fee.
+  const minimumUsd =
+    token.minimumRequired.usd + computeUserFeeUsd(userFeeRule, token.minimumRequired.usd);
   const maximumUsd = Math.min(token.balance.usd, balanceToken.maxAcceptUsd);
 
   // Check if this is a USD stablecoin (fiatISO is set on base Token type)
@@ -164,6 +181,13 @@ export function WalletAmountPage({
 
     if (showMaxWarning) return `${t.maximum} ${formatAmount(maximumUsd)}`;
     if (showMinWarning) return `${t.minimum} ${formatAmount(minimumUsd)}`;
+    // When a user fee applies and the user has entered a valid amount, swap
+    // the balance line for a live recipient quote so the fee is transparent.
+    if (hasUserFee && amountUsd > 0) {
+      const feeUsd = computeUserFeeUsd(userFeeRule, amountUsd);
+      const recipientUsd = Math.max(amountUsd - feeUsd, 0);
+      return `${t.recipientGets} $${roundUsd(recipientUsd)}`;
+    }
     return getBalanceMessage();
   };
 

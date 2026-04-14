@@ -147,6 +147,59 @@ export type PaymentMethodSolana = {
 
 export type UserMetadata = Record<string, string> | null;
 
+/**
+ * User-facing fee charged by the org to the end user. Independent of the
+ * org-billing fee that Daimo charges. Set per-session at creation, immutable
+ * for the lifetime of the session.
+ */
+export type UserFeeRule = {
+  /** Fixed USD added to every fee, regardless of amount. */
+  fixedUsd: number;
+  /** Per-mille of mille (basis points). 100 = 1%, 1000 = 10% (hard cap). */
+  bps: number;
+};
+
+/**
+ * Quote of a user-facing fee for a specific dollar amount.
+ *
+ * For fixed-amount sessions: the merchant set destUsd; sourceUsd is what the
+ * user must pay (dest + fee).
+ *
+ * For open-amount/Max sessions: the user picks sourceUsd; destUsd is what
+ * the recipient receives (source - fee).
+ */
+export type UserFeeQuote = {
+  /** What the user pays in source token USD. */
+  sourceUsd: number;
+  /** What the org charges the user, in USD. */
+  feeUsd: number;
+  /** What the recipient receives, in destination token USD. */
+  destUsd: number;
+};
+
+/**
+ * Session-level fee state surfaced to the modal and merchant SDK.
+ * Only present when the session has a non-zero user fee rule.
+ */
+export type SessionFees = {
+  user: {
+    /** Snapshot of the rule at session creation. */
+    rule: UserFeeRule;
+    /**
+     * Quote computed at create time for fixed-amount sessions. Omitted for
+     * open-amount sessions, where the basis is unknown until the user picks an
+     * amount.
+     */
+    quote?: UserFeeQuote;
+    /**
+     * Realized quote, populated once a fulfillment exists.
+     * V1: tracked but not yet collected on-chain (DA contract update is
+     * future work).
+     */
+    charged?: UserFeeQuote;
+  };
+};
+
 export type SessionPublicInfo = {
   /** Unique ID for this session. */
   sessionId: UUID;
@@ -158,6 +211,8 @@ export type SessionPublicInfo = {
   display: SessionDisplay;
   /** Latest payment method. */
   paymentMethod: PaymentMethod | null;
+  /** Optional user-facing fee. Omitted when no fee is configured. */
+  fees?: SessionFees;
   /** Created at (unix seconds). */
   createdAt: number;
   /** Expires at (unix seconds). */

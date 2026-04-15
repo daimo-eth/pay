@@ -817,13 +817,12 @@ contract DepositAddressManager is Ownable, ReentrancyGuard {
 
         (address fulfillmentAddress, ) = computeFulfillmentAddress(fulfillment);
 
-        // Block refund if fast-finished, claimed, or hopped
+        // Block refund if there is a pending fast-finish repayment
         require(
-            fulfillmentToRecipient[fulfillmentAddress] == address(0),
-            "DAM: already finished"
+            fulfillmentToRecipient[fulfillmentAddress] == address(0) ||
+                fulfillmentToRecipient[fulfillmentAddress] == ADDR_MAX,
+            "DAM: pending fast-finish"
         );
-        // Mark as done to prevent subsequent claim/hopStart
-        fulfillmentToRecipient[fulfillmentAddress] = ADDR_MAX;
 
         // Pull and transfer each token to the refund address
         uint256[] memory amounts = new uint256[](tokens.length);

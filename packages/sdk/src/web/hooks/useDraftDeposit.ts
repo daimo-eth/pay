@@ -18,6 +18,7 @@ type UseDraftDepositArgs = {
   rail: AccountRail;
   depositAmount: string;
   enabled: boolean;
+  draftMode: "plain" | "signed";
 };
 
 type UseDraftDepositResult = {
@@ -39,6 +40,7 @@ export function useDraftDeposit({
   rail,
   depositAmount,
   enabled,
+  draftMode,
 }: UseDraftDepositArgs): UseDraftDepositResult {
   const { depositState, setDepositState } = useSessionDepositState(sessionId);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,8 @@ export function useDraftDeposit({
 
   const matchesAmount =
     depositState != null && depositState.depositAmount === depositAmount;
-  const isCommitted = depositState?.kind === "committed";
+  const hasStartedCurrentAmount =
+    matchesAmount && depositState?.kind === "started";
   const isCreating = matchesAmount && depositState?.kind === "drafting";
   const payment =
     matchesAmount && depositState?.kind === "drafted"
@@ -54,7 +57,7 @@ export function useDraftDeposit({
       : null;
 
   useEffect(() => {
-    if (!enabled || isCommitted) {
+    if (!enabled || hasStartedCurrentAmount) {
       setError(null);
       return;
     }
@@ -72,12 +75,26 @@ export function useDraftDeposit({
 
       void (async () => {
         try {
-          const token = await accountFlow.getAccessToken();
-          if (!token) throw new Error("not authenticated");
-          const result = await client.account.upsertDeposit(
-            { mode: "draft", sessionId, rail, depositAmount },
-            { bearerToken: token },
-          );
+          const result = draftMode === "signed"
+            ? await signAndUpsertDeposit({
+                client,
+                accountFlow,
+                sessionId,
+                rail,
+                depositAmount,
+              })
+            : await (async () => {
+                const token = await accountFlow.getAccessToken();
+                if (!token) throw new Error("not authenticated");
+                return client.account.upsertDeposit(
+                  {
+                    sessionId,
+                    rail,
+                    depositAmount,
+                  },
+                  { bearerToken: token },
+                );
+              })();
           if (seq !== requestSeqRef.current) return;
           setDepositState({
             depositAmount,
@@ -103,11 +120,12 @@ export function useDraftDeposit({
     depositState,
     enabled,
     error,
-    isCommitted,
+    hasStartedCurrentAmount,
     matchesAmount,
     rail,
     sessionId,
     setDepositState,
+    draftMode,
   ]);
 
   return {
@@ -121,7 +139,7 @@ export function useDraftDeposit({
   };
 }
 
-type CreateSignedDepositArgs = {
+type SignAndUpsertDepositArgs = {
   client: DaimoClient;
   accountFlow: AccountFlowState;
   sessionId: string;
@@ -129,30 +147,29 @@ type CreateSignedDepositArgs = {
   rail: AccountRail;
 };
 
-/** Prepare typed data, sign delivery + routing, commit the deposit. */
-export async function createSignedDeposit({
+export async function signAndUpsertDeposit({
   client,
   accountFlow,
   sessionId,
   depositAmount,
   rail,
-}: CreateSignedDepositArgs): Promise<CreateDepositResponse> {
+}: SignAndUpsertDepositArgs): Promise<CreateDepositResponse> {
   const token = await accountFlow.getAccessToken();
   if (!token) throw new Error("not authenticated");
   const auth = { bearerToken: token };
-
   const { routingSignData, deliverySignData } =
     await client.account.prepareDeposit(
-      { sessionId, depositAmount, rail },
+      { sessionId, rail, depositAmount },
       auth,
     );
-
-  const routingSig = await accountFlow.signTypedData({ ...routingSignData });
-  const deliverySig = await accountFlow.signTypedData({ ...deliverySignData });
-
+  const routingSig = await accountFlow.signTypedData({
+    ...routingSignData,
+  });
+  const deliverySig = await accountFlow.signTypedData({
+    ...deliverySignData,
+  });
   return client.account.upsertDeposit(
     {
-      mode: "commit",
       sessionId,
       rail,
       depositAmount,

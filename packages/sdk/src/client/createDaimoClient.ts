@@ -36,24 +36,16 @@ type SessionContext = { sessionId: string; clientSecret: string };
 
 type AccountRailTarget = { rail: AccountRail };
 
-/** Request shape for `account.upsertDeposit`. Draft mode skips sigs. */
-export type UpsertDepositRequest =
-  | {
-      mode: "draft";
-      sessionId: string;
-      depositAmount: string;
-      rail: AccountRail;
-    }
-  | {
-      mode: "commit";
-      sessionId: string;
-      depositAmount: string;
-      rail: AccountRail;
-      deliverySig: string;
-      deliverySigData: Record<string, unknown>;
-      routingSig: string;
-      routingSigData: Record<string, unknown>;
-    };
+/** Request shape for `account.upsertDeposit`. */
+export type UpsertDepositRequest = {
+  sessionId: string;
+  depositAmount: string;
+  rail: AccountRail;
+  deliverySig?: string;
+  deliverySigData?: Record<string, unknown>;
+  routingSig?: string;
+  routingSigData?: Record<string, unknown>;
+};
 
 export type DaimoClient = {
   account: {
@@ -85,10 +77,8 @@ export type DaimoClient = {
       auth: BearerAuth,
     ): Promise<DepositConstraints>;
     /**
-     * Upsert the deposit for this session. `draft` mode maintains the
-     * mutable preview (provider payment link, institutions, etc.) as the
-     * user edits the amount. `commit` mode attaches signatures and locks
-     * the row in. Both modes return the same response shape.
+     * Upsert the single deposit row for this session. The backend keeps the
+     * row mutable until the provider flow has really started.
      */
     upsertDeposit(
       input: UpsertDepositRequest,

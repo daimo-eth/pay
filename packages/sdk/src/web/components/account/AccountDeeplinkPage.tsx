@@ -31,16 +31,15 @@ export function AccountDeeplinkPage({
 }: AccountDeeplinkPageProps) {
   const client = useDaimoClient();
   const { depositState } = useSessionDepositState(sessionId);
-  const committed =
-    depositState?.kind === "committed" ? depositState : null;
+  const started = depositState?.kind === "started" ? depositState : null;
   const payment =
-    committed?.payment.flow === "bank-picker" ? committed.payment : null;
+    started?.payment.flow === "bank-picker" ? started.payment : null;
   const bankUrl = payment?.qrUrl;
   const desktop = isDesktop(platform);
 
   // Find the selected institution's deeplink for the "Open" button
   const selectedInstitution = payment?.institutions.find(
-    (inst) => inst.id === committed?.selectedInstitutionId,
+    (inst) => inst.id === started?.selectedInstitutionId,
   );
 
   useDepositPoller({

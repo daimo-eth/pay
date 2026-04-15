@@ -11,7 +11,7 @@ import {
   useSessionDepositState,
 } from "../../hooks/useAccountFlow.js";
 import {
-  createSignedDeposit,
+  signAndUpsertDeposit,
   useDraftDeposit,
 } from "../../hooks/useDraftDeposit.js";
 import type { DaimoPlatform } from "../../platform.js";
@@ -28,9 +28,9 @@ type AccountCanadaBankPickerPageProps = {
 };
 
 /**
- * Canada bank picker. Loads institutions via the draft-deposit endpoint.
- * On bank click: signs + commits the deposit, opens the institution deeplink,
- * advances to the deeplink page.
+ * Canada bank picker. Loads institutions via the deposit endpoint.
+ * On bank click: writes signatures, opens the institution deeplink, advances
+ * to the deeplink page.
  */
 export function AccountCanadaBankPickerPage({
   rail,
@@ -43,7 +43,7 @@ export function AccountCanadaBankPickerPage({
   const accountFlow = useAccountFlow();
   const { depositState, setDepositState } = useSessionDepositState(sessionId);
   const [search, setSearch] = useState("");
-  const [commitError, setCommitError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const depositAmount = depositState?.depositAmount ?? "";
 
@@ -58,14 +58,15 @@ export function AccountCanadaBankPickerPage({
     rail,
     depositAmount,
     enabled: depositAmount !== "",
+    draftMode: "plain",
   });
 
-  const committedPayment =
-    depositState?.kind === "committed" && depositState.payment.flow === "bank-picker"
+  const startedPayment =
+    depositState?.kind === "started" && depositState.payment.flow === "bank-picker"
       ? depositState.payment
       : null;
   const payment =
-    committedPayment
+    startedPayment
     ?? (draftPayment?.flow === "bank-picker" ? draftPayment : null);
   const institutions: DepositInstitution[] = payment?.institutions ?? [];
   const query = search.toLowerCase();
@@ -87,7 +88,7 @@ export function AccountCanadaBankPickerPage({
   const handleSelect = useCallback(
     async (institution: DepositInstitution) => {
       if (
-        depositState?.kind === "committed"
+        depositState?.kind === "started"
         && depositState.depositAmount === depositAmount
         && depositState.payment.flow === "bank-picker"
       ) {
@@ -102,9 +103,9 @@ export function AccountCanadaBankPickerPage({
 
       if (!accountFlow) return;
 
-      setCommitError(null);
+      setStartError(null);
       try {
-        const result = await createSignedDeposit({
+        const result = await signAndUpsertDeposit({
           client,
           accountFlow,
           sessionId,
@@ -113,7 +114,7 @@ export function AccountCanadaBankPickerPage({
         });
         setDepositState({
           depositAmount,
-          kind: "committed",
+          kind: "started",
           depositId: result.deposit.id,
           payment: result.payment,
           selectedInstitutionId: institution.id,
@@ -121,7 +122,7 @@ export function AccountCanadaBankPickerPage({
         openDeeplink(institution.deeplink, platform);
         onSelect();
       } catch (err) {
-        setCommitError(
+        setStartError(
           err instanceof Error ? err.message : "failed to create deposit",
         );
       }
@@ -140,7 +141,7 @@ export function AccountCanadaBankPickerPage({
   );
 
   const skeletonBg = "var(--daimo-skeleton, #e5e7eb)";
-  const error = commitError ?? draftError;
+  const error = startError ?? draftError;
 
   if (error) {
     return (

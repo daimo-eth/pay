@@ -25,7 +25,7 @@ export type PrivyHooks = {
 
 /**
  * Per-session deposit state. Identity is `sessionId`, current user intent is
- * `depositAmount`. `kind` tracks where we are in the draft → commit lifecycle.
+ * `depositAmount`. `kind` tracks preview vs started provider flow.
  */
 export type DepositStateInput =
   | { depositAmount: string; kind: "idle" }
@@ -38,7 +38,7 @@ export type DepositStateInput =
     }
   | {
       depositAmount: string;
-      kind: "committed";
+      kind: "started";
       depositId: string;
       payment: DepositPaymentInfo;
       selectedInstitutionId?: string;

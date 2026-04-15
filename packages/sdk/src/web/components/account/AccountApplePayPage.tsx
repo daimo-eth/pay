@@ -8,10 +8,7 @@ import type {
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useSessionDepositState } from "../../hooks/useAccountFlow.js";
-import {
-  createSignedDeposit,
-  useDraftDeposit,
-} from "../../hooks/useDraftDeposit.js";
+import { useDraftDeposit } from "../../hooks/useDraftDeposit.js";
 import { useDepositPoller } from "../../hooks/useDepositPoller.js";
 import { ErrorPage } from "../ErrorPage.js";
 import { SecondaryButton } from "../buttons.js";
@@ -37,11 +34,9 @@ const APPLE_PAY_COLLAPSED_SCALE_MAX = 1.18;
 
 /**
  * Coinbase Headless payment page — amount entry + Apple Pay in a single
- * screen. Amount edits debounce into draft deposit upserts on the backend,
- * which keep the Coinbase payment widget current without locking the
- * session. Once Coinbase signals a real commit, we sign the standard
- * routing + delivery payloads and commit that draft deposit. The iframe
- * fires postMessage events on lifecycle transitions.
+ * screen. Amount edits keep the backend preview + signatures up to date.
+ * Coinbase webhooks drive the deposit lifecycle; iframe events only affect
+ * the widget layout.
  *
  * **Iframing + CSP**: pay.coinbase.com serves a `frame-ancestors` CSP
  * header that only allows specific allowlisted domains. In sandbox we append
@@ -58,11 +53,8 @@ export function AccountApplePayPage({
   onAdvance,
 }: AccountApplePayPageProps) {
   const client = useDaimoClient();
-  const { accountFlow, depositState, setDepositState } =
-    useSessionDepositState(sessionId);
-  const [commitError, setCommitError] = useState<string | null>(null);
-  const [isCommittingDeposit, setIsCommittingDeposit] = useState(false);
-  const commitInFlightRef = useRef(false);
+  const { accountFlow, depositState } = useSessionDepositState(sessionId);
+  const didAdvanceRef = useRef(false);
 
   const initialAmountValue =
     depositState?.depositAmount ?? initialAmount;
@@ -107,7 +99,7 @@ export function AccountApplePayPage({
   const normalizedAmount = amount.toFixed(2);
   const matchesAmount =
     depositState != null && depositState.depositAmount === normalizedAmount;
-  const hasCommittedDeposit = depositState?.kind === "committed";
+  const hasStartedDeposit = depositState?.kind === "started";
   const {
     payment: draftPayment,
     isCreating: isCreatingDraft,
@@ -120,12 +112,13 @@ export function AccountApplePayPage({
     rail,
     depositAmount: normalizedAmount,
     enabled: isValid,
+    draftMode: "signed",
   });
-  const committedPayment =
-    hasCommittedDeposit && matchesAmount ? depositState.payment : null;
-  const payment: DepositPaymentInfo | null = committedPayment ?? draftPayment;
-  const error = commitError ?? draftError;
-  const isCreating = isCreatingDraft || isCommittingDeposit;
+  const startedPayment =
+    hasStartedDeposit && matchesAmount ? depositState.payment : null;
+  const payment: DepositPaymentInfo | null = startedPayment ?? draftPayment;
+  const error = draftError;
+  const isCreating = isCreatingDraft;
   const paymentLinkUrl =
     payment?.flow === "wallet-pay-widget" ? payment.paymentLinkUrl : null;
   const buttonShellRef = useRef<HTMLDivElement | null>(null);
@@ -141,80 +134,28 @@ export function AccountApplePayPage({
   }, [client, sessionId, clientSecret]);
   const {
     iframeExpanded,
+    onIframeLoad,
     iframeReady,
     iframeRef,
     resetWidget,
     widgetError,
   } = useCoinbaseApplePayWidget({
-    onCommitPayment: async () => {
-      if (
-        !accountFlow
-        || !isValid
-        || hasCommittedDeposit
-        || commitInFlightRef.current
-      ) {
-        return;
-      }
-
-      commitInFlightRef.current = true;
-      setIsCommittingDeposit(true);
-      setCommitError(null);
-      try {
-        const result = await createSignedDeposit({
-          client,
-          accountFlow,
-          sessionId,
-          rail,
-          depositAmount: normalizedAmount,
-        });
-        setDepositState({
-          depositAmount: normalizedAmount,
-          kind: "committed",
-          depositId: result.deposit.id,
-          payment: result.payment,
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "failed to create deposit";
-        if (message === "payment not committed yet") {
-          commitInFlightRef.current = false;
-          setIsCommittingDeposit(false);
-          return;
-        }
-        commitInFlightRef.current = false;
-        setCommitError(message);
-        setIsCommittingDeposit(false);
-        return;
-      }
-      setIsCommittingDeposit(false);
-    },
     onRefreshDeposit: refreshFromServer,
     paymentLinkUrl,
   });
 
   useEffect(() => {
     if (!isValid) {
-      setCommitError(null);
-      commitInFlightRef.current = false;
+      didAdvanceRef.current = false;
       return;
     }
-    if (
-      hasCommittedDeposit
-      && depositState?.depositAmount
-      && depositState.depositAmount !== normalizedAmount
-    ) {
-      setCommitError("deposit already exists for session");
-    } else {
-      setCommitError(null);
-    }
-    if (!hasCommittedDeposit) {
+    if (!hasStartedDeposit) {
+      didAdvanceRef.current = false;
       resetWidget();
     }
   }, [
-    amount,
     normalizedAmount,
-    depositState?.depositAmount,
-    hasCommittedDeposit,
+    hasStartedDeposit,
     isValid,
     resetWidget,
   ]);
@@ -245,7 +186,10 @@ export function AccountApplePayPage({
         deposit.status !== "initiated" &&
         deposit.status !== "awaiting_payment"
       ) {
-        onAdvance();
+        if (!didAdvanceRef.current) {
+          didAdvanceRef.current = true;
+          onAdvance();
+        }
       }
     },
   });
@@ -309,7 +253,7 @@ export function AccountApplePayPage({
           maximum={maximum}
           currencySymbol={currencySymbol}
           initialValue={initialAmountValue}
-          disabled={hasCommittedDeposit}
+          disabled={hasStartedDeposit}
           onSubmit={() => {
             /* no-op — payment info is debounced */
           }}
@@ -397,6 +341,7 @@ export function AccountApplePayPage({
                 allow="payment"
                 sandbox="allow-scripts allow-same-origin"
                 referrerPolicy="no-referrer"
+                onLoad={onIframeLoad}
                 className="daimo-absolute daimo-border-0 daimo-overflow-hidden daimo-transition-opacity"
                 style={{
                   ...iframeStyle,

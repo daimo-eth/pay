@@ -56,7 +56,7 @@ export function AccountUsAchDetailsPage({
   const client = useDaimoClient();
   const { depositState } = useSessionDepositState(sessionId);
   const payment =
-    depositState?.kind === "drafted" || depositState?.kind === "committed"
+    depositState?.kind === "drafted" || depositState?.kind === "started"
       ? depositState.payment
       : null;
   const instructions = payment?.instructions ?? "";

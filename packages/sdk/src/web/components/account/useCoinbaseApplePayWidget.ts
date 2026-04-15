@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type CoinbaseEventName =
-  | "onramp_api.load_pending"
-  | "onramp_api.load_success"
-  | "onramp_api.load_error"
-  | "onramp_api.apple_pay_button_pressed"
-  | "onramp_api.commit_success"
-  | "onramp_api.commit_error"
-  | "onramp_api.cancel"
-  | "onramp_api.apple_pay_session_cancelled"
-  | "onramp_api.polling_start"
-  | "onramp_api.polling_success"
-  | "onramp_api.polling_error";
+type CoinbaseEventName = string;
 
 type CoinbaseEvent = {
   eventName: CoinbaseEventName;
@@ -19,13 +8,13 @@ type CoinbaseEvent = {
 };
 
 type UseCoinbaseApplePayWidgetArgs = {
-  onCommitPayment: () => Promise<void>;
   onRefreshDeposit: () => Promise<void>;
   paymentLinkUrl: string | null;
 };
 
 type UseCoinbaseApplePayWidgetResult = {
   iframeExpanded: boolean;
+  onIframeLoad: () => void;
   iframeReady: boolean;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   resetWidget: () => void;
@@ -37,7 +26,6 @@ type UseCoinbaseApplePayWidgetResult = {
  * focused on amount entry / layout while this hook owns hosted-widget state.
  */
 export function useCoinbaseApplePayWidget({
-  onCommitPayment,
   onRefreshDeposit,
   paymentLinkUrl,
 }: UseCoinbaseApplePayWidgetArgs): UseCoinbaseApplePayWidgetResult {
@@ -45,24 +33,21 @@ export function useCoinbaseApplePayWidget({
   const [iframeReady, setIframeReady] = useState(false);
   const [iframeExpanded, setIframeExpanded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const commitRef = useRef(onCommitPayment);
   const refreshRef = useRef(onRefreshDeposit);
 
   const resetWidget = useCallback(() => {
+    debugApplePay("reset widget", { paymentLinkUrl });
     setWidgetError(null);
     setIframeReady(false);
     setIframeExpanded(false);
-  }, []);
-
-  useEffect(() => {
-    commitRef.current = onCommitPayment;
-  }, [onCommitPayment]);
+  }, [paymentLinkUrl]);
 
   useEffect(() => {
     refreshRef.current = onRefreshDeposit;
   }, [onRefreshDeposit]);
 
   useEffect(() => {
+    debugApplePay("payment link updated", { paymentLinkUrl });
     resetWidget();
   }, [paymentLinkUrl, resetWidget]);
 
@@ -77,6 +62,10 @@ export function useCoinbaseApplePayWidget({
       }
       const parsed = parseCoinbaseEvent(event.data);
       if (!parsed) return;
+      debugApplePay("coinbase event", {
+        eventName: parsed.eventName,
+        data: parsed.data,
+      });
 
       switch (parsed.eventName) {
         case "onramp_api.load_pending":
@@ -101,9 +90,12 @@ export function useCoinbaseApplePayWidget({
         case "onramp_api.apple_pay_button_pressed":
           setIframeExpanded(true);
           return;
+        case "onramp_api.pending_payment_auth":
+        case "onramp_api.payment_authorized":
+          setIframeExpanded(true);
+          return;
         case "onramp_api.commit_success":
           setIframeExpanded(false);
-          void commitRef.current();
           void refreshRef.current();
           return;
         case "onramp_api.commit_error":
@@ -111,17 +103,18 @@ export function useCoinbaseApplePayWidget({
           setWidgetError(parsed.data?.errorMessage ?? "payment failed");
           return;
         case "onramp_api.cancel":
+          debugApplePay("collapsing widget after cancel event");
+          setIframeExpanded(false);
+          return;
         case "onramp_api.apple_pay_session_cancelled":
           setIframeExpanded(false);
           return;
         case "onramp_api.polling_start":
           setIframeExpanded(true);
-          void commitRef.current();
           void refreshRef.current();
           return;
         case "onramp_api.polling_success":
           setIframeExpanded(false);
-          void commitRef.current();
           void refreshRef.current();
           return;
         case "onramp_api.polling_error":
@@ -130,14 +123,25 @@ export function useCoinbaseApplePayWidget({
             parsed.data?.errorMessage ?? "transaction processing error",
           );
           return;
+        default:
+          debugApplePay("unhandled coinbase event", {
+            eventName: parsed.eventName,
+            data: parsed.data,
+          });
+          return;
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, []);
 
+  const onIframeLoad = useCallback(() => {
+    debugApplePay("iframe load", { paymentLinkUrl });
+  }, [paymentLinkUrl]);
+
   return {
     iframeExpanded,
+    onIframeLoad,
     iframeReady,
     iframeRef,
     resetWidget,
@@ -170,4 +174,11 @@ function isCoinbaseOrigin(origin: string): boolean {
   } catch {
     return false;
   }
+}
+
+function debugApplePay(
+  message: string,
+  fields?: Record<string, unknown>,
+): void {
+  console.info("[apple-pay]", message, fields ?? {});
 }

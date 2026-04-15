@@ -76,25 +76,20 @@ export function useDraftDeposit({
       void (async () => {
         try {
           const result = draftMode === "signed"
-            ? await signAndUpsertDeposit({
+            ? await createSignedDraftDeposit({
                 client,
                 accountFlow,
                 sessionId,
                 rail,
                 depositAmount,
               })
-            : await (async () => {
-                const token = await accountFlow.getAccessToken();
-                if (!token) throw new Error("not authenticated");
-                return client.account.upsertDeposit(
-                  {
-                    sessionId,
-                    rail,
-                    depositAmount,
-                  },
-                  { bearerToken: token },
-                );
-              })();
+            : await upsertPlainDraftDeposit({
+                client,
+                accountFlow,
+                sessionId,
+                rail,
+                depositAmount,
+              });
           if (seq !== requestSeqRef.current) return;
           setDepositState({
             depositAmount,
@@ -144,6 +139,7 @@ type SignAndUpsertDepositArgs = {
   accountFlow: AccountFlowState;
   sessionId: string;
   depositAmount: string;
+  authorizedAmount?: string;
   rail: AccountRail;
 };
 
@@ -152,14 +148,16 @@ export async function signAndUpsertDeposit({
   accountFlow,
   sessionId,
   depositAmount,
+  authorizedAmount,
   rail,
 }: SignAndUpsertDepositArgs): Promise<CreateDepositResponse> {
   const token = await accountFlow.getAccessToken();
   if (!token) throw new Error("not authenticated");
   const auth = { bearerToken: token };
+  const signedAmount = authorizedAmount ?? depositAmount;
   const { routingSignData, deliverySignData } =
     await client.account.prepareDeposit(
-      { sessionId, rail, depositAmount },
+      { sessionId, rail, depositAmount: signedAmount },
       auth,
     );
   const routingSig = await accountFlow.signTypedData({
@@ -180,4 +178,51 @@ export async function signAndUpsertDeposit({
     },
     auth,
   );
+}
+
+async function upsertPlainDraftDeposit({
+  client,
+  accountFlow,
+  sessionId,
+  rail,
+  depositAmount,
+}: SignAndUpsertDepositArgs): Promise<CreateDepositResponse> {
+  const token = await accountFlow.getAccessToken();
+  if (!token) throw new Error("not authenticated");
+  return client.account.upsertDeposit(
+    {
+      sessionId,
+      rail,
+      depositAmount,
+    },
+    { bearerToken: token },
+  );
+}
+
+async function createSignedDraftDeposit({
+  client,
+  accountFlow,
+  sessionId,
+  rail,
+  depositAmount,
+}: SignAndUpsertDepositArgs): Promise<CreateDepositResponse> {
+  const preview = await upsertPlainDraftDeposit({
+    client,
+    accountFlow,
+    sessionId,
+    rail,
+    depositAmount,
+  });
+  const signedAmount =
+    preview.payment.flow === "wallet-pay-widget"
+      ? preview.payment.purchaseAmount
+      : depositAmount;
+  return signAndUpsertDeposit({
+    client,
+    accountFlow,
+    sessionId,
+    rail,
+    depositAmount,
+    authorizedAmount: signedAmount,
+  });
 }

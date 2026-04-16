@@ -69,12 +69,12 @@ export type PaymentMethod =
   | PaymentMethodEvm
   | PaymentMethodTron
   | PaymentMethodSolana
-  | PaymentMethodAccountDeposit;
+  | PaymentMethodFiat;
 
-export type PaymentMethodAccountDeposit = {
-  type: "account_deposit";
-  /** Selected fiat rail, when known. */
-  rail?: AccountRail;
+export type PaymentMethodFiat = {
+  type: "fiat";
+  /** Selected fiat method, when known. */
+  fiatMethod?: AccountRail;
   /** When this payment method was created (unix seconds). */
   createdAt: number;
 };

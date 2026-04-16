@@ -10,6 +10,7 @@ export type {
   NavNodeDeeplink,
   NavNodeDepositAddress,
   NavNodeExchange,
+  NavNodeFiat,
   NavNodeTronDeposit,
   SessionWithNav,
 } from "./navTree.js";
@@ -22,13 +23,13 @@ export type {
 
 export type RetrieveSessionWithNavResponse = {
   session: SessionPublicInfo & { navTree: NavNode[]; baseUrl: string };
-  /** Embedded auth app ID, present when the nav tree includes AccountDeposit. */
+  /** Embedded auth app ID, present when the nav tree includes Fiat. */
   privyAppId?: string;
 };
 
 export type RecreateSessionWithNavResponse = {
   session: SessionWithNav;
-  /** Embedded auth app ID, present when the nav tree includes AccountDeposit. */
+  /** Embedded auth app ID, present when the nav tree includes Fiat. */
   privyAppId?: string;
 };
 

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   NavNode,
-  NavNodeAccountDeposit,
   NavNodeCashApp,
   NavNodeChooseOption,
   NavNodeExchange,
+  NavNodeFiat,
   SessionWithNav,
 } from "../api/navTree.js";
 import type { WalletPaymentOption } from "../api/walletTypes.js";
@@ -223,8 +223,8 @@ export function useSessionNav(
   // ─── Account deposit handler ────────────────────────────────────────────────
 
   const handleAccountNavigate = useCallback(
-    async (nodeId: string, node: NavNodeAccountDeposit, autoNav: boolean) => {
-      const { rail } = node;
+    async (nodeId: string, node: NavNodeFiat, autoNav: boolean) => {
+      const rail = node.fiatMethod;
 
       if (!accountFlow) {
         setStack((prev) => [
@@ -402,7 +402,7 @@ export function useSessionNav(
         return;
       }
 
-      if (targetNode.type === "AccountDeposit") {
+      if (targetNode.type === "Fiat") {
         handleAccountNavigate(nodeId, targetNode, autoNav);
         return;
       }

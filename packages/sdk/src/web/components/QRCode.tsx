@@ -152,11 +152,13 @@ function QRCodeContent({ value, image }: { value: string; image?: React.ReactNod
       </svg>
 
       {image && (
-        <div
-          className="daimo-absolute daimo-left-1/2 daimo-top-1/2 daimo-flex -daimo-translate-x-1/2 -daimo-translate-y-1/2 daimo-items-center daimo-justify-center"
-          style={centerLogoStyle}
-        >
-          {image}
+        <div className="daimo-absolute daimo-inset-0 daimo-flex daimo-items-center daimo-justify-center">
+          <div
+            className="daimo-flex daimo-items-center daimo-justify-center"
+            style={centerLogoStyle}
+          >
+            {image}
+          </div>
         </div>
       )}
     </div>
@@ -185,7 +187,9 @@ function QRPlaceholderContent({ image, density = "medium" }: QRPlaceholderProps)
       {/* Logo on top, unaffected by shimmer */}
       {image && (
         <div className="daimo-qr-placeholder-logo">
-          {image}
+          <div className="daimo-qr-placeholder-logo-inner">
+            {image}
+          </div>
         </div>
       )}
     </>

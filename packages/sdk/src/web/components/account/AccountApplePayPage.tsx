@@ -5,6 +5,7 @@ import type {
   DepositConstraints,
   DepositPaymentInfo,
 } from "../../../common/account.js";
+import { isSafariBrowser } from "../../platform.js";
 import { useDaimoClient } from "../../hooks/DaimoClientContext.js";
 import { t } from "../../hooks/locale.js";
 import { useSessionDepositState } from "../../hooks/useAccountFlow.js";
@@ -123,6 +124,7 @@ export function AccountApplePayPage({
   const isCreating = isCreatingDraft;
   const paymentLinkUrl =
     payment?.flow === "wallet-pay-widget" ? payment.paymentLinkUrl : null;
+  const allowExpandedView = !isSafariBrowser();
   const buttonShellRef = useRef<HTMLDivElement | null>(null);
   const [buttonShellWidth, setButtonShellWidth] = useState(
     APPLE_PAY_SHELL_MAX_WIDTH,
@@ -142,6 +144,7 @@ export function AccountApplePayPage({
     resetWidget,
     widgetError,
   } = useCoinbaseApplePayWidget({
+    allowExpandedView,
     onRefreshDeposit: refreshFromServer,
     paymentLinkUrl,
   });
@@ -210,7 +213,7 @@ export function AccountApplePayPage({
     payment?.flow === "wallet-pay-widget" ? payment.totalFeeUnits : null;
   const totalUnits =
     payment?.flow === "wallet-pay-widget" ? payment.purchaseAmount : null;
-  const isExpanded = iframeExpanded;
+  const isExpanded = allowExpandedView && iframeExpanded;
   const scaledButtonRatio = buttonShellWidth / APPLE_PAY_BUTTON_WIDTH;
   const buttonScale =
     Number.isFinite(scaledButtonRatio) && scaledButtonRatio > 0

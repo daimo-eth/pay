@@ -1,7 +1,11 @@
 import type { Address } from "viem";
 import { z } from "zod";
 
-/** User-visible payment rail. This is the canonical account deposit identifier. */
+/**
+ * Fiat method identifier. Exposed publicly as `fiatMethod` on
+ * `PaymentMethodFiat` and `NavNodeFiat`; persisted internally as the rail
+ * on account deposit rows.
+ */
 export const zAccountRail = z.enum(["interac", "ach", "apple_pay"]);
 export type AccountRail = z.infer<typeof zAccountRail>;
 

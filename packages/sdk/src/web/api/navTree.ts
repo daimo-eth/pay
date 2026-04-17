@@ -78,9 +78,9 @@ export type NavNodeConnectedWallet = NavNodeCommon & {
   autoconnect?: boolean;
 };
 
-export type NavNodeAccountDeposit = NavNodeCommon & {
-  type: "AccountDeposit";
-  rail: AccountRail;
+export type NavNodeFiat = NavNodeCommon & {
+  type: "Fiat";
+  fiatMethod: AccountRail;
   icon?: string;
 };
 
@@ -92,4 +92,4 @@ export type NavNode =
   | NavNodeCashApp
   | NavNodeTronDeposit
   | NavNodeConnectedWallet
-  | NavNodeAccountDeposit;
+  | NavNodeFiat;

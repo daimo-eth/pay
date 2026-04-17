@@ -29,8 +29,8 @@ export const zCreatePaymentMethodRequest = z.object({
       platform: zPlatform.optional(),
     }),
     z.object({
-      type: z.literal("account_deposit"),
-      rail: zAccountRail.optional(),
+      type: z.literal("fiat"),
+      fiatMethod: zAccountRail.optional(),
     }),
   ]),
 });
@@ -93,12 +93,12 @@ export type CreatePaymentMethodResponse = {
     /** Invoice expiry time (unix seconds). Present for Lightning invoices. */
     expiresAt?: number;
   };
-  /** Account deposit details, present when payment method is account_deposit. */
-  accountDeposit?: {
-    /** Hosted URL where the user completes KYC and the selected rail flow. */
+  /** Fiat payment details, present when payment method is fiat. */
+  fiat?: {
+    /** Hosted URL where the user completes KYC and the selected fiat flow. */
     hostedUrl: string;
-    /** Selected fiat rail for this hosted flow, when pinned to one rail. */
-    rail?: z.infer<typeof zAccountRail>;
+    /** Selected fiat method for this hosted flow, when pinned to one method. */
+    fiatMethod?: z.infer<typeof zAccountRail>;
   };
 };
 

@@ -169,7 +169,7 @@ export function DaimoModal(props: DaimoModalProps) {
 
   // If the API returned a privyAppId and no AccountFlowProvider exists
   // upstream (e.g. customer didn't pass privyAppId to DaimoSDKProvider),
-  // lazily wrap modal content so AccountDeposit flow works automatically.
+  // lazily wrap modal content so fiat flow works automatically.
   const existingAccountFlow = useAccountFlow();
   const needsAccountProvider = !!privyAppId && !existingAccountFlow;
 
@@ -656,7 +656,7 @@ function renderEntry(
           clientSecret={ctx.session.clientSecret}
           baseUrl={ctx.session.baseUrl}
           platform={ctx.platform}
-          icon={accountNode?.type === "AccountDeposit" ? accountNode.icon : undefined}
+          icon={accountNode?.type === "Fiat" ? accountNode.icon : undefined}
           onBack={ctx.onBack}
           onAdvance={() => ctx.onAccountAdvance("account-status")}
         />
